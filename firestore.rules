@@ -11,13 +11,13 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.keys().hasOnly(['displayName', 'email', 'createdAt', 'updatedAt'])
         && request.resource.data.displayName is string
-        && request.resource.data.displayName.matches('(?s)^.{2,60}$');
+        && request.resource.data.displayName.matches('^.{2,60}$');
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['displayName', 'updatedAt'])
         && request.resource.data.displayName is string
-        && request.resource.data.displayName.matches('(?s)^.{2,60}$');
+        && request.resource.data.displayName.matches('^.{2,60}$');
       allow delete: if false;
     }
 
@@ -28,14 +28,14 @@ service cloud.firestore {
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.authorName is string
         && request.resource.data.body is string
-        && request.resource.data.body.matches('(?s)^.{1,2000}$')
+        && request.resource.data.body.matches('^.{1,2000}$')
         && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
         && request.resource.data.createdAt == request.time;
       allow update: if signedIn()
         && resource.data.authorId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic'])
         && request.resource.data.body is string
-        && request.resource.data.body.matches('(?s)^.{1,2000}$')
+        && request.resource.data.body.matches('^.{1,2000}$')
         && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'];
       allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
     }

@@ -6,7 +6,7 @@ service cloud.firestore {
     }
 
     match /profiles/{userId} {
-      allow read: if signedIn();
+      allow read: if signedIn() && request.auth.uid == userId;
       allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.keys().hasOnly(['displayName', 'email', 'createdAt', 'updatedAt'])
@@ -34,8 +34,14 @@ service cloud.firestore {
         && request.resource.data.body.size() <= 2000
         && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
         && request.resource.data.createdAt == request.time;
-      allow update, delete: if signedIn()
-        && resource.data.authorId == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic'])
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 1
+        && request.resource.data.body.size() <= 2000
+        && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'];
+      allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
     }
   }
 }

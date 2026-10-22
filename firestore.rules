@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /profiles/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['displayName', 'email', 'createdAt', 'updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.matches('^[\\s\\S]{2,60}$');
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['displayName', 'updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.matches('^[\\s\\S]{2,60}$');
+      allow delete: if false;
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'body', 'topic', 'createdAt'])
+        && request.resource.data.authorId == request.auth.uid
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
+        && request.resource.data.body is string
+        && request.resource.data.body.matches('^[\\s\\S]{1,1000}[\\s\\S]{0,1000}$')
+        && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic'])
+        && request.resource.data.body is string
+        && request.resource.data.body.matches('^[\\s\\S]{1,1000}[\\s\\S]{0,1000}$')
+        && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'];
+      allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
+    }
+  }
+}

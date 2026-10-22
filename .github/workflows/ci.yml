@@ -11,7 +11,8 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: build
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,6 +23,33 @@ jobs:
           cache: npm
           cache-dependency-path: package.json
       - name: Install dependencies
-        run: npm install
+        run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm install --no-audit --no-fund
+      - name: Unit and component tests
+        run: bash .github/scripts/run-reported.sh "Tes unit dan komponen" npm test
       - name: Build production bundle
-        run: npm run build
+        run: bash .github/scripts/run-reported.sh "Build produksi" npm run build
+
+  rules:
+    name: firestore-rules
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package.json
+      - name: Set up Java (Firestore emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies
+        run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm install --no-audit --no-fund
+      - name: Firestore Rules tests (emulator, demo project)
+        run: >
+          bash .github/scripts/run-reported.sh "Tes Firestore Rules"
+          npx --yes firebase-tools emulators:exec --only firestore
+          --project demo-sl-community-rules "npm run test:rules"

@@ -26,7 +26,9 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'body', 'topic', 'createdAt'])
         && request.resource.data.authorId == request.auth.uid
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
         && request.resource.data.authorName is string
+        && request.resource.data.authorName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
         && request.resource.data.body is string
         && request.resource.data.body.matches('^[\\s\\S]{1,1000}[\\s\\S]{0,1000}$')
         && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']

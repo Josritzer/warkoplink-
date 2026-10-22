@@ -1,63 +1,125 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc
+  addDoc, collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut } from 'lucide-react';
+import {
+  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
+  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
+} from './lib.js';
 
-const topics = ['Semua', 'Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'];
+const POSTS_LIMIT = 100;
 
 export default function App() {
   const [section, setSection] = useState('Obrolan');
   const [topic, setTopic] = useState('Semua');
+  const [composerTopic, setComposerTopic] = useState(POST_TOPICS[0]);
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
   const [notice, setNotice] = useState('');
   const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(!auth);
   const [posts, setPosts] = useState([]);
+  const [postsStatus, setPostsStatus] = useState(db ? 'loading' : 'ready');
+  const [postsRetry, setPostsRetry] = useState(0);
   const [authOpen, setAuthOpen] = useState(false);
   const [registerMode, setRegisterMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [authError, setAuthError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const registering = useRef(false);
+
+  // Membuat dokumen profil jika akun Auth sudah ada tetapi profil belum tersimpan
+  // (misalnya pembuatan profil gagal saat registrasi). Aman dipanggil berulang.
+  const ensureProfile = useCallback(async (currentUser) => {
+    if (!db || !currentUser) return true;
+    try {
+      const ref = doc(db, 'profiles', currentUser.uid);
+      const existing = await getDoc(ref);
+      if (existing.exists()) return true;
+      await setDoc(ref, {
+        displayName: authorNameFor(currentUser),
+        email: currentUser.email,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.warn('Profil belum dapat disimpan:', error?.code || 'unknown');
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     if (!auth) return undefined;
-    return onAuthStateChanged(auth, setUser);
-  }, []);
+    return onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+      setAuthReady(true);
+      if (nextUser && !registering.current) ensureProfile(nextUser);
+    });
+  }, [ensureProfile]);
 
   useEffect(() => {
     if (!db) return undefined;
-    const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+    setPostsStatus('loading');
+    const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(POSTS_LIMIT));
     return onSnapshot(postsQuery, (snapshot) => {
       setPosts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-    }, (error) => setNotice('Gagal memuat obrolan: ' + error.message));
-  }, []);
+      setPostsStatus('ready');
+    }, () => setPostsStatus('error'));
+  }, [postsRetry]);
+
+  function openAuth(register) {
+    setRegisterMode(register);
+    setAuthError('');
+    setAuthOpen(true);
+  }
 
   async function handleAuth(event) {
     event.preventDefault();
     if (!auth || !db) {
-      setNotice('Firebase belum dikonfigurasi. Isi variabel VITE_FIREBASE_* terlebih dahulu.');
+      setAuthError('Firebase belum dikonfigurasi. Isi variabel VITE_FIREBASE_* terlebih dahulu.');
       return;
     }
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.ok) return setAuthError(emailCheck.error);
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.ok) return setAuthError(passwordCheck.error);
+    const nameCheck = registerMode ? validateDisplayName(displayName) : { ok: true };
+    if (!nameCheck.ok) return setAuthError(nameCheck.error);
+
+    setAuthError('');
     setBusy(true);
+    let profileSaved = true;
     try {
       if (registerMode) {
-        const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        const name = displayName.trim();
-        await updateProfile(result.user, { displayName: name });
-        await setDoc(doc(db, 'profiles', result.user.uid), {
-          displayName: name, email: result.user.email, createdAt: serverTimestamp(), updatedAt: serverTimestamp()
-        });
-        setUser({ ...result.user, displayName: name });
-        setNotice('Akun berhasil dibuat. Selamat bergabung!');
+        registering.current = true;
+        const result = await createUserWithEmailAndPassword(auth, emailCheck.value, passwordCheck.value);
+        try {
+          await updateProfile(result.user, { displayName: nameCheck.value });
+          await setDoc(doc(db, 'profiles', result.user.uid), {
+            displayName: nameCheck.value,
+            email: result.user.email,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        } catch (profileError) {
+          // Akun sudah terbuat dan pengguna sudah masuk; profil akan dicoba lagi otomatis.
+          profileSaved = false;
+        }
+        setNotice(profileSaved
+          ? 'Akun berhasil dibuat. Selamat bergabung!'
+          : 'Akun berhasil dibuat, tetapi profil belum tersimpan. Kami akan mencoba lagi otomatis saat Anda masuk berikutnya.');
       } else {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
+        await signInWithEmailAndPassword(auth, emailCheck.value, passwordCheck.value);
         setNotice('Berhasil masuk ke SL Community.');
       }
       setAuthOpen(false);
@@ -65,41 +127,44 @@ export default function App() {
       setPassword('');
       setDisplayName('');
     } catch (error) {
-      const messages = {
-        'auth/email-already-in-use': 'Email ini sudah terdaftar.',
-        'auth/invalid-email': 'Format email tidak valid.',
-        'auth/weak-password': 'Kata sandi minimal 6 karakter.',
-        'auth/invalid-credential': 'Email atau kata sandi salah.',
-        'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.'
-      };
-      setNotice(messages[error.code] || 'Autentikasi gagal: ' + error.message);
+      setAuthError(authErrorMessage(error));
     } finally {
+      registering.current = false;
       setBusy(false);
     }
   }
 
   async function handlePost(event) {
     event.preventDefault();
-    const body = draft.trim();
-    if (!body) return setNotice('Tulis pesan terlebih dahulu.');
     if (!user) {
-      setAuthOpen(true);
+      openAuth(false);
       setNotice('Masuk atau buat akun terlebih dahulu untuk mengirim obrolan.');
       return;
     }
+    const bodyCheck = validatePostBody(draft);
+    if (!bodyCheck.ok) return setNotice(bodyCheck.error);
     if (!db) return setNotice('Firebase belum dikonfigurasi.');
+    setPosting(true);
     try {
+      // Aturan keamanan mencocokkan nama penulis dengan profil, jadi pastikan profil ada.
+      const hasProfile = await ensureProfile(user);
+      if (!hasProfile) {
+        setNotice('Profil Anda belum tersimpan sehingga pesan belum dapat dikirim. Coba lagi sebentar lagi.');
+        return;
+      }
       await addDoc(collection(db, 'posts'), {
         authorId: user.uid,
-        authorName: user.displayName || user.email?.split('@')[0] || 'Anggota',
-        body,
-        topic: topic === 'Semua' ? 'Obrolan Umum' : topic,
+        authorName: authorNameFor(user),
+        body: bodyCheck.value,
+        topic: composerTopic,
         createdAt: serverTimestamp()
       });
       setDraft('');
       setNotice('Obrolan berhasil dipublikasikan.');
     } catch (error) {
-      setNotice('Pesan belum terkirim: ' + error.message);
+      setNotice(postErrorMessage(error));
+    } finally {
+      setPosting(false);
     }
   }
 
@@ -109,15 +174,11 @@ export default function App() {
       await signOut(auth);
       setNotice('Anda sudah keluar dari akun.');
     } catch (error) {
-      setNotice('Gagal keluar: ' + error.message);
+      setNotice('Gagal keluar. Silakan coba lagi.');
     }
   }
 
-  const visiblePosts = posts.filter((post) =>
-    (topic === 'Semua' || post.topic === topic) &&
-    (String(post.body || '').toLowerCase().includes(search.toLowerCase()) ||
-      String(post.authorName || '').toLowerCase().includes(search.toLowerCase()))
-  );
+  const visiblePosts = filterPosts(posts, topic, search);
 
   return <div className="app-shell">
     <header className="topbar">
@@ -128,8 +189,9 @@ export default function App() {
       <nav aria-label="Navigasi utama">{['Obrolan', 'Layanan', 'Tentang'].map(item =>
         <button key={item} className={section === item ? 'nav-link active' : 'nav-link'} onClick={() => setSection(item)}>{item}</button>
       )}</nav>
-      {user ? <button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button> :
-        <button className="button button-dark" onClick={() => { setAuthOpen(true); setRegisterMode(false); }}>Masuk</button>}
+      {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
+        user ? <button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button> :
+        <button className="button button-dark" onClick={() => openAuth(false)}>Masuk</button>}
     </header>
 
     <main>
@@ -140,7 +202,7 @@ export default function App() {
           <p>Ruang untuk berbagi cerita, mencari jawaban, dan membangun hubungan positif bersama komunitas SL.</p>
           <div className="hero-actions">
             <button className="button button-light" onClick={() => document.getElementById('community-feed')?.scrollIntoView({behavior:'smooth'})}>Jelajahi obrolan <ArrowUpRight size={17}/></button>
-            <button className="button button-outline" onClick={() => { setAuthOpen(true); setRegisterMode(true); }}>Gabung komunitas</button>
+            <button className="button button-outline" onClick={() => openAuth(true)}>Gabung komunitas</button>
           </div>
           <div className="hero-proof"><ShieldCheck size={20}/><span><b>Komunitas yang saling menghargai</b><small>Jaga percakapan tetap ramah dan bermanfaat.</small></span></div>
         </div>
@@ -165,26 +227,29 @@ export default function App() {
         <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className="status-pill">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
         {!firebaseConfigured && <p className="config-warning">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
         <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari obrolan…"/></label></div>
-        <div className="topic-list">{topics.map(t => <button key={t} onClick={() => setTopic(t)} className={topic === t ? 'topic selected' : 'topic'}>{t}</button>)}</div>
+        <div className="topic-list">{FILTER_TOPICS.map(t => <button key={t} onClick={() => setTopic(t)} aria-pressed={topic === t} className={topic === t ? 'topic selected' : 'topic'}>{t}</button>)}</div>
         <form className="composer" onSubmit={handlePost}>
-          <textarea value={draft} onChange={e => setDraft(e.target.value)} placeholder={user ? 'Apa yang ingin kamu bagikan hari ini?' : 'Masuk untuk mulai berbagi obrolan…'} rows={3}/>
-          <div className="composer-bottom"><select aria-label="Kategori obrolan" value={topic === 'Semua' ? 'Obrolan Umum' : topic} onChange={e => setTopic(e.target.value)}>{topics.slice(1).map(t => <option key={t}>{t}</option>)}</select><button className="button button-dark" type="submit">Mulai obrolan <MessageCircle size={16}/></button></div>
+          <textarea aria-label="Isi obrolan" value={draft} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder={user ? 'Apa yang ingin kamu bagikan hari ini?' : 'Masuk untuk mulai berbagi obrolan…'} rows={3}/>
+          <div className="composer-bottom"><select aria-label="Kategori obrolan" value={composerTopic} onChange={e => setComposerTopic(e.target.value)}>{POST_TOPICS.map(t => <option key={t}>{t}</option>)}</select><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-dark" type="submit" disabled={posting}>{posting ? 'Mengirim…' : 'Mulai obrolan'} <MessageCircle size={16}/></button></div>
         </form>
         <div className="post-list">
-          {visiblePosts.map(post => <article className="post-card" key={post.id}><div className="post-avatar">{String(post.authorName || 'A').slice(0,1).toUpperCase()}</div><div className="post-content"><div className="post-meta"><b>{post.authorName || 'Anggota SL'}</b><span>{post.topic || 'Obrolan Umum'}</span></div><p>{post.body}</p></div></article>)}
-          {visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}
+          {postsStatus === 'loading' && <div className="empty-state" role="status"><h3>Memuat obrolan…</h3><p>Mohon tunggu sebentar.</p></div>}
+          {postsStatus === 'error' && <div className="empty-state" role="alert"><h3>Obrolan belum dapat dimuat</h3><p>Periksa koneksi internet Anda lalu coba lagi.</p><button className="button button-dark" onClick={() => setPostsRetry(n => n + 1)}>Coba lagi</button></div>}
+          {postsStatus === 'ready' && visiblePosts.map(post => <article className="post-card" key={post.id}><div className="post-avatar">{String(post.authorName || 'A').slice(0,1).toUpperCase()}</div><div className="post-content"><div className="post-meta"><b>{post.authorName || 'Anggota SL'}</b><span>{post.topic || 'Obrolan Umum'}</span></div><p>{post.body}</p></div></article>)}
+          {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}
         </div>
       </section>}
       {authOpen && <div className="modal-backdrop" role="presentation" onClick={() => setAuthOpen(false)}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={() => setAuthOpen(false)} aria-label="Tutup">×</button>
         <span className="brand-mark"><Sparkles size={20}/></span><h2 id="auth-title">{registerMode ? 'Gabung komunitas' : 'Selamat datang kembali'}</h2><p>{registerMode ? 'Buat akun untuk mulai terhubung.' : 'Masuk untuk ikut dalam percakapan.'}</p>
-        <form onSubmit={handleAuth}>
-          {registerMode && <label>Nama tampilan<input value={displayName} onChange={e => setDisplayName(e.target.value)} minLength={2} maxLength={60} required placeholder="Nama kamu"/></label>}
-          <label>Email<input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="nama@email.com"/></label>
-          <label>Kata sandi<input type="password" autoComplete={registerMode ? 'new-password' : 'current-password'} value={password} onChange={e => setPassword(e.target.value)} minLength={6} required placeholder="Minimal 6 karakter"/></label>
+        <form onSubmit={handleAuth} noValidate>
+          {registerMode && <label>Nama tampilan<input value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={60} placeholder="Nama kamu"/></label>}
+          <label>Email<input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="nama@email.com"/></label>
+          <label>Kata sandi<input type="password" autoComplete={registerMode ? 'new-password' : 'current-password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimal 6 karakter"/></label>
+          {authError && <p className="form-error" role="alert">{authError}</p>}
           <button className="button button-dark auth-submit" type="submit" disabled={busy}>{busy ? 'Memproses…' : registerMode ? 'Buat akun' : 'Masuk'}</button>
         </form>
-        <button className="switch-auth" onClick={() => setRegisterMode(!registerMode)}>{registerMode ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Daftar'}</button>
+        <button className="switch-auth" onClick={() => { setRegisterMode(!registerMode); setAuthError(''); }}>{registerMode ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Daftar'}</button>
       </section></div>}
       {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice('')} aria-label="Tutup">×</button></div>}
     </main>

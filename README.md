@@ -6,15 +6,17 @@ Aplikasi komunitas digital terpisah untuk profil anggota dan obrolan berbasis to
 
 1. Pasang Node.js LTS.
 2. Jalankan `npm install`.
-3. Salin `.env.example` menjadi `.env`, lalu isi konfigurasi Firebase Web App.
-4. Aktifkan **Email/Password** di Firebase Console → Authentication → Sign-in method.
-5. Buat Cloud Firestore Database untuk proyek Firebase SL Community.
-6. Terapkan aturan dari berkas `firestore.rules` pada Firestore Rules.
+3. Salin `.env.example` menjadi `.env` (konfigurasi web untuk proyek Firebase SL Community sudah diisi).
+4. Pastikan **Email/Password** aktif di Firebase Console → Authentication → Sign-in method.
+5. Pastikan Cloud Firestore Database sudah dibuat di proyek Firebase SL Community.
+6. Terapkan aturan dari berkas `firestore.rules` pada Firebase Console → Firestore Database → Rules, lalu klik **Publish**. Jangan gunakan aturan contoh lain.
 7. Jalankan `npm run dev`; untuk produksi jalankan `npm run build`.
 
 ## Variabel Firebase
 
-Ambil nilainya dari Firebase Console → Project settings → Your apps → Web app, kemudian isi variabel `VITE_FIREBASE_*` di `.env` atau Netlify Site configuration → Environment variables. Jangan commit file `.env`.
+Konfigurasi web pada `.env.example` ditujukan hanya untuk proyek `sl-community-platform`. Firebase Web API key dan app ID adalah konfigurasi client-side; jangan pernah menaruh service-account JSON, private key, atau kredensial Firebase Admin di frontend atau repository.
+
+Untuk Netlify, masukkan variabel `VITE_FIREBASE_*` yang sama pada Site configuration → Environment variables sebelum deploy. Setelah mengubah environment variables, buat deploy baru agar konfigurasi masuk ke build.
 
 ## Struktur data Firestore
 

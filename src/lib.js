@@ -1,6 +1,6 @@
 // Logika murni (tanpa Firebase/React) agar mudah diuji dan konsisten dengan firestore.rules.
 
-export const MAX_POST_LENGTH = 2000;
+export const MAX_POST_LENGTH = 3000;
 export const DISPLAY_NAME_MIN = 2;
 export const DISPLAY_NAME_MAX = 60;
 export const PASSWORD_MIN = 6;

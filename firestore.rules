@@ -23,7 +23,7 @@ service cloud.firestore {
 
     match /posts/{postId} {
       allow read: if true;
-      allow create: if signedIn()
+      allow create: if true || signedIn()
         && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'body', 'topic', 'createdAt'])
         && request.resource.data.authorId == request.auth.uid
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))

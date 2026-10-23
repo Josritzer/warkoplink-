@@ -6,7 +6,7 @@ import {
   assertFails, assertSucceeds, initializeTestEnvironment
 } from '@firebase/rules-unit-testing';
 import {
-  addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, Timestamp
+  addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, Timestamp, writeBatch
 } from 'firebase/firestore';
 
 let env;
@@ -54,6 +54,7 @@ beforeEach(async () => {
 
 const asAnon = () => env.unauthenticatedContext().firestore();
 const asUser = (uid) => env.authenticatedContext(uid).firestore();
+const asAdmin = () => env.authenticatedContext('admin', { admin: true }).firestore();
 
 describe('posts', () => {
   it('pengunjung anonim boleh membaca postingan', async () => {
@@ -265,5 +266,86 @@ describe('warungs — direktori aman tahap awal', () => {
   it('warkop tidak dapat dihapus melalui client', async () => {
     await setDoc(doc(asUser('alice'), 'warungs/warkop-no-delete'), validWarung());
     await assertFails(deleteDoc(doc(asUser('alice'), 'warungs/warkop-no-delete')));
+  });
+});
+
+
+describe('verifikasi admin dan audit otomatis', () => {
+  async function seedPendingWarung() {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'warungs/warkop-audit'), validWarung({
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      }));
+    });
+  }
+
+  it('admin tidak dapat mengubah status tanpa catatan audit atomik', async () => {
+    await seedPendingWarung();
+    await assertFails(updateDoc(doc(asAdmin(), 'warungs/warkop-audit'), {
+      verificationStatus: 'verified',
+      verificationAuditId: 'audit-tanpa-catatan',
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it('admin sah dapat mengubah status dan membuat audit dalam satu batch', async () => {
+    await seedPendingWarung();
+    const db = asAdmin();
+    const auditRef = doc(collection(db, 'verificationAudit'));
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'warungs/warkop-audit'), {
+      verificationStatus: 'verified',
+      verificationAuditId: auditRef.id,
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(auditRef, {
+      warungId: 'warkop-audit',
+      warungName: 'Warkop Pojok',
+      previousStatus: 'pending',
+      newStatus: 'verified',
+      actorUid: 'admin',
+      reason: 'Informasi sudah diperiksa',
+      createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
+    await assertSucceeds(getDoc(doc(db, 'verificationAudit', auditRef.id)));
+  });
+
+  it('pengguna tanpa klaim admin tidak dapat membuat catatan audit', async () => {
+    await seedPendingWarung();
+    await assertFails(addDoc(collection(asUser('alice'), 'verificationAudit'), {
+      warungId: 'warkop-audit',
+      warungName: 'Warkop Pojok',
+      previousStatus: 'pending',
+      newStatus: 'verified',
+      actorUid: 'alice',
+      reason: 'Coba mengesahkan sendiri',
+      createdAt: serverTimestamp(),
+    }));
+  });
+
+  it('admin tidak dapat membuat catatan audit tanpa perubahan status yang cocok', async () => {
+    await seedPendingWarung();
+    await assertFails(addDoc(collection(asAdmin(), 'verificationAudit'), {
+      warungId: 'warkop-audit',
+      warungName: 'Warkop Pojok',
+      previousStatus: 'pending',
+      newStatus: 'verified',
+      actorUid: 'admin',
+      reason: 'Catatan tanpa keputusan',
+      createdAt: serverTimestamp(),
+    }));
+  });
+
+  it('riwayat audit tidak dapat dibaca pengguna biasa', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'verificationAudit/audit-private'), {
+        warungId: 'warkop-audit', warungName: 'Warkop Pojok', previousStatus: 'pending',
+        newStatus: 'verified', actorUid: 'admin', reason: '', createdAt: Timestamp.now(),
+      });
+    });
+    await assertFails(getDoc(doc(asUser('alice'), 'verificationAudit/audit-private')));
+    await assertFails(getDoc(doc(asAnon(), 'verificationAudit/audit-private')));
   });
 });

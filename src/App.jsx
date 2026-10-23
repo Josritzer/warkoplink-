@@ -16,6 +16,15 @@ import {
 
 const POSTS_LIMIT = 100;
 
+function normalizeSearchText(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('id')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
   const [warungs, setWarungs] = useState([]);
   const [status, setStatus] = useState(db ? 'loading' : 'error');
@@ -157,9 +166,10 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
     </section>;
   }
 
+  const normalizedSearch = normalizeSearchText(searchTerm);
   const visibleWarungs = warungs.filter((item) => {
-    const haystack = [item.name, item.address, ...(item.facilities || [])].join(' ').toLowerCase();
-    return haystack.includes(searchTerm.trim().toLowerCase());
+    const haystack = normalizeSearchText([item.name, item.address, ...(item.facilities || [])].join(' '));
+    return haystack.includes(normalizedSearch);
   });
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>

@@ -7,7 +7,7 @@ import {
   addDoc, collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
-import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut } from 'lucide-react';
+import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
@@ -16,7 +16,7 @@ import {
 const POSTS_LIMIT = 100;
 
 export default function App() {
-  const [section, setSection] = useState('Obrolan');
+  const [section, setSection] = useState('Beranda');
   const [topic, setTopic] = useState('Semua');
   const [composerTopic, setComposerTopic] = useState(POST_TOPICS[0]);
   const [search, setSearch] = useState('');
@@ -181,48 +181,26 @@ export default function App() {
   const visiblePosts = filterPosts(posts, topic, search);
 
   return <div className="app-shell">
-    <header className="topbar">
-      <a className="brand" href="#" onClick={e => { e.preventDefault(); setSection('Obrolan'); }}>
-        <span className="brand-mark"><Sparkles size={22}/></span>
-        <span><strong>SL COMMUNITY</strong><small>Tempat terhubung & bertumbuh</small></span>
+    <header className="topbar app-header">
+      <a className="brand" href="#" onClick={e => { e.preventDefault(); setSection('Beranda'); }}>
+        <span className="brand-mark"><Sparkles size={21}/></span>
+        <span><strong>SL COMMUNITY</strong><small>Ruang obrolan Indonesia</small></span>
       </a>
-      <nav aria-label="Navigasi utama">{['Obrolan', 'Layanan', 'Tentang'].map(item =>
-        <button key={item} className={section === item ? 'nav-link active' : 'nav-link'} onClick={() => setSection(item)}>{item}</button>
-      )}</nav>
-      {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
-        user ? <button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button> :
-        <button className="button button-dark" onClick={() => openAuth(false)}>Masuk</button>}
+      <div className="header-actions">
+        {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
+          user ? <button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button> :
+          <><button className="button button-quiet" onClick={() => openAuth(false)}>Masuk</button><button className="button button-dark" onClick={() => openAuth(true)}>Gabung komunitas</button></>}
+      </div>
     </header>
 
     <main>
-      <section className="hero">
-        <div className="hero-copy">
-          <span className="eyebrow"><i/> RUANG KOMUNITAS DIGITAL</span>
-          <h1>Lebih dekat.<br/><em>Bertumbuh bersama.</em></h1>
-          <p>Ruang untuk berbagi cerita, mencari jawaban, dan membangun hubungan positif bersama komunitas SL.</p>
-          <div className="hero-actions">
-            <button className="button button-light" onClick={() => document.getElementById('community-feed')?.scrollIntoView({behavior:'smooth'})}>Jelajahi obrolan <ArrowUpRight size={17}/></button>
-            <button className="button button-outline" onClick={() => openAuth(true)}>Gabung komunitas</button>
-          </div>
-          <div className="hero-proof"><ShieldCheck size={20}/><span><b>Komunitas yang saling menghargai</b><small>Jaga percakapan tetap ramah dan bermanfaat.</small></span></div>
-        </div>
-        <div className="hero-art" aria-hidden="true">
-          <div className="art-orbit orbit-a"/><div className="art-orbit orbit-b"/>
-          <div className="people"><span className="person person-a">☺</span><span className="person person-b">☺</span><span className="person person-c">☺</span></div>
-          <div className="floating-card card-a">💡 <span><b>Ide baru</b><small>Mulai dari obrolan</small></span></div>
-          <div className="chat-bubble bubble-a">Halo, komunitas! <Heart size={14}/></div>
-          <div className="floating-card card-b"><i/> <span><b>Ruang bersama</b><small>Ide · Cerita · Dukungan</small></span></div>
-        </div>
-      </section>
-
-      <section className="trust-row">
-        <div><Users/><span><b>Terhubung bersama</b><small>Kenali komunitas</small></span></div>
-        <div><MessageCircle/><span><b>Diskusi bermakna</b><small>Saling bantu dan berbagi</small></span></div>
-        <div><BookOpen/><span><b>Informasi bermanfaat</b><small>Belajar dari pengalaman</small></span></div>
-      </section>
-
-      {section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG KAMI</span><h2>Komunitas tumbuh dari percakapan.</h2><p>SL Community adalah ruang digital untuk berbagi informasi, berdiskusi, dan saling terhubung dengan positif.</p></section> :
-      section === 'Layanan' ? <section className="content-section"><span className="eyebrow">JELAJAHI</span><h2>Ada ruang untuk idemu.</h2><div className="service-grid"><article>💬<h3>Obrolan bersama</h3><p>Berbagi cerita dan berdiskusi dengan anggota.</p></article><article>📚<h3>Berbagi informasi</h3><p>Temukan pengalaman yang bermanfaat.</p></article><article>🤝<h3>Bangun koneksi</h3><p>Tumbuhkan relasi positif bersama.</p></article></div><button className="button button-dark" onClick={() => setSection('Obrolan')}>Buka obrolan</button></section> :
+      {section === 'Akun' ? <section className="content-section account-section">
+        <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
+        {user ? <article className="account-card"><div className="account-avatar">{String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article> :
+          <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
+      </section> :
+      section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG KAMI</span><h2>Komunitas tumbuh dari percakapan.</h2><p>SL Community adalah ruang digital untuk berbagi informasi, berdiskusi, dan saling terhubung dengan positif.</p></section> :
+      (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Ada ruang untuk idemu.</h2><p>Temukan topik dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article>💬<h3>Obrolan bersama</h3><p>Berbagi cerita dan berdiskusi dengan anggota.</p></article><article>📚<h3>Berbagi informasi</h3><p>Temukan pengalaman yang bermanfaat.</p></article><article>🤝<h3>Bangun koneksi</h3><p>Tumbuhkan relasi positif bersama.</p></article></div><button className="button button-dark" onClick={() => setSection('Obrolan')}>Buka obrolan</button></section> :
       <section className="content-section" id="community-feed">
         <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className="status-pill">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
         {!firebaseConfigured && <p className="config-warning">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
@@ -253,6 +231,12 @@ export default function App() {
       </section></div>}
       {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice('')} aria-label="Tutup">×</button></div>}
     </main>
+    <nav className="bottom-nav" aria-label="Navigasi aplikasi">
+      <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
+      <button className={section === 'Jelajahi' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Jelajahi')} aria-current={section === 'Jelajahi' ? 'page' : undefined}><Compass size={20}/><span>Jelajahi</span></button>
+      <button className={section === 'Obrolan' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => { setSection('Obrolan'); document.getElementById('community-feed')?.scrollIntoView({behavior:'smooth'}); }} aria-current={section === 'Obrolan' ? 'page' : undefined}><MessageCircle size={20}/><span>Obrolan</span></button>
+      <button className={section === 'Akun' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Akun')} aria-current={section === 'Akun' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
+    </nav>
     <footer><span className="footer-brand"><Sparkles size={16}/> SL COMMUNITY</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} SL Community Platform</small></footer>
   </div>;
 }

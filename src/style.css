@@ -82,3 +82,5 @@
 .directory-notice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 15px;margin:18px 0;border:1px solid #dbe2ff;background:#f2f4ff;color:#4053a0;border-radius:12px;font-size:12px}
 .directory-notice span{flex:1}
 @media(max-width:620px){.warung-form{padding:14px}.coordinate-fields{grid-template-columns:1fr}.warung-card{padding:14px}.directory-notice .button{width:100%}}
+
+.warung-map-link{display:inline-flex;align-items:center;gap:5px;margin-top:12px;color:#3156d9;font-size:11px;font-weight:700;text-decoration:none}.warung-map-link:hover{text-decoration:underline}.warung-map-link:focus-visible{outline:2px solid #7487e6;outline-offset:3px;border-radius:4px}

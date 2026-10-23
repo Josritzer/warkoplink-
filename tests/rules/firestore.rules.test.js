@@ -325,6 +325,50 @@ describe('verifikasi admin dan audit otomatis', () => {
     }));
   });
 
+  it('audit penolakan wajib memiliki alasan yang tidak kosong', async () => {
+    await seedPendingWarung();
+    const db = asAdmin();
+    const auditRef = doc(collection(db, 'verificationAudit'));
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'warungs/warkop-audit'), {
+      verificationStatus: 'rejected',
+      verificationAuditId: auditRef.id,
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(auditRef, {
+      warungId: 'warkop-audit',
+      warungName: 'Warkop Pojok',
+      previousStatus: 'pending',
+      newStatus: 'rejected',
+      actorUid: 'admin',
+      reason: '',
+      createdAt: serverTimestamp(),
+    });
+    await assertFails(batch.commit());
+  });
+
+  it('nama warkop dalam audit harus cocok dengan dokumen yang diputuskan', async () => {
+    await seedPendingWarung();
+    const db = asAdmin();
+    const auditRef = doc(collection(db, 'verificationAudit'));
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'warungs/warkop-audit'), {
+      verificationStatus: 'verified',
+      verificationAuditId: auditRef.id,
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(auditRef, {
+      warungId: 'warkop-audit',
+      warungName: 'Nama Palsu',
+      previousStatus: 'pending',
+      newStatus: 'verified',
+      actorUid: 'admin',
+      reason: 'Sudah diperiksa',
+      createdAt: serverTimestamp(),
+    });
+    await assertFails(batch.commit());
+  });
+
   it('admin tidak dapat membuat catatan audit tanpa perubahan status yang cocok', async () => {
     await seedPendingWarung();
     await assertFails(addDoc(collection(asAdmin(), 'verificationAudit'), {

@@ -7,7 +7,7 @@ import {
   addDoc, collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
-import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound } from 'lucide-react';
+import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
@@ -22,6 +22,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
   const [notice, setNotice] = useState('');
+  const [installPrompt, setInstallPrompt] = useState(null);
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(!auth);
   const [posts, setPosts] = useState([]);
@@ -57,6 +58,41 @@ export default function App() {
       return false;
     }
   }, []);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        // Aplikasi tetap dapat digunakan jika browser menolak service worker.
+      });
+    }
+    const captureInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+    };
+    const clearInstallPrompt = () => setInstallPrompt(null);
+    window.addEventListener('beforeinstallprompt', captureInstallPrompt);
+    window.addEventListener('appinstalled', clearInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
+      window.removeEventListener('appinstalled', clearInstallPrompt);
+    };
+  }, []);
+
+  async function handleInstallPwa() {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const result = await installPrompt.userChoice;
+      setInstallPrompt(null);
+      setNotice(result?.outcome === 'accepted'
+        ? 'SL Community sedang dipasang di perangkat Anda.'
+        : 'Pemasangan dibatalkan. Anda bisa memasang aplikasi kapan saja.');
+      return;
+    }
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    setNotice(isIos
+      ? 'Untuk memasang di iPhone/iPad: buka menu Bagikan di Safari, lalu pilih “Tambahkan ke Layar Utama”.'
+      : 'Jika tombol instal belum muncul, buka menu browser (⋮) lalu pilih “Instal aplikasi” atau “Tambahkan ke layar utama”.');
+  }
 
   useEffect(() => {
     if (!auth) return undefined;
@@ -187,6 +223,7 @@ export default function App() {
         <span><strong>SL COMMUNITY</strong><small>Ruang obrolan Indonesia</small></span>
       </a>
       <div className="header-actions">
+        <button className="button button-install" onClick={handleInstallPwa}><Download size={15}/> <span>Pasang PWA</span></button>
         {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
           user ? <button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button> :
           <><button className="button button-quiet" onClick={() => openAuth(false)}>Masuk</button><button className="button button-dark" onClick={() => openAuth(true)}>Gabung komunitas</button></>}

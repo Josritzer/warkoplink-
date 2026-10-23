@@ -47,3 +47,8 @@
   .explore-section .service-grid{grid-template-columns:1fr}
   footer{display:none}
 }
+
+/* PWA install action */
+.button-install{background:#e9edff;color:#3156d9;border:1px solid #dbe2ff;white-space:nowrap}
+.button-install:hover{background:#dfe6ff}
+@media(max-width:620px){.button-install{padding:9px 10px!important;font-size:10px!important}.button-install span{display:inline}}

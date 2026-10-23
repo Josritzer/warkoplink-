@@ -1,0 +1,22 @@
+{
+  "id": "/",
+  "name": "SL RELAX COMMUNITY",
+  "short_name": "SL Community",
+  "description": "Ruang obrolan dan komunitas digital SL RELAX.",
+  "lang": "id-ID",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7f8fc",
+  "theme_color": "#172554",
+  "categories": ["social", "communication"],
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -52,3 +52,9 @@
 .button-install{background:#e9edff;color:#3156d9;border:1px solid #dbe2ff;white-space:nowrap}
 .button-install:hover{background:#dfe6ff}
 @media(max-width:620px){.button-install{padding:9px 10px!important;font-size:10px!important}.button-install span{display:inline}}
+
+/* WarkopLink Stage 1: five-item navigation on compact mobile screens. */
+.bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding-left:6px;padding-right:6px}
+.bottom-nav-item{font-size:9px;gap:4px;padding-left:1px;padding-right:1px}
+.bottom-nav-item svg{width:18px;height:18px}
+.explore-section .service-grid article{color:#3156d9}

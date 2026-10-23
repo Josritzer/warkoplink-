@@ -382,6 +382,22 @@ describe('direktori dan pendaftaran warkop', () => {
     expect(await screen.findByText(/Pendaftaran terkirim/)).toBeTruthy();
   });
 
+
+  it('pengunjung tanpa login diarahkan ke autentikasi dan tidak dapat mengirim pendaftaran', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+    await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
+    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
+    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    expect(fs.addDoc).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText(/Masuk atau buat akun terlebih dahulu/)).toBeTruthy();
+  });
+
   it('validasi koordinat mencegah data lokasi tidak valid dikirim', async () => {
     const user = userEvent.setup();
     render(<App />);

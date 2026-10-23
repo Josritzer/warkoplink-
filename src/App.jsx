@@ -4,7 +4,7 @@ import {
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc
+  addDoc, collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, where
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store } from 'lucide-react';
@@ -14,6 +14,132 @@ import {
 } from './lib.js';
 
 const POSTS_LIMIT = 100;
+
+function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
+  const [warungs, setWarungs] = useState([]);
+  const [status, setStatus] = useState(db ? 'loading' : 'error');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [lat, setLat] = useState('');
+  const [lng, setLng] = useState('');
+  const [facilities, setFacilities] = useState('');
+  const [priceRange, setPriceRange] = useState('belum-diisi');
+  const [hours, setHours] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    if (mode !== 'directory' || !db) return undefined;
+    setStatus('loading');
+    const verifiedQuery = query(
+      collection(db, 'warungs'),
+      where('verificationStatus', '==', 'verified'),
+      limit(30)
+    );
+    return onSnapshot(verifiedQuery, (snapshot) => {
+      setWarungs(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      setStatus('ready');
+    }, () => setStatus('error'));
+  }, [mode, db]);
+
+  async function handleRegister(event) {
+    event.preventDefault();
+    if (!user) {
+      onRequestAuth();
+      onNotice('Masuk atau buat akun terlebih dahulu untuk mendaftarkan warkop.');
+      return;
+    }
+    if (!db) return setFormError('Firebase belum dikonfigurasi.');
+    const cleanName = name.trim();
+    const cleanAddress = address.trim();
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (cleanName.length < 2 || cleanName.length > 100) return setFormError('Nama warkop harus 2–100 karakter.');
+    if (cleanAddress.length < 5 || cleanAddress.length > 300) return setFormError('Alamat harus 5–300 karakter.');
+    if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude)
+      || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return setFormError('Masukkan koordinat lintang (-90 sampai 90) dan bujur (-180 sampai 180) yang valid.');
+    }
+    const facilityList = [...new Set(facilities.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))];
+    if (facilityList.length > 20) return setFormError('Maksimal 20 fasilitas.');
+    setSaving(true);
+    setFormError('');
+    try {
+      await addDoc(collection(db, 'warungs'), {
+        name: cleanName,
+        nameNormalized: cleanName.toLowerCase(),
+        ownerUid: user.uid,
+        coordinates: { lat: latitude, lng: longitude },
+        address: cleanAddress,
+        regionCode: 'lamongan-kab',
+        facilities: facilityList,
+        priceRange,
+        openingHours: hours.trim() ? { keterangan: hours.trim().slice(0, 120) } : {},
+        photos: [],
+        verificationStatus: 'pending',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      setName('');
+      setAddress('');
+      setLat('');
+      setLng('');
+      setFacilities('');
+      setPriceRange('belum-diisi');
+      setHours('');
+      onNotice('Pendaftaran terkirim. Warkop menunggu verifikasi dan belum tampil di direktori publik.');
+    } catch (error) {
+      setFormError(error?.code === 'permission-denied'
+        ? 'Pendaftaran ditolak oleh aturan keamanan. Pastikan Anda sudah masuk dan coba lagi.'
+        : 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (mode === 'register') {
+    return <section className="content-section explore-section">
+      <span className="eyebrow">DAFTAR GRATIS</span>
+      <h2>Daftarkan warkop Anda.</h2>
+      <p>Isi data yang benar. Pendaftaran akan berstatus menunggu sampai proses verifikasi tersedia.</p>
+      {!user && <div className="directory-notice"><ShieldCheck size={18}/><span>Anda perlu masuk ke akun untuk mengirim pendaftaran.</span><button className="button button-dark" onClick={onRequestAuth}>Masuk / Daftar akun</button></div>}
+      <form className="warung-form" onSubmit={handleRegister}>
+        <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>
+        <label>Alamat lengkap di Kabupaten Lamongan<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa, kecamatan"/></label>
+        <div className="coordinate-fields">
+          <label>Lintang (latitude)<input inputMode="decimal" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="-7.0001"/></label>
+          <label>Bujur (longitude)<input inputMode="decimal" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="112.2810"/></label>
+        </div>
+        <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
+        <label>Kisaran harga<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Belum diisi</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select></label>
+        <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>
+        {formError && <p className="form-error" role="alert">{formError}</p>}
+        <button className="button button-dark" type="submit" disabled={saving}>{saving ? 'Mengirim pendaftaran…' : 'Kirim pendaftaran'}</button>
+      </form>
+    </section>;
+  }
+
+  const visibleWarungs = warungs.filter((item) => {
+    const haystack = [item.name, item.address, ...(item.facilities || [])].join(' ').toLowerCase();
+    return haystack.includes(searchTerm.trim().toLowerCase());
+  });
+  return <section className="content-section explore-section">
+    <span className="eyebrow">DIREKTORI WARKOP</span>
+    <h2>Cari warkop di Lamongan.</h2>
+    <p>Direktori publik hanya menampilkan warkop yang sudah diverifikasi. Maksimal 30 entri diambil per sesi agar tidak memuat seluruh koleksi.</p>
+    <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, fasilitas…" aria-label="Cari warkop"/></label>
+    {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
+    {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi nanti.</p></div>}
+    {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{searchTerm ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{searchTerm ? 'Coba kata kunci lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
+    <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
+      <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3>{item.name}</h3><p><MapPin size={14}/>{item.address}</p>
+      <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}</div>
+      <small>{item.priceRange === 'belum-diisi' ? 'Kisaran harga belum diisi' : 'Kisaran harga: ' + item.priceRange}</small></div>
+    </article>)}</div>
+    <button className="button button-dark directory-register-cta" onClick={() => onNotice('Pilih menu Daftarkan Warkop untuk mengirim data.')}>Daftarkan warkop</button>
+  </section>;
+}
 
 export default function App() {
   const [section, setSection] = useState('Beranda');
@@ -237,7 +363,8 @@ export default function App() {
           <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
-      (section === 'Layanan' || section === 'Jelajahi' || section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <section className="content-section explore-section"><span className="eyebrow">{section === 'Cari Warkop' ? 'DIREKTORI WARKOP' : section === 'Daftarkan Warkop' ? 'DAFTAR GRATIS' : 'JELAJAHI'}</span><h2>{section === 'Cari Warkop' ? 'Cari warkop di Lamongan.' : section === 'Daftarkan Warkop' ? 'Daftarkan warkop Anda secara gratis.' : 'Temukan komunitas lokal.'}</h2><p>{section === 'Cari Warkop' ? 'Direktori, peta, filter fasilitas, dan detail warkop akan dibangun pada Tahap 2. Data dan akses pemilik akan diuji sebelum fitur ini diaktifkan.' : section === 'Daftarkan Warkop' ? 'Formulir pendaftaran dan verifikasi pemilik akan dibangun pada Tahap 2. Saat ini belum ada data warkop yang disimpan dari halaman ini.' : 'Temukan informasi lokal dan mulai percakapan yang bermanfaat.'}</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div>{section !== 'Cari Warkop' && <button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Lihat rencana direktori</button>}</section> :
+      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
+      (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Cari warkop</button></section> :
       <section className="content-section" id="community-feed">
         <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className="status-pill">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
         {!firebaseConfigured && <p className="config-warning">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}

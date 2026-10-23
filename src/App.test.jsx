@@ -23,7 +23,8 @@ vi.mock('firebase/firestore', () => ({
   limit: vi.fn((n) => ({ limit: n })),
   onSnapshot: vi.fn((q, next, error) => { state.snapshotNext = next; state.snapshotError = error; return vi.fn(); }),
   orderBy: vi.fn(),
-  query: vi.fn(),
+  query: vi.fn((...args) => ({ args })),
+  where: vi.fn((...args) => ({ where: args })),
   serverTimestamp: vi.fn(() => '__SERVER_TS__'),
   setDoc: vi.fn(),
 }));
@@ -332,5 +333,82 @@ describe('membuat postingan', () => {
     await user.type(screen.getByLabelText('Isi obrolan'), 'Halo');
     await user.click(screen.getByRole('button', { name: 'Mulai obrolan' }));
     expect(await screen.findByText(/ditolak oleh aturan keamanan/)).toBeTruthy();
+  });
+});
+
+
+describe('direktori dan pendaftaran warkop', () => {
+  it('direktori hanya meminta warkop verified dan membatasi hasil', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    expect(await screen.findByText('Memuat direktori…')).toBeTruthy();
+    expect(fs.where).toHaveBeenCalledWith('verificationStatus', '==', 'verified');
+    expect(fs.limit).toHaveBeenCalledWith(30);
+    act(() => state.snapshotNext(snapshotOf([
+      { id: 'w1', name: 'Warkop Pojok', address: 'Jl. Contoh, Lamongan', facilities: ['wifi'], priceRange: 'hemat' },
+    ])));
+    expect(await screen.findByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
+    await user.type(screen.getByRole('textbox', { name: 'Cari warkop' }), 'wifi');
+    expect(screen.getByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
+    await user.clear(screen.getByRole('textbox', { name: 'Cari warkop' }));
+    await user.type(screen.getByRole('textbox', { name: 'Cari warkop' }), 'tidak ada');
+    expect(await screen.findByText('Warkop tidak ditemukan')).toBeTruthy();
+  });
+
+  it('form pendaftaran mengirim status pending dengan identitas pemilik dari sesi', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+    await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
+    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
+    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.type(screen.getByLabelText('Fasilitas, pisahkan dengan koma'), 'Wi-Fi, parkir');
+    await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    await waitFor(() => expect(fs.addDoc).toHaveBeenCalledWith({ path: 'warungs' }, expect.objectContaining({
+      name: 'Warkop Pojok',
+      nameNormalized: 'warkop pojok',
+      ownerUid: 'u1',
+      coordinates: { lat: -7.0001, lng: 112.281 },
+      regionCode: 'lamongan-kab',
+      facilities: ['wi-fi', 'parkir'],
+      verificationStatus: 'pending',
+      createdAt: '__SERVER_TS__',
+      updatedAt: '__SERVER_TS__',
+    })));
+    expect(await screen.findByText(/Pendaftaran terkirim/)).toBeTruthy();
+  });
+
+
+  it('pengunjung tanpa login diarahkan ke autentikasi dan tidak dapat mengirim pendaftaran', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+    await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
+    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
+    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    expect(fs.addDoc).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText(/Masuk atau buat akun terlebih dahulu/)).toBeTruthy();
+  });
+
+  it('validasi koordinat mencegah data lokasi tidak valid dikirim', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+    await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
+    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Lintang (latitude)'), '200');
+    await user.type(screen.getByLabelText('Bujur (longitude)'), '112');
+    await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('koordinat');
+    expect(fs.addDoc).not.toHaveBeenCalled();
   });
 });

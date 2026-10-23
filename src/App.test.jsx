@@ -223,7 +223,7 @@ describe('login, sesi, dan logout', () => {
 
     await fillAuth(user, dialog, { email: 'sari@example.test', password: 'rahasia1' });
     await user.click(within(dialog).getByRole('button', { name: 'Masuk' }));
-    expect(await screen.findByText('Berhasil masuk ke SL Community.')).toBeTruthy();
+    expect(await screen.findByText('Berhasil masuk ke WarkopLink.')).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 

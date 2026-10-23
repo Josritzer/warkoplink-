@@ -28,6 +28,53 @@ service cloud.firestore {
         && data.createdAt == request.time;
     }
 
+    function validWarung(data) {
+      return data.keys().hasAll([
+          'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
+          'regionCode', 'facilities', 'priceRange', 'openingHours', 'photos',
+          'verificationStatus', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
+          'regionCode', 'facilities', 'priceRange', 'openingHours', 'photos',
+          'verificationStatus', 'createdAt', 'updatedAt'
+        ])
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 100
+        && data.nameNormalized is string && data.nameNormalized.size() >= 2 && data.nameNormalized.size() <= 120
+        && data.ownerUid is string
+        && data.coordinates is map
+        && data.coordinates.keys().hasAll(['lat', 'lng'])
+        && data.coordinates.keys().hasOnly(['lat', 'lng'])
+        && data.coordinates.lat is number && data.coordinates.lat >= -90 && data.coordinates.lat <= 90
+        && data.coordinates.lng is number && data.coordinates.lng >= -180 && data.coordinates.lng <= 180
+        && data.address is string && data.address.size() >= 5 && data.address.size() <= 300
+        && data.regionCode == 'lamongan-kab'
+        && data.facilities is list && data.facilities.size() <= 20
+        && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
+        && data.openingHours is map
+        && data.photos is list && data.photos.size() <= 5
+        && data.verificationStatus == 'pending'
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function validWarungEdit(data) {
+      return data.name is string && data.name.size() >= 2 && data.name.size() <= 100
+        && data.nameNormalized is string && data.nameNormalized.size() >= 2 && data.nameNormalized.size() <= 120
+        && data.coordinates is map
+        && data.coordinates.keys().hasAll(['lat', 'lng'])
+        && data.coordinates.keys().hasOnly(['lat', 'lng'])
+        && data.coordinates.lat is number && data.coordinates.lat >= -90 && data.coordinates.lat <= 90
+        && data.coordinates.lng is number && data.coordinates.lng >= -180 && data.coordinates.lng <= 180
+        && data.address is string && data.address.size() >= 5 && data.address.size() <= 300
+        && data.regionCode == 'lamongan-kab'
+        && data.facilities is list && data.facilities.size() <= 20
+        && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
+        && data.openingHours is map
+        && data.photos is list && data.photos.size() <= 5
+        && data.updatedAt == request.time;
+    }
+
     match /profiles/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create: if signedIn()
@@ -55,6 +102,28 @@ service cloud.firestore {
         && request.resource.data.body.size() <= 2000
         && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'];
       allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
+    }
+
+    // Direktori publik hanya menampilkan warkop yang telah diverifikasi.
+    // Pemilik tetap dapat membaca dokumen miliknya saat masih menunggu verifikasi.
+    match /warungs/{warungId} {
+      allow read: if resource.data.verificationStatus == 'verified'
+        || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && validWarung(request.resource.data);
+      // Status verifikasi, pemilik, dan waktu pembuatan tidak dapat diubah oleh pemilik.
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.verificationStatus == resource.data.verificationStatus
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
+          'facilities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
+        ])
+        && validWarungEdit(request.resource.data);
+      allow delete: if false;
     }
   }
 }

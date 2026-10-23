@@ -7,7 +7,7 @@ import {
   addDoc, collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
-import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download } from 'lucide-react';
+import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
@@ -84,7 +84,7 @@ export default function App() {
       const result = await installPrompt.userChoice;
       setInstallPrompt(null);
       setNotice(result?.outcome === 'accepted'
-        ? 'SL Community sedang dipasang di perangkat Anda.'
+        ? 'WarkopLink sedang dipasang di perangkat Anda.'
         : 'Pemasangan dibatalkan. Anda bisa memasang aplikasi kapan saja.');
       return;
     }
@@ -156,7 +156,7 @@ export default function App() {
           : 'Akun berhasil dibuat, tetapi profil belum tersimpan. Kami akan mencoba lagi otomatis saat Anda masuk berikutnya.');
       } else {
         await signInWithEmailAndPassword(auth, emailCheck.value, passwordCheck.value);
-        setNotice('Berhasil masuk ke SL Community.');
+        setNotice('Berhasil masuk ke WarkopLink.');
       }
       setAuthOpen(false);
       setEmail('');
@@ -220,7 +220,7 @@ export default function App() {
     <header className="topbar app-header">
       <a className="brand" href="#" onClick={e => { e.preventDefault(); setSection('Beranda'); }}>
         <span className="brand-mark"><Sparkles size={21}/></span>
-        <span><strong>SL COMMUNITY</strong><small>Ruang obrolan Indonesia</small></span>
+        <span><strong>WARKOPLINK</strong><small>Ruang obrolan Indonesia</small></span>
       </a>
       <div className="header-actions">
         <button className="button button-install" onClick={handleInstallPwa}><Download size={15}/> <span>Pasang PWA</span></button>
@@ -236,8 +236,8 @@ export default function App() {
         {user ? <article className="account-card"><div className="account-avatar">{String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article> :
           <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
       </section> :
-      section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG KAMI</span><h2>Komunitas tumbuh dari percakapan.</h2><p>SL Community adalah ruang digital untuk berbagi informasi, berdiskusi, dan saling terhubung dengan positif.</p></section> :
-      (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Ada ruang untuk idemu.</h2><p>Temukan topik dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article>💬<h3>Obrolan bersama</h3><p>Berbagi cerita dan berdiskusi dengan anggota.</p></article><article>📚<h3>Berbagi informasi</h3><p>Temukan pengalaman yang bermanfaat.</p></article><article>🤝<h3>Bangun koneksi</h3><p>Tumbuhkan relasi positif bersama.</p></article></div><button className="button button-dark" onClick={() => setSection('Obrolan')}>Buka obrolan</button></section> :
+      section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
+      (section === 'Layanan' || section === 'Jelajahi' || section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <section className="content-section explore-section"><span className="eyebrow">{section === 'Cari Warkop' ? 'DIREKTORI WARKOP' : section === 'Daftarkan Warkop' ? 'DAFTAR GRATIS' : 'JELAJAHI'}</span><h2>{section === 'Cari Warkop' ? 'Cari warkop di Lamongan.' : section === 'Daftarkan Warkop' ? 'Daftarkan warkop Anda secara gratis.' : 'Temukan komunitas lokal.'}</h2><p>{section === 'Cari Warkop' ? 'Direktori, peta, filter fasilitas, dan detail warkop akan dibangun pada Tahap 2. Data dan akses pemilik akan diuji sebelum fitur ini diaktifkan.' : section === 'Daftarkan Warkop' ? 'Formulir pendaftaran dan verifikasi pemilik akan dibangun pada Tahap 2. Saat ini belum ada data warkop yang disimpan dari halaman ini.' : 'Temukan informasi lokal dan mulai percakapan yang bermanfaat.'}</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div>{section !== 'Cari Warkop' && <button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Lihat rencana direktori</button>}</section> :
       <section className="content-section" id="community-feed">
         <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className="status-pill">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
         {!firebaseConfigured && <p className="config-warning">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
@@ -270,10 +270,11 @@ export default function App() {
     </main>
     <nav className="bottom-nav" aria-label="Navigasi aplikasi">
       <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
-      <button className={section === 'Jelajahi' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Jelajahi')} aria-current={section === 'Jelajahi' ? 'page' : undefined}><Compass size={20}/><span>Jelajahi</span></button>
+      <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>
       <button className={section === 'Obrolan' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => { setSection('Obrolan'); document.getElementById('community-feed')?.scrollIntoView({behavior:'smooth'}); }} aria-current={section === 'Obrolan' ? 'page' : undefined}><MessageCircle size={20}/><span>Obrolan</span></button>
+      <button className={section === 'Daftarkan Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Daftarkan Warkop')} aria-current={section === 'Daftarkan Warkop' ? 'page' : undefined}><Store size={20}/><span>Daftar</span></button>
       <button className={section === 'Akun' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Akun')} aria-current={section === 'Akun' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
     </nav>
-    <footer><span className="footer-brand"><Sparkles size={16}/> SL COMMUNITY</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} SL Community Platform</small></footer>
+    <footer><span className="footer-brand"><Sparkles size={16}/> WARKOPLINK</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} WarkopLink Platform</small></footer>
   </div>;
 }

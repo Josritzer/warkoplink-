@@ -5,6 +5,30 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    function auditPath(auditId) {
+      return /databases/$(database)/documents/verificationAudit/$(auditId);
+    }
+
+    function validAdminDecision(warungId, data) {
+      return isAdmin()
+        && data.verificationStatus in ['verified', 'rejected']
+        && data.verificationAuditId is string
+        && data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'verificationStatus', 'verificationAuditId', 'updatedAt'
+        ])
+        && resource.data.verificationStatus == 'pending'
+        && getAfter(auditPath(data.verificationAuditId)).data.warungId == warungId
+        && getAfter(auditPath(data.verificationAuditId)).data.previousStatus == 'pending'
+        && getAfter(auditPath(data.verificationAuditId)).data.newStatus == data.verificationStatus
+        && getAfter(auditPath(data.verificationAuditId)).data.actorUid == request.auth.uid
+        && getAfter(auditPath(data.verificationAuditId)).data.createdAt == request.time;
+    }
+
     function validProfile(data) {
       return data.keys().hasAll(['displayName', 'email', 'createdAt', 'updatedAt'])
         && data.keys().hasOnly(['displayName', 'email', 'createdAt', 'updatedAt'])
@@ -54,6 +78,7 @@ service cloud.firestore {
         && data.openingHours is map
         && data.photos is list && data.photos.size() <= 5
         && data.verificationStatus == 'pending'
+        && !data.keys().hasAny(['verificationAuditId'])
         && data.createdAt == request.time
         && data.updatedAt == request.time;
     }
@@ -107,13 +132,15 @@ service cloud.firestore {
     // Direktori publik hanya menampilkan warkop yang telah diverifikasi.
     // Pemilik tetap dapat membaca dokumen miliknya saat masih menunggu verifikasi.
     match /warungs/{warungId} {
-      allow read: if resource.data.verificationStatus == 'verified'
+      allow read: if isAdmin()
+        || resource.data.verificationStatus == 'verified'
         || (signedIn() && resource.data.ownerUid == request.auth.uid);
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
         && validWarung(request.resource.data);
       // Status verifikasi, pemilik, dan waktu pembuatan tidak dapat diubah oleh pemilik.
-      allow update: if signedIn()
+      allow update: if validAdminDecision(warungId, request.resource.data)
+        || (signedIn()
         && resource.data.ownerUid == request.auth.uid
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.verificationStatus == resource.data.verificationStatus
@@ -122,8 +149,34 @@ service cloud.firestore {
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
           'facilities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
-        && validWarungEdit(request.resource.data);
+        && validWarungEdit(request.resource.data));
       allow delete: if false;
+    }
+
+    // Catatan audit hanya dapat dibuat sebagai bagian dari keputusan admin atomik.
+    match /verificationAudit/{auditId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasAll([
+          'warungId', 'warungName', 'previousStatus', 'newStatus',
+          'actorUid', 'reason', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'warungId', 'warungName', 'previousStatus', 'newStatus',
+          'actorUid', 'reason', 'createdAt'
+        ])
+        && request.resource.data.warungId is string
+        && request.resource.data.warungName is string
+        && request.resource.data.previousStatus == 'pending'
+        && request.resource.data.newStatus in ['verified', 'rejected']
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() <= 500
+        && request.resource.data.createdAt == request.time
+        && get(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.verificationStatus == 'pending'
+        && getAfter(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.verificationStatus == request.resource.data.newStatus
+        && getAfter(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.verificationAuditId == auditId;
+      allow update, delete: if false;
     }
   }
 }

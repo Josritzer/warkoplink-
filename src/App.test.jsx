@@ -20,10 +20,12 @@ vi.mock('firebase/firestore', () => ({
   collection: vi.fn((db, name) => ({ path: name })),
   doc: vi.fn((db, col, id) => ({ path: `${col}/${id}` })),
   getDoc: vi.fn(),
+  getDocs: vi.fn(),
   limit: vi.fn((n) => ({ limit: n })),
   onSnapshot: vi.fn((q, next, error) => { state.snapshotNext = next; state.snapshotError = error; return vi.fn(); }),
   orderBy: vi.fn(),
   query: vi.fn((...args) => ({ args })),
+  startAfter: vi.fn((cursor) => ({ startAfter: cursor })),
   where: vi.fn((...args) => ({ where: args })),
   serverTimestamp: vi.fn(() => '__SERVER_TS__'),
   setDoc: vi.fn(),
@@ -49,6 +51,7 @@ const POSTS = [
 beforeEach(() => {
   vi.clearAllMocks();
   fs.getDoc.mockResolvedValue({ exists: () => true });
+  fs.getDocs.mockResolvedValue({ docs: [] });
   fs.setDoc.mockResolvedValue(undefined);
   fs.addDoc.mockResolvedValue({ id: 'new' });
   fbAuth.updateProfile.mockResolvedValue(undefined);
@@ -357,6 +360,30 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.clear(screen.getByRole('textbox', { name: 'Cari warkop' }));
     await user.type(screen.getByRole('textbox', { name: 'Cari warkop' }), 'tidak ada');
     expect(await screen.findByText('Warkop tidak ditemukan')).toBeTruthy();
+  });
+
+  it('memuat direktori secara bertahap tanpa mengambil seluruh koleksi sekaligus', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    const firstPage = Array.from({ length: 30 }, (_, index) => ({
+      id: `w${index + 1}`,
+      name: `Warkop ${index + 1}`,
+      address: 'Jl. Contoh, Lamongan',
+      facilities: [],
+    }));
+    act(() => state.snapshotNext(snapshotOf(firstPage)));
+    expect(await screen.findByRole('heading', { name: 'Warkop 1' })).toBeTruthy();
+    const nextPage = snapshotOf([
+      { id: 'w31', name: 'Warkop 31', address: 'Jl. Contoh, Lamongan', facilities: [] },
+    ]);
+    fs.getDocs.mockResolvedValueOnce(nextPage);
+    await user.click(screen.getByRole('button', { name: 'Muat 30 warkop lagi' }));
+    expect(await screen.findByRole('heading', { name: 'Warkop 31' })).toBeTruthy();
+    expect(fs.getDocs).toHaveBeenCalledTimes(1);
+    expect(fs.startAfter).toHaveBeenCalledWith(expect.objectContaining({ id: 'w30' }));
+    expect(fs.limit).toHaveBeenCalledWith(30);
   });
 
   it('form pendaftaran mengirim status pending dengan identitas pemilik dari sesi', async () => {

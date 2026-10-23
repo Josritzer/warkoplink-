@@ -354,6 +354,10 @@ describe('direktori dan pendaftaran warkop', () => {
     ])));
     expect(await screen.findByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
     expect(screen.getByText('Jam buka: Setiap hari 08.00–23.00')).toBeTruthy();
+    const searchInput = screen.getByRole('textbox', { name: 'Cari warkop' });
+    await user.type(searchInput, '  WARKOP   POJOK  ');
+    expect(screen.getByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
+    await user.clear(searchInput);
     expect(screen.getByRole('link', { name: 'Lihat lokasi di peta' }).getAttribute('href')).toContain('query=-7.0001%2C112.281');
     await user.type(screen.getByRole('textbox', { name: 'Cari warkop' }), 'wifi');
     expect(screen.getByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();

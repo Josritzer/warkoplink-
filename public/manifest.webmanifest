@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "SL RELAX COMMUNITY",
-  "short_name": "SL Community",
-  "description": "Ruang obrolan dan komunitas digital SL RELAX.",
+  "name": "WarkopLink — Warkop Lokal Lamongan",
+  "short_name": "WarkopLink",
+  "description": "Temukan dan daftarkan warkop di Kabupaten Lamongan. Pendaftaran gratis.",
   "lang": "id-ID",
   "start_url": "/",
   "scope": "/",
@@ -10,7 +10,10 @@
   "orientation": "portrait-primary",
   "background_color": "#f7f8fc",
   "theme_color": "#172554",
-  "categories": ["social", "communication"],
+  "categories": [
+    "social",
+    "communication"
+  ],
   "icons": [
     {
       "src": "/pwa-icon.svg",

@@ -3,47 +3,55 @@
 - Status: Diusulkan; belum diimplementasikan
 - Cakupan: proyek Firebase khusus WarkopLink / `sl-community-platform`
 - Tanggal: 2026-10-24
+- Batas biaya: gunakan paket Firebase Spark dan fitur gratis dahulu; tidak mengaktifkan Blaze atau resource berbayar.
 
 ## Konteks
 
-Dokumen `warungs/{warungId}` saat ini hanya dapat dibuat oleh pengguna yang masuk dengan status `pending`. Firestore Rules melarang pemilik mengubah `verificationStatus`, dan direktori publik hanya membaca dokumen berstatus `verified`. Ini adalah batas keamanan yang harus dipertahankan.
+Dokumen `warungs/{warungId}` hanya dapat dibuat oleh pengguna yang masuk dengan status `pending`. Firestore Rules melarang pemilik mengubah `verificationStatus`, dan direktori publik hanya membaca dokumen berstatus `verified`. Batas keamanan ini harus dipertahankan.
 
-Verifikasi membutuhkan identitas admin yang tidak dapat dibuat atau dimodifikasi dari browser pengguna biasa. Tidak boleh ada tombol UI atau field formulir yang bisa mengangkat akun menjadi admin.
+Proyek memakai paket gratis. Agar tidak mensyaratkan Cloud Functions atau server berbayar, tahap awal menggunakan verifikasi manual oleh pemilik proyek melalui Firebase Console. Ini adalah prosedur operasional terbatas, bukan fitur admin di dalam aplikasi.
 
-## Keputusan yang diusulkan
+## Keputusan yang diusulkan — tahap gratis
 
-1. Gunakan Firebase Authentication custom claim `admin: true` sebagai otorisasi, yang hanya dapat ditetapkan oleh skrip tepercaya menggunakan Firebase Admin SDK.
-2. Jangan membuat endpoint publik untuk menetapkan custom claim. Bootstrap admin dilakukan secara manual oleh pemilik proyek dari lingkungan tepercaya, dengan kredensial yang tidak masuk ke repo, browser, atau log.
-3. Jalankan aksi verifikasi melalui callable Cloud Function/server tepercaya. Fungsi harus memverifikasi bahwa pengguna terautentikasi dan token memiliki `admin === true`; semua input divalidasi di server.
-4. Verifikasi hanya mengizinkan transisi eksplisit dari `pending` ke `verified` atau `rejected`. Simpan metadata audit seperti waktu keputusan, UID admin, dan alasan penolakan bila ada. Gunakan operasi transaksi agar keputusan tidak menimpa perubahan bersamaan.
-5. Firestore Rules tetap melarang klien mengubah status verifikasi. Hanya kode server tepercaya menggunakan Admin SDK yang boleh melakukan transisi status.
-6. Jangan menyediakan tombol verifikasi kepada pemilik biasa. UI admin baru dibuat setelah otorisasi server, Rules, audit, dan tes negatif siap.
+1. Jangan menambahkan Cloud Functions, server tambahan, paket Blaze, API berbayar, atau resource berbiaya untuk tahap ini.
+2. Pendaftaran dari aplikasi tetap membuat dokumen dengan `verificationStatus: 'pending'`. Form/browser tidak boleh mengirim atau mengubah status menjadi `verified` atau `rejected`.
+3. Pemilik proyek yang masuk ke akun Google tepercaya membuka Firebase Console proyek `sl-community-platform` → Firestore Database → `warungs`, lalu memeriksa data pendaftaran dan kecocokan informasi warkop secara manual.
+4. Hanya pemilik proyek/operator tepercaya yang memiliki akses administrasi Firebase Console boleh mengubah status dokumen. Jangan memberikan akses Console kepada pemilik warkop atau pengunjung hanya untuk memverifikasi pendaftaran.
+5. Jika disetujui, ubah hanya `verificationStatus` menjadi `verified`; jika ditolak, ubah menjadi `rejected`. Catat keputusan, waktu, UID operator, dan alasan penolakan pada metadata audit yang ditetapkan dalam dokumen/prosedur. Jangan mengubah `ownerUid` atau menghapus dokumen untuk menolak pendaftaran.
+6. Firestore Rules tetap melarang klien mengubah status verifikasi. Jangan menambahkan pengecualian Rules untuk admin berbasis email/browser.
+7. Setelah perubahan manual, periksa bahwa dokumen yang `verified` muncul di direktori publik dan dokumen `pending`/`rejected` tetap tidak tampil. Jangan menggunakan data pribadi nyata untuk uji coba.
 
-## Pengamanan wajib sebelum implementasi
+## Prosedur operasional manual
 
-- Tes emulator membuktikan pemilik tidak dapat mengesahkan diri sendiri, pengguna lain tidak dapat mengubah status, dan pengguna tanpa custom claim tidak dapat memanggil aksi admin.
-- Tes positif membuktikan admin sah dapat menyetujui atau menolak pendaftaran yang masih `pending`.
-- Fungsi menolak ID warkop tidak valid, status selain `pending`, alasan penolakan yang terlalu panjang, serta request tanpa autentikasi.
-- Jangan menaruh service-account key atau kredensial Admin SDK di frontend, repo, atau GitHub Actions log.
-- Periksa persyaratan billing dan biaya Cloud Functions untuk proyek ini sebelum membuat atau men-deploy fungsi. Jangan mengaktifkan paket berbayar, API, atau resource tanpa persetujuan pemilik.
-- Verifikasi tidak boleh mengubah dokumen `profiles` atau `posts`, dan tidak boleh menyentuh proyek produksi SL RELAX / Bookingpijat.com.
+- Tinjau nama, alamat, koordinat, fasilitas, jam buka, dan kisaran harga yang diajukan.
+- Pastikan bukti dan informasi masuk akal sebelum menyetujui; bila meragukan, biarkan `pending` sambil meminta klarifikasi di luar aplikasi.
+- Untuk menyetujui, edit status dari `pending` ke `verified` melalui Firebase Console.
+- Untuk menolak, edit status menjadi `rejected` dan catat alasan singkat untuk operator. Status `rejected` tidak ditampilkan pada direktori publik.
+- Simpan catatan keputusan di tempat operasional tepercaya yang aksesnya terbatas; jangan menaruh kredensial atau rahasia dalam dokumen, repo, atau log.
+- Jangan ubah dokumen `profiles` atau `posts`; jangan sentuh proyek produksi SL RELAX / Bookingpijat.com.
 
-## Urutan pelaksanaan
+## Pengamanan dan keterbatasan
 
-1. Konfirmasi kelayakan biaya dan pilihan runtime server tepercaya.
-2. Implementasikan fungsi dan validasi server pada branch terpisah.
-3. Tambahkan tes emulator/otorisasi positif dan negatif.
-4. Review perubahan Rules serta jalankan seluruh CI.
-5. Merge dan deploy hanya setelah persetujuan eksplisit.
-6. Uji fungsi setelah deploy tanpa mengubah data pengguna nyata secara sembarangan.
+- Tes Firestore Rules harus tetap membuktikan pemilik tidak dapat mengesahkan diri sendiri, pengguna lain tidak dapat mengubah status, dan klien tidak dapat membuat dokumen langsung berstatus `verified`.
+- Console manual melewati Firestore Rules karena memakai hak administrasi; karena itu akses akun Google/Firebase Console harus dijaga dengan autentikasi kuat dan tidak dibagikan.
+- Proses manual tidak menyediakan panel admin, validasi server khusus, atau audit trail otomatis. Catatan operator adalah kontrol prosedural, bukan pengganti audit log teknis.
+- Jangan pernah membuat field/form untuk menetapkan peran admin dari browser.
+- Jangan menyimpan service-account key di frontend, repo, atau log GitHub Actions.
+- Bila kelak diperlukan verifikasi otomatis, panel admin, atau audit otomatis, evaluasi kembali arsitektur dan biaya terlebih dahulu. Jangan mengubah paket dari Spark ke Blaze tanpa persetujuan eksplisit.
 
-## Alternatif yang tidak dipilih
+## Tahap berikutnya
 
-- **Status admin dari form/browser:** ditolak karena pengguna dapat memalsukan field.
-- **Membiarkan klien mengubah `verificationStatus`:** ditolak karena merusak batas keamanan saat ini.
-- **Menggunakan email sebagai satu-satunya pemeriksaan admin di frontend:** ditolak karena UI bukan batas otorisasi server.
-- **Deploy fungsi sebelum pengecekan biaya:** ditunda sampai biaya dan kebutuhan paket terkonfirmasi.
+1. Review dokumen ini dan pastikan prosedur manual sesuai kebutuhan operasional.
+2. Jalankan CI/tes Rules tanpa mengubah konfigurasi atau data produksi.
+3. Merge/deploy dokumentasi hanya setelah persetujuan eksplisit.
+4. Implementasi panel admin atau server tepercaya adalah tahap terpisah dan memerlukan evaluasi biaya serta persetujuan baru.
+
+## Alternatif yang ditolak
+
+- **Membiarkan klien mengubah `verificationStatus`:** ditolak karena pemilik dapat mengesahkan diri sendiri.
+- **Admin ditentukan dari email di frontend:** ditolak karena pemeriksaan UI dapat dipalsukan.
+- **Cloud Functions/Blaze langsung diaktifkan:** tidak dipilih karena pengguna meminta fitur gratis terlebih dahulu.
 
 ## Konsekuensi
 
-Pendekatan ini membutuhkan komponen server tepercaya dan proses bootstrap admin yang disiplin. Sampai komponen itu tersedia, semua pendaftaran tetap `pending` dan tidak muncul pada direktori publik; ini perilaku aman yang disengaja.
+Semua pendaftaran tetap `pending` dan tersembunyi dari direktori publik sampai operator tepercaya memverifikasinya secara manual melalui Console. Cara ini menjaga biaya tetap gratis dan mempertahankan batas keamanan klien, tetapi membutuhkan pemeriksaan manual dan belum menyediakan pengalaman admin di aplikasi.

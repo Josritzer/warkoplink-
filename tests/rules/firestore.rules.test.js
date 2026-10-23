@@ -184,3 +184,86 @@ describe('profiles', () => {
     await assertFails(deleteDoc(doc(asUser('alice'), 'profiles/alice')));
   });
 });
+
+
+const validWarung = (overrides = {}) => ({
+  name: 'Warkop Pojok',
+  nameNormalized: 'warkop pojok',
+  ownerUid: 'alice',
+  coordinates: { lat: -7.0, lng: 112.2 },
+  address: 'Jl. Contoh No. 12, Lamongan',
+  regionCode: 'lamongan-kab',
+  facilities: ['wifi', 'parkir'],
+  priceRange: 'hemat',
+  openingHours: { senin: '08:00-22:00' },
+  photos: [],
+  verificationStatus: 'pending',
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+  ...overrides,
+});
+
+describe('warungs — direktori aman tahap awal', () => {
+  it('pemilik login boleh mendaftarkan warkop berstatus pending', async () => {
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warkop-alice'), validWarung()));
+  });
+
+  it('pengunjung anonim tidak boleh mendaftarkan warkop', async () => {
+    await assertFails(setDoc(doc(asAnon(), 'warungs/warkop-anon'), validWarung({ ownerUid: 'alice' })));
+  });
+
+  it('pengguna tidak boleh mendaftarkan warkop atas nama uid lain', async () => {
+    await assertFails(setDoc(doc(asUser('bob'), 'warungs/warkop-bob'), validWarung({ ownerUid: 'alice' })));
+  });
+
+  it('pemilik tidak dapat mengirim status verified sendiri', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-verified'), validWarung({ verificationStatus: 'verified' })));
+  });
+
+  it('warkop di luar wilayah awal atau koordinat tidak valid ditolak', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-luar'), validWarung({ regionCode: 'surabaya' })));
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-koordinat'), validWarung({ coordinates: { lat: 200, lng: 112 } })));
+  });
+
+  it('field tambahan ditolak agar pemilik tidak dapat menyisipkan role', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-role'), validWarung({ isAdmin: true })));
+  });
+
+  it('warkop pending hanya dapat dibaca oleh pemiliknya', async () => {
+    await setDoc(doc(asUser('alice'), 'warungs/warkop-pending'), validWarung());
+    await assertSucceeds(getDoc(doc(asUser('alice'), 'warungs/warkop-pending')));
+    await assertFails(getDoc(doc(asUser('bob'), 'warungs/warkop-pending')));
+    await assertFails(getDoc(doc(asAnon(), 'warungs/warkop-pending')));
+  });
+
+  it('direktori publik boleh membaca warkop verified', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'warungs/warkop-public'), validWarung({
+        verificationStatus: 'verified',
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      }));
+    });
+    await assertSucceeds(getDoc(doc(asAnon(), 'warungs/warkop-public')));
+  });
+
+  it('pemilik tidak dapat mengubah status verifikasi atau pemilik', async () => {
+    await setDoc(doc(asUser('alice'), 'warungs/warkop-edit'), validWarung());
+    await assertFails(updateDoc(doc(asUser('alice'), 'warungs/warkop-edit'), { verificationStatus: 'verified' }));
+    await assertFails(updateDoc(doc(asUser('alice'), 'warungs/warkop-edit'), { ownerUid: 'bob' }));
+  });
+
+  it('pemilik dapat memperbarui informasi warkop tanpa mengubah status', async () => {
+    await setDoc(doc(asUser('alice'), 'warungs/warkop-edit-ok'), validWarung());
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'warungs/warkop-edit-ok'), {
+      name: 'Warkop Pojok Baru',
+      nameNormalized: 'warkop pojok baru',
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it('warkop tidak dapat dihapus melalui client', async () => {
+    await setDoc(doc(asUser('alice'), 'warungs/warkop-no-delete'), validWarung());
+    await assertFails(deleteDoc(doc(asUser('alice'), 'warungs/warkop-no-delete')));
+  });
+});

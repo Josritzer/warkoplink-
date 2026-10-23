@@ -4,7 +4,7 @@ import {
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, where
+  addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, where
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
@@ -16,9 +16,22 @@ import {
 
 const POSTS_LIMIT = 100;
 
+function normalizeSearchText(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('id')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
   const [warungs, setWarungs] = useState([]);
   const [status, setStatus] = useState(db ? 'loading' : 'error');
+  const [lastDocument, setLastDocument] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [moreError, setMoreError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -33,6 +46,10 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
   useEffect(() => {
     if (mode !== 'directory' || !db) return undefined;
     setStatus('loading');
+    setWarungs([]);
+    setLastDocument(null);
+    setHasMore(false);
+    setMoreError('');
     const verifiedQuery = query(
       collection(db, 'warungs'),
       where('verificationStatus', '==', 'verified'),
@@ -40,6 +57,8 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
     );
     return onSnapshot(verifiedQuery, (snapshot) => {
       setWarungs(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      setLastDocument(snapshot.docs.at(-1) || null);
+      setHasMore(snapshot.docs.length === 30);
       setStatus('ready');
     }, () => setStatus('error'));
   }, [mode, db]);
@@ -99,6 +118,32 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
     }
   }
 
+  async function handleLoadMore() {
+    if (!db || !lastDocument || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    setMoreError('');
+    try {
+      const nextQuery = query(
+        collection(db, 'warungs'),
+        where('verificationStatus', '==', 'verified'),
+        startAfter(lastDocument),
+        limit(30)
+      );
+      const snapshot = await getDocs(nextQuery);
+      const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      setWarungs((current) => {
+        const seen = new Set(current.map((item) => item.id));
+        return [...current, ...nextRows.filter((item) => !seen.has(item.id))];
+      });
+      setLastDocument(snapshot.docs.at(-1) || lastDocument);
+      setHasMore(snapshot.docs.length === 30);
+    } catch {
+      setMoreError('Halaman berikutnya belum dapat dimuat. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   if (mode === 'register') {
     return <section className="content-section explore-section">
       <span className="eyebrow">DAFTAR GRATIS</span>
@@ -121,14 +166,15 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
     </section>;
   }
 
+  const normalizedSearch = normalizeSearchText(searchTerm);
   const visibleWarungs = warungs.filter((item) => {
-    const haystack = [item.name, item.address, ...(item.facilities || [])].join(' ').toLowerCase();
-    return haystack.includes(searchTerm.trim().toLowerCase());
+    const haystack = normalizeSearchText([item.name, item.address, ...(item.facilities || [])].join(' '));
+    return haystack.includes(normalizedSearch);
   });
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>
     <h2>Cari warkop di Lamongan.</h2>
-    <p>Direktori publik hanya menampilkan warkop yang sudah diverifikasi. Maksimal 30 entri diambil per sesi agar tidak memuat seluruh koleksi.</p>
+    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Pencarian memfilter data yang sudah dimuat; muat halaman berikutnya untuk menelusuri lebih banyak hasil.</p>
     <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, fasilitas…" aria-label="Cari warkop"/></label>
     {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
     {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi nanti.</p></div>}
@@ -141,6 +187,8 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
       {Number.isFinite(item.coordinates?.lat) && Number.isFinite(item.coordinates?.lng) && <a className="warung-map-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.coordinates.lat},${item.coordinates.lng}`)}`} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta <ArrowUpRight size={13}/></a>}
       </div>
     </article>)}</div>
+    {moreError && <p className="form-error" role="alert">{moreError}</p>}
+    {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore}>{loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
     <button className="button button-dark directory-register-cta" onClick={() => onNotice('Pilih menu Daftarkan Warkop untuk mengirim data.')}>Daftarkan warkop</button>
   </section>;
 }

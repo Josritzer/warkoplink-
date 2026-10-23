@@ -83,4 +83,33 @@
 .directory-notice span{flex:1}
 @media(max-width:620px){.warung-form{padding:14px}.coordinate-fields{grid-template-columns:1fr}.warung-card{padding:14px}.directory-notice .button{width:100%}}
 
-.warung-map-link{display:inline-flex;align-items:center;gap:5px;margin-top:12px;color:#3156d9;font-size:11px;font-weight:700;text-decoration:none}.warung-map-link:hover{text-decoration:underline}.warung-map-link:focus-visible{outline:2px solid #7487e6;outline-offset:3px;border-radius:4px}
+
+/* Tahap 2E — panel admin dan riwayat audit */
+.admin-entry-button{margin-top:14px}
+.admin-section h2{margin-bottom:8px}
+.admin-security-note{display:flex;gap:10px;align-items:flex-start;padding:13px 15px;margin:18px 0;background:#f0f3ff;border:1px solid #dbe2ff;border-radius:12px;color:#4053a0;font-size:12px;line-height:1.6}
+.admin-security-note svg{flex:0 0 18px;margin-top:1px}
+.admin-subheading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:28px 0 12px}
+.admin-subheading h3{display:flex;align-items:center;gap:8px;margin:0;font-size:15px;color:#26314e}
+.admin-subheading>span{font-size:10px;color:var(--muted)}
+.admin-warung-list,.admin-audit-list{display:grid;gap:12px}
+.admin-warung-card{padding:16px;background:#fff;border:1px solid var(--line);border-radius:16px;display:grid;gap:10px}
+.admin-warung-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.admin-warung-heading h4{margin:0 0 5px;font-size:14px;color:#26314e}
+.admin-warung-card p{margin:0;font-size:12px;line-height:1.6;color:#4b5672;overflow-wrap:anywhere}
+.admin-warung-card small{font-size:10px;line-height:1.5;color:var(--muted);overflow-wrap:anywhere}
+.admin-warung-card label{display:grid;gap:7px;font-size:11px;font-weight:700;color:#4b5672}
+.admin-warung-card textarea{width:100%;resize:vertical;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:12px}
+.admin-status-pending,.admin-status-verified,.admin-status-rejected{display:inline-flex;align-items:center;white-space:nowrap;border-radius:20px;padding:5px 8px;font-size:9px;font-weight:800}
+.admin-status-pending{background:#fff4dc;color:#8a5a00}
+.admin-status-verified{background:#e6f7ee;color:#17653c}
+.admin-status-rejected{background:#fff0f0;color:#a02929}
+.admin-actions{display:flex;flex-wrap:wrap;gap:8px}
+.admin-actions .button{display:inline-flex;align-items:center;gap:6px}
+.button-reject{background:#fff0f0;color:#a02929;border:1px solid #f3cccc}
+.admin-audit-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px}
+.admin-audit-row>div{min-width:0;display:grid;gap:5px}
+.admin-audit-row b{font-size:12px;color:#26314e;overflow-wrap:anywhere}
+.admin-audit-row small{font-size:10px;color:var(--muted);overflow-wrap:anywhere}
+.admin-audit-row p{margin:2px 0 0;font-size:12px;line-height:1.5;color:#4b5672;overflow-wrap:anywhere}
+@media(max-width:620px){.admin-warung-card{padding:13px}.admin-warung-heading{display:grid}.admin-audit-row{display:grid}.admin-subheading{align-items:flex-start}}

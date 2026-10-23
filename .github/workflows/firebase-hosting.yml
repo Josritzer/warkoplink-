@@ -9,9 +9,12 @@ on:
       - "public/**"
       - "index.html"
       - "package.json"
+      - "package-lock.json"
       - "vite.config.*"
+      - ".env.example"
       - "firebase.json"
       - ".firebaserc"
+      - "firestore.rules"
       - ".github/workflows/firebase-hosting.yml"
   workflow_dispatch:
 
@@ -35,10 +38,28 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      # Vite hanya membaca file .env, bukan .env.example. Isinya config web publik
+      # (bukan kredensial admin), jadi aman disalin saat build.
+      - name: Use public Firebase web config
+        run: cp .env.example .env
 
       - name: Build community app
         run: npm run build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SL_COMMUNITY_PLATFORM }}
+
+      - name: Deploy Firestore Rules
+        run: npx --yes firebase-tools deploy --only firestore:rules --project sl-community-platform --non-interactive
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0

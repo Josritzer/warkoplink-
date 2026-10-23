@@ -1,0 +1,18 @@
+node_modules/
+dist/
+coverage/
+
+# Konfigurasi lokal. .env dibuat saat build dari .env.example (isinya config web publik).
+.env
+.env.*
+!.env.example
+
+# Cache dan log Firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log
+ui-debug.log
+
+npm-debug.log*
+*.local
+.DS_Store

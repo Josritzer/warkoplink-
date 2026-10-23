@@ -23,7 +23,8 @@ vi.mock('firebase/firestore', () => ({
   limit: vi.fn((n) => ({ limit: n })),
   onSnapshot: vi.fn((q, next, error) => { state.snapshotNext = next; state.snapshotError = error; return vi.fn(); }),
   orderBy: vi.fn(),
-  query: vi.fn(),
+  query: vi.fn((...args) => ({ args })),
+  where: vi.fn((...args) => ({ where: args })),
   serverTimestamp: vi.fn(() => '__SERVER_TS__'),
   setDoc: vi.fn(),
 }));

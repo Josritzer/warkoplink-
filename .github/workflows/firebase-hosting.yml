@@ -9,9 +9,12 @@ on:
       - "public/**"
       - "index.html"
       - "package.json"
+      - "package-lock.json"
       - "vite.config.*"
       - "firebase.json"
       - ".firebaserc"
+      - ".env.example"
+      - "firestore.rules"
       - ".github/workflows/firebase-hosting.yml"
   workflow_dispatch:
 
@@ -33,16 +36,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
         run: npm install
 
+      - name: Load public Firebase web configuration
+        run: cp .env.example .env
+
       - name: Build community app
         run: npm run build
 
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: sl-community-platform
-          channelId: live
+      - name: Configure Firebase service account
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SL_COMMUNITY_PLATFORM }}
+        run: |
+          node --input-type=module -e "import { writeFileSync } from 'node:fs'; const value = process.env.FIREBASE_SERVICE_ACCOUNT_JSON; if (!value) throw new Error('Missing GitHub secret FIREBASE_SERVICE_ACCOUNT_SL_COMMUNITY_PLATFORM'); JSON.parse(value); writeFileSync(process.env.RUNNER_TEMP + '/firebase-service-account.json', value, { mode: 0o600 });"
+
+      - name: Deploy Hosting and Firestore Rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: npx --yes firebase-tools deploy --only hosting,firestore:rules --project sl-community-platform --non-interactive

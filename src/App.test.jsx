@@ -347,9 +347,11 @@ describe('direktori dan pendaftaran warkop', () => {
     expect(fs.where).toHaveBeenCalledWith('verificationStatus', '==', 'verified');
     expect(fs.limit).toHaveBeenCalledWith(30);
     act(() => state.snapshotNext(snapshotOf([
-      { id: 'w1', name: 'Warkop Pojok', address: 'Jl. Contoh, Lamongan', facilities: ['wifi'], priceRange: 'hemat' },
+      { id: 'w1', name: 'Warkop Pojok', address: 'Jl. Contoh, Lamongan', facilities: ['wifi'], priceRange: 'hemat', coordinates: { lat: -7.0001, lng: 112.281 }, openingHours: { keterangan: 'Setiap hari 08.00–23.00' } },
     ])));
     expect(await screen.findByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
+    expect(screen.getByText('Jam buka: Setiap hari 08.00–23.00')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Lihat lokasi di peta' }).getAttribute('href')).toContain('query=-7.0001%2C112.281');
     await user.type(screen.getByRole('textbox', { name: 'Cari warkop' }), 'wifi');
     expect(screen.getByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
     await user.clear(screen.getByRole('textbox', { name: 'Cari warkop' }));

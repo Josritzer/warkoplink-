@@ -408,7 +408,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Lintang (latitude)'), '200');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112');
     await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('koordinat');
+    expect((await screen.findByRole('alert')).textContent).toContain('koordinat');
     expect(fs.addDoc).not.toHaveBeenCalled();
   });
 });

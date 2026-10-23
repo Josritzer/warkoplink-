@@ -23,7 +23,12 @@ const validPost = (overrides = {}) => ({
 beforeAll(async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-sl-community-rules',
-    firestore: { rules: readFileSync('firestore.rules', 'utf8') },
+    // Arahkan eksplisit ke emulator CI; jangan pernah fallback ke layanan Firebase asli.
+    firestore: {
+      host: '127.0.0.1',
+      port: 8080,
+      rules: readFileSync('firestore.rules', 'utf8'),
+    },
   });
 });
 

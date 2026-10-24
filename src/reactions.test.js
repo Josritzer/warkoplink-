@@ -13,7 +13,7 @@ describe('summarizeReactions', () => {
 
   it('counts a legacy like without selecting an emoji', () => {
     expect(summarizeReactions([doc('u1', { uid: 'u1', createdAt: 1 })], 'u1'))
-      .toEqual({ count: 1, totalReactions: 1, reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, liked: true, emoji: '' });
+      .toEqual({ count: 1, totalReactions: 1, reactions: { like: 1, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, liked: true, emoji: '' });
   });
 
   it('does not select another user reaction', () => {

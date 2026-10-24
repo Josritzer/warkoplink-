@@ -1,7 +1,7 @@
 /* SL Community Platform — compact social timeline.
    Visual-only overrides: keep Firebase, auth, data and moderation logic untouched. */
 :root {
-  --feed-separator: #e7e9ec;
+  --feed-separator: #eff3f4;
   --feed-ink: #17191c;
   --feed-muted: #68707a;
   --feed-accent: #7650c7;
@@ -182,12 +182,13 @@
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr);
   column-gap: 10px;
-  padding: 13px 0 10px;
+  padding: 10px 12px;
   border: 0;
-  border-bottom: 1px solid var(--feed-separator);
+  border: 1px solid var(--feed-separator);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  margin-bottom: 8px;
 }
 #community-feed .post-card:hover { background: transparent; }
 #community-feed .post-avatar {
@@ -231,7 +232,7 @@
 #community-feed .post-meta span::before,
 #community-feed .post-meta small::before { content: '·'; margin-right: 6px; color: #9ba1a9; }
 #community-feed .post-content > p {
-  margin: 3px 0 7px;
+  margin: 2px 0 4px;
   color: #24272b;
   font-size: 14px;
   line-height: 1.48;
@@ -271,9 +272,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid #f0f1f3;
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 1px solid #eff3f4;
 }
 #community-feed .post-action-wrap { flex: 1; min-width: 0; }
 #community-feed .post-action {
@@ -312,22 +313,26 @@
   overflow: visible;
 }
 #community-feed .comment-section:has(.inline-reply) {
-  margin-left: 18px;
-  padding: 0 0 0 10px;
-  border-left: 2px solid #d5c5f3;
+  margin-left: 0;
+  padding: 0 0 0 0;
+  border-left: 0;
 }
 #community-feed .inline-reply {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin: 0 0 10px;
-  padding: 0;
+  margin: 0 0 8px;
+  padding: 0 0 0 0;
   border: 0;
+  position: relative;
 }
 #community-feed .inline-reply-avatar {
-  flex: 0 0 26px;
-  width: 26px;
-  height: 26px;
+  position: absolute;
+  left: -40px;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  opacity: .82;
   overflow: hidden;
   border-radius: 50%;
   background: #f0edf7;
@@ -443,14 +448,14 @@
   #community-feed .section-heading { align-items: flex-start; }
   #community-feed .section-heading h2 { font-size: 19px; }
   #community-feed .status-pill { max-width: 43%; font-size: 9px; padding: 6px 8px; }
-  #community-feed .post-card { grid-template-columns: 34px minmax(0, 1fr); column-gap: 9px; padding: 12px 0 9px; }
+  #community-feed .post-card { grid-template-columns: 34px minmax(0, 1fr); column-gap: 9px; padding: 10px 12px; margin-bottom: 8px; }
   #community-feed .post-avatar { width: 34px; height: 34px; min-width: 34px; }
   #community-feed .post-meta b { font-size: 13px; }
   #community-feed .post-meta span, #community-feed .post-meta small { font-size: 11px; }
   #community-feed .post-content > p { font-size: 14px; }
   #community-feed .post-action { gap: 4px; font-size: 11px; }
   #community-feed .post-action svg { width: 15px; height: 15px; }
-  #community-feed .comment-section:has(.inline-reply) { margin-left: 8px; padding-left: 8px; }
+  #community-feed .comment-section:has(.inline-reply) { margin-left: 0; padding-left: 0; }
   .app-header .brand small { display: none; }
   .app-header .header-actions .button { min-height: 30px; padding: 6px 9px; font-size: 12px; }
   .app-header .header-actions .button-install { width: 28px; height: 28px; padding: 0; }
@@ -458,3 +463,31 @@
 @media (prefers-reduced-motion: reduce) {
   #community-feed *, .app-header * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Keep the reply composer available at the bottom while reading a thread. */
+#community-feed .comment-section { padding-bottom: 50px; }
+#community-feed .reply-form {
+  position: sticky;
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  z-index: 4;
+  margin: 8px -12px -50px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #eff3f4;
+  background: rgba(255,255,255,.97);
+  backdrop-filter: blur(10px);
+}
+@media (max-width: 620px) {
+  #community-feed .reply-form { margin-left: -12px; margin-right: -12px; }
+}
+
+#community-feed .comment-section:has(.inline-reply)::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 0;
+  bottom: 52px;
+  width: 1px;
+  background: #eff3f4;
+  pointer-events: none;
+}
+#community-feed .comment-section:has(.inline-reply) { position: relative; }

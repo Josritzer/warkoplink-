@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { shouldRemoveReaction, summarizeReactions } from './reactions.js';
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
   signOut, updateProfile
@@ -343,6 +344,29 @@ export default function App() {
     }, () => setPostsStatus('error'));
   }, [postsRetry]);
 
+  // Reaksi berasal dari Firestore agar pulih setelah refresh dan sinkron antarpengguna.
+  useEffect(() => {
+    if (!db || !posts.length) return undefined;
+    let active = true;
+    const unsubscribers = posts.map((post) => onSnapshot(
+      collection(db, 'posts', post.id, 'likes'),
+      (snapshot) => {
+        if (!active) return;
+        const summary = summarizeReactions(snapshot.docs, user?.uid || '');
+        setLikeCounts((current) => ({ ...current, [post.id]: summary.count }));
+        setLikedPosts((current) => ({ ...current, [post.id]: summary.liked }));
+        setPostReactions((current) => ({ ...current, [post.id]: summary.emoji }));
+      },
+      () => {
+        if (active) setNotice('Reaksi belum dapat dimuat. Periksa koneksi lalu coba lagi.');
+      }
+    ));
+    return () => {
+      active = false;
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [posts, user?.uid]);
+
   // Muat pratinjau komentar untuk posting terbaru agar balasan terlihat langsung tanpa membuka panel.
   useEffect(() => {
     if (!db || !posts.length) return undefined;
@@ -470,20 +494,14 @@ export default function App() {
     const reactionRef = doc(db, 'posts', post.id, 'likes', user.uid);
     try {
       const existing = await getDoc(reactionRef);
-      if (existing.exists() && (existing.data().emoji || '❤️') === emoji) {
+      const existingData = existing.exists() ? existing.data() : null;
+      if (shouldRemoveReaction(existingData, emoji)) {
         await deleteDoc(reactionRef);
-        setLikedPosts(current => ({ ...current, [post.id]: false }));
-        setPostReactions(current => ({ ...current, [post.id]: '' }));
-        setLikeCounts(current => ({ ...current, [post.id]: Math.max(0, (current[post.id] || 1) - 1) }));
       } else if (existing.exists()) {
+        // Pertahankan suka lama tanpa emoji; klik pertama menetapkan emoji.
         await updateDoc(reactionRef, { emoji });
-        setLikedPosts(current => ({ ...current, [post.id]: true }));
-        setPostReactions(current => ({ ...current, [post.id]: emoji }));
       } else {
         await setDoc(reactionRef, { uid: user.uid, emoji, createdAt: serverTimestamp() });
-        setLikedPosts(current => ({ ...current, [post.id]: true }));
-        setPostReactions(current => ({ ...current, [post.id]: emoji }));
-        setLikeCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
       }
     } catch (error) {
       setNotice(error?.code === 'permission-denied' ? 'Reaksi ditolak oleh aturan keamanan.' : 'Reaksi belum tersimpan. Coba lagi.');
@@ -683,7 +701,7 @@ export default function App() {
               <div className="status-reactions" role="group" aria-label="Reaksi pada status">
                 {['👍', '❤️', '😂', '😮', '😢', '😡'].map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => handleReactPost(post, emoji)}>{emoji}</button>)}
               </div>
-              <div className="engagement-summary"><span>{(likeCounts[post.id] || 0) > 0 ? `❤️ ${likeCounts[post.id]}` : ''}</span><span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !expandedReplies[post.id] ? '3+' : replyCounts[post.id]} komentar` : ''}</span></div>
+              <div className="engagement-summary"><span>{(likeCounts[post.id] || 0) > 0 ? `${likeCounts[post.id]} reaksi` : ''}</span><span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !expandedReplies[post.id] ? '3+' : replyCounts[post.id]} komentar` : ''}</span></div>
               <div className="post-actions">
                 <button className={likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" onClick={() => handleLikePost(post)}><Heart size={17} fill={likedPosts[post.id] ? 'currentColor' : 'none'}/> <span>Suka</span></button>
                 <button className="post-action" type="button" onClick={() => openReplies(post)}><MessageSquare size={17}/> <span>Balas</span></button>

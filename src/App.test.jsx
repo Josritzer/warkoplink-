@@ -53,6 +53,7 @@ const POSTS = [
 ];
 
 beforeEach(() => {
+  window.localStorage.clear();
   vi.clearAllMocks();
   fs.getDoc.mockResolvedValue({ exists: () => true });
   fs.getDocs.mockResolvedValue({ docs: [], empty: true });

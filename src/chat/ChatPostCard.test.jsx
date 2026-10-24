@@ -19,12 +19,18 @@ function props(overrides = {}) {
 }
 
 describe('ChatPostCard', () => {
-  it('shows selected reaction and keeps reaction action connected', () => {
+  it('keeps the six emoji hidden until the reaction picker is opened', () => {
     const values = props({ postReactions: { 'post-1': '😂' } });
     render(<ChatPostCard {...values} />);
+    expect(screen.queryByRole('button', { name: 'Beri reaksi 😂' })).toBeNull();
+    const trigger = screen.getByRole('button', { name: 'Reaksi' });
+    expect(trigger.textContent).toContain('😂');
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(trigger);
     expect(screen.getByRole('button', { name: 'Beri reaksi 😂' }).getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Beri reaksi ❤️' }));
     expect(values.handleReactPost).toHaveBeenCalledWith(values.post, '❤️');
+    expect(screen.queryByRole('button', { name: 'Beri reaksi ❤️' })).toBeNull();
   });
 
   it('asks for confirmation before invoking deletion', () => {

@@ -421,11 +421,12 @@
 
 
 /* Reaksi ditempatkan langsung pada status, bukan di kolom tulis komentar. */
-#community-feed .status-reactions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:12px 0 2px}
+#community-feed .status-reactions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 2px;padding:7px 9px;width:max-content;max-width:100%;border:1px solid var(--border,#e5e7eb);border-radius:24px;background:var(--surface,#fff);box-shadow:0 4px 14px #0f172a12}
 #community-feed .status-reaction{display:grid;place-items:center;width:34px;height:32px;padding:0;border:1px solid transparent;border-radius:18px;background:#f0f2f5;font-size:18px;line-height:1;cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease}
 #community-feed .status-reaction:hover{background:#e4e6eb;transform:translateY(-1px)}
 #community-feed .status-reaction.selected{background:#e7f3ff;border-color:#0866ff;color:#0866ff;box-shadow:0 0 0 1px #0866ff22}
 #community-feed .status-reaction:focus-visible{outline:2px solid #0866ff;outline-offset:2px}
+#community-feed .reaction-action-emoji{font-size:17px;line-height:1}
 
 
 /* Konfirmasi hapus status: jelas, ringkas, dan tetap mengikuti pola aksi obrolan. */

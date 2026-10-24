@@ -1,4 +1,5 @@
-import { Heart, MessageSquare, MoreHorizontal, Send, Share2, Trash2 } from 'lucide-react';
+import { Heart, MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
@@ -14,6 +15,7 @@ export default function ChatPostCard({
   const ownPost = Boolean(user?.uid && user.uid === post.authorId);
   const replyRows = repliesByPost[post.id] || [];
   const showAllReplies = Boolean(expandedReplies[post.id]);
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
 
   return <article className="post-card" key={post.id}>
     <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : String(post.authorName || 'A').slice(0, 1).toUpperCase()}</div>
@@ -34,12 +36,15 @@ export default function ChatPostCard({
         </div>
       </div>
       <p>{post.body}</p>
-      <div className="status-reactions" role="group" aria-label="Reaksi pada status">
-        {EMOJIS.map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => handleReactPost(post, emoji)}>{emoji}</button>)}
+      <div className="engagement-summary">
+        <span>{(likeCounts[post.id] || 0) > 0 ? `${likeCounts[post.id]} reaksi` : ''}</span>
+        <span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !showAllReplies ? '3+' : replyCounts[post.id]} komentar` : ''}</span>
       </div>
-      <div className="engagement-summary"><span>{(likeCounts[post.id] || 0) > 0 ? `${likeCounts[post.id]} reaksi` : ''}</span><span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !showAllReplies ? '3+' : replyCounts[post.id]} komentar` : ''}</span></div>
+      {reactionPickerOpen && <div className="status-reactions" role="group" aria-label="Pilih reaksi">
+        {EMOJIS.map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => { handleReactPost(post, emoji); setReactionPickerOpen(false); }}>{emoji}</button>)}
+      </div>}
       <div className="post-actions">
-        <button className={likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" onClick={() => handleLikePost(post)}><Heart size={17} fill={likedPosts[post.id] ? 'currentColor' : 'none'}/> <span>Suka</span></button>
+        <button className={reactionPickerOpen || likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" aria-label="Reaksi" aria-expanded={reactionPickerOpen} onClick={() => setReactionPickerOpen(open => !open)}>{postReactions[post.id] ? <span className="reaction-action-emoji" aria-hidden="true">{postReactions[post.id]}</span> : <SmilePlus size={17}/>} <span>Reaksi</span></button>
         <button className="post-action" type="button" onClick={() => openReplies(post)}><MessageSquare size={17}/> <span>Balas</span></button>
         <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
       </div>

@@ -13,6 +13,7 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,13 +26,14 @@ jobs:
       - name: Install dependencies
         run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm install --no-audit --no-fund
       - name: Unit and component tests
-        run: bash .github/scripts/run-reported.sh "Tes unit dan komponen" npm test
+        run: bash .github/scripts/run-reported.sh "Tes unit dan komponen" timeout 8m npm test
       - name: Build production bundle
         run: bash .github/scripts/run-reported.sh "Build produksi" npm run build
 
   rules:
     name: firestore-rules
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

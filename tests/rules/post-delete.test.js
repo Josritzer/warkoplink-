@@ -42,6 +42,6 @@ describe('Firestore Rules: penghapusan status', () => {
   it('menolak pengguna lain menghapus status orang lain', async () => {
     await seedPost('other-post', 'author-1');
     const db = testEnv.authenticatedContext('reader-2').firestore();
-    await expect(assertFails(deleteDoc(doc(db, 'posts', 'other-post')))).resolves.toBeUndefined();
+    await assertFails(deleteDoc(doc(db, 'posts', 'other-post')));
   });
 });

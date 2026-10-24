@@ -17,6 +17,7 @@ vi.mock('firebase/auth', () => ({
 
 vi.mock('firebase/firestore', () => ({
   addDoc: vi.fn(),
+  deleteDoc: vi.fn().mockResolvedValue(undefined),
   collection: vi.fn((db, name) => ({ path: name })),
   doc: vi.fn((db, col, id) => ({ path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` })),
   getDoc: vi.fn(),

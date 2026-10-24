@@ -10,6 +10,9 @@ import {
 import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { auth, db, storage, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
+import ChatPanel from './chat/ChatPanel.jsx';
+import { relativePostTime } from './chat/postTime.js';
+import { deleteOwnPost } from './services/postService.js';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
@@ -18,17 +21,6 @@ import {
 
 const POSTS_LIMIT = 100;
 
-
-function relativePostTime(value) {
-  const date = value?.toDate ? value.toDate() : value instanceof Date ? value : null;
-  if (!date || Number.isNaN(date.getTime())) return 'baru saja';
-  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
-  if (seconds < 60) return 'baru saja';
-  if (seconds < 3600) return Math.floor(seconds / 60) + 'm lalu';
-  if (seconds < 86400) return Math.floor(seconds / 3600) + 'j lalu';
-  if (seconds < 604800) return Math.floor(seconds / 86400) + 'h lalu';
-  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-}
 
 function normalizeSearchText(value) {
   return String(value ?? '')
@@ -243,6 +235,8 @@ export default function App() {
   const [cooldownUntil, setCooldownUntil] = useState(0);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [reportingPostId, setReportingPostId] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState('');
+  const [deletingPostId, setDeletingPostId] = useState('');
   const [reportReason, setReportReason] = useState('Spam atau promosi berulang');
   const [reporting, setReporting] = useState(false);
   const registering = useRef(false);
@@ -488,6 +482,23 @@ export default function App() {
     }
   }
 
+  async function handleDeletePost(post) {
+    if (!user || !db || !post?.id || post.authorId !== user.uid || deletingPostId) return;
+    setDeletingPostId(post.id);
+    try {
+      await deleteOwnPost(db, post.id);
+      setDeleteConfirmId('');
+      setOpenPostMenuId('');
+      setNotice('Obrolan Anda berhasil dihapus.');
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied'
+        ? 'Penghapusan ditolak oleh aturan keamanan. Hanya pemilik obrolan yang dapat menghapusnya.'
+        : 'Obrolan belum dapat dihapus. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setDeletingPostId('');
+    }
+  }
+
   async function handleReactPost(post, emoji) {
     if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk bereaksi pada status.'); return; }
     if (!db || !post?.id) return;
@@ -674,52 +685,22 @@ export default function App() {
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
       (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Cari warkop</button></section> :
-      <section className="content-section" id="community-feed">
-        <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className="status-pill">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
-        {!firebaseConfigured && <p className="config-warning">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
-        <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}…`} aria-label={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}`}/></label></div>
-        <div className="topic-scroll-wrap"><div className="topic-list" aria-label="Kategori obrolan">{FILTER_TOPICS.map(t => <button key={t} onClick={() => setTopic(t)} aria-pressed={topic === t} className={topic === t ? 'topic selected' : 'topic'}>{t}</button>)}</div><span className="topic-scroll-hint" aria-hidden="true">›</span></div>
-        <form className={composerOpen ? 'composer composer-expanded' : 'composer composer-collapsed'} onSubmit={handlePost}>
-          {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi obrolan.'); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><span>{user ? 'Ayo ngobrol…' : 'Masuk untuk mulai ngobrol…'}</span></button> : <>
-            <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || 'Anggota komunitas'}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
-            <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ayo ngobrol…" rows={3}/>
-            <div className="composer-bottom"><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(''); }}>Batal</button><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0 || !draft.trim()}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Kirim'} <Send size={16}/></button></div>
-          </>}
-        </form>
-        <div className="post-list">
-          {postsStatus === 'loading' && <div className="empty-state" role="status"><h3>Memuat obrolan…</h3><p>Mohon tunggu sebentar.</p></div>}
-          {postsStatus === 'error' && <div className="empty-state" role="alert"><h3>Obrolan belum dapat dimuat</h3><p>Periksa koneksi internet Anda lalu coba lagi.</p><button className="button button-dark" onClick={() => setPostsRetry(n => n + 1)}>Coba lagi</button></div>}
-          {postsStatus === 'ready' && visiblePosts.map(post => <article className="post-card" key={post.id}>
-            <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : String(post.authorName || 'A').slice(0,1).toUpperCase()}</div>
-            <div className="post-content">
-              <div className="post-head"><div className="post-meta"><b>{post.authorName || 'Anggota SL'}</b><span>{post.topic || 'Obrolan Umum'}</span><small title={post.createdAt?.toDate?.()?.toLocaleString('id-ID') || ''}>{relativePostTime(post.createdAt)}</small></div>
-                <div className="post-menu-wrap"><button className="post-menu-trigger" type="button" aria-label="Opsi postingan" aria-expanded={openPostMenuId === post.id} onClick={() => setOpenPostMenuId(current => current === post.id ? '' : post.id)}><MoreHorizontal size={20}/></button>
-                  {openPostMenuId === post.id && <div className="post-menu"><button type="button" onClick={() => { setOpenPostMenuId(''); if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>⚑ Laporkan obrolan</button><button type="button" onClick={() => { setOpenPostMenuId(''); sharePost(post); }}><Share2 size={14}/> Bagikan</button></div>}
-                </div>
-              </div>
-              <p>{post.body}</p>
-              <div className="status-reactions" role="group" aria-label="Reaksi pada status">
-                {['👍', '❤️', '😂', '😮', '😢', '😡'].map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => handleReactPost(post, emoji)}>{emoji}</button>)}
-              </div>
-              <div className="engagement-summary"><span>{(likeCounts[post.id] || 0) > 0 ? `${likeCounts[post.id]} reaksi` : ''}</span><span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !expandedReplies[post.id] ? '3+' : replyCounts[post.id]} komentar` : ''}</span></div>
-              <div className="post-actions">
-                <button className={likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" onClick={() => handleLikePost(post)}><Heart size={17} fill={likedPosts[post.id] ? 'currentColor' : 'none'}/> <span>Suka</span></button>
-                <button className="post-action" type="button" onClick={() => openReplies(post)}><MessageSquare size={17}/> <span>Balas</span></button>
-                <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
-              </div>
-              {(repliesByPost[post.id] || []).length > 0 && <div className="inline-replies" aria-label="Komentar dan balasan">
-                {(expandedReplies[post.id] ? repliesByPost[post.id] : repliesByPost[post.id].slice(0, 3)).map(reply => <div className="inline-reply" key={reply.id}>
-                  <div className="inline-reply-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0, 1).toUpperCase()}</div>
-                  <div className="inline-reply-body"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
-                </div>)}
-                {(repliesByPost[post.id].length >= 4 || (replyCounts[post.id] || 0) > 3) && !expandedReplies[post.id] && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar</button>}
-              </div>}
-              {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><input aria-label="Tulis balasan" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/><button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
-              {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
-            </div></article>)}
-          {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}
-        </div>
-      </section>}
+      <ChatPanel
+        user={user} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
+        topic={topic} setTopic={setTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
+        openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
+        activeCategory={activeCategory} handlePost={handlePost} posting={posting}
+        cooldownRemaining={cooldownRemaining} postsStatus={postsStatus} setPostsRetry={setPostsRetry}
+        visiblePosts={visiblePosts}
+        cardProps={{
+          user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
+          reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost,
+          postReactions, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
+          handleLikePost, openReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
+          handleReply, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
+          deletingPostId, handleDeletePost
+        }}
+      />}
       {authOpen && <div className="modal-backdrop" role="presentation" onClick={() => setAuthOpen(false)}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={() => setAuthOpen(false)} aria-label="Tutup">×</button>
         <span className="brand-mark"><Sparkles size={20}/></span><h2 id="auth-title">{registerMode ? 'Gabung komunitas' : 'Selamat datang kembali'}</h2><p>{registerMode ? 'Buat akun untuk mulai terhubung.' : 'Masuk untuk ikut dalam percakapan.'}</p>

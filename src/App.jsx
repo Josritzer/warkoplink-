@@ -495,12 +495,14 @@ export default function App() {
   }
 
   async function sharePost(post) {
-    const shareData = { title: 'Obrolan WarkopLink', text: post.body, url: window.location.href };
+    const shareUrl = `${window.location.origin}/#community-feed`;
+    const shareText = `${post.body || ''}\n\nLihat obrolan dan gabung di WarkopLink:\n${shareUrl}`;
+    const shareData = { title: 'Obrolan WarkopLink', text: shareText };
     try {
       if (navigator.share) await navigator.share(shareData);
       else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareData.text + '\\n' + shareData.url);
-        setNotice('Teks obrolan dan tautan berhasil disalin.');
+        await navigator.clipboard.writeText(shareText);
+        setNotice('Kalimat obrolan dan tautan WarkopLink berhasil disalin.');
       } else setNotice('Fitur berbagi tidak tersedia di browser ini.');
     } catch (error) {
       if (error?.name !== 'AbortError') setNotice('Obrolan belum dapat dibagikan.');

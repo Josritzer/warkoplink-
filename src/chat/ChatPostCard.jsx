@@ -5,7 +5,7 @@ const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 // Tampilan satu status; state dan operasi tetap dimiliki App agar komentar/reaksi lama tidak terputus.
 export default function ChatPostCard({
   post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
-  reportingPostId, setReportingPostId, setReportReason, sharePost, postReactions,
+  reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, postReactions,
   handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts, handleLikePost,
   openReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft, handleReply,
   handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId, deletingPostId,
@@ -51,7 +51,7 @@ export default function ChatPostCard({
         {(replyRows.length >= 4 || (replyCounts[post.id] || 0) > 3) && !showAllReplies && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar</button>}
       </div>}
       {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><input aria-label="Tulis balasan" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/><button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
-      {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={undefined} defaultValue="Spam atau promosi berulang" onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
+      {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
       {deleteConfirmId === post.id && <div className="delete-confirm" role="group" aria-label="Konfirmasi hapus obrolan"><p>Hapus obrolan ini secara permanen?</p><div className="report-form-actions"><button className="button button-reject" type="button" onClick={() => handleDeletePost(post)} disabled={deletingPostId === post.id}>{deletingPostId === post.id ? 'Menghapus…' : 'Ya, hapus'}</button><button className="button button-quiet" type="button" onClick={() => setDeleteConfirmId('')} disabled={deletingPostId === post.id}>Batal</button></div></div>}
     </div>
   </article>;

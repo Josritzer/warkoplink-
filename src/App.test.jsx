@@ -90,7 +90,7 @@ describe('laporan obrolan', () => {
     emitPosts([{ id: 'post-1', authorId: 'author-1', authorName: 'Budi', body: 'Pesan contoh', topic: 'Obrolan Umum' }]);
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Opsi postingan' }));
-    await user.click(await screen.findByRole('button', { name: 'Laporkan obrolan' }));
+    await user.click(await screen.findByRole('button', { name: /Laporkan obrolan/ }));
     await user.selectOptions(screen.getByLabelText('Alasan laporan'), 'Lainnya');
     await user.click(screen.getByRole('button', { name: 'Kirim laporan' }));
     await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ targetPostId: 'post-1', targetAuthorId: 'author-1', reporterUid: 'u1', reason: 'Lainnya', createdAt: '__SERVER_TS__' })));
@@ -291,7 +291,7 @@ describe('membuat postingan', () => {
     emitAuth(fakeUser());
     emitPosts([]);
     await user.click(screen.getByRole('button', { name: 'Info Layanan' }));
-    await user.click(screen.getByRole('button', { name: 'Ayo ngobrol…' }));
+    await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     await user.type(screen.getByLabelText('Isi obrolan'), '  Halo komunitas  ');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
 
@@ -314,14 +314,14 @@ describe('membuat postingan', () => {
     for (const category of ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']) {
       expect(screen.getByRole('button', { name: category })).toBeTruthy();
     }
-    expect(screen.queryByLabelText('Kategori obrolan')).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Kategori obrolan' })).toBeNull();
   });
 
   it('pesan kosong tidak dikirim', async () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
-    await user.click(screen.getByRole('button', { name: 'Ayo ngobrol…' }));
+    await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     await user.type(screen.getByLabelText('Isi obrolan'), '   ');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
     expect(await screen.findByText('Tulis pesan terlebih dahulu.')).toBeTruthy();
@@ -332,7 +332,7 @@ describe('membuat postingan', () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
-    await user.click(screen.getByRole('button', { name: 'Ayo ngobrol…' }));
+    await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     const textarea = screen.getByLabelText('Isi obrolan');
     expect(textarea.getAttribute('maxlength')).toBe('2000');
     await user.type(textarea, 'abcde');
@@ -348,7 +348,7 @@ describe('membuat postingan', () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser({ uid: 'u2', displayName: null, email: 'rahasia@example.test' }));
-    await user.click(screen.getByRole('button', { name: 'Ayo ngobrol…' }));
+    await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     await user.type(screen.getByLabelText('Isi obrolan'), 'Halo');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
     await waitFor(() => expect(fs.writeBatch).toHaveBeenCalledTimes(1));
@@ -363,7 +363,7 @@ describe('membuat postingan', () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
-    await user.click(screen.getByRole('button', { name: 'Ayo ngobrol…' }));
+    await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     await user.type(screen.getByLabelText('Isi obrolan'), 'Halo');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
     expect(await screen.findByText(/ditolak oleh aturan keamanan/)).toBeTruthy();

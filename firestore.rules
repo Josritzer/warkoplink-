@@ -30,6 +30,33 @@ service cloud.firestore {
         && getAfter(auditPath(data.verificationAuditId)).data.createdAt == request.time;
     }
 
+
+    function reportModerationPath(reportId) {
+      return /databases/$(database)/documents/postReportModeration/$(reportId);
+    }
+
+    function reportAuditPath(auditId) {
+      return /databases/$(database)/documents/postReportAudit/$(auditId);
+    }
+
+    function validReportModeration(reportId, data, previousStatus) {
+      return isAdmin()
+        && exists(/databases/$(database)/documents/postReports/$(reportId))
+        && data.keys().hasAll(['reportId', 'status', 'updatedBy', 'updatedAt', 'latestAuditId'])
+        && data.keys().hasOnly(['reportId', 'status', 'updatedBy', 'updatedAt', 'latestAuditId'])
+        && data.reportId == reportId
+        && data.status in ['Ditinjau', 'Selesai']
+        && data.status != previousStatus
+        && data.updatedBy == request.auth.uid
+        && data.updatedAt == request.time
+        && data.latestAuditId is string
+        && getAfter(reportAuditPath(data.latestAuditId)).data.reportId == reportId
+        && getAfter(reportAuditPath(data.latestAuditId)).data.previousStatus == previousStatus
+        && getAfter(reportAuditPath(data.latestAuditId)).data.newStatus == data.status
+        && getAfter(reportAuditPath(data.latestAuditId)).data.actorUid == request.auth.uid
+        && getAfter(reportAuditPath(data.latestAuditId)).data.createdAt == request.time;
+    }
+
     function validProfile(data) {
       return data.keys().hasAll(['displayName', 'email', 'createdAt', 'updatedAt'])
         && data.keys().hasOnly(['displayName', 'email', 'createdAt', 'updatedAt'])
@@ -223,6 +250,49 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && exists(/databases/$(database)/documents/posts/$(request.resource.data.targetPostId))
         && get(/databases/$(database)/documents/posts/$(request.resource.data.targetPostId)).data.authorId == request.resource.data.targetAuthorId;
+      allow update, delete: if false;
+    }
+
+
+    // Status moderasi terpisah dari laporan asli. Hanya admin dapat membaca/menulis.
+    // Setiap perubahan wajib disertai peristiwa audit dalam batch yang sama.
+    match /postReportModeration/{reportId} {
+      allow read: if isAdmin();
+      allow create: if !exists(reportModerationPath(reportId))
+        && validReportModeration(reportId, request.resource.data, 'Baru');
+      allow update: if resource.data.reportId == reportId
+        && validReportModeration(reportId, request.resource.data, resource.data.status);
+      allow delete: if false;
+    }
+
+    // Audit moderasi bersifat append-only dan tidak dapat diperbarui/dihapus.
+    match /postReportAudit/{auditId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasAll([
+          'reportId', 'previousStatus', 'newStatus', 'actorUid', 'note', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'reportId', 'previousStatus', 'newStatus', 'actorUid', 'note', 'createdAt'
+        ])
+        && request.resource.data.reportId is string
+        && exists(/databases/$(database)/documents/postReports/$(request.resource.data.reportId))
+        && request.resource.data.previousStatus in ['Baru', 'Ditinjau', 'Selesai']
+        && request.resource.data.newStatus in ['Ditinjau', 'Selesai']
+        && request.resource.data.newStatus != request.resource.data.previousStatus
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 500
+        && request.resource.data.createdAt == request.time
+        && ((!exists(reportModerationPath(request.resource.data.reportId))
+          && request.resource.data.previousStatus == 'Baru')
+          || (exists(reportModerationPath(request.resource.data.reportId))
+          && get(reportModerationPath(request.resource.data.reportId)).data.status == request.resource.data.previousStatus))
+        && getAfter(reportModerationPath(request.resource.data.reportId)).data.status == request.resource.data.newStatus
+        && getAfter(reportModerationPath(request.resource.data.reportId)).data.reportId == request.resource.data.reportId
+        && getAfter(reportModerationPath(request.resource.data.reportId)).data.updatedBy == request.auth.uid
+        && getAfter(reportModerationPath(request.resource.data.reportId)).data.updatedAt == request.time
+        && getAfter(reportModerationPath(request.resource.data.reportId)).data.latestAuditId == auditId;
       allow update, delete: if false;
     }
 

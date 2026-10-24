@@ -25,7 +25,15 @@ vi.mock('firebase/firestore', () => ({
   getDocs: vi.fn(),
   increment: vi.fn((amount) => ({ increment: amount })),
   limit: vi.fn((n) => ({ limit: n })),
-  onSnapshot: vi.fn((q, next, error) => { state.snapshotNext = next; state.snapshotError = error; return vi.fn(); }),
+  onSnapshot: vi.fn((q, next, error) => {
+    // Simpan callback feed/direktori saja; subscription likes/replies tidak boleh menimpa helper tes.
+    const path = q?.args?.[0]?.path ?? q?.path;
+    if (path === 'posts' || path === 'warungs') {
+      state.snapshotNext = next;
+      state.snapshotError = error;
+    }
+    return vi.fn();
+  }),
   orderBy: vi.fn(),
   query: vi.fn((...args) => ({ args })),
   runTransaction: vi.fn(async (db, callback) => callback({ get: vi.fn(), set: vi.fn(), update: vi.fn(), delete: vi.fn() })),

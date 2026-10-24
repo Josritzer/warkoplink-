@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
-  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validateTopic
+  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, REPORT_REASONS, authErrorMessage, authorNameFor,
+  deleteErrorMessage, filterPosts, formatPostTime, isOwnPost, normalizeSearchText, postErrorMessage,
+  reportErrorMessage, toDateOrNull, validateDisplayName, validateEmail, validatePassword,
+  validatePostBody, validateReportReason, validateTopic
 } from './lib.js';
 
 describe('validateDisplayName', () => {
@@ -86,5 +88,80 @@ describe('pesan error', () => {
     expect(authErrorMessage({ code: 'x', message: 'RAHASIA' })).not.toContain('RAHASIA');
     expect(postErrorMessage({ code: 'permission-denied' })).toContain('aturan keamanan');
     expect(postErrorMessage({ message: 'RAHASIA' })).not.toContain('RAHASIA');
+  });
+});
+
+describe('normalizeSearchText dan pencarian tanpa aksen', () => {
+  it('mengabaikan huruf besar/kecil, aksen, dan spasi berlebih', () => {
+    expect(normalizeSearchText('  CAFÉ   Pojok  ')).toBe('cafe pojok');
+    expect(normalizeSearchText(null)).toBe('');
+    expect(normalizeSearchText(undefined)).toBe('');
+  });
+  it('filterPosts menemukan pesan berbaris baru dan berbeda aksen', () => {
+    const posts = [{ body: 'Kopi enak\ndi café sini', authorName: 'Sari', topic: 'Obrolan Umum' }];
+    expect(filterPosts(posts, 'Semua', 'kopi enak di cafe')).toHaveLength(1);
+    expect(filterPosts(posts, 'Semua', '   ')).toHaveLength(1);
+  });
+});
+
+describe('daftar alasan laporan', () => {
+  it('mengandung empat alasan yang diizinkan Rules', () => {
+    expect(REPORT_REASONS).toEqual([
+      'Spam atau promosi berulang',
+      'Pelecehan atau ujaran kebencian',
+      'Informasi berbahaya atau menyesatkan',
+      'Lainnya'
+    ]);
+    expect(validateReportReason('Lainnya')).toBe(true);
+    expect(validateReportReason('Alasan karangan')).toBe(false);
+  });
+});
+
+describe('isOwnPost', () => {
+  it('hanya benar bila UID penulis sama dengan UID pengguna', () => {
+    expect(isOwnPost({ authorId: 'u1' }, { uid: 'u1' })).toBe(true);
+    expect(isOwnPost({ authorId: 'u2' }, { uid: 'u1' })).toBe(false);
+    expect(isOwnPost({ authorId: 'u1' }, null)).toBe(false);
+    expect(isOwnPost({}, { uid: 'u1' })).toBe(false);
+    expect(isOwnPost(null, { uid: 'u1' })).toBe(false);
+  });
+});
+
+describe('formatPostTime', () => {
+  const NOW = Date.UTC(2026, 9, 24, 10, 0, 0);
+  const ago = (ms) => new Date(NOW - ms);
+
+  it('null (menunggu server) tampil "Baru saja"; undefined tidak menampilkan apa pun', () => {
+    expect(formatPostTime(null, NOW).label).toBe('Baru saja');
+    expect(formatPostTime(undefined, NOW)).toBeNull();
+    expect(formatPostTime('bukan tanggal', NOW)).toBeNull();
+  });
+  it('memakai label relatif dengan batas yang benar', () => {
+    expect(formatPostTime(ago(30 * 1000), NOW).label).toBe('Baru saja');
+    expect(formatPostTime(ago(5 * 60 * 1000), NOW).label).toBe('5 menit lalu');
+    expect(formatPostTime(ago(3 * 3600 * 1000), NOW).label).toBe('3 jam lalu');
+    expect(formatPostTime(ago(2 * 86400 * 1000), NOW).label).toBe('2 hari lalu');
+  });
+  it('lebih dari seminggu memakai tanggal; jam server di masa depan dianggap "Baru saja"', () => {
+    const old = formatPostTime(ago(30 * 86400 * 1000), NOW);
+    expect(old.label).not.toMatch(/lalu|Baru saja/);
+    expect(old.iso).toBe(new Date(NOW - 30 * 86400 * 1000).toISOString());
+    expect(formatPostTime(new Date(NOW + 60000), NOW).label).toBe('Baru saja');
+  });
+  it('menerima Firestore Timestamp (objek dengan toDate)', () => {
+    const stamp = { toDate: () => ago(10 * 60 * 1000) };
+    expect(formatPostTime(stamp, NOW).label).toBe('10 menit lalu');
+    expect(toDateOrNull(stamp)).toBeInstanceOf(Date);
+    expect(toDateOrNull({ toDate() { throw new Error('rusak'); } })).toBeNull();
+  });
+});
+
+describe('pesan error laporan dan hapus', () => {
+  it('memetakan kode Firebase ke pesan yang jelas tanpa membocorkan pesan mentah', () => {
+    expect(reportErrorMessage({ code: 'permission-denied' })).toContain('aturan keamanan');
+    expect(reportErrorMessage({ message: 'RAHASIA' })).not.toContain('RAHASIA');
+    expect(deleteErrorMessage({ code: 'permission-denied' })).toContain('penulis');
+    expect(deleteErrorMessage({ code: 'unavailable' })).toContain('Koneksi bermasalah');
+    expect(deleteErrorMessage({ message: 'RAHASIA' })).not.toContain('RAHASIA');
   });
 });

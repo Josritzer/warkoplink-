@@ -18,6 +18,7 @@ vi.mock('firebase/auth', () => ({
 vi.mock('firebase/firestore', () => ({
   addDoc: vi.fn(),
   collection: vi.fn((db, name) => ({ path: name })),
+  deleteDoc: vi.fn(),
   doc: vi.fn((db, col, id) => ({ path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` })),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
@@ -55,6 +56,7 @@ beforeEach(() => {
   fs.getDocs.mockResolvedValue({ docs: [] });
   fs.setDoc.mockResolvedValue(undefined);
   fs.addDoc.mockResolvedValue({ id: 'new' });
+  fs.deleteDoc.mockResolvedValue(undefined);
   fs.writeBatch.mockImplementation(() => ({ set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) }));
   fbAuth.updateProfile.mockResolvedValue(undefined);
   fbAuth.signOut.mockResolvedValue(undefined);
@@ -94,6 +96,89 @@ describe('laporan obrolan', () => {
     await user.click(screen.getByRole('button', { name: 'Kirim laporan' }));
     await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ targetPostId: 'post-1', targetAuthorId: 'author-1', reporterUid: 'u1', reason: 'Lainnya', createdAt: '__SERVER_TS__' })));
     expect(await screen.findByText('Laporan terkirim kepada admin untuk ditinjau.')).toBeTruthy();
+  });
+});
+
+describe('panel obrolan: hapus, waktu, dan papan ketik', () => {
+  const OWN = { id: 'mine', authorId: 'u1', authorName: 'Sari', body: 'Pesan saya', topic: 'Obrolan Umum' };
+  const OTHER = { id: 'theirs', authorId: 'u9', authorName: 'Budi', body: 'Pesan Budi', topic: 'Obrolan Umum' };
+
+  it('penulis menghapus obrolannya setelah konfirmasi; obrolan orang lain hanya bisa dilaporkan', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([OWN, OTHER]);
+    expect(await screen.findAllByRole('button', { name: 'Laporkan' })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Hapus' }));
+    expect(fs.deleteDoc).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Ya, hapus' }));
+    await waitFor(() => expect(fs.deleteDoc).toHaveBeenCalledWith({ path: 'posts/mine' }));
+    expect(await screen.findByText('Obrolan Anda sudah dihapus.')).toBeTruthy();
+  });
+
+  it('Batal pada konfirmasi tidak menghapus apa pun', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([OWN]);
+    await user.click(await screen.findByRole('button', { name: 'Hapus' }));
+    await user.click(screen.getByRole('button', { name: 'Batal' }));
+    expect(fs.deleteDoc).not.toHaveBeenCalled();
+    expect(screen.queryByRole('group', { name: 'Konfirmasi hapus obrolan' })).toBeNull();
+    expect(screen.getByText('Pesan saya')).toBeTruthy();
+  });
+
+  it('kegagalan hapus menampilkan pesan jelas dan obrolan tetap ada', async () => {
+    fs.deleteDoc.mockRejectedValue({ code: 'permission-denied' });
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([OWN]);
+    await user.click(await screen.findByRole('button', { name: 'Hapus' }));
+    await user.click(screen.getByRole('button', { name: 'Ya, hapus' }));
+    expect(await screen.findByText(/Hanya penulis yang dapat menghapus/)).toBeTruthy();
+    expect(screen.getByText('Pesan saya')).toBeTruthy();
+  });
+
+  it('pengunjung tanpa login tidak melihat tombol Hapus', async () => {
+    render(<App />);
+    emitAuth(null);
+    emitPosts([OWN]);
+    expect(await screen.findByText('Pesan saya')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Hapus' })).toBeNull();
+  });
+
+  it('waktu obrolan tampil: menit untuk pesan lama, "Baru saja" untuk pesan yang menunggu server', async () => {
+    render(<App />);
+    emitAuth(null);
+    emitPosts([
+      { ...OTHER, id: 'lama', createdAt: { toDate: () => new Date(Date.now() - 7 * 60 * 1000 - 5000) } },
+      { ...OWN, id: 'baru', createdAt: null },
+    ]);
+    expect(await screen.findByText('7 menit lalu')).toBeTruthy();
+    expect(screen.getByText('Baru saja')).toBeTruthy();
+  });
+
+  it('Ctrl+Enter mengirim obrolan dari papan ketik', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([]);
+    await user.type(screen.getByLabelText('Isi obrolan'), 'Halo cepat');
+    await user.keyboard('{Control>}{Enter}{/Control}');
+    await waitFor(() => expect(fs.writeBatch).toHaveBeenCalledTimes(1));
+    const batch = fs.writeBatch.mock.results[0].value;
+    expect(batch.set.mock.calls[0][1].body).toBe('Halo cepat');
+  });
+
+  it('pencarian tidak membedakan aksen', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    emitPosts([{ ...OTHER, body: 'Kopi enak di café sini' }]);
+    await screen.findByText('Kopi enak di café sini');
+    await user.type(screen.getByPlaceholderText('Cari obrolan…'), 'CAFE');
+    expect(screen.getByText('Kopi enak di café sini')).toBeTruthy();
   });
 });
 

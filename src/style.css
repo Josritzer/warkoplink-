@@ -337,3 +337,19 @@
   #community-feed .post-avatar{width:38px;height:38px;flex-basis:38px}
   #community-feed .post-meta{align-items:flex-start;flex-direction:column;gap:4px}
 }
+
+/* Panel obrolan — waktu, hapus obrolan sendiri, peringatan penghitung, catatan batas. */
+#community-feed .post-time{font-size:11px;color:#65676b;white-space:nowrap}
+#community-feed .post-time::before{content:"·";margin-right:7px}
+#community-feed .post-actions .button-quiet svg{flex:none}
+#community-feed .delete-confirm{display:grid;gap:10px;padding-top:12px}
+#community-feed .delete-confirm p{margin:0;font-size:13px;line-height:1.5;color:#1c1e21}
+#community-feed .composer-hint{color:#8a8d91;font-size:11px;margin-left:auto}
+#community-feed .composer-hint + .char-count{margin-left:0}
+#community-feed .char-count.near-limit{color:#b3261e;font-weight:700}
+#community-feed .feed-limit-note{margin:4px 0 0;text-align:center;font-size:11px;color:#8a8d91}
+@media(max-width:620px){
+  #community-feed .composer-hint{display:none}
+  #community-feed .composer-hint + .char-count{margin-left:auto}
+  #community-feed .post-time::before{content:none}
+}

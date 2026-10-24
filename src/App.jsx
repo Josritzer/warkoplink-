@@ -1,29 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, where, writeBatch
+  addDoc, collection, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
-import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store } from 'lucide-react';
+import ChatPanel from './chat/ChatPanel.jsx';
+import { useChatController } from './chat/useChatController.js';
+import { createProfile, ensureProfile } from './services/profileService.js';
+import { MessageCircle, Sparkles, ShieldCheck, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store } from 'lucide-react';
 import {
-  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
-  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
+  authErrorMessage, normalizeSearchText, validateDisplayName, validateEmail, validatePassword
 } from './lib.js';
-
-const POSTS_LIMIT = 100;
-
-function normalizeSearchText(value) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('id')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
   const [warungs, setWarungs] = useState([]);
@@ -195,18 +186,11 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
 
 export default function App() {
   const [section, setSection] = useState('Beranda');
-  const [topic, setTopic] = useState('Semua');
-  const [composerTopic, setComposerTopic] = useState(POST_TOPICS[0]);
-  const [search, setSearch] = useState('');
-  const [draft, setDraft] = useState('');
   const [notice, setNotice] = useState('');
   const [installPrompt, setInstallPrompt] = useState(null);
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authReady, setAuthReady] = useState(!auth);
-  const [posts, setPosts] = useState([]);
-  const [postsStatus, setPostsStatus] = useState(db ? 'loading' : 'ready');
-  const [postsRetry, setPostsRetry] = useState(0);
   const [authOpen, setAuthOpen] = useState(false);
   const [registerMode, setRegisterMode] = useState(false);
   const [email, setEmail] = useState('');
@@ -214,46 +198,18 @@ export default function App() {
   const [displayName, setDisplayName] = useState('');
   const [authError, setAuthError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [posting, setPosting] = useState(false);
-  const [cooldownUntil, setCooldownUntil] = useState(0);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const [reportingPostId, setReportingPostId] = useState('');
-  const [reportReason, setReportReason] = useState('Spam atau promosi berulang');
-  const [reporting, setReporting] = useState(false);
+  const [feedScrollTick, setFeedScrollTick] = useState(0);
   const registering = useRef(false);
 
-  useEffect(() => {
-    if (!cooldownUntil) { setCooldownRemaining(0); return undefined; }
-    const updateCooldown = () => {
-      const remaining = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
-      setCooldownRemaining(remaining);
-      if (remaining === 0) setCooldownUntil(0);
-    };
-    updateCooldown();
-    const timer = setInterval(updateCooldown, 250);
-    return () => clearInterval(timer);
-  }, [cooldownUntil]);
+  // Semua logika obrolan ada di useChatController; App hanya menyambungkan akun dan notifikasi.
+  const chat = useChatController({ db, user, onRequestAuth: () => openAuth(false), onNotice: setNotice });
 
-  // Membuat dokumen profil jika akun Auth sudah ada tetapi profil belum tersimpan
-  // (misalnya pembuatan profil gagal saat registrasi). Aman dipanggil berulang.
-  const ensureProfile = useCallback(async (currentUser) => {
-    if (!db || !currentUser) return true;
-    try {
-      const ref = doc(db, 'profiles', currentUser.uid);
-      const existing = await getDoc(ref);
-      if (existing.exists()) return true;
-      await setDoc(ref, {
-        displayName: authorNameFor(currentUser),
-        email: currentUser.email,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      return true;
-    } catch (error) {
-      console.warn('Profil belum dapat disimpan:', error?.code || 'unknown');
-      return false;
-    }
-  }, []);
+  // Gulir ke panel obrolan setelah menu Obrolan tampil (elemennya belum ada saat tombol
+  // ditekan dari menu lain, jadi tidak bisa digulir langsung di handler klik).
+  useEffect(() => {
+    if (feedScrollTick === 0) return;
+    document.getElementById('community-feed')?.scrollIntoView?.({ behavior: 'smooth' });
+  }, [feedScrollTick]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -304,19 +260,9 @@ export default function App() {
           setIsAdmin(false);
         }
       }
-      if (nextUser && !registering.current) ensureProfile(nextUser);
+      if (nextUser && !registering.current) ensureProfile(db, nextUser);
     });
-  }, [ensureProfile]);
-
-  useEffect(() => {
-    if (!db) return undefined;
-    setPostsStatus('loading');
-    const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(POSTS_LIMIT));
-    return onSnapshot(postsQuery, (snapshot) => {
-      setPosts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-      setPostsStatus('ready');
-    }, () => setPostsStatus('error'));
-  }, [postsRetry]);
+  }, []);
 
   function openAuth(register) {
     setRegisterMode(register);
@@ -346,12 +292,7 @@ export default function App() {
         const result = await createUserWithEmailAndPassword(auth, emailCheck.value, passwordCheck.value);
         try {
           await updateProfile(result.user, { displayName: nameCheck.value });
-          await setDoc(doc(db, 'profiles', result.user.uid), {
-            displayName: nameCheck.value,
-            email: result.user.email,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
+          await createProfile(db, result.user, nameCheck.value);
         } catch (profileError) {
           // Akun sudah terbuat dan pengguna sudah masuk; profil akan dicoba lagi otomatis.
           profileSaved = false;
@@ -375,66 +316,6 @@ export default function App() {
     }
   }
 
-  async function handlePost(event) {
-    event.preventDefault();
-    if (!user) {
-      openAuth(false);
-      setNotice('Masuk atau buat akun terlebih dahulu untuk mengirim obrolan.');
-      return;
-    }
-    const bodyCheck = validatePostBody(draft);
-    if (!bodyCheck.ok) return setNotice(bodyCheck.error);
-    if (!db) return setNotice('Firebase belum dikonfigurasi.');
-    setPosting(true);
-    try {
-      // Aturan keamanan mencocokkan nama penulis dengan profil, jadi pastikan profil ada.
-      const hasProfile = await ensureProfile(user);
-      if (!hasProfile) {
-        setNotice('Profil Anda belum tersimpan sehingga pesan belum dapat dikirim. Coba lagi sebentar lagi.');
-        return;
-      }
-      // Postingan dan penanda cooldown ditulis atomik; Firestore Rules menegakkan jeda 10 detik.
-      const postRef = doc(collection(db, 'posts'));
-      const rateLimitRef = doc(db, 'postRateLimits', user.uid);
-      const batch = writeBatch(db);
-      batch.set(postRef, {
-        authorId: user.uid,
-        authorName: authorNameFor(user),
-        body: bodyCheck.value,
-        topic: composerTopic,
-        createdAt: serverTimestamp()
-      });
-      batch.set(rateLimitRef, { uid: user.uid, lastSentAt: serverTimestamp() });
-      await batch.commit();
-      setDraft('');
-      setCooldownUntil(Date.now() + 10000);
-      setNotice('Obrolan berhasil dipublikasikan. Tunggu 10 detik sebelum mengirim pesan berikutnya.');
-    } catch (error) {
-      setNotice(postErrorMessage(error));
-    } finally {
-      setPosting(false);
-    }
-  }
-
-  async function handleReportPost(event, post) {
-    event.preventDefault();
-    if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; }
-    const allowedReasons = ['Spam atau promosi berulang', 'Pelecehan atau ujaran kebencian', 'Informasi berbahaya atau menyesatkan', 'Lainnya'];
-    if (!db || !post?.id || !allowedReasons.includes(reportReason)) { setNotice('Laporan belum dapat dikirim. Periksa pilihan alasan lalu coba lagi.'); return; }
-    setReporting(true);
-    try {
-      await setDoc(doc(db, 'postReports', `${post.id}_${user.uid}`), {
-        targetPostId: post.id, targetAuthorId: post.authorId, reporterUid: user.uid,
-        reason: reportReason, createdAt: serverTimestamp()
-      });
-      setReportingPostId('');
-      setReportReason('Spam atau promosi berulang');
-      setNotice('Laporan terkirim kepada admin untuk ditinjau.');
-    } catch (error) {
-      setNotice(error?.code === 'permission-denied' ? 'Laporan ditolak oleh aturan keamanan. Pastikan Anda sudah masuk.' : 'Laporan belum berhasil dikirim. Periksa koneksi lalu coba lagi.');
-    } finally { setReporting(false); }
-  }
-
   async function handleSignOut() {
     if (!auth) return;
     try {
@@ -444,8 +325,6 @@ export default function App() {
       setNotice('Gagal keluar. Silakan coba lagi.');
     }
   }
-
-  const visiblePosts = filterPosts(posts, topic, search);
 
   return <div className="app-shell">
     <header className="topbar app-header">
@@ -472,22 +351,7 @@ export default function App() {
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
       (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Cari warkop</button></section> :
-      <section className="content-section" id="community-feed">
-        <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className="status-pill">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
-        {!firebaseConfigured && <p className="config-warning">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
-        <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari obrolan…"/></label></div>
-        <div className="topic-list">{FILTER_TOPICS.map(t => <button key={t} onClick={() => setTopic(t)} aria-pressed={topic === t} className={topic === t ? 'topic selected' : 'topic'}>{t}</button>)}</div>
-        <form className="composer" onSubmit={handlePost}>
-          <textarea aria-label="Isi obrolan" value={draft} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder={user ? 'Apa yang ingin kamu bagikan hari ini?' : 'Masuk untuk mulai berbagi obrolan…'} rows={3}/>
-          <div className="composer-bottom"><select aria-label="Kategori obrolan" value={composerTopic} onChange={e => setComposerTopic(e.target.value)}>{POST_TOPICS.map(t => <option key={t}>{t}</option>)}</select><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Mulai obrolan'} <MessageCircle size={16}/></button></div>
-        </form>
-        <div className="post-list">
-          {postsStatus === 'loading' && <div className="empty-state" role="status"><h3>Memuat obrolan…</h3><p>Mohon tunggu sebentar.</p></div>}
-          {postsStatus === 'error' && <div className="empty-state" role="alert"><h3>Obrolan belum dapat dimuat</h3><p>Periksa koneksi internet Anda lalu coba lagi.</p><button className="button button-dark" onClick={() => setPostsRetry(n => n + 1)}>Coba lagi</button></div>}
-          {postsStatus === 'ready' && visiblePosts.map(post => <article className="post-card" key={post.id}><div className="post-avatar">{String(post.authorName || 'A').slice(0,1).toUpperCase()}</div><div className="post-content"><div className="post-meta"><b>{post.authorName || 'Anggota SL'}</b><span>{post.topic || 'Obrolan Umum'}</span></div><p>{post.body}</p><div className="post-actions"><button className="button button-quiet" type="button" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>Laporkan</button></div>{reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}</div></article>)}
-          {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}
-        </div>
-      </section>}
+      <ChatPanel chat={chat} user={user} firebaseConfigured={firebaseConfigured}/>}
       {authOpen && <div className="modal-backdrop" role="presentation" onClick={() => setAuthOpen(false)}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={() => setAuthOpen(false)} aria-label="Tutup">×</button>
         <span className="brand-mark"><Sparkles size={20}/></span><h2 id="auth-title">{registerMode ? 'Gabung komunitas' : 'Selamat datang kembali'}</h2><p>{registerMode ? 'Buat akun untuk mulai terhubung.' : 'Masuk untuk ikut dalam percakapan.'}</p>
@@ -505,7 +369,7 @@ export default function App() {
     <nav className="bottom-nav" aria-label="Navigasi aplikasi">
       <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
       <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>
-      <button className={section === 'Obrolan' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => { setSection('Obrolan'); document.getElementById('community-feed')?.scrollIntoView({behavior:'smooth'}); }} aria-current={section === 'Obrolan' ? 'page' : undefined}><MessageCircle size={20}/><span>Obrolan</span></button>
+      <button className={section === 'Obrolan' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => { setSection('Obrolan'); setFeedScrollTick((n) => n + 1); }} aria-current={section === 'Obrolan' ? 'page' : undefined}><MessageCircle size={20}/><span>Obrolan</span></button>
       <button className={section === 'Daftarkan Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Daftarkan Warkop')} aria-current={section === 'Daftarkan Warkop' ? 'page' : undefined}><Store size={20}/><span>Daftar</span></button>
       <button className={section === 'Akun' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Akun')} aria-current={section === 'Akun' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
     </nav>

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { shouldRemoveReaction, summarizeReactions } from './reactions.js';
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, updateDoc, where, writeBatch
+  addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where, writeBatch
 } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { auth, db, storage, firebaseConfigured } from './firebase.js';
@@ -19,7 +19,23 @@ import {
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
 } from './lib.js';
 
-const POSTS_LIMIT = 100;
+const POSTS_LIMIT = 10;
+const FEED_CACHE_KEY = 'warkoplink:community-feed:v1';
+
+function readCachedPosts() {
+  try {
+    const cached = JSON.parse(window.localStorage.getItem(FEED_CACHE_KEY) || '[]');
+    if (!Array.isArray(cached)) return [];
+    return cached.slice(0, POSTS_LIMIT).map((post) => ({
+      ...post,
+      createdAt: post.createdAt?.seconds != null
+        ? Timestamp.fromMillis(post.createdAt.seconds * 1000 + (post.createdAt.nanoseconds || 0) / 1e6)
+        : post.createdAt
+    }));
+  } catch {
+    return [];
+  }
+}
 
 
 function normalizeSearchText(value) {
@@ -219,8 +235,13 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authReady, setAuthReady] = useState(!auth);
-  const [posts, setPosts] = useState([]);
-  const [postsStatus, setPostsStatus] = useState(db ? 'loading' : 'ready');
+  const [posts, setPosts] = useState(readCachedPosts);
+  const [olderPosts, setOlderPosts] = useState([]);
+  const [lastPostDoc, setLastPostDoc] = useState(null);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState('');
+  const [postsStatus, setPostsStatus] = useState(() => db ? (readCachedPosts().length ? 'ready' : 'loading') : 'ready');
   const [postsRetry, setPostsRetry] = useState(0);
   const [authOpen, setAuthOpen] = useState(false);
   const [registerMode, setRegisterMode] = useState(false);
@@ -330,19 +351,58 @@ export default function App() {
 
   useEffect(() => {
     if (!db) return undefined;
-    setPostsStatus('loading');
+    setPostsStatus(current => current === 'ready' && posts.length ? current : 'loading');
+    setOlderPosts([]);
+    setLastPostDoc(null);
+    setHasMorePosts(false);
+    setLoadMoreError('');
     const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(POSTS_LIMIT));
     return onSnapshot(postsQuery, (snapshot) => {
-      setPosts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      const nextPosts = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      setPosts(nextPosts);
+      setLastPostDoc(snapshot.docs.at(-1) || null);
+      setHasMorePosts(snapshot.docs.length === POSTS_LIMIT);
       setPostsStatus('ready');
-    }, () => setPostsStatus('error'));
+      try {
+        window.localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(nextPosts.slice(0, POSTS_LIMIT)));
+      } catch {
+        // Cache opsional; feed tetap berjalan jika penyimpanan penuh/nonaktif.
+      }
+    }, () => setPostsStatus(current => current === 'ready' && posts.length ? current : 'error'));
   }, [postsRetry]);
+
+  const allPosts = useMemo(() => {
+    const unique = new Map();
+    [...posts, ...olderPosts].forEach((post) => { if (!unique.has(post.id)) unique.set(post.id, post); });
+    return [...unique.values()];
+  }, [posts, olderPosts]);
+
+  async function loadMorePosts() {
+    if (!db || !lastPostDoc || loadingMorePosts || !hasMorePosts) return;
+    setLoadingMorePosts(true);
+    setLoadMoreError('');
+    try {
+      const nextQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(lastPostDoc), limit(POSTS_LIMIT));
+      const snapshot = await getDocs(nextQuery);
+      const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      setOlderPosts((current) => {
+        const seen = new Set([...posts, ...current].map((post) => post.id));
+        return [...current, ...nextRows.filter((post) => !seen.has(post.id))];
+      });
+      setLastPostDoc(snapshot.docs.at(-1) || lastPostDoc);
+      setHasMorePosts(snapshot.docs.length === POSTS_LIMIT);
+    } catch {
+      setLoadMoreError('Belum bisa memuat obrolan lama. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setLoadingMorePosts(false);
+    }
+  }
 
   // Reaksi berasal dari Firestore agar pulih setelah refresh dan sinkron antarpengguna.
   useEffect(() => {
-    if (!db || !posts.length) return undefined;
+    if (!db || !allPosts.length) return undefined;
     let active = true;
-    const unsubscribers = posts.map((post) => onSnapshot(
+    const unsubscribers = allPosts.map((post) => onSnapshot(
       collection(db, 'posts', post.id, 'likes'),
       (snapshot) => {
         if (!active) return;
@@ -359,14 +419,14 @@ export default function App() {
       active = false;
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  }, [posts, user?.uid]);
+  }, [allPosts, user?.uid]);
 
   // Muat pratinjau komentar untuk posting terbaru agar balasan terlihat langsung tanpa membuka panel.
   useEffect(() => {
-    if (!db || !posts.length) return undefined;
+    if (!db || !allPosts.length) return undefined;
     let cancelled = false;
     const loadPreviews = async () => {
-      const latestPosts = posts.slice(0, 12);
+      const latestPosts = allPosts.slice(0, 12);
       const results = await Promise.all(latestPosts.map(async (post) => {
         try {
           const repliesRef = collection(db, 'posts', post.id, 'replies');
@@ -385,7 +445,7 @@ export default function App() {
     };
     loadPreviews();
     return () => { cancelled = true; };
-  }, [posts]);
+  }, [allPosts]);
 
   function openAuth(register) {
     setRegisterMode(register);
@@ -662,7 +722,7 @@ export default function App() {
     }
   }
 
-  const visiblePosts = filterPosts(posts, topic, search);
+  const visiblePosts = filterPosts(allPosts, topic, search);
   const activeCategory = topic === 'Semua' ? 'Obrolan Umum' : topic;
 
   return <div className="app-shell">
@@ -696,7 +756,8 @@ export default function App() {
         openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
         activeCategory={activeCategory} handlePost={handlePost} posting={posting}
         cooldownRemaining={cooldownRemaining} postsStatus={postsStatus} setPostsRetry={setPostsRetry}
-        visiblePosts={visiblePosts}
+        visiblePosts={visiblePosts} hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts}
+         loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
         cardProps={{
           user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
           reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost,

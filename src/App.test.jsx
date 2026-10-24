@@ -210,7 +210,7 @@ describe('registrasi', () => {
     expect(fbAuth.createUserWithEmailAndPassword).toHaveBeenCalledWith({ name: 'auth' }, 'sari@example.test', 'rahasia1');
     expect(fbAuth.updateProfile).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), { displayName: 'Sari' });
     expect(fs.setDoc).toHaveBeenCalledWith({ path: 'profiles/u1' }, {
-      displayName: 'Sari', email: 'sari@example.test', photoURL: '', createdAt: '__SERVER_TS__', updatedAt: '__SERVER_TS__',
+      displayName: 'Sari', email: 'sari@example.test', createdAt: '__SERVER_TS__', updatedAt: '__SERVER_TS__',
     });
     expect(screen.queryByRole('dialog')).toBeNull();
   });

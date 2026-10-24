@@ -185,6 +185,35 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
     }
 
+    match /posts/{postId}/likes/{userId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['uid', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && request.resource.data.uid == userId
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/posts/$(postId));
+      allow delete: if signedIn() && request.auth.uid == userId;
+      allow update: if false;
+    }
+
+    match /posts/{postId}/replies/{replyId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && exists(/databases/$(database)/documents/posts/$(postId))
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && request.resource.data.keys().hasAll(['authorId', 'authorName', 'body', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'body', 'createdAt'])
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 1
+        && request.resource.data.body.size() <= 1000
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
     // Direktori publik hanya menampilkan warkop yang telah diverifikasi.
     // Pemilik tetap dapat membaca dokumen miliknya saat masih menunggu verifikasi.
     match /warungs/{warungId} {

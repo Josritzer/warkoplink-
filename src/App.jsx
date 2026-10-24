@@ -440,8 +440,26 @@ export default function App() {
         }
       }));
       if (cancelled) return;
-      setRepliesByPost(current => ({ ...current, ...Object.fromEntries(results.map(([id, replies]) => [id, replies])) }));
-      setReplyCounts(current => ({ ...current, ...Object.fromEntries(results.map(([id, , count]) => [id, count])) }));
+      setRepliesByPost(current => {
+        const next = { ...current };
+        results.forEach(([id, serverReplies]) => {
+          const pendingReplies = (current[id] || []).filter(reply => reply.pending);
+          const serverIds = new Set(serverReplies.map(reply => reply.id));
+          next[id] = [
+            ...serverReplies,
+            ...pendingReplies.filter(reply => !serverIds.has(reply.id))
+          ];
+        });
+        return next;
+      });
+      setReplyCounts(current => {
+        const next = { ...current };
+        results.forEach(([id, , serverCount]) => {
+          const pendingCount = (repliesByPost[id] || []).filter(reply => reply.pending).length;
+          next[id] = serverCount + pendingCount;
+        });
+        return next;
+      });
     };
     loadPreviews();
     return () => { cancelled = true; };
@@ -611,10 +629,20 @@ export default function App() {
     try {
       const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'replies'), orderBy('createdAt', 'asc'), limit(50)));
       const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
-      setRepliesByPost(current => ({ ...current, [post.id]: replies }));
+      setRepliesByPost(current => {
+        const pendingReplies = (current[post.id] || []).filter(reply => reply.pending);
+        const serverIds = new Set(replies.map(reply => reply.id));
+        return {
+          ...current,
+          [post.id]: [...replies, ...pendingReplies.filter(reply => !serverIds.has(reply.id))]
+        };
+      });
       setExpandedReplies(current => ({ ...current, [post.id]: true }));
       const countSnapshot = await getCountFromServer(collection(db, 'posts', post.id, 'replies'));
-      setReplyCounts(current => ({ ...current, [post.id]: countSnapshot.data().count }));
+      setReplyCounts(current => {
+        const pendingCount = (repliesByPost[post.id] || []).filter(reply => reply.pending).length;
+        return { ...current, [post.id]: countSnapshot.data().count + pendingCount };
+      });
     } catch {
       setNotice('Balasan belum dapat dimuat. Coba lagi sebentar lagi.');
     }

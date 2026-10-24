@@ -65,6 +65,28 @@ const asAnon = () => env.unauthenticatedContext().firestore();
 const asUser = (uid) => env.authenticatedContext(uid).firestore();
 const asAdmin = () => env.authenticatedContext('admin', { admin: true }).firestore();
 
+describe('postReports', () => {
+  it('pengguna login dapat melaporkan postingan yang ada', async () => {
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'postReports/post-alice_alice'), { targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'alice', reason: 'Spam atau promosi berulang', createdAt: serverTimestamp() }));
+  });
+  it('laporan tidak boleh mengaku sebagai pengguna lain', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'postReports/post-alice_bob'), { targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'bob', reason: 'Spam atau promosi berulang', createdAt: serverTimestamp() }));
+  });
+  it('laporan untuk postingan yang tidak ada ditolak', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'postReports/missing_alice'), { targetPostId: 'missing', targetAuthorId: 'alice', reporterUid: 'alice', reason: 'Spam atau promosi berulang', createdAt: serverTimestamp() }));
+  });
+  it('hanya admin yang dapat membaca laporan', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'postReports/post-alice_alice'), { targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'alice', reason: 'Spam atau promosi berulang', createdAt: Timestamp.now() }); });
+    await assertFails(getDoc(doc(asUser('alice'), 'postReports/post-alice_alice')));
+    await assertSucceeds(getDoc(doc(asAdmin(), 'postReports/post-alice_alice')));
+  });
+  it('laporan yang sama tidak dapat dibuat ulang', async () => {
+    const ref = doc(asUser('alice'), 'postReports/post-alice_alice');
+    await assertSucceeds(setDoc(ref, { targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'alice', reason: 'Lainnya', createdAt: serverTimestamp() }));
+    await assertFails(setDoc(ref, { targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'alice', reason: 'Lainnya', createdAt: serverTimestamp() }));
+  });
+});
+
 describe('posts', () => {
   it('pengunjung anonim boleh membaca postingan', async () => {
     await assertSucceeds(getDocs(collection(asAnon(), 'posts')));

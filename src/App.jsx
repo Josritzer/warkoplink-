@@ -222,6 +222,8 @@ export default function App() {
   const [replyDraft, setReplyDraft] = useState('');
   const [emojiTarget, setEmojiTarget] = useState('');
   const [replyCounts, setReplyCounts] = useState({});
+  const [repliesByPost, setRepliesByPost] = useState({});
+  const [expandedReplies, setExpandedReplies] = useState({});
   const [likedPosts, setLikedPosts] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
   const [openPostMenuId, setOpenPostMenuId] = useState('');
@@ -349,6 +351,28 @@ export default function App() {
     }, () => setPostsStatus('error'));
   }, [postsRetry]);
 
+  // Muat pratinjau komentar untuk posting terbaru agar balasan terlihat langsung tanpa membuka panel.
+  useEffect(() => {
+    if (!db || !posts.length) return undefined;
+    let cancelled = false;
+    const loadPreviews = async () => {
+      const latestPosts = posts.slice(0, 12);
+      const results = await Promise.all(latestPosts.map(async (post) => {
+        try {
+          const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'replies'), orderBy('createdAt', 'asc'), limit(4)));
+          return [post.id, snapshot.docs.map((item) => ({ id: item.id, ...item.data() })), snapshot.size];
+        } catch {
+          return [post.id, [], 0];
+        }
+      }));
+      if (cancelled) return;
+      setRepliesByPost(current => ({ ...current, ...Object.fromEntries(results.map(([id, replies]) => [id, replies])) }));
+      setReplyCounts(current => ({ ...current, ...Object.fromEntries(results.map(([id, , count]) => [id, count])) }));
+    };
+    loadPreviews();
+    return () => { cancelled = true; };
+  }, [posts]);
+
   function openAuth(register) {
     setRegisterMode(register);
     setAuthError('');
@@ -475,7 +499,10 @@ export default function App() {
     if (!db || !post?.id) return;
     try {
       const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'replies'), orderBy('createdAt', 'asc'), limit(50)));
-      setReplyCounts(current => ({ ...current, [post.id]: snapshot.size || snapshot.docs?.length || 0 }));
+      const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      setRepliesByPost(current => ({ ...current, [post.id]: replies }));
+      setExpandedReplies(current => ({ ...current, [post.id]: true }));
+      setReplyCounts(current => ({ ...current, [post.id]: snapshot.size }));
     } catch {
       setNotice('Balasan belum dapat dimuat. Coba lagi sebentar lagi.');
     }
@@ -493,6 +520,7 @@ export default function App() {
       setReplyDraft('');
       setReplyingPostId('');
       setReplyCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
+      setRepliesByPost(current => ({ ...current, [post.id]: [...(current[post.id] || []), { id: `local-${Date.now()}`, authorId: user.uid, authorName: authorNameFor(user), authorPhotoURL: user.photoURL || null, body, createdAt: null }] }));
       setNotice('Balasan berhasil dikirim.');
     } catch (error) {
       setNotice(error?.code === 'permission-denied' ? 'Balasan ditolak oleh aturan keamanan.' : 'Balasan belum terkirim. Coba lagi.');
@@ -651,13 +679,20 @@ export default function App() {
                 </div>
               </div>
               <p>{post.body}</p>
-              <div className="engagement-summary"><span>{(likeCounts[post.id] || 0) > 0 ? `❤️ ${likeCounts[post.id]}` : ''}</span><span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id]} balasan` : ''}</span></div>
+              <div className="engagement-summary"><span>{(likeCounts[post.id] || 0) > 0 ? `❤️ ${likeCounts[post.id]}` : ''}</span><span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !expandedReplies[post.id] ? '3+' : replyCounts[post.id]} komentar` : ''}</span></div>
               <div className="post-actions">
                 <button className={likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" onClick={() => handleLikePost(post)}><Heart size={17} fill={likedPosts[post.id] ? 'currentColor' : 'none'}/> <span>Suka</span></button>
-                <button className="post-action" type="button" onClick={() => openReplies(post)}><MessageSquare size={17}/> <span>{replyCounts[post.id] ? `${replyCounts[post.id]} Balasan` : 'Balas'}</span></button>
+                <button className="post-action" type="button" onClick={() => openReplies(post)}><MessageSquare size={17}/> <span>Balas</span></button>
                 <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
               </div>
-              {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><button className="chat-emoji-trigger reply-emoji-trigger" type="button" aria-label="Buka emoji balasan" aria-expanded={emojiTarget === post.id} onClick={() => setEmojiTarget(current => current === post.id ? '' : post.id)}>😀</button><input aria-label="Tulis balasan" value={replyDraft} onFocus={() => setEmojiTarget(post.id)} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis balasan…"/>{emojiTarget === post.id && <div className="chat-emoji-picker reply-emoji-picker" role="group" aria-label="Pilih emoji balasan"><div className="chat-emoji-grid">{CHAT_EMOJIS.map(item => <button key={item.emoji} type="button" className="chat-emoji-option" title={item.label} aria-label={item.label} onMouseDown={event => event.preventDefault()} onClick={() => { setReplyDraft(value => value + item.emoji); setEmojiTarget(''); }}>{item.emoji}</button>)}</div></div>}<button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim balasan"><Send size={15}/></button></form>}
+              {(repliesByPost[post.id] || []).length > 0 && <div className="inline-replies" aria-label="Komentar dan balasan">
+                {(expandedReplies[post.id] ? repliesByPost[post.id] : repliesByPost[post.id].slice(0, 3)).map(reply => <div className="inline-reply" key={reply.id}>
+                  <div className="inline-reply-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0, 1).toUpperCase()}</div>
+                  <div className="inline-reply-body"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
+                </div>)}
+                {(repliesByPost[post.id].length >= 4 || (replyCounts[post.id] || 0) > 3) && !expandedReplies[post.id] && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar</button>}
+              </div>}
+              {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><button className="chat-emoji-trigger reply-emoji-trigger" type="button" aria-label="Buka emoji balasan" aria-expanded={emojiTarget === post.id} onClick={() => setEmojiTarget(current => current === post.id ? '' : post.id)}>😀</button><input aria-label="Tulis balasan" value={replyDraft} onFocus={() => setEmojiTarget(post.id)} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/>{emojiTarget === post.id && <div className="chat-emoji-picker reply-emoji-picker" role="group" aria-label="Pilih emoji balasan"><div className="chat-emoji-grid">{CHAT_EMOJIS.map(item => <button key={item.emoji} type="button" className="chat-emoji-option" title={item.label} aria-label={item.label} onMouseDown={event => event.preventDefault()} onClick={() => { setReplyDraft(value => value + item.emoji); setEmojiTarget(''); }}>{item.emoji}</button>)}</div></div>}<button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
               {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
             </div></article>)}
           {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}

@@ -87,7 +87,8 @@ service cloud.firestore {
       let reactionPath = /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
       let beforeExists = exists(reactionPath);
       let afterExists = existsAfter(reactionPath);
-      let beforeEmoji = beforeExists ? get(reactionPath).data.get('emoji', '') : '';
+      // Legacy likes without emoji are counted as 👍 in the aggregate.
+      let beforeEmoji = beforeExists ? get(reactionPath).data.get('emoji', '👍') : '';
       let afterEmoji = afterExists ? getAfter(reactionPath).data.get('emoji', '') : '';
       let oldReactions = resource.data.reactions;
       let newReactions = request.resource.data.reactions;

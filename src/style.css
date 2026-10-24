@@ -418,3 +418,11 @@
 #community-feed .inline-reply-body p{margin:3px 0 0;font-size:12px;line-height:1.55;color:#35415d;white-space:pre-wrap;overflow-wrap:anywhere}
 #community-feed .inline-reply-body small{display:block;margin-top:5px;color:#8790a4;font-size:10px}
 #community-feed .show-more-replies{justify-self:start;margin-left:47px;padding:3px 0;border:0;background:transparent;color:#0866ff;font-size:12px;font-weight:700}
+
+
+/* Reaksi ditempatkan langsung pada status, bukan di kolom tulis komentar. */
+#community-feed .status-reactions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:12px 0 2px}
+#community-feed .status-reaction{display:grid;place-items:center;width:34px;height:32px;padding:0;border:1px solid transparent;border-radius:18px;background:#f0f2f5;font-size:18px;line-height:1;cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease}
+#community-feed .status-reaction:hover{background:#e4e6eb;transform:translateY(-1px)}
+#community-feed .status-reaction.selected{background:#e7f3ff;border-color:#0866ff;color:#0866ff;box-shadow:0 0 0 1px #0866ff22}
+#community-feed .status-reaction:focus-visible{outline:2px solid #0866ff;outline-offset:2px}

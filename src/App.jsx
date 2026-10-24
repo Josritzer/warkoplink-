@@ -622,10 +622,11 @@ export default function App() {
           const updates = {
             [`reactions.${field}`]: increment(1)
           };
-          if (oldEmoji) {
-            const oldField = reactionFieldForEmoji(oldEmoji);
-            if (oldField && oldField !== field) updates[`reactions.${oldField}`] = increment(-1);
-          } else if (!reactionSnapshot.exists()) {
+          if (reactionSnapshot.exists()) {
+            // A legacy like has no emoji field, but is represented in the 👍 bucket.
+            const oldField = reactionFieldForEmoji(oldEmoji) || 'like';
+            if (oldField !== field) updates[`reactions.${oldField}`] = increment(-1);
+          } else {
             updates.totalReactions = increment(1);
           }
           transaction.update(postRef, updates);

@@ -11,6 +11,7 @@ import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'fi
 import { auth, db, storage, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
 import ChatPostCard from './chat/ChatPostCard.jsx';
+import { relativePostTime } from './chat/postTime.js';
 import { deleteOwnPost } from './services/postService.js';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
@@ -20,17 +21,6 @@ import {
 
 const POSTS_LIMIT = 100;
 
-
-function relativePostTime(value) {
-  const date = value?.toDate ? value.toDate() : value instanceof Date ? value : null;
-  if (!date || Number.isNaN(date.getTime())) return 'baru saja';
-  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
-  if (seconds < 60) return 'baru saja';
-  if (seconds < 3600) return Math.floor(seconds / 60) + 'm lalu';
-  if (seconds < 86400) return Math.floor(seconds / 3600) + 'j lalu';
-  if (seconds < 604800) return Math.floor(seconds / 86400) + 'h lalu';
-  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-}
 
 function normalizeSearchText(value) {
   return String(value ?? '')

@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t test_files < <(find src -type f \\( -name '*.test.js' -o -name '*.test.jsx' \\) | sort)
+          mapfile -t test_files < <(find src -type f \( -name '*.test.js' -o -name '*.test.jsx' \) | sort)
           if [ "${#test_files[@]}" -eq 0 ]; then
             echo "::error::Tidak ditemukan file tes di src/"
             exit 1

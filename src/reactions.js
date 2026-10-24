@@ -23,8 +23,9 @@ export function summarizeReactions(docs, userId = '') {
   const ownReaction = userId ? entries.find((entry) => entry.id === userId) : null;
   const reactions = { ...EMPTY_REACTIONS };
   entries.forEach((entry) => {
-    const field = reactionFieldForEmoji(entry.emoji);
-    if (field) reactions[field] += 1;
+    // Legacy likes had no emoji field; preserve them in the 👍 bucket.
+    const field = reactionFieldForEmoji(entry.emoji) || 'like';
+    reactions[field] += 1;
   });
   return {
     count: entries.length,

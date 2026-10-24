@@ -83,6 +83,20 @@ async function fillAuth(user, dialog, { name, email, password }) {
   if (password) await user.type(passwordField, password);
 }
 
+describe('laporan obrolan', () => {
+  it('anggota dapat mengirim laporan dengan alasan terpilih', async () => {
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([{ id: 'post-1', authorId: 'author-1', authorName: 'Budi', body: 'Pesan contoh', topic: 'Obrolan Umum' }]);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Laporkan' }));
+    await user.selectOptions(screen.getByLabelText('Alasan laporan'), 'Lainnya');
+    await user.click(screen.getByRole('button', { name: 'Kirim laporan' }));
+    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ targetPostId: 'post-1', targetAuthorId: 'author-1', reporterUid: 'u1', reason: 'Lainnya', createdAt: '__SERVER_TS__' })));
+    expect(await screen.findByText('Laporan terkirim kepada admin untuk ditinjau.')).toBeTruthy();
+  });
+});
+
 describe('halaman publik', () => {
   it('pengunjung membuka halaman komunitas; ada state loading lalu state kosong', async () => {
     render(<App />);

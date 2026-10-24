@@ -564,7 +564,7 @@ export default function App() {
     };
     const nextReactions = { ...EMPTY_REACTIONS, ...previous.summary.reactions };
     const removing = previous.liked && previous.emoji === emoji;
-    const previousField = reactionFieldForEmoji(previous.emoji);
+    const previousField = previous.liked ? (reactionFieldForEmoji(previous.emoji) || 'like') : '';
 
     if (removing) {
       nextReactions[field] = Math.max(0, (nextReactions[field] || 0) - 1);

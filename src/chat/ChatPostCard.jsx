@@ -1,13 +1,17 @@
-import { Heart, MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+const REACTION_FIELDS = {
+  like: '👍', love: '❤️', haha: '😂', wow: '😮', sad: '😢', angry: '😡'
+};
+const EMPTY_REACTIONS = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
 
-// Tampilan satu status; state dan operasi tetap dimiliki App agar komentar/reaksi lama tidak terputus.
+// Tampilan satu status; state dan operasi tetap dimiliki App agar data tersinkron antarpengguna.
 export default function ChatPostCard({
   post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
   reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, postReactions,
-  handleReactPost, likeCounts, replyCounts, likedPosts,
+  reactionSummaries, handleReactPost, likeCounts, replyCounts, likedPosts,
   openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft, handleReply,
   handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId, deletingPostId,
   handleDeletePost
@@ -15,6 +19,9 @@ export default function ChatPostCard({
   const ownPost = Boolean(user?.uid && user.uid === post.authorId);
   const replyRows = repliesByPost[post.id] || [];
   const commentCount = replyCounts[post.id] ?? post.commentCount ?? 0;
+  const summary = reactionSummaries?.[post.id];
+  const reactions = { ...EMPTY_REACTIONS, ...(summary?.reactions || post.reactions || {}) };
+  const totalReactions = summary?.totalReactions ?? post.totalReactions ?? likeCounts[post.id] ?? 0;
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -73,17 +80,33 @@ export default function ChatPostCard({
         </div>
       </div>
       <p>{post.body}</p>
+
+      {totalReactions > 0 && <div className="post-reaction-summary animate-reaction-summary" aria-label="Ringkasan reaksi">
+        <div className="post-reaction-counts">
+          {Object.entries(REACTION_FIELDS).map(([field, emoji]) => reactions[field] > 0
+            ? <span className="post-reaction-count" key={field}><span aria-hidden="true">{emoji}</span><span>{reactions[field]}</span></span>
+            : null)}
+        </div>
+        <span className="post-reaction-total" aria-label={`${totalReactions} total reaksi`}>{totalReactions}</span>
+      </div>}
+
       <div className="engagement-summary">
-        <span>{(likeCounts[post.id] || 0) > 0 ? likeCounts[post.id] + ' reaksi' : ''}</span>
+        <span aria-hidden="true"></span>
         {commentCount > 0 && <button className="engagement-comment-count" type="button" aria-expanded={showComments} onClick={toggleComments}>{commentCount} komentar</button>}
       </div>
-      {reactionPickerOpen && <div className="status-reactions" role="group" aria-label="Pilih reaksi">
-        {EMOJIS.map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => { handleReactPost(post, emoji); setReactionPickerOpen(false); }}>{emoji}</button>)}
-      </div>}
       <div className="post-actions">
-        <button className={reactionPickerOpen || likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" aria-label="Reaksi" aria-expanded={reactionPickerOpen} onClick={() => setReactionPickerOpen(open => !open)}>{postReactions[post.id] ? <span className="reaction-action-emoji" aria-hidden="true">{postReactions[post.id]}</span> : <SmilePlus size={17}/>} <span>Reaksi</span></button>
-        <button className="post-action" type="button" aria-expanded={showComments} onClick={openCommentsForReply}><MessageSquare size={17}/> <span>Balas</span></button>
-        <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
+        <div className="post-action-wrap">
+          {reactionPickerOpen && <div className="status-reactions" role="group" aria-label="Pilih reaksi">
+            {EMOJIS.map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => { handleReactPost(post, emoji); setReactionPickerOpen(false); }}>{emoji}</button>)}
+          </div>}
+          <button className={reactionPickerOpen || likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" aria-label="Reaksi" aria-expanded={reactionPickerOpen} onClick={() => setReactionPickerOpen(open => !open)}>{postReactions[post.id] ? <span className="reaction-action-emoji" aria-hidden="true">{postReactions[post.id]}</span> : <SmilePlus size={17}/>} <span>Reaksi</span></button>
+        </div>
+        <div className="post-action-wrap">
+          <button className="post-action" type="button" aria-expanded={showComments} onClick={openCommentsForReply}><MessageSquare size={17}/> <span>Balas</span></button>
+        </div>
+        <div className="post-action-wrap">
+          <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
+        </div>
       </div>
       {showComments && <div className="comment-section animate-slideDown" aria-label="Komentar dan balasan">
         {commentsLoading

@@ -36,7 +36,7 @@ describe('ChatPostCard', () => {
 
   it('does not offer delete to another user', () => {
     render(<ChatPostCard {...props({ user: { uid: 'someone-else' }, openPostMenuId: 'post-1' })} />);
-    expect(screen.queryByRole('button', { name: 'Hapus obrolan' })).toBeNull();
-    expect(screen.getByRole('button', { name: '⚑ Laporkan obrolan' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Hapus obrolan/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /Laporkan obrolan/ })).toBeTruthy();
   });
 });

@@ -19,6 +19,30 @@ function props(overrides = {}) {
 }
 
 describe('ChatPostCard', () => {
+  it('hides the reaction summary entirely when total is zero', () => {
+    render(<ChatPostCard {...props({
+      reactionSummaries: { 'post-1': { reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0 } }
+    })} />);
+    expect(screen.queryByLabelText('Ringkasan reaksi')).toBeNull();
+  });
+
+  it('shows only nonzero emoji counts and the total above action buttons', () => {
+    const values = props({
+      reactionSummaries: { 'post-1': {
+        reactions: { like: 1, love: 2, haha: 0, wow: 0, sad: 1, angry: 0 },
+        totalReactions: 4
+      } }
+    });
+    render(<ChatPostCard {...values} />);
+    const summary = screen.getByLabelText('Ringkasan reaksi');
+    expect(summary.textContent).toContain('👍1');
+    expect(summary.textContent).toContain('❤️2');
+    expect(summary.textContent).toContain('😢1');
+    expect(summary.textContent).toContain('4');
+    expect(summary.textContent).not.toContain('😂');
+    expect(summary.compareDocumentPosition(screen.getByRole('button', { name: 'Reaksi' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('keeps the six emoji hidden until the reaction picker is opened', () => {
     const values = props({ postReactions: { 'post-1': '😂' } });
     render(<ChatPostCard {...values} />);

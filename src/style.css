@@ -426,3 +426,15 @@
 #community-feed .status-reaction:hover{background:#e4e6eb;transform:translateY(-1px)}
 #community-feed .status-reaction.selected{background:#e7f3ff;border-color:#0866ff;color:#0866ff;box-shadow:0 0 0 1px #0866ff22}
 #community-feed .status-reaction:focus-visible{outline:2px solid #0866ff;outline-offset:2px}
+
+
+/* Konfirmasi hapus status: jelas, ringkas, dan tetap mengikuti pola aksi obrolan. */
+.delete-confirm {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  background: var(--surface-muted, #f8fafc);
+}
+.delete-confirm p { margin: 0 0 10px; }
+.delete-confirm .report-form-actions { display: flex; flex-wrap: wrap; gap: 8px; }

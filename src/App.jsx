@@ -456,7 +456,8 @@ export default function App() {
         const next = { ...current };
         results.forEach(([id, , serverCount]) => {
           const pendingCount = (repliesByPost[id] || []).filter(reply => reply.pending).length;
-          next[id] = serverCount + pendingCount;
+          // Jangan biarkan hitungan server dari request lama menghapus kenaikan optimistis.
+          next[id] = Math.max(current[id] || 0, serverCount + pendingCount);
         });
         return next;
       });
@@ -641,7 +642,8 @@ export default function App() {
       const countSnapshot = await getCountFromServer(collection(db, 'posts', post.id, 'replies'));
       setReplyCounts(current => {
         const pendingCount = (repliesByPost[post.id] || []).filter(reply => reply.pending).length;
-        return { ...current, [post.id]: countSnapshot.data().count + pendingCount };
+        // Pertahankan kenaikan optimistis bila respons hitungan server datang lebih dulu.
+        return { ...current, [post.id]: Math.max(current[post.id] || 0, countSnapshot.data().count + pendingCount) };
       });
     } catch {
       setNotice('Balasan belum dapat dimuat. Coba lagi sebentar lagi.');

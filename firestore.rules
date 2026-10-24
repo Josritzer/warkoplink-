@@ -208,5 +208,23 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.verificationAuditId == auditId;
       allow update, delete: if false;
     }
+    // Laporan bersifat privat dan hanya admin yang boleh membacanya.
+    // ID deterministik membatasi satu laporan per akun untuk setiap postingan.
+    match /postReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['targetPostId', 'targetAuthorId', 'reporterUid', 'reason', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['targetPostId', 'targetAuthorId', 'reporterUid', 'reason', 'createdAt'])
+        && request.resource.data.targetPostId is string
+        && reportId == request.resource.data.targetPostId + '_' + request.auth.uid
+        && request.resource.data.targetAuthorId is string
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.reason in ['Spam atau promosi berulang', 'Pelecehan atau ujaran kebencian', 'Informasi berbahaya atau menyesatkan', 'Lainnya']
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/posts/$(request.resource.data.targetPostId))
+        && get(/databases/$(database)/documents/posts/$(request.resource.data.targetPostId)).data.authorId == request.resource.data.targetAuthorId;
+      allow update, delete: if false;
+    }
+
   }
 }

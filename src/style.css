@@ -426,7 +426,6 @@
 #community-feed .status-reaction:hover{background:#e4e6eb;transform:translateY(-1px)}
 #community-feed .status-reaction.selected{background:#e7f3ff;border-color:#0866ff;color:#0866ff;box-shadow:0 0 0 1px #0866ff22}
 #community-feed .status-reaction:focus-visible{outline:2px solid #0866ff;outline-offset:2px}
-#community-feed .reaction-count-emoji{font-size:16px;vertical-align:-1px}
 #community-feed .reaction-action-emoji{font-size:17px;line-height:1}
 
 

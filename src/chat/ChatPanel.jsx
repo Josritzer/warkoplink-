@@ -6,7 +6,7 @@ import ChatPostCard from './ChatPostCard.jsx';
 export default function ChatPanel(props) {
   const {
     user, firebaseConfigured, search, setSearch, topic, setTopic, composerOpen, setComposerOpen,
-    openAuth, setNotice, draft, setDraft, activeCategory, handlePost, posting, cooldownRemaining,
+    openAuth, setNotice, draft, setDraft, activeCategory, handlePost, posting,
     postsStatus, setPostsRetry, visiblePosts, cardProps, hasMorePosts, loadingMorePosts, loadMoreError, onLoadMorePosts
   } = props;
 
@@ -19,7 +19,7 @@ export default function ChatPanel(props) {
       {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi obrolan.'); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><span>{user ? 'Ayo ngobrol…' : 'Masuk untuk mulai ngobrol…'}</span></button> : <>
         <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || 'Anggota komunitas'}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
         <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={event => setDraft(event.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ayo ngobrol…" rows={3}/>
-        <div className="composer-bottom"><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(''); }}>Batal</button><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0 || !draft.trim()}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Kirim'} <Send size={16}/></button></div>
+        <div className="composer-bottom"><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(''); }}>Batal</button><button className="button button-dark" type="submit" disabled={posting || !draft.trim()}>{posting ? 'Mengirim…' : 'Kirim'} <Send size={16}/></button></div>
       </>}
     </form>
     <div className="post-list">

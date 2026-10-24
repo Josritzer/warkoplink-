@@ -192,12 +192,16 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.keys().hasAll(['uid', 'createdAt'])
-        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt', 'emoji'])
         && request.resource.data.uid == userId
         && request.resource.data.createdAt == request.time
+        && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
         && exists(/databases/$(database)/documents/posts/$(postId));
       allow delete: if signedIn() && request.auth.uid == userId;
-      allow update: if false;
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emoji'])
+        && request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡'];
     }
 
     match /posts/{postId}/replies/{replyId} {

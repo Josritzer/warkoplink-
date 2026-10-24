@@ -1,4 +1,4 @@
-name: Deploy SL RELAX COMMUNITY to Firebase Hosting
+name: Deploy SL Community Platform to Firebase Hosting
 
 on:
   push:

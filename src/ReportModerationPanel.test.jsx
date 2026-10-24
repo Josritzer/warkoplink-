@@ -5,7 +5,7 @@ const state = vi.hoisted(() => ({ listeners: [], writes: [], batchCommit: vi.fn(
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((db, name) => ({ name })),
-  doc: vi.fn((db, name, id) => ({ name, id, path: `${name}/${id || 'generated'}` })),
+  doc: vi.fn((db, name, id) => { const collectionName = typeof name === 'string' ? name : db?.name; return { name: collectionName, id: id || 'generated', path: `${collectionName}/${id || 'generated'}` }; }),
   getDoc: vi.fn(async () => ({ exists: () => true, data: () => ({ body: 'Isi pesan yang dilaporkan' }) })),
   limit: vi.fn((n) => ({ limit: n })),
   onSnapshot: vi.fn((q, next, error) => {

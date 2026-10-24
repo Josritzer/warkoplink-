@@ -55,6 +55,7 @@ beforeEach(() => {
   fs.getDocs.mockResolvedValue({ docs: [] });
   fs.setDoc.mockResolvedValue(undefined);
   fs.addDoc.mockResolvedValue({ id: 'new' });
+  fs.writeBatch.mockImplementation(() => ({ set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) }));
   fbAuth.updateProfile.mockResolvedValue(undefined);
   fbAuth.signOut.mockResolvedValue(undefined);
   fbAuth.signInWithEmailAndPassword.mockResolvedValue({ user: fakeUser() });

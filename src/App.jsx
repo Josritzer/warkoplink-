@@ -5,7 +5,7 @@ import {
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, updateDoc, where, writeBatch
+  addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, updateDoc, where, writeBatch
 } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { auth, db, storage, firebaseConfigured } from './firebase.js';
@@ -369,8 +369,12 @@ export default function App() {
       const latestPosts = posts.slice(0, 12);
       const results = await Promise.all(latestPosts.map(async (post) => {
         try {
-          const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'replies'), orderBy('createdAt', 'asc'), limit(4)));
-          return [post.id, snapshot.docs.map((item) => ({ id: item.id, ...item.data() })), snapshot.size];
+          const repliesRef = collection(db, 'posts', post.id, 'replies');
+          const [snapshot, countSnapshot] = await Promise.all([
+            getDocs(query(repliesRef, orderBy('createdAt', 'asc'), limit(4))),
+            getCountFromServer(repliesRef)
+          ]);
+          return [post.id, snapshot.docs.map((item) => ({ id: item.id, ...item.data() })), countSnapshot.data().count];
         } catch {
           return [post.id, [], 0];
         }
@@ -533,7 +537,8 @@ export default function App() {
       const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
       setRepliesByPost(current => ({ ...current, [post.id]: replies }));
       setExpandedReplies(current => ({ ...current, [post.id]: true }));
-      setReplyCounts(current => ({ ...current, [post.id]: snapshot.size }));
+      const countSnapshot = await getCountFromServer(collection(db, 'posts', post.id, 'replies'));
+      setReplyCounts(current => ({ ...current, [post.id]: countSnapshot.data().count }));
     } catch {
       setNotice('Balasan belum dapat dimuat. Coba lagi sebentar lagi.');
     }

@@ -182,8 +182,14 @@ describe('posts', () => {
     await assertFails(deleteDoc(doc(asUser('bob'), 'posts/post-alice')));
   });
 
-  it('pemilik boleh menghapus postingannya', async () => {
+  it('pemilik harus menandai postingan sebelum menghapusnya', async () => {
+    await assertFails(deleteDoc(doc(asUser('alice'), 'posts/post-alice')));
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'posts/post-alice'), { deleting: true }));
     await assertSucceeds(deleteDoc(doc(asUser('alice'), 'posts/post-alice')));
+  });
+
+  it('pengguna lain tidak dapat menandai postingan untuk dihapus', async () => {
+    await assertFails(updateDoc(doc(asUser('bob'), 'posts/post-alice'), { deleting: true }));
   });
 });
 

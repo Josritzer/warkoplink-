@@ -44,11 +44,11 @@ export default function ChatPostCard({
         <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
       </div>
       {replyRows.length > 0 && <div className="inline-replies" aria-label="Komentar dan balasan">
-        {(showAllReplies ? replyRows : replyRows.slice(0, 3)).map(reply => <div className="inline-reply" key={reply.id}>
+        {(showAllReplies ? replyRows : replyRows.slice(0, 4)).map(reply => <div className="inline-reply" key={reply.id}>
           <div className="inline-reply-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0, 1).toUpperCase()}</div>
           <div className="inline-reply-body"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
         </div>)}
-        {(replyRows.length >= 4 || (replyCounts[post.id] || 0) > 3) && !showAllReplies && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar</button>}
+        {(replyRows.length >= 4 || (replyCounts[post.id] || 0) > 3) && !showAllReplies && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar ({Math.max((replyCounts[post.id] || 0) - replyRows.length, 0) > 0 ? `${Math.max((replyCounts[post.id] || 0) - replyRows.length, 0)} lagi` : 'selengkapnya'})</button>}
       </div>}
       {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><input aria-label="Tulis balasan" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/><button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
       {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}

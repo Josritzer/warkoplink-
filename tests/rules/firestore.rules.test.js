@@ -85,6 +85,24 @@ describe('postReports', () => {
 });
 
 describe('posts', () => {
+  it('menerima penghitung reaksi hanya bersama dokumen reaksi pengguna', async () => {
+    const db = asUser('alice');
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'posts/post-alice/likes/alice'), {
+      uid: 'alice', emoji: '👍', createdAt: serverTimestamp(),
+    });
+    batch.update(doc(db, 'posts/post-alice'), {
+      'reactions.like': 1, totalReactions: 1,
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('menolak manipulasi penghitung reaksi tanpa reaksi yang cocok', async () => {
+    await assertFails(updateDoc(doc(asUser('alice'), 'posts/post-alice'), {
+      'reactions.like': 99, totalReactions: 99,
+    }));
+  });
+
   it('pengunjung anonim boleh membaca postingan', async () => {
     await assertSucceeds(getDocs(collection(asAnon(), 'posts')));
   });

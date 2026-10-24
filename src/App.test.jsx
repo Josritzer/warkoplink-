@@ -280,6 +280,48 @@ describe('login, sesi, dan logout', () => {
   });
 });
 
+describe('balasan komentar', () => {
+  it('menampilkan balasan seketika dengan status mengirim sebelum Firestore selesai', async () => {
+    let resolveAdd;
+    fs.addDoc.mockImplementationOnce(() => new Promise(resolve => { resolveAdd = resolve; }));
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
+
+    await user.click(await screen.findByRole('button', { name: 'Balas' }));
+    await user.type(await screen.findByLabelText('Tulis balasan'), 'Setuju, terima kasih');
+    await user.click(screen.getByRole('button', { name: 'Kirim komentar' }));
+
+    expect(await screen.findByText('Setuju, terima kasih')).toBeTruthy();
+    expect(screen.getByText('Mengirim…')).toBeTruthy();
+    expect(fs.addDoc).toHaveBeenCalledWith({ path: 'posts/post-reply/replies' }, {
+      authorId: 'u1', authorName: 'Sari', authorPhotoURL: null,
+      body: 'Setuju, terima kasih', createdAt: '__SERVER_TS__',
+    });
+
+    await act(async () => { resolveAdd({ id: 'reply-saved' }); });
+    expect(await screen.findByText('Balasan berhasil dikirim.')).toBeTruthy();
+    expect(screen.queryByText('Mengirim…')).toBeNull();
+  });
+
+  it('menghapus balasan optimistis dan mengembalikan teks jika Firestore menolak', async () => {
+    fs.addDoc.mockRejectedValueOnce({ code: 'permission-denied' });
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
+
+    await user.click(await screen.findByRole('button', { name: 'Balas' }));
+    await user.type(await screen.findByLabelText('Tulis balasan'), 'Balasan perlu dipulihkan');
+    await user.click(screen.getByRole('button', { name: 'Kirim komentar' }));
+
+    expect(await screen.findByText('Balasan ditolak oleh aturan keamanan.')).toBeTruthy();
+    expect(screen.queryByText('Balasan perlu dipulihkan')).toBeNull();
+    expect(screen.getByLabelText('Tulis balasan').value).toBe('Balasan perlu dipulihkan');
+  });
+});
+
 describe('membuat postingan', () => {
   it('pengguna yang belum login diminta masuk sebelum mulai menulis', async () => {
     const user = userEvent.setup();

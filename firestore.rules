@@ -66,9 +66,68 @@ service cloud.firestore {
         && data.email is string;
     }
 
+    function reactionField(emoji) {
+      return emoji == '👍' ? 'like'
+        : emoji == '❤️' ? 'love'
+        : emoji == '😂' ? 'haha'
+        : emoji == '😮' ? 'wow'
+        : emoji == '😢' ? 'sad'
+        : emoji == '😡' ? 'angry'
+        : '';
+    }
+
+    function expectedReactionCount(oldReactions, newReactions, oldEmoji, newEmoji, emoji) {
+      let field = reactionField(emoji);
+      return newReactions.get(field, -1) == oldReactions.get(field, 0)
+        + (newEmoji == emoji ? 1 : 0)
+        - (oldEmoji == emoji ? 1 : 0);
+    }
+
+    function validReactionAggregateUpdate(postId) {
+      let reactionPath = /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
+      let beforeExists = exists(reactionPath);
+      let afterExists = existsAfter(reactionPath);
+      let beforeEmoji = beforeExists ? get(reactionPath).data.get('emoji', '') : '';
+      let afterEmoji = afterExists ? getAfter(reactionPath).data.get('emoji', '') : '';
+      let oldReactions = resource.data.reactions;
+      let newReactions = request.resource.data.reactions;
+      return signedIn()
+        && resource.data.keys().hasAll(['reactions', 'totalReactions'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'totalReactions'])
+        && oldReactions is map && newReactions is map
+        && oldReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+        && newReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+        && resource.data.totalReactions is number && request.resource.data.totalReactions is number
+        && (
+          (beforeExists && !afterExists && beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
+          || (!beforeExists && afterExists && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
+          || (beforeExists && afterExists && beforeEmoji != afterEmoji
+            && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']
+            && (beforeEmoji == '' || beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']))
+        )
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '👍')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '❤️')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😂')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😮')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😢')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😡')
+        && request.resource.data.totalReactions == resource.data.totalReactions
+          + (beforeExists ? (afterExists ? 0 : -1) : 1);
+    }
+
     function validPost(data) {
-      return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt'])
-        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'createdAt'])
+      return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
+        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
+        && data.reactions is map
+        && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+        && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+        && data.reactions.like is number && data.reactions.like >= 0
+        && data.reactions.love is number && data.reactions.love >= 0
+        && data.reactions.haha is number && data.reactions.haha >= 0
+        && data.reactions.wow is number && data.reactions.wow >= 0
+        && data.reactions.sad is number && data.reactions.sad >= 0
+        && data.reactions.angry is number && data.reactions.angry >= 0
+        && data.totalReactions is number && data.totalReactions >= 0
         && data.authorId is string
         && data.authorId == request.auth.uid
         && data.authorName is string
@@ -149,7 +208,8 @@ service cloud.firestore {
       allow create: if signedIn()
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
         && validPost(request.resource.data);
-      allow update: if signedIn()
+      allow update: if (
+        signedIn()
         && resource.data.authorId == request.auth.uid
         && (
           (
@@ -163,7 +223,8 @@ service cloud.firestore {
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting'])
             && request.resource.data.deleting == true
           )
-        );
+        )
+      ) || validReactionAggregateUpdate(postId);
       allow delete: if signedIn()
         && resource.data.authorId == request.auth.uid
         && resource.data.get('deleting', false) == true;

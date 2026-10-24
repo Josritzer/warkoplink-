@@ -290,9 +290,8 @@ describe('membuat postingan', () => {
     render(<App />);
     emitAuth(fakeUser());
     emitPosts([]);
-    await user.click(screen.getByRole('button', { name: 'Ayo ngobrol…' }));
-    await user.click(screen.getByRole('button', { name: 'Ayo ngobrol…' }));
     await user.click(screen.getByRole('button', { name: 'Info Layanan' }));
+    await user.click(screen.getByRole('button', { name: 'Ayo ngobrol…' }));
     await user.type(screen.getByLabelText('Isi obrolan'), '  Halo komunitas  ');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
 

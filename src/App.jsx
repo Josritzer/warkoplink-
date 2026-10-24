@@ -4,17 +4,28 @@ import {
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, where, writeBatch
+  addDoc, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, where, writeBatch
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
-import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store } from 'lucide-react';
+import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
 } from './lib.js';
 
 const POSTS_LIMIT = 100;
+
+function relativePostTime(value) {
+  const date = value?.toDate ? value.toDate() : value instanceof Date ? value : null;
+  if (!date || Number.isNaN(date.getTime())) return 'baru saja';
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (seconds < 60) return 'baru saja';
+  if (seconds < 3600) return Math.floor(seconds / 60) + 'm lalu';
+  if (seconds < 86400) return Math.floor(seconds / 3600) + 'j lalu';
+  if (seconds < 604800) return Math.floor(seconds / 86400) + 'h lalu';
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+}
 
 function normalizeSearchText(value) {
   return String(value ?? '')
@@ -196,7 +207,13 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
 export default function App() {
   const [section, setSection] = useState('Beranda');
   const [topic, setTopic] = useState('Semua');
-  const [composerTopic, setComposerTopic] = useState(POST_TOPICS[0]);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [replyingPostId, setReplyingPostId] = useState('');
+  const [replyDraft, setReplyDraft] = useState('');
+  const [replyCounts, setReplyCounts] = useState({});
+  const [likedPosts, setLikedPosts] = useState({});
+  const [likeCounts, setLikeCounts] = useState({});
+  const [openPostMenuId, setOpenPostMenuId] = useState('');
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
   const [notice, setNotice] = useState('');
@@ -401,7 +418,7 @@ export default function App() {
         authorId: user.uid,
         authorName: authorNameFor(user),
         body: bodyCheck.value,
-        topic: composerTopic,
+        topic: topic === 'Semua' ? 'Obrolan Umum' : topic,
         createdAt: serverTimestamp()
       });
       batch.set(rateLimitRef, { uid: user.uid, lastSentAt: serverTimestamp() });
@@ -413,6 +430,70 @@ export default function App() {
       setNotice(postErrorMessage(error));
     } finally {
       setPosting(false);
+    }
+  }
+
+  async function handleLikePost(post) {
+    if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk menyukai obrolan.'); return; }
+    if (!db || !post?.id) return;
+    const likeRef = doc(db, 'posts', post.id, 'likes', user.uid);
+    try {
+      const existing = await getDoc(likeRef);
+      if (existing.exists()) {
+        await deleteDoc(likeRef);
+        setLikedPosts(current => ({ ...current, [post.id]: false }));
+        setLikeCounts(current => ({ ...current, [post.id]: Math.max(0, (current[post.id] || 1) - 1) }));
+      } else {
+        await setDoc(likeRef, { uid: user.uid, createdAt: serverTimestamp() });
+        setLikedPosts(current => ({ ...current, [post.id]: true }));
+        setLikeCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
+      }
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied' ? 'Anda belum dapat menyukai obrolan ini.' : 'Suka belum tersimpan. Coba lagi.');
+    }
+  }
+
+  async function openReplies(post) {
+    if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk membalas obrolan.'); return; }
+    setReplyingPostId(current => current === post.id ? '' : post.id);
+    setReplyDraft('');
+    if (!db || !post?.id) return;
+    try {
+      const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'replies'), orderBy('createdAt', 'asc'), limit(50)));
+      setReplyCounts(current => ({ ...current, [post.id]: snapshot.size || snapshot.docs?.length || 0 }));
+    } catch {
+      setNotice('Balasan belum dapat dimuat. Coba lagi sebentar lagi.');
+    }
+  }
+
+  async function handleReply(event, post) {
+    event.preventDefault();
+    if (!user) { openAuth(false); return; }
+    const body = replyDraft.trim();
+    if (!body || body.length > 1000) { setNotice('Balasan harus berisi 1–1000 karakter.'); return; }
+    try {
+      await addDoc(collection(db, 'posts', post.id, 'replies'), {
+        authorId: user.uid, authorName: authorNameFor(user), body, createdAt: serverTimestamp()
+      });
+      setReplyDraft('');
+      setReplyingPostId('');
+      setReplyCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
+      setNotice('Balasan berhasil dikirim.');
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied' ? 'Balasan ditolak oleh aturan keamanan.' : 'Balasan belum terkirim. Coba lagi.');
+    }
+  }
+
+  async function sharePost(post) {
+    const shareData = { title: 'Obrolan WarkopLink', text: post.body, url: window.location.href };
+    try {
+      if (navigator.share) await navigator.share(shareData);
+      else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareData.text + '\\n' + shareData.url);
+        setNotice('Teks obrolan dan tautan berhasil disalin.');
+      } else setNotice('Fitur berbagi tidak tersedia di browser ini.');
+    } catch (error) {
+      if (error?.name !== 'AbortError') setNotice('Obrolan belum dapat dibagikan.');
     }
   }
 
@@ -446,6 +527,7 @@ export default function App() {
   }
 
   const visiblePosts = filterPosts(posts, topic, search);
+  const activeCategory = topic === 'Semua' ? 'Obrolan Umum' : topic;
 
   return <div className="app-shell">
     <header className="topbar app-header">
@@ -475,16 +557,36 @@ export default function App() {
       <section className="content-section" id="community-feed">
         <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className="status-pill">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
         {!firebaseConfigured && <p className="config-warning">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
-        <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari obrolan…"/></label></div>
-        <div className="topic-list">{FILTER_TOPICS.map(t => <button key={t} onClick={() => setTopic(t)} aria-pressed={topic === t} className={topic === t ? 'topic selected' : 'topic'}>{t}</button>)}</div>
-        <form className="composer" onSubmit={handlePost}>
-          <textarea aria-label="Isi obrolan" value={draft} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder={user ? 'Apa yang ingin kamu bagikan hari ini?' : 'Masuk untuk mulai berbagi obrolan…'} rows={3}/>
-          <div className="composer-bottom"><select aria-label="Kategori obrolan" value={composerTopic} onChange={e => setComposerTopic(e.target.value)}>{POST_TOPICS.map(t => <option key={t}>{t}</option>)}</select><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Mulai obrolan'} <MessageCircle size={16}/></button></div>
+        <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}…`} aria-label={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}`}/></label></div>
+        <div className="topic-scroll-wrap"><div className="topic-list" aria-label="Kategori obrolan">{FILTER_TOPICS.map(t => <button key={t} onClick={() => setTopic(t)} aria-pressed={topic === t} className={topic === t ? 'topic selected' : 'topic'}>{t}</button>)}</div><span className="topic-scroll-hint" aria-hidden="true">›</span></div>
+        <form className={composerOpen ? 'composer composer-expanded' : 'composer composer-collapsed'} onSubmit={handlePost}>
+          {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi obrolan.'); return; } setComposerOpen(true); }}><span className="composer-avatar">{String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><span>{user ? 'Ayo ngobrol…' : 'Masuk untuk mulai ngobrol…'}</span></button> : <>
+            <div className="composer-context"><span className="composer-avatar">{String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || 'Anggota komunitas'}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
+            <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ayo ngobrol…" rows={3}/>
+            <div className="composer-bottom"><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(''); }}>Batal</button><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0 || !draft.trim()}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Kirim'} <Send size={16}/></button></div>
+          </>}
         </form>
         <div className="post-list">
           {postsStatus === 'loading' && <div className="empty-state" role="status"><h3>Memuat obrolan…</h3><p>Mohon tunggu sebentar.</p></div>}
           {postsStatus === 'error' && <div className="empty-state" role="alert"><h3>Obrolan belum dapat dimuat</h3><p>Periksa koneksi internet Anda lalu coba lagi.</p><button className="button button-dark" onClick={() => setPostsRetry(n => n + 1)}>Coba lagi</button></div>}
-          {postsStatus === 'ready' && visiblePosts.map(post => <article className="post-card" key={post.id}><div className="post-avatar">{String(post.authorName || 'A').slice(0,1).toUpperCase()}</div><div className="post-content"><div className="post-meta"><b>{post.authorName || 'Anggota SL'}</b><span>{post.topic || 'Obrolan Umum'}</span></div><p>{post.body}</p><div className="post-actions"><button className="button button-quiet" type="button" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>Laporkan</button></div>{reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}</div></article>)}
+          {postsStatus === 'ready' && visiblePosts.map(post => <article className="post-card" key={post.id}>
+            <div className="post-avatar">{String(post.authorName || 'A').slice(0,1).toUpperCase()}</div>
+            <div className="post-content">
+              <div className="post-head"><div className="post-meta"><b>{post.authorName || 'Anggota SL'}</b><span>{post.topic || 'Obrolan Umum'}</span><small title={post.createdAt?.toDate?.()?.toLocaleString('id-ID') || ''}>{relativePostTime(post.createdAt)}</small></div>
+                <div className="post-menu-wrap"><button className="post-menu-trigger" type="button" aria-label="Opsi postingan" aria-expanded={openPostMenuId === post.id} onClick={() => setOpenPostMenuId(current => current === post.id ? '' : post.id)}><MoreHorizontal size={20}/></button>
+                  {openPostMenuId === post.id && <div className="post-menu"><button type="button" onClick={() => { setOpenPostMenuId(''); if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>⚑ Laporkan obrolan</button><button type="button" onClick={() => { setOpenPostMenuId(''); sharePost(post); }}><Share2 size={14}/> Bagikan</button></div>}
+                </div>
+              </div>
+              <p>{post.body}</p>
+              <div className="engagement-summary"><span>{(likeCounts[post.id] || 0) > 0 ? `❤️ ${likeCounts[post.id]}` : ''}</span><span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id]} balasan` : ''}</span></div>
+              <div className="post-actions">
+                <button className={likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" onClick={() => handleLikePost(post)}><Heart size={17} fill={likedPosts[post.id] ? 'currentColor' : 'none'}/> <span>Suka</span></button>
+                <button className="post-action" type="button" onClick={() => openReplies(post)}><MessageSquare size={17}/> <span>{replyCounts[post.id] ? `${replyCounts[post.id]} Balasan` : 'Balas'}</span></button>
+                <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
+              </div>
+              {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><input aria-label="Tulis balasan" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis balasan…"/><button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim balasan"><Send size={15}/></button></form>}
+              {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
+            </div></article>)}
           {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}
         </div>
       </section>}

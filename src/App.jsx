@@ -842,7 +842,7 @@ export default function App() {
         <span><strong>WARKOPLINK</strong><small>Ruang obrolan Indonesia</small></span>
       </a>
       <div className="header-actions">
-        <button className="button button-install" onClick={handleInstallPwa}><Download size={15}/> <span>Pasang PWA</span></button>
+        <button className="button button-install" type="button" onClick={handleInstallPwa} aria-label="Pasang aplikasi" title="Pasang aplikasi"><Download size={16}/></button>
         {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
           user ? <button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button> :
           <><button className="button button-quiet" onClick={() => openAuth(false)}>Masuk</button><button className="button button-dark" onClick={() => openAuth(true)}>Gabung komunitas</button></>}

@@ -20,6 +20,7 @@ vi.mock('firebase/firestore', () => ({
   deleteDoc: vi.fn().mockResolvedValue(undefined),
   collection: vi.fn((db, name) => ({ path: name })),
   doc: vi.fn((db, col, id) => ({ path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` })),
+  getCountFromServer: vi.fn(() => Promise.resolve({ data: () => ({ count: 0 }) })),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
   limit: vi.fn((n) => ({ limit: n })),
@@ -28,7 +29,8 @@ vi.mock('firebase/firestore', () => ({
   query: vi.fn((...args) => ({ args })),
   startAfter: vi.fn((cursor) => ({ startAfter: cursor })),
   where: vi.fn((...args) => ({ where: args })),
-  writeBatch: vi.fn(() => ({ set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) })),
+  updateDoc: vi.fn().mockResolvedValue(undefined),
+  writeBatch: vi.fn(() => ({ set: vi.fn(), delete: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) })),
   serverTimestamp: vi.fn(() => '__SERVER_TS__'),
   setDoc: vi.fn(),
 }));
@@ -53,7 +55,9 @@ const POSTS = [
 beforeEach(() => {
   vi.clearAllMocks();
   fs.getDoc.mockResolvedValue({ exists: () => true });
-  fs.getDocs.mockResolvedValue({ docs: [] });
+  fs.getDocs.mockResolvedValue({ docs: [], empty: true });
+  fs.getCountFromServer.mockResolvedValue({ data: () => ({ count: 0 }) });
+  fs.updateDoc.mockResolvedValue(undefined);
   fs.setDoc.mockResolvedValue(undefined);
   fs.addDoc.mockResolvedValue({ id: 'new' });
   fs.writeBatch.mockImplementation(() => ({ set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) }));

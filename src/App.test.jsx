@@ -18,7 +18,7 @@ vi.mock('firebase/auth', () => ({
 vi.mock('firebase/firestore', () => ({
   addDoc: vi.fn(),
   collection: vi.fn((db, name) => ({ path: name })),
-  doc: vi.fn((db, col, id) => ({ path: `${col}/${id}` })),
+  doc: vi.fn((db, col, id) => ({ path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` })),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
   limit: vi.fn((n) => ({ limit: n })),
@@ -27,6 +27,7 @@ vi.mock('firebase/firestore', () => ({
   query: vi.fn((...args) => ({ args })),
   startAfter: vi.fn((cursor) => ({ startAfter: cursor })),
   where: vi.fn((...args) => ({ where: args })),
+  writeBatch: vi.fn(() => ({ set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) })),
   serverTimestamp: vi.fn(() => '__SERVER_TS__'),
   setDoc: vi.fn(),
 }));
@@ -278,12 +279,18 @@ describe('membuat postingan', () => {
     await user.selectOptions(screen.getByLabelText('Kategori obrolan'), 'Info Layanan');
     await user.click(screen.getByRole('button', { name: 'Mulai obrolan' }));
 
-    await waitFor(() => expect(fs.addDoc).toHaveBeenCalledTimes(1));
-    expect(fs.addDoc).toHaveBeenCalledWith({ path: 'posts' }, {
+    await waitFor(() => expect(fs.writeBatch).toHaveBeenCalledTimes(1));
+    const batch = fs.writeBatch.mock.results[0].value;
+    expect(batch.set).toHaveBeenNthCalledWith(1, { path: 'posts/new-post' }, {
       authorId: 'u1', authorName: 'Sari', body: 'Halo komunitas', topic: 'Info Layanan', createdAt: '__SERVER_TS__',
     });
+    expect(batch.set).toHaveBeenNthCalledWith(2, { path: 'postRateLimits/u1' }, {
+      uid: 'u1', lastSentAt: '__SERVER_TS__',
+    });
+    expect(batch.commit).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('Obrolan berhasil dipublikasikan.')).toBeTruthy();
     expect(screen.getByLabelText('Isi obrolan').value).toBe('');
+    expect(screen.getByRole('button', { name: /Tunggu .* dtk/ })).toBeTruthy();
   });
 
   it('keempat kategori tersedia di komposer', () => {
@@ -329,7 +336,7 @@ describe('membuat postingan', () => {
   });
 
   it('penolakan dari aturan keamanan ditampilkan sebagai pesan yang jelas', async () => {
-    fs.addDoc.mockRejectedValue({ code: 'permission-denied' });
+    fs.writeBatch.mockImplementation(() => ({ set: vi.fn(), commit: vi.fn().mockRejectedValue({ code: 'permission-denied' }) }));
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());

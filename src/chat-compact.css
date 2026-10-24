@@ -307,7 +307,7 @@
 /* Thread replies: readable text rows, connected by one subtle guide line. */
 #community-feed .comment-section {
   max-height: none;
-  margin: 7px 0 0 6px;
+  margin: 7px 0 0;
   padding: 0;
   border-top: 0;
   overflow: visible;
@@ -327,6 +327,8 @@
   position: relative;
 }
 #community-feed .inline-reply-avatar {
+  position: absolute;
+  left: -40px;
   flex: 0 0 32px;
   width: 32px;
   height: 32px;
@@ -477,3 +479,15 @@
 @media (max-width: 620px) {
   #community-feed .reply-form { margin-left: -12px; margin-right: -12px; }
 }
+
+#community-feed .comment-section:has(.inline-reply)::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 0;
+  bottom: 52px;
+  width: 1px;
+  background: #eff3f4;
+  pointer-events: none;
+}
+#community-feed .comment-section:has(.inline-reply) { position: relative; }

@@ -136,3 +136,204 @@
 .report-moderation-card label{display:grid;gap:6px;font-size:11px;color:#59637c}
 .report-moderation-card textarea{width:100%;resize:vertical;border:1px solid var(--line);border-radius:9px;padding:9px;background:#fff;color:#26314e}
 @media(max-width:620px){.report-moderation-section{padding:12px}.report-moderation-heading{display:grid}.report-status{width:max-content}.report-moderation-card{padding:12px}}
+
+
+/* WarkopLink chat panel — Facebook-inspired, visual-only refinement. */
+#community-feed{
+  max-width:900px;
+  margin:0 auto;
+  padding:30px 0 44px;
+}
+#community-feed .section-heading{
+  display:block;
+  margin-bottom:20px;
+}
+#community-feed .section-heading h2{
+  font-size:clamp(25px,3vw,32px);
+  letter-spacing:-.7px;
+  margin:8px 0 5px;
+}
+#community-feed .section-heading p{
+  font-size:13px;
+  color:#65676b;
+}
+#community-feed .status-pill{
+  display:inline-flex;
+  margin-top:12px;
+  background:#e7f3ff;
+  color:#0866ff;
+  white-space:normal;
+}
+#community-feed .feed-tools{margin-top:18px}
+#community-feed .search{
+  max-width:none;
+  border:0;
+  border-radius:24px;
+  background:#f0f2f5;
+  padding:0 16px;
+}
+#community-feed .search:focus-within{
+  box-shadow:0 0 0 2px #0866ff2b;
+}
+#community-feed .search input{
+  min-height:44px;
+  font-size:14px;
+  color:#1c1e21;
+}
+#community-feed .topic-list{
+  gap:8px;
+  padding:14px 0;
+}
+#community-feed .topic{
+  border:0;
+  border-radius:9px;
+  background:#f0f2f5;
+  color:#4b4f56;
+  padding:10px 14px;
+  font-size:12px;
+  font-weight:700;
+}
+#community-feed .topic.selected{
+  color:#0866ff;
+  background:#e7f3ff;
+}
+#community-feed .composer{
+  border:0;
+  border-radius:14px;
+  padding:18px;
+  background:#fff;
+  box-shadow:0 1px 2px #00000012,0 1px 3px #0000000a;
+}
+#community-feed .composer textarea{
+  min-height:82px;
+  padding:12px 14px;
+  border-radius:12px;
+  background:#f0f2f5;
+  font-size:14px;
+  line-height:1.55;
+}
+#community-feed .composer textarea:focus{
+  box-shadow:inset 0 0 0 1px #0866ff55;
+}
+#community-feed .composer-bottom{
+  margin-top:12px;
+  border-top:1px solid #e4e6eb;
+  padding-top:13px;
+}
+#community-feed .composer select{
+  border:0;
+  border-radius:8px;
+  background:#f0f2f5;
+  color:#4b4f56;
+  padding:10px 12px;
+  font-size:12px;
+}
+#community-feed .composer .button-dark{
+  background:#0866ff;
+  border-radius:9px;
+  box-shadow:none;
+}
+#community-feed .composer .button-dark:hover{background:#075ce5}
+#community-feed .post-list{
+  gap:14px;
+  margin-top:16px;
+}
+#community-feed .post-card{
+  gap:12px;
+  padding:18px;
+  border:0;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 1px 2px #00000012,0 1px 3px #0000000a;
+}
+#community-feed .post-avatar{
+  width:42px;
+  height:42px;
+  flex-basis:42px;
+  border-radius:50%;
+  background:#e7f3ff;
+  color:#0866ff;
+  font-size:15px;
+}
+#community-feed .post-content{flex:1}
+#community-feed .post-meta{gap:7px}
+#community-feed .post-meta b{
+  color:#050505;
+  font-size:14px;
+  font-weight:700;
+}
+#community-feed .post-meta span{
+  color:#65676b;
+  background:transparent;
+  padding:0;
+  font-size:11px;
+}
+#community-feed .post-content>p{
+  margin-top:11px;
+  color:#1c1e21;
+  font-size:14px;
+  line-height:1.65;
+}
+#community-feed .post-actions{
+  margin-top:14px;
+  padding-top:10px;
+  border-top:1px solid #e4e6eb;
+}
+#community-feed .post-actions .button-quiet{
+  width:100%;
+  border-radius:8px;
+  background:transparent;
+  color:#65676b;
+  font-size:12px;
+  padding:9px;
+}
+#community-feed .post-actions .button-quiet:hover{
+  background:#f0f2f5;
+  transform:none;
+}
+#community-feed .report-form{
+  display:grid;
+  gap:12px;
+  padding-top:12px;
+}
+#community-feed .report-form label{
+  display:grid;
+  gap:7px;
+  color:#4b4f56;
+  font-size:12px;
+  font-weight:700;
+}
+#community-feed .report-form select{
+  width:100%;
+  border:1px solid #ccd0d5;
+  border-radius:8px;
+  padding:11px;
+  background:#fff;
+  color:#1c1e21;
+}
+#community-feed .report-form-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#community-feed .report-form-actions .button-dark{
+  background:#0866ff;
+}
+#community-feed .empty-state{
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 1px 2px #00000012;
+}
+#community-feed .config-warning{
+  border-radius:10px;
+}
+@media(max-width:620px){
+  #community-feed{padding-top:22px}
+  #community-feed .section-heading h2{font-size:25px}
+  #community-feed .composer{padding:13px}
+  #community-feed .composer textarea{min-height:76px;padding:12px}
+  #community-feed .composer-bottom{gap:9px}
+  #community-feed .post-card{padding:14px;gap:10px}
+  #community-feed .post-avatar{width:38px;height:38px;flex-basis:38px}
+  #community-feed .post-meta{align-items:flex-start;flex-direction:column;gap:4px}
+}

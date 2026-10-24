@@ -289,7 +289,7 @@ describe('membuat postingan', () => {
       uid: 'u1', lastSentAt: '__SERVER_TS__',
     });
     expect(batch.commit).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText('Obrolan berhasil dipublikasikan.')).toBeTruthy();
+    expect(await screen.findByText(/Obrolan berhasil dipublikasikan/)).toBeTruthy();
     expect(screen.getByLabelText('Isi obrolan').value).toBe('');
     expect(screen.getByRole('button', { name: /Tunggu .* dtk/ })).toBeTruthy();
   });
@@ -331,9 +331,11 @@ describe('membuat postingan', () => {
     emitAuth(fakeUser({ uid: 'u2', displayName: null, email: 'rahasia@example.test' }));
     await user.type(screen.getByLabelText('Isi obrolan'), 'Halo');
     await user.click(screen.getByRole('button', { name: 'Mulai obrolan' }));
-    await waitFor(() => expect(fs.addDoc).toHaveBeenCalledTimes(1));
-    expect(fs.addDoc.mock.calls[0][1].authorName).toBe('Anggota');
-    expect(JSON.stringify(fs.addDoc.mock.calls[0][1])).not.toContain('rahasia');
+    await waitFor(() => expect(fs.writeBatch).toHaveBeenCalledTimes(1));
+    const batch = fs.writeBatch.mock.results[0].value;
+    const postedData = batch.set.mock.calls[0][1];
+    expect(postedData.authorName).toBe('Anggota');
+    expect(JSON.stringify(postedData)).not.toContain('rahasia');
   });
 
   it('penolakan dari aturan keamanan ditampilkan sebagai pesan yang jelas', async () => {

@@ -1,5 +1,5 @@
 import { Heart, MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
@@ -7,15 +7,52 @@ const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 export default function ChatPostCard({
   post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
   reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, postReactions,
-  handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts, handleLikePost,
-  openReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft, handleReply,
+  handleReactPost, likeCounts, replyCounts, likedPosts,
+  openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft, handleReply,
   handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId, deletingPostId,
   handleDeletePost
 }) {
   const ownPost = Boolean(user?.uid && user.uid === post.authorId);
   const replyRows = repliesByPost[post.id] || [];
-  const showAllReplies = Boolean(expandedReplies[post.id]);
+  const commentCount = replyCounts[post.id] ?? post.commentCount ?? 0;
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const commentInputRef = useRef(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
+
+  useEffect(() => {
+    setComments(showComments ? replyRows : []);
+  }, [showComments, replyRows]);
+
+  useEffect(() => {
+    if (showComments) commentInputRef.current?.focus();
+  }, [showComments]);
+
+  async function toggleComments() {
+    if (showComments) {
+      setShowComments(false);
+      setComments([]);
+      closeReplies(post);
+      return;
+    }
+    setShowComments(true);
+    setCommentsLoading(true);
+    try {
+      const loaded = await openReplies(post);
+      setComments(loaded || []);
+    } finally {
+      setCommentsLoading(false);
+    }
+  }
+
+  async function openCommentsForReply() {
+    if (showComments) {
+      commentInputRef.current?.focus();
+      return;
+    }
+    await toggleComments();
+  }
 
   return <article className="post-card" key={post.id}>
     <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : String(post.authorName || 'A').slice(0, 1).toUpperCase()}</div>
@@ -37,25 +74,31 @@ export default function ChatPostCard({
       </div>
       <p>{post.body}</p>
       <div className="engagement-summary">
-        <span>{(likeCounts[post.id] || 0) > 0 ? `${likeCounts[post.id]} reaksi` : ''}</span>
-        <span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !showAllReplies ? '3+' : replyCounts[post.id]} komentar` : ''}</span>
+        <span>{(likeCounts[post.id] || 0) > 0 ? likeCounts[post.id] + ' reaksi' : ''}</span>
+        {commentCount > 0 && <button className="engagement-comment-count" type="button" aria-expanded={showComments} onClick={toggleComments}>{commentCount} komentar</button>}
       </div>
       {reactionPickerOpen && <div className="status-reactions" role="group" aria-label="Pilih reaksi">
         {EMOJIS.map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => { handleReactPost(post, emoji); setReactionPickerOpen(false); }}>{emoji}</button>)}
       </div>}
       <div className="post-actions">
         <button className={reactionPickerOpen || likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" aria-label="Reaksi" aria-expanded={reactionPickerOpen} onClick={() => setReactionPickerOpen(open => !open)}>{postReactions[post.id] ? <span className="reaction-action-emoji" aria-hidden="true">{postReactions[post.id]}</span> : <SmilePlus size={17}/>} <span>Reaksi</span></button>
-        <button className="post-action" type="button" onClick={() => openReplies(post)}><MessageSquare size={17}/> <span>Balas</span></button>
+        <button className="post-action" type="button" aria-expanded={showComments} onClick={openCommentsForReply}><MessageSquare size={17}/> <span>Balas</span></button>
         <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
       </div>
-      {replyRows.length > 0 && <div className="inline-replies" aria-label="Komentar dan balasan">
-        {(showAllReplies ? replyRows : replyRows.slice(0, 4)).map(reply => <div className="inline-reply" key={reply.id}>
-          <div className="inline-reply-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0, 1).toUpperCase()}</div>
-          <div className="inline-reply-body"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
-        </div>)}
-        {(replyRows.length >= 4 || (replyCounts[post.id] || 0) > 3) && !showAllReplies && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar ({Math.max((replyCounts[post.id] || 0) - replyRows.length, 0) > 0 ? `${Math.max((replyCounts[post.id] || 0) - replyRows.length, 0)} lagi` : 'selengkapnya'})</button>}
+      {showComments && <div className="comment-section animate-slideDown" aria-label="Komentar dan balasan">
+        {commentsLoading
+          ? <div className="comment-skeleton" role="status" aria-label="Memuat komentar"><span/><span/></div>
+          : comments.length === 0
+            ? <p className="comment-empty">Belum ada komentar. Mulai percakapan ini.</p>
+            : comments.map(reply => <div className="inline-reply" key={reply.id}>
+                <div className="inline-reply-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0, 1).toUpperCase()}</div>
+                <div className="inline-reply-body"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
+              </div>)}
+        <form className="reply-form" onSubmit={event => handleReply(event, post)}>
+          <input ref={commentInputRef} autoFocus aria-label="Tulis komentar" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar…"/>
+          <button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button>
+        </form>
       </div>}
-      {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><input aria-label="Tulis balasan" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/><button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
       {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
       {deleteConfirmId === post.id && <div className="delete-confirm" role="group" aria-label="Konfirmasi hapus obrolan"><p>Hapus obrolan ini secara permanen?</p><div className="report-form-actions"><button className="button button-reject" type="button" onClick={() => handleDeletePost(post)} disabled={deletingPostId === post.id}>{deletingPostId === post.id ? 'Menghapus…' : 'Ya, hapus'}</button><button className="button button-quiet" type="button" onClick={() => setDeleteConfirmId('')} disabled={deletingPostId === post.id}>Batal</button></div></div>}
     </div>

@@ -12,7 +12,7 @@ function props(overrides = {}) {
     reportingPostId: '', setReportingPostId: vi.fn(), reportReason: 'Spam atau promosi berulang',
     setReportReason: vi.fn(), sharePost: vi.fn(), postReactions: {}, handleReactPost: vi.fn(),
     likeCounts: {}, replyCounts: {}, expandedReplies: {}, likedPosts: {}, handleLikePost: vi.fn(),
-    openReplies: vi.fn(), repliesByPost: {}, replyingPostId: '', replyDraft: '', setReplyDraft: vi.fn(),
+    openReplies: vi.fn().mockResolvedValue([]), closeReplies: vi.fn(), repliesByPost: {}, replyingPostId: '', replyDraft: '', setReplyDraft: vi.fn(),
     handleReply: vi.fn(), handleReportPost: vi.fn(), reporting: false, deleteConfirmId: '',
     setDeleteConfirmId: vi.fn(), deletingPostId: '', handleDeletePost: vi.fn(), ...overrides
   };
@@ -31,6 +31,35 @@ describe('ChatPostCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Beri reaksi ❤️' }));
     expect(values.handleReactPost).toHaveBeenCalledWith(values.post, '❤️');
     expect(screen.queryByRole('button', { name: 'Beri reaksi ❤️' })).toBeNull();
+  });
+
+  it('keeps comments hidden by default and fetches only after tapping the count', async () => {
+    const values = props({
+      replyCounts: { 'post-1': 3 },
+      openReplies: vi.fn().mockResolvedValue([
+        { id: 'comment-1', authorName: 'Budi', body: 'Iya saya di sini' }
+      ])
+    });
+    render(<ChatPostCard {...values} />);
+    expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
+    expect(values.openReplies).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '3 komentar' }));
+    expect(await screen.findByText('Iya saya di sini')).toBeTruthy();
+    expect(values.openReplies).toHaveBeenCalledWith(values.post);
+    expect(screen.getByRole('textbox', { name: 'Tulis komentar' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: '3 komentar' }));
+    expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
+    expect(values.closeReplies).toHaveBeenCalledWith(values.post);
+  });
+
+  it('Balas opens the comment panel and focuses the comment input', async () => {
+    const values = props();
+    render(<ChatPostCard {...values} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Balas' }));
+    expect(await screen.findByRole('textbox', { name: 'Tulis komentar' })).toBeTruthy();
+    expect(values.openReplies).toHaveBeenCalledWith(values.post);
   });
 
   it('asks for confirmation before invoking deletion', () => {

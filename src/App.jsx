@@ -407,51 +407,32 @@ export default function App() {
     };
   }, [allPosts, user?.uid]);
 
-  // Muat pratinjau komentar untuk posting terbaru agar balasan terlihat langsung tanpa membuka panel.
+  // Ambil angka komentar saja; isi komentar baru dimuat saat pengguna membuka panel.
   useEffect(() => {
     if (!db || !allPosts.length) return undefined;
     let cancelled = false;
-    const loadPreviews = async () => {
-      const latestPosts = allPosts.slice(0, 12);
-      const results = await Promise.all(latestPosts.map(async (post) => {
-        try {
-          const repliesRef = collection(db, 'posts', post.id, 'replies');
-          const [snapshot, countSnapshot] = await Promise.all([
-            getDocs(query(repliesRef, orderBy('createdAt', 'asc'), limit(4))),
-            getCountFromServer(repliesRef)
-          ]);
-          return [post.id, snapshot.docs.map((item) => ({ id: item.id, ...item.data() })), countSnapshot.data().count];
-        } catch {
-          return [post.id, [], 0];
-        }
-      }));
+    Promise.all(allPosts.map(async (post) => {
+      try {
+        const count = await getCountFromServer(collection(db, 'posts', post.id, 'replies'));
+        return [post.id, count.data().count];
+      } catch {
+        return [post.id, null];
+      }
+    })).then((results) => {
       if (cancelled) return;
-      setRepliesByPost(current => {
+      setReplyCounts((current) => {
         const next = { ...current };
-        results.forEach(([id, serverReplies]) => {
-          const pendingReplies = (current[id] || []).filter(reply => reply.pending);
-          const serverIds = new Set(serverReplies.map(reply => reply.id));
-          next[id] = [
-            ...serverReplies,
-            ...pendingReplies.filter(reply => !serverIds.has(reply.id))
-          ];
+        results.forEach(([id, serverCount]) => {
+          if (serverCount !== null) {
+            const pendingCount = (repliesByPost[id] || []).filter((reply) => reply.pending).length;
+            next[id] = serverCount + pendingCount;
+          }
         });
         return next;
       });
-      setReplyCounts(current => {
-        const next = { ...current };
-        results.forEach(([id, , serverCount]) => {
-          const pendingCount = (repliesByPost[id] || []).filter(reply => reply.pending).length;
-          // Hitungan server menjadi sumber utama; tambahkan balasan optimistis yang belum tersimpan.
-          next[id] = serverCount + pendingCount;
-        });
-        return next;
-      });
-    };
-    loadPreviews();
+    });
     return () => { cancelled = true; };
   }, [allPosts]);
-
   function openAuth(register) {
     setRegisterMode(register);
     setAuthError('');
@@ -603,12 +584,15 @@ export default function App() {
   }
 
   async function openReplies(post) {
-    if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk membalas obrolan.'); return; }
-    setReplyingPostId(current => current === post.id ? '' : post.id);
+    if (!db || !post?.id) return [];
+    setReplyingPostId(post.id);
     setReplyDraft('');
-    if (!db || !post?.id) return;
     try {
-      const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'replies'), orderBy('createdAt', 'asc'), limit(50)));
+      const snapshot = await getDocs(query(
+        collection(db, 'posts', post.id, 'replies'),
+        orderBy('createdAt', 'asc'),
+        limit(5)
+      ));
       const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
       setRepliesByPost(current => {
         const pendingReplies = (current[post.id] || []).filter(reply => reply.pending);
@@ -618,16 +602,23 @@ export default function App() {
           [post.id]: [...replies, ...pendingReplies.filter(reply => !serverIds.has(reply.id))]
         };
       });
-      setExpandedReplies(current => ({ ...current, [post.id]: true }));
       const countSnapshot = await getCountFromServer(collection(db, 'posts', post.id, 'replies'));
       setReplyCounts(current => {
         const pendingCount = (repliesByPost[post.id] || []).filter(reply => reply.pending).length;
-        // Gunakan hitungan server terbaru ditambah balasan optimistis yang belum tersimpan.
         return { ...current, [post.id]: countSnapshot.data().count + pendingCount };
       });
+      return replies;
     } catch {
-      setNotice('Balasan belum dapat dimuat. Coba lagi sebentar lagi.');
+      setNotice('Komentar belum dapat dimuat. Coba lagi sebentar lagi.');
+      return [];
     }
+  }
+
+  function closeReplies(post) {
+    if (!post?.id) return;
+    setReplyingPostId(current => current === post.id ? '' : current);
+    setReplyDraft('');
+    setRepliesByPost(current => ({ ...current, [post.id]: [] }));
   }
 
   async function handleReply(event, post) {
@@ -817,7 +808,7 @@ export default function App() {
           user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
           reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost,
           postReactions, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
-          handleLikePost, openReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
+          handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
           handleReply, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
           deletingPostId, handleDeletePost
         }}

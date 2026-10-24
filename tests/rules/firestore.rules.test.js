@@ -17,6 +17,8 @@ const validPost = (overrides = {}) => ({
   body: 'Halo komunitas',
   topic: 'Obrolan Umum',
   createdAt: serverTimestamp(),
+  reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
+  totalReactions: 0,
   ...overrides,
 });
 
@@ -51,7 +53,7 @@ beforeEach(async () => {
       displayName: 'Bob', email: 'bob@example.test', createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
     });
     await setDoc(doc(db, 'posts/post-alice'), {
-      authorId: 'alice', authorName: 'Alice', body: 'Postingan Alice', topic: 'Tanya Jawab', createdAt: Timestamp.now(),
+      authorId: 'alice', authorName: 'Alice', body: 'Postingan Alice', topic: 'Tanya Jawab', createdAt: Timestamp.now(), reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0,
     });
   });
 });

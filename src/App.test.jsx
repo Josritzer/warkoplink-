@@ -300,7 +300,7 @@ describe('balasan komentar', () => {
     emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
 
     await user.click(await screen.findByRole('button', { name: 'Balas' }));
-    await user.type(await screen.findByLabelText('Tulis balasan'), 'Setuju, terima kasih');
+    await user.type(await screen.findByLabelText('Tulis komentar'), 'Setuju, terima kasih');
     await user.click(screen.getByRole('button', { name: 'Kirim komentar' }));
 
     expect(await screen.findByText('Setuju, terima kasih')).toBeTruthy();
@@ -323,12 +323,12 @@ describe('balasan komentar', () => {
     emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
 
     await user.click(await screen.findByRole('button', { name: 'Balas' }));
-    await user.type(await screen.findByLabelText('Tulis balasan'), 'Balasan perlu dipulihkan');
+    await user.type(await screen.findByLabelText('Tulis komentar'), 'Balasan perlu dipulihkan');
     await user.click(screen.getByRole('button', { name: 'Kirim komentar' }));
 
     expect(await screen.findByText('Balasan ditolak oleh aturan keamanan.')).toBeTruthy();
     expect(screen.queryByText('Balasan perlu dipulihkan')).toBeNull();
-    expect(screen.getByLabelText('Tulis balasan').value).toBe('Balasan perlu dipulihkan');
+    expect(screen.getByLabelText('Tulis komentar').value).toBe('Balasan perlu dipulihkan');
   });
 });
 

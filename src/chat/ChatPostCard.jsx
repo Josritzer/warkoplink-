@@ -6,6 +6,9 @@ const REACTION_FIELDS = {
   like: '👍', love: '❤️', haha: '😂', wow: '😮', sad: '😢', angry: '😡'
 };
 const EMPTY_REACTIONS = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+// Referensi tunggal untuk "belum ada komentar". Literal `[]` baru di setiap render akan membuat
+// useEffect di bawah berjalan terus-menerus (setComments([]) -> render ulang -> `[]` baru -> ...).
+const NO_COMMENTS = [];
 
 // Tampilan satu status; state dan operasi tetap dimiliki App agar data tersinkron antarpengguna.
 export default function ChatPostCard({
@@ -17,19 +20,19 @@ export default function ChatPostCard({
   handleDeletePost
 }) {
   const ownPost = Boolean(user?.uid && user.uid === post.authorId);
-  const replyRows = repliesByPost[post.id] || [];
+  const replyRows = repliesByPost[post.id] || NO_COMMENTS;
   const commentCount = replyCounts[post.id] ?? post.commentCount ?? 0;
   const summary = reactionSummaries?.[post.id];
   const reactions = { ...EMPTY_REACTIONS, ...(summary?.reactions || post.reactions || {}) };
   const totalReactions = summary?.totalReactions ?? post.totalReactions ?? likeCounts[post.id] ?? 0;
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState([]);
+  const [comments, setComments] = useState(NO_COMMENTS);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const commentInputRef = useRef(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
 
   useEffect(() => {
-    setComments(showComments ? replyRows : []);
+    setComments(showComments ? replyRows : NO_COMMENTS);
   }, [showComments, replyRows]);
 
   useEffect(() => {
@@ -39,7 +42,7 @@ export default function ChatPostCard({
   async function toggleComments() {
     if (showComments) {
       setShowComments(false);
-      setComments([]);
+      setComments(NO_COMMENTS);
       closeReplies(post);
       return;
     }
@@ -47,7 +50,7 @@ export default function ChatPostCard({
     setCommentsLoading(true);
     try {
       const loaded = await openReplies(post);
-      setComments(loaded || []);
+      setComments(loaded || NO_COMMENTS);
     } finally {
       setCommentsLoading(false);
     }

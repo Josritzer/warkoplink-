@@ -86,6 +86,40 @@ describe('ChatPostCard', () => {
     expect(values.openReplies).toHaveBeenCalledWith(values.post);
   });
 
+  // Regresi: `repliesByPost[post.id] || []` menghasilkan array baru di tiap render, sehingga efek
+  // sinkronisasi komentar memanggil setComments([]) tanpa henti (tes macet / OOM, CPU 100% di browser).
+  // Pencacah melempar error agar kegagalan muncul cepat, bukan menggantung.
+  function renderCounter(limit) {
+    const counter = { renders: 0 };
+    counter.relativePostTime = () => {
+      counter.renders += 1;
+      if (counter.renders > limit) throw new Error('ChatPostCard render loop terdeteksi');
+      return 'baru saja';
+    };
+    return counter;
+  }
+
+  it('does not re-render endlessly for a post with no loaded replies', () => {
+    const counter = renderCounter(25);
+    render(<ChatPostCard {...props({ relativePostTime: counter.relativePostTime, repliesByPost: {} })} />);
+    expect(counter.renders).toBeLessThanOrEqual(3);
+  });
+
+  it('keeps render count bounded while opening and closing the comment panel', async () => {
+    const counter = renderCounter(60);
+    const values = props({
+      relativePostTime: counter.relativePostTime,
+      replyCounts: { 'post-1': 1 },
+      openReplies: vi.fn().mockResolvedValue([{ id: 'comment-1', authorName: 'Budi', body: 'Komentar stabil' }])
+    });
+    render(<ChatPostCard {...values} />);
+    fireEvent.click(screen.getByRole('button', { name: '1 komentar' }));
+    expect(await screen.findByText('Komentar stabil')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '1 komentar' }));
+    expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
+    expect(counter.renders).toBeLessThanOrEqual(30);
+  });
+
   it('asks for confirmation before invoking deletion', () => {
     const values = props({ deleteConfirmId: 'post-1' });
     render(<ChatPostCard {...values} />);

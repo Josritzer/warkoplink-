@@ -10,7 +10,7 @@ import {
 import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { auth, db, storage, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
-import ChatPostCard from './chat/ChatPostCard.jsx';
+import ChatPanel from './chat/ChatPanel.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { deleteOwnPost } from './services/postService.js';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
@@ -685,37 +685,22 @@ export default function App() {
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
       (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Cari warkop</button></section> :
-      <section className="content-section" id="community-feed">
-        <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className="status-pill">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
-        {!firebaseConfigured && <p className="config-warning">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
-        <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}…`} aria-label={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}`}/></label></div>
-        <div className="topic-scroll-wrap"><div className="topic-list" aria-label="Kategori obrolan">{FILTER_TOPICS.map(t => <button key={t} onClick={() => setTopic(t)} aria-pressed={topic === t} className={topic === t ? 'topic selected' : 'topic'}>{t}</button>)}</div><span className="topic-scroll-hint" aria-hidden="true">›</span></div>
-        <form className={composerOpen ? 'composer composer-expanded' : 'composer composer-collapsed'} onSubmit={handlePost}>
-          {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi obrolan.'); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><span>{user ? 'Ayo ngobrol…' : 'Masuk untuk mulai ngobrol…'}</span></button> : <>
-            <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || 'Anggota komunitas'}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
-            <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ayo ngobrol…" rows={3}/>
-            <div className="composer-bottom"><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(''); }}>Batal</button><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0 || !draft.trim()}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Kirim'} <Send size={16}/></button></div>
-          </>}
-        </form>
-        <div className="post-list">
-          {postsStatus === 'loading' && <div className="empty-state" role="status"><h3>Memuat obrolan…</h3><p>Mohon tunggu sebentar.</p></div>}
-          {postsStatus === 'error' && <div className="empty-state" role="alert"><h3>Obrolan belum dapat dimuat</h3><p>Periksa koneksi internet Anda lalu coba lagi.</p><button className="button button-dark" onClick={() => setPostsRetry(n => n + 1)}>Coba lagi</button></div>}
-          {postsStatus === 'ready' && visiblePosts.map(post => <ChatPostCard
-            key={post.id} post={post} user={user} relativePostTime={relativePostTime}
-            openPostMenuId={openPostMenuId} setOpenPostMenuId={setOpenPostMenuId}
-            openAuth={openAuth} setNotice={setNotice} reportingPostId={reportingPostId}
-            setReportingPostId={setReportingPostId} reportReason={reportReason} setReportReason={setReportReason}
-            sharePost={sharePost} postReactions={postReactions} handleReactPost={handleReactPost}
-            likeCounts={likeCounts} replyCounts={replyCounts} expandedReplies={expandedReplies}
-            likedPosts={likedPosts} handleLikePost={handleLikePost} openReplies={openReplies}
-            repliesByPost={repliesByPost} replyingPostId={replyingPostId} replyDraft={replyDraft}
-            setReplyDraft={setReplyDraft} handleReply={handleReply} handleReportPost={handleReportPost}
-            reporting={reporting} deleteConfirmId={deleteConfirmId} setDeleteConfirmId={setDeleteConfirmId}
-            deletingPostId={deletingPostId} handleDeletePost={handleDeletePost}
-          />)}
-          {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}
-        </div>
-      </section>}
+      <ChatPanel
+        user={user} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
+        topic={topic} setTopic={setTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
+        openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
+        activeCategory={activeCategory} handlePost={handlePost} posting={posting}
+        cooldownRemaining={cooldownRemaining} postsStatus={postsStatus} setPostsRetry={setPostsRetry}
+        visiblePosts={visiblePosts}
+        cardProps={{
+          user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
+          reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost,
+          postReactions, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
+          handleLikePost, openReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
+          handleReply, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
+          deletingPostId, handleDeletePost
+        }}
+      />
       {authOpen && <div className="modal-backdrop" role="presentation" onClick={() => setAuthOpen(false)}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={() => setAuthOpen(false)} aria-label="Tutup">×</button>
         <span className="brand-mark"><Sparkles size={20}/></span><h2 id="auth-title">{registerMode ? 'Gabung komunitas' : 'Selamat datang kembali'}</h2><p>{registerMode ? 'Buat akun untuk mulai terhubung.' : 'Masuk untuk ikut dalam percakapan.'}</p>

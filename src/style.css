@@ -391,3 +391,7 @@
 #community-feed .reply-emoji-picker{order:3;flex:0 0 100%;margin-top:0}
 #community-feed .reply-emoji-picker .chat-emoji-grid{grid-template-columns:repeat(7,minmax(0,1fr))}
 @media(max-width:420px){#community-feed .chat-emoji-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}#community-feed .chat-emoji-option{font-size:19px;min-height:34px}}
+
+#community-feed .chat-emoji-trigger{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;padding:0;border:0;border-radius:50%;background:#f0f2f5;color:#1c1e21;font-size:20px;cursor:pointer}
+#community-feed .chat-emoji-trigger:hover,#community-feed .chat-emoji-trigger[aria-expanded="true"]{background:#e7f3ff}
+#community-feed .reply-emoji-trigger{align-self:center;flex-basis:32px;width:32px;height:32px;font-size:18px}

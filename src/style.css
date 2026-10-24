@@ -113,3 +113,26 @@
 .admin-audit-row small{font-size:10px;color:var(--muted);overflow-wrap:anywhere}
 .admin-audit-row p{margin:2px 0 0;font-size:12px;line-height:1.5;color:#4b5672;overflow-wrap:anywhere}
 @media(max-width:620px){.admin-warung-card{padding:13px}.admin-warung-heading{display:grid}.admin-audit-row{display:grid}.admin-subheading{align-items:flex-start}}
+
+
+.report-moderation-section{margin:24px 0 30px;padding:18px;border:1px solid var(--line);border-radius:18px;background:#f9faff}
+.report-counts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.report-count{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#45516f;font-size:11px}
+.report-count-baru,.report-status-baru{background:#fff7e6;color:#8a5600}
+.report-count-ditinjau,.report-status-ditinjau{background:#eef3ff;color:#294bb5}
+.report-count-selesai,.report-status-selesai{background:#e9f8ef;color:#17653c}
+.report-moderation-help{font-size:12px;line-height:1.6;color:var(--muted)}
+.report-moderation-list,.report-moderation-audit{display:grid;gap:10px;margin:14px 0 24px}
+.report-moderation-card{display:grid;gap:10px;padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px;min-width:0}
+.report-moderation-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.report-moderation-heading>div{display:grid;gap:4px;min-width:0}
+.report-moderation-heading b{font-size:12px;overflow-wrap:anywhere;color:#26314e}
+.report-moderation-heading small{font-size:10px;color:var(--muted)}
+.report-status{display:inline-flex;align-items:center;white-space:nowrap;padding:5px 8px;border-radius:999px;font-size:9px;font-weight:800}
+.report-moderation-card>p{margin:0;font-size:12px;line-height:1.55;color:#4b5672;overflow-wrap:anywhere}
+.reported-post{display:flex;align-items:flex-start;gap:8px;margin:0;padding:12px;border-radius:10px;background:#f4f6fc;color:#394663;font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.reported-post svg{flex:none;margin-top:2px}
+.reported-post-missing{padding:10px;background:#fff8e9;border-radius:9px;color:#795c24!important}
+.report-moderation-card label{display:grid;gap:6px;font-size:11px;color:#59637c}
+.report-moderation-card textarea{width:100%;resize:vertical;border:1px solid var(--line);border-radius:9px;padding:9px;background:#fff;color:#26314e}
+@media(max-width:620px){.report-moderation-section{padding:12px}.report-moderation-heading{display:grid}.report-status{width:max-content}.report-moderation-card{padding:12px}}

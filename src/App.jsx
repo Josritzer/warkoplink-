@@ -4,7 +4,7 @@ import {
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, where
+  addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, where, writeBatch
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
@@ -215,7 +215,21 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [busy, setBusy] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const registering = useRef(false);
+
+  useEffect(() => {
+    if (!cooldownUntil) { setCooldownRemaining(0); return undefined; }
+    const updateCooldown = () => {
+      const remaining = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+      setCooldownRemaining(remaining);
+      if (remaining === 0) setCooldownUntil(0);
+    };
+    updateCooldown();
+    const timer = setInterval(updateCooldown, 250);
+    return () => clearInterval(timer);
+  }, [cooldownUntil]);
 
   // Membuat dokumen profil jika akun Auth sudah ada tetapi profil belum tersimpan
   // (misalnya pembuatan profil gagal saat registrasi). Aman dipanggil berulang.
@@ -376,15 +390,22 @@ export default function App() {
         setNotice('Profil Anda belum tersimpan sehingga pesan belum dapat dikirim. Coba lagi sebentar lagi.');
         return;
       }
-      await addDoc(collection(db, 'posts'), {
+      // Postingan dan penanda cooldown ditulis atomik; Firestore Rules menegakkan jeda 10 detik.
+      const postRef = doc(collection(db, 'posts'));
+      const rateLimitRef = doc(db, 'postRateLimits', user.uid);
+      const batch = writeBatch(db);
+      batch.set(postRef, {
         authorId: user.uid,
         authorName: authorNameFor(user),
         body: bodyCheck.value,
         topic: composerTopic,
         createdAt: serverTimestamp()
       });
+      batch.set(rateLimitRef, { uid: user.uid, lastSentAt: serverTimestamp() });
+      await batch.commit();
       setDraft('');
-      setNotice('Obrolan berhasil dipublikasikan.');
+      setCooldownUntil(Date.now() + 10000);
+      setNotice('Obrolan berhasil dipublikasikan. Tunggu 10 detik sebelum mengirim pesan berikutnya.');
     } catch (error) {
       setNotice(postErrorMessage(error));
     } finally {
@@ -436,7 +457,7 @@ export default function App() {
         <div className="topic-list">{FILTER_TOPICS.map(t => <button key={t} onClick={() => setTopic(t)} aria-pressed={topic === t} className={topic === t ? 'topic selected' : 'topic'}>{t}</button>)}</div>
         <form className="composer" onSubmit={handlePost}>
           <textarea aria-label="Isi obrolan" value={draft} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder={user ? 'Apa yang ingin kamu bagikan hari ini?' : 'Masuk untuk mulai berbagi obrolan…'} rows={3}/>
-          <div className="composer-bottom"><select aria-label="Kategori obrolan" value={composerTopic} onChange={e => setComposerTopic(e.target.value)}>{POST_TOPICS.map(t => <option key={t}>{t}</option>)}</select><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-dark" type="submit" disabled={posting}>{posting ? 'Mengirim…' : 'Mulai obrolan'} <MessageCircle size={16}/></button></div>
+          <div className="composer-bottom"><select aria-label="Kategori obrolan" value={composerTopic} onChange={e => setComposerTopic(e.target.value)}>{POST_TOPICS.map(t => <option key={t}>{t}</option>)}</select><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Mulai obrolan'} <MessageCircle size={16}/></button></div>
         </form>
         <div className="post-list">
           {postsStatus === 'loading' && <div className="empty-state" role="status"><h3>Memuat obrolan…</h3><p>Mohon tunggu sebentar.</p></div>}

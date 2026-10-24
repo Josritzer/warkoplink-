@@ -625,16 +625,45 @@ export default function App() {
     if (!user) { openAuth(false); return; }
     const body = replyDraft.trim();
     if (!body || body.length > 1000) { setNotice('Balasan harus berisi 1–1000 karakter.'); return; }
+
+    // Tampilkan balasan segera, lalu konfirmasi ke Firestore. Jika gagal, batalkan perubahan lokal.
+    const temporaryId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimisticReply = {
+      id: temporaryId,
+      authorId: user.uid,
+      authorName: authorNameFor(user),
+      authorPhotoURL: user.photoURL || null,
+      body,
+      createdAt: null,
+      pending: true
+    };
+    setRepliesByPost(current => ({
+      ...current,
+      [post.id]: [...(current[post.id] || []).filter(reply => reply.id !== temporaryId), optimisticReply]
+    }));
+    setReplyCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
+    setReplyDraft('');
+    setReplyingPostId('');
+
     try {
-      await addDoc(collection(db, 'posts', post.id, 'replies'), {
+      const savedReply = await addDoc(collection(db, 'posts', post.id, 'replies'), {
         authorId: user.uid, authorName: authorNameFor(user), authorPhotoURL: user.photoURL || null, body, createdAt: serverTimestamp()
       });
-      setReplyDraft('');
-      setReplyingPostId('');
-      setReplyCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
-      setRepliesByPost(current => ({ ...current, [post.id]: [...(current[post.id] || []), { id: `local-${Date.now()}`, authorId: user.uid, authorName: authorNameFor(user), authorPhotoURL: user.photoURL || null, body, createdAt: null }] }));
+      setRepliesByPost(current => ({
+        ...current,
+        [post.id]: (current[post.id] || []).map(reply =>
+          reply.id === temporaryId ? { ...optimisticReply, id: savedReply.id, pending: false } : reply
+        )
+      }));
       setNotice('Balasan berhasil dikirim.');
     } catch (error) {
+      setRepliesByPost(current => ({
+        ...current,
+        [post.id]: (current[post.id] || []).filter(reply => reply.id !== temporaryId)
+      }));
+      setReplyCounts(current => ({ ...current, [post.id]: Math.max(0, (current[post.id] || 1) - 1) }));
+      setReplyDraft(body);
+      setReplyingPostId(post.id);
       setNotice(error?.code === 'permission-denied' ? 'Balasan ditolak oleh aturan keamanan.' : 'Balasan belum terkirim. Coba lagi.');
     }
   }

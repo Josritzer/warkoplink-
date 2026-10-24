@@ -407,3 +407,14 @@
 .post-avatar{border-radius:50%}
 .composer-avatar{border-radius:50%}
 @media(max-width:620px){.account-card{flex-wrap:wrap}.account-details{min-width:calc(100% - 90px)}.profile-photo-actions .button{flex:1}}
+
+/* Inline comments: visible in the feed, with a light conversation-thread indent. */
+#community-feed .inline-replies{display:grid;gap:10px;margin-top:10px;padding:11px 0 0 12px;border-top:1px solid #edf0f5}
+#community-feed .inline-reply{display:flex;align-items:flex-start;gap:9px;min-width:0;padding-left:10px;border-left:2px solid #dbe4ff}
+#community-feed .inline-reply-avatar{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:#e9edff;color:#3858c9;font-size:11px;font-weight:800}
+#community-feed .inline-reply-avatar img{width:100%;height:100%;object-fit:cover}
+#community-feed .inline-reply-body{min-width:0;flex:1;background:#f5f7fb;border-radius:12px;padding:8px 11px}
+#community-feed .inline-reply-body b{font-size:11px;color:#202b45}
+#community-feed .inline-reply-body p{margin:3px 0 0;font-size:12px;line-height:1.55;color:#35415d;white-space:pre-wrap;overflow-wrap:anywhere}
+#community-feed .inline-reply-body small{display:block;margin-top:5px;color:#8790a4;font-size:10px}
+#community-feed .show-more-replies{justify-self:start;margin-left:47px;padding:3px 0;border:0;background:transparent;color:#0866ff;font-size:12px;font-weight:700}

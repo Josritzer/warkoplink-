@@ -210,7 +210,7 @@ describe('registrasi', () => {
     expect(fbAuth.createUserWithEmailAndPassword).toHaveBeenCalledWith({ name: 'auth' }, 'sari@example.test', 'rahasia1');
     expect(fbAuth.updateProfile).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), { displayName: 'Sari' });
     expect(fs.setDoc).toHaveBeenCalledWith({ path: 'profiles/u1' }, {
-      displayName: 'Sari', email: 'sari@example.test', createdAt: '__SERVER_TS__', updatedAt: '__SERVER_TS__',
+      displayName: 'Sari', email: 'sari@example.test', photoURL: '', createdAt: '__SERVER_TS__', updatedAt: '__SERVER_TS__',
     });
     expect(screen.queryByRole('dialog')).toBeNull();
   });
@@ -298,7 +298,7 @@ describe('membuat postingan', () => {
     await waitFor(() => expect(fs.writeBatch).toHaveBeenCalledTimes(1));
     const batch = fs.writeBatch.mock.results[0].value;
     expect(batch.set).toHaveBeenNthCalledWith(1, { path: 'posts/new-post' }, {
-      authorId: 'u1', authorName: 'Sari', body: 'Halo komunitas', topic: 'Info Layanan', createdAt: '__SERVER_TS__',
+      authorId: 'u1', authorName: 'Sari', authorPhotoURL: null, body: 'Halo komunitas', topic: 'Info Layanan', createdAt: '__SERVER_TS__',
     });
     expect(batch.set).toHaveBeenNthCalledWith(2, { path: 'postRateLimits/u1' }, {
       uid: 'u1', lastSentAt: '__SERVER_TS__',

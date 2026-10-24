@@ -35,8 +35,8 @@ for (const post of posts.docs) {
   for (const reactionDoc of reactionsSnapshot.docs) {
     const emoji = reactionDoc.data().emoji;
     // Legacy likes had no emoji field; preserve them as 👍.
-    const field = emojiField.get(emoji) || (emoji == null ? 'like' : null);
-    if (field) reactions[field] += 1;
+    const field = emojiField.get(emoji) || 'like';
+    reactions[field] += 1;
   }
 
   const aggregate = {

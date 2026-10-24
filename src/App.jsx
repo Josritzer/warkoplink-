@@ -566,7 +566,20 @@ export default function App() {
   async function handleReactPost(post, emoji) {
     if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk bereaksi pada status.'); return; }
     if (!db || !post?.id) return;
-    const reactionRef = doc(db, 'posts', post.id, 'likes', user.uid);
+
+    // Optimistic UI: tampilkan reaksi segera, lalu pulihkan nilai sebelumnya jika Firestore menolak.
+    const postId = post.id;
+    const previous = {
+      count: likeCounts[postId] || 0,
+      liked: Boolean(likedPosts[postId]),
+      emoji: postReactions[postId] || ''
+    };
+    const removing = previous.liked && previous.emoji === emoji;
+    setLikeCounts(current => ({ ...current, [postId]: Math.max(0, previous.count + (removing ? -1 : previous.liked ? 0 : 1)) }));
+    setLikedPosts(current => ({ ...current, [postId]: !removing }));
+    setPostReactions(current => ({ ...current, [postId]: removing ? '' : emoji }));
+
+    const reactionRef = doc(db, 'posts', postId, 'likes', user.uid);
     try {
       const existing = await getDoc(reactionRef);
       const existingData = existing.exists() ? existing.data() : null;
@@ -579,6 +592,9 @@ export default function App() {
         await setDoc(reactionRef, { uid: user.uid, emoji, createdAt: serverTimestamp() });
       }
     } catch (error) {
+      setLikeCounts(current => ({ ...current, [postId]: previous.count }));
+      setLikedPosts(current => ({ ...current, [postId]: previous.liked }));
+      setPostReactions(current => ({ ...current, [postId]: previous.emoji }));
       setNotice(error?.code === 'permission-denied' ? 'Reaksi ditolak oleh aturan keamanan.' : 'Reaksi belum tersimpan. Coba lagi.');
     }
   }

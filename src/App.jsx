@@ -16,15 +16,7 @@ import {
 } from './lib.js';
 
 const POSTS_LIMIT = 100;
-const CHAT_EMOJIS = [
-  { emoji: '😀', label: 'Senang' }, { emoji: '😂', label: 'Tertawa' },
-  { emoji: '😮', label: 'Kaget' }, { emoji: '😠', label: 'Kesal' },
-  { emoji: '❤️', label: 'Suka' }, { emoji: '👍', label: 'Setuju' },
-  { emoji: '👎', label: 'Tidak suka' }, { emoji: '😢', label: 'Sedih' },
-  { emoji: '☕', label: 'Ngopi' }, { emoji: '🍜', label: 'Makan' },
-  { emoji: '🍺', label: 'Nongkrong' }, { emoji: '🚬', label: 'Merokok' },
-  { emoji: '💬', label: 'Mengajak ngobrol' }
-];
+
 
 function relativePostTime(value) {
   const date = value?.toDate ? value.toDate() : value instanceof Date ? value : null;
@@ -220,7 +212,6 @@ export default function App() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [replyingPostId, setReplyingPostId] = useState('');
   const [replyDraft, setReplyDraft] = useState('');
-  const [emojiTarget, setEmojiTarget] = useState('');
   const [replyCounts, setReplyCounts] = useState({});
   const [repliesByPost, setRepliesByPost] = useState({});
   const [expandedReplies, setExpandedReplies] = useState({});
@@ -673,7 +664,7 @@ export default function App() {
         <form className={composerOpen ? 'composer composer-expanded' : 'composer composer-collapsed'} onSubmit={handlePost}>
           {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi obrolan.'); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><span>{user ? 'Ayo ngobrol…' : 'Masuk untuk mulai ngobrol…'}</span></button> : <>
             <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || 'Anggota komunitas'}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
-            <textarea aria-label="Isi obrolan" autoFocus value={draft} onFocus={() => setEmojiTarget('composer')} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ayo ngobrol…" rows={3}/>
+            <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ayo ngobrol…" rows={3}/>
             <div className="composer-bottom"><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(''); }}>Batal</button><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0 || !draft.trim()}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Kirim'} <Send size={16}/></button></div>
           </>}
         </form>
@@ -705,7 +696,7 @@ export default function App() {
                 </div>)}
                 {(repliesByPost[post.id].length >= 4 || (replyCounts[post.id] || 0) > 3) && !expandedReplies[post.id] && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar</button>}
               </div>}
-              {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><input aria-label="Tulis balasan" value={replyDraft} onFocus={() => setEmojiTarget(post.id)} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/><button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
+              {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><input aria-label="Tulis balasan" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/><button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
               {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
             </div></article>)}
           {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}

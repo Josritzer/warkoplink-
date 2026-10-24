@@ -4,9 +4,10 @@ import {
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, where, writeBatch
+  addDoc, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, updateDoc, where, writeBatch
 } from 'firebase/firestore';
-import { auth, db, firebaseConfigured } from './firebase.js';
+import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
+import { auth, db, storage, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
@@ -241,6 +242,8 @@ export default function App() {
   const [displayName, setDisplayName] = useState('');
   const [authError, setAuthError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef(null);
   const [posting, setPosting] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState(0);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
@@ -272,6 +275,7 @@ export default function App() {
       await setDoc(ref, {
         displayName: authorNameFor(currentUser),
         email: currentUser.email,
+        photoURL: currentUser.photoURL || '',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
@@ -427,6 +431,7 @@ export default function App() {
       batch.set(postRef, {
         authorId: user.uid,
         authorName: authorNameFor(user),
+        authorPhotoURL: user.photoURL || null,
         body: bodyCheck.value,
         topic: topic === 'Semua' ? 'Obrolan Umum' : topic,
         createdAt: serverTimestamp()
@@ -483,7 +488,7 @@ export default function App() {
     if (!body || body.length > 1000) { setNotice('Balasan harus berisi 1–1000 karakter.'); return; }
     try {
       await addDoc(collection(db, 'posts', post.id, 'replies'), {
-        authorId: user.uid, authorName: authorNameFor(user), body, createdAt: serverTimestamp()
+        authorId: user.uid, authorName: authorNameFor(user), authorPhotoURL: user.photoURL || null, body, createdAt: serverTimestamp()
       });
       setReplyDraft('');
       setReplyingPostId('');
@@ -528,6 +533,61 @@ export default function App() {
     } finally { setReporting(false); }
   }
 
+  async function handleProfilePhotoChange(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !user || !db || !storage) {
+      if (file) setNotice('Unggah foto belum tersedia. Pastikan Firebase Storage aktif.');
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setNotice('Pilih foto JPG, PNG, atau WebP.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setNotice('Ukuran foto maksimal 2 MB.');
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      const hasProfile = await ensureProfile(user);
+      if (!hasProfile) throw new Error('profile-not-ready');
+      const photoRef = storageRef(storage, `profilePhotos/${user.uid}/avatar`);
+      await uploadBytes(photoRef, file, { contentType: file.type });
+      const photoURL = await getDownloadURL(photoRef);
+      await updateProfile(user, { photoURL });
+      await updateDoc(doc(db, 'profiles', user.uid), { photoURL, updatedAt: serverTimestamp() });
+      setUser({ ...auth.currentUser });
+      setNotice('Foto profil berhasil diperbarui.');
+    } catch (error) {
+      console.warn('Unggah foto profil gagal:', error?.code || 'unknown');
+      setNotice(error?.code === 'storage/unauthorized'
+        ? 'Unggah ditolak aturan keamanan Firebase Storage.'
+        : 'Foto profil belum berhasil disimpan. Pastikan Firebase Storage sudah diaktifkan.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
+  async function handleRemoveProfilePhoto() {
+    if (!user || !db || !storage || !user.photoURL) return;
+    setPhotoUploading(true);
+    try {
+      await deleteObject(storageRef(storage, `profilePhotos/${user.uid}/avatar`)).catch((error) => {
+        if (error?.code !== 'storage/object-not-found') throw error;
+      });
+      await updateProfile(user, { photoURL: null });
+      await updateDoc(doc(db, 'profiles', user.uid), { photoURL: '', updatedAt: serverTimestamp() });
+      setUser({ ...auth.currentUser });
+      setNotice('Foto profil dihapus.');
+    } catch (error) {
+      console.warn('Hapus foto profil gagal:', error?.code || 'unknown');
+      setNotice('Foto profil belum dapat dihapus. Coba lagi.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
   async function handleSignOut() {
     if (!auth) return;
     try {
@@ -560,7 +620,7 @@ export default function App() {
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => setSection('Beranda')}>Kembali</button></section> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
-        {user ? <><article className="account-card"><div className="account-avatar">{String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article>{isAdmin && <button className="button button-dark admin-entry-button" onClick={() => setSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
+        {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article>{isAdmin && <button className="button button-dark admin-entry-button" onClick={() => setSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
           <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
@@ -572,8 +632,8 @@ export default function App() {
         <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}…`} aria-label={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}`}/></label></div>
         <div className="topic-scroll-wrap"><div className="topic-list" aria-label="Kategori obrolan">{FILTER_TOPICS.map(t => <button key={t} onClick={() => setTopic(t)} aria-pressed={topic === t} className={topic === t ? 'topic selected' : 'topic'}>{t}</button>)}</div><span className="topic-scroll-hint" aria-hidden="true">›</span></div>
         <form className={composerOpen ? 'composer composer-expanded' : 'composer composer-collapsed'} onSubmit={handlePost}>
-          {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi obrolan.'); return; } setComposerOpen(true); }}><span className="composer-avatar">{String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><span>{user ? 'Ayo ngobrol…' : 'Masuk untuk mulai ngobrol…'}</span></button> : <>
-            <div className="composer-context"><span className="composer-avatar">{String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || 'Anggota komunitas'}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
+          {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi obrolan.'); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><span>{user ? 'Ayo ngobrol…' : 'Masuk untuk mulai ngobrol…'}</span></button> : <>
+            <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || 'Anggota komunitas'}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
             <textarea aria-label="Isi obrolan" autoFocus value={draft} onFocus={() => setEmojiTarget('composer')} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ayo ngobrol…" rows={3}/>
             {emojiTarget === 'composer' && <div className="chat-emoji-picker" role="group" aria-label="Pilih emoji"><span className="chat-emoji-heading">Reaksi & suasana warkop</span><div className="chat-emoji-grid">{CHAT_EMOJIS.map(item => <button key={item.emoji} type="button" className="chat-emoji-option" title={item.label} aria-label={item.label} onMouseDown={event => event.preventDefault()} onClick={() => { setDraft(value => value + item.emoji); setEmojiTarget(''); }}>{item.emoji}</button>)}</div></div>}
             <div className="composer-bottom"><button className="chat-emoji-trigger" type="button" aria-label="Buka emoji" aria-expanded={emojiTarget === 'composer'} onClick={() => setEmojiTarget(current => current === 'composer' ? '' : 'composer')}>😀</button><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(''); }}>Batal</button><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0 || !draft.trim()}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Kirim'} <Send size={16}/></button></div>
@@ -583,7 +643,7 @@ export default function App() {
           {postsStatus === 'loading' && <div className="empty-state" role="status"><h3>Memuat obrolan…</h3><p>Mohon tunggu sebentar.</p></div>}
           {postsStatus === 'error' && <div className="empty-state" role="alert"><h3>Obrolan belum dapat dimuat</h3><p>Periksa koneksi internet Anda lalu coba lagi.</p><button className="button button-dark" onClick={() => setPostsRetry(n => n + 1)}>Coba lagi</button></div>}
           {postsStatus === 'ready' && visiblePosts.map(post => <article className="post-card" key={post.id}>
-            <div className="post-avatar">{String(post.authorName || 'A').slice(0,1).toUpperCase()}</div>
+            <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : String(post.authorName || 'A').slice(0,1).toUpperCase()}</div>
             <div className="post-content">
               <div className="post-head"><div className="post-meta"><b>{post.authorName || 'Anggota SL'}</b><span>{post.topic || 'Obrolan Umum'}</span><small title={post.createdAt?.toDate?.()?.toLocaleString('id-ID') || ''}>{relativePostTime(post.createdAt)}</small></div>
                 <div className="post-menu-wrap"><button className="post-menu-trigger" type="button" aria-label="Opsi postingan" aria-expanded={openPostMenuId === post.id} onClick={() => setOpenPostMenuId(current => current === post.id ? '' : post.id)}><MoreHorizontal size={20}/></button>

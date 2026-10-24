@@ -96,8 +96,18 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'totalReactions'])
         && oldReactions is map && newReactions is map
         && oldReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+        && oldReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && newReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+        && newReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+        && newReactions.like is number && newReactions.like >= 0
+        && newReactions.love is number && newReactions.love >= 0
+        && newReactions.haha is number && newReactions.haha >= 0
+        && newReactions.wow is number && newReactions.wow >= 0
+        && newReactions.sad is number && newReactions.sad >= 0
+        && newReactions.angry is number && newReactions.angry >= 0
         && resource.data.totalReactions is number && request.resource.data.totalReactions is number
+        && request.resource.data.totalReactions >= 0
+        && request.resource.data.totalReactions == newReactions.like + newReactions.love + newReactions.haha + newReactions.wow + newReactions.sad + newReactions.angry
         && (
           (beforeExists && !afterExists && beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
           || (!beforeExists && afterExists && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
@@ -128,6 +138,7 @@ service cloud.firestore {
         && data.reactions.sad is number && data.reactions.sad >= 0
         && data.reactions.angry is number && data.reactions.angry >= 0
         && data.totalReactions is number && data.totalReactions >= 0
+        && data.totalReactions == data.reactions.like + data.reactions.love + data.reactions.haha + data.reactions.wow + data.reactions.sad + data.reactions.angry
         && data.authorId is string
         && data.authorId == request.auth.uid
         && data.authorName is string

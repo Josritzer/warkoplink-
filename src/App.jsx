@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { shouldRemoveReaction, summarizeReactions } from './reactions.js';
+import { EMPTY_REACTIONS, reactionFieldForEmoji, shouldRemoveReaction, summarizeReactions } from './reactions.js';
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where
+  addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, increment, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where
 } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { auth, db, storage, firebaseConfigured } from './firebase.js';
@@ -227,6 +227,7 @@ export default function App() {
   const [likedPosts, setLikedPosts] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
   const [postReactions, setPostReactions] = useState({});
+  const [reactionSummaries, setReactionSummaries] = useState({});
   const [openPostMenuId, setOpenPostMenuId] = useState('');
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
@@ -393,9 +394,10 @@ export default function App() {
       (snapshot) => {
         if (!active) return;
         const summary = summarizeReactions(snapshot.docs, user?.uid || '');
-        setLikeCounts((current) => ({ ...current, [post.id]: summary.count }));
+        setLikeCounts((current) => ({ ...current, [post.id]: summary.totalReactions }));
         setLikedPosts((current) => ({ ...current, [post.id]: summary.liked }));
         setPostReactions((current) => ({ ...current, [post.id]: summary.emoji }));
+        setReactionSummaries((current) => ({ ...current, [post.id]: { reactions: summary.reactions, totalReactions: summary.totalReactions } }));
       },
       () => {
         if (active) setNotice('Reaksi belum dapat dimuat. Periksa koneksi lalu coba lagi.');
@@ -515,7 +517,9 @@ export default function App() {
         authorPhotoURL: user.photoURL || null,
         body: bodyCheck.value,
         topic: topic === 'Semua' ? 'Obrolan Umum' : topic,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        reactions: { ...EMPTY_REACTIONS },
+        totalReactions: 0
       });
       setDraft('');
       setNotice('Obrolan berhasil dipublikasikan.');
@@ -545,37 +549,97 @@ export default function App() {
 
   async function handleReactPost(post, emoji) {
     if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk bereaksi pada status.'); return; }
-    if (!db || !post?.id) return;
+    if (!db || !post?.id || !reactionFieldForEmoji(emoji)) return;
 
-    // Optimistic UI: tampilkan reaksi segera, lalu pulihkan nilai sebelumnya jika Firestore menolak.
     const postId = post.id;
+    const field = reactionFieldForEmoji(emoji);
     const previous = {
-      count: likeCounts[postId] || 0,
+      count: likeCounts[postId] ?? post.totalReactions ?? 0,
       liked: Boolean(likedPosts[postId]),
-      emoji: postReactions[postId] || ''
+      emoji: postReactions[postId] || '',
+      summary: reactionSummaries[postId] || {
+        reactions: { ...(post.reactions || EMPTY_REACTIONS) },
+        totalReactions: likeCounts[postId] ?? post.totalReactions ?? 0
+      }
     };
+    const nextReactions = { ...EMPTY_REACTIONS, ...previous.summary.reactions };
     const removing = previous.liked && previous.emoji === emoji;
-    setLikeCounts(current => ({ ...current, [postId]: Math.max(0, previous.count + (removing ? -1 : previous.liked ? 0 : 1)) }));
+    const previousField = previous.liked ? (reactionFieldForEmoji(previous.emoji) || 'like') : '';
+
+    if (removing) {
+      nextReactions[field] = Math.max(0, (nextReactions[field] || 0) - 1);
+    } else {
+      if (previous.liked && previousField) {
+        nextReactions[previousField] = Math.max(0, (nextReactions[previousField] || 0) - 1);
+      }
+      nextReactions[field] = (nextReactions[field] || 0) + 1;
+    }
+    const nextTotal = Math.max(0, previous.summary.totalReactions + (removing ? -1 : previous.liked ? 0 : 1));
+    const optimistic = { reactions: nextReactions, totalReactions: nextTotal };
+
+    // Optimistic update: ringkasan berubah sebelum transaksi Firestore selesai.
+    setReactionSummaries(current => ({ ...current, [postId]: optimistic }));
+    setLikeCounts(current => ({ ...current, [postId]: nextTotal }));
     setLikedPosts(current => ({ ...current, [postId]: !removing }));
     setPostReactions(current => ({ ...current, [postId]: removing ? '' : emoji }));
 
+    const postRef = doc(db, 'posts', postId);
     const reactionRef = doc(db, 'posts', postId, 'likes', user.uid);
     try {
-      const existing = await getDoc(reactionRef);
-      const existingData = existing.exists() ? existing.data() : null;
-      if (shouldRemoveReaction(existingData, emoji)) {
-        await deleteDoc(reactionRef);
-      } else if (existing.exists()) {
-        // Pertahankan suka lama tanpa emoji; klik pertama menetapkan emoji.
-        await updateDoc(reactionRef, { emoji });
-      } else {
-        await setDoc(reactionRef, { uid: user.uid, emoji, createdAt: serverTimestamp() });
-      }
+      await runTransaction(db, async (transaction) => {
+        const [reactionSnapshot, postSnapshot] = await Promise.all([
+          transaction.get(reactionRef),
+          transaction.get(postRef)
+        ]);
+        if (!postSnapshot.exists()) throw new Error('post-not-found');
+
+        const existingData = reactionSnapshot.exists() ? reactionSnapshot.data() : null;
+        const postData = postSnapshot.data();
+        const oldEmoji = typeof existingData?.emoji === 'string' ? existingData.emoji : '';
+        const removeExisting = shouldRemoveReaction(existingData, emoji);
+        const hasAggregate = postData.reactions
+          && typeof postData.totalReactions === 'number'
+          && Object.keys(EMPTY_REACTIONS).every(key => typeof postData.reactions[key] === 'number');
+
+        if (removeExisting) {
+          transaction.delete(reactionRef);
+          if (hasAggregate) {
+            transaction.update(postRef, {
+              [`reactions.${field}`]: increment(-1),
+              totalReactions: increment(-1)
+            });
+          }
+          return;
+        }
+
+        if (reactionSnapshot.exists()) {
+          transaction.update(reactionRef, { emoji });
+        } else {
+          transaction.set(reactionRef, { uid: user.uid, emoji, createdAt: serverTimestamp() });
+        }
+
+        if (hasAggregate) {
+          const updates = {
+            [`reactions.${field}`]: increment(1)
+          };
+          if (reactionSnapshot.exists()) {
+            // A legacy like has no emoji field, but is represented in the 👍 bucket.
+            const oldField = reactionFieldForEmoji(oldEmoji) || 'like';
+            if (oldField !== field) updates[`reactions.${oldField}`] = increment(-1);
+          } else {
+            updates.totalReactions = increment(1);
+          }
+          transaction.update(postRef, updates);
+        }
+      });
     } catch (error) {
+      setReactionSummaries(current => ({ ...current, [postId]: previous.summary }));
       setLikeCounts(current => ({ ...current, [postId]: previous.count }));
       setLikedPosts(current => ({ ...current, [postId]: previous.liked }));
       setPostReactions(current => ({ ...current, [postId]: previous.emoji }));
-      setNotice(error?.code === 'permission-denied' ? 'Reaksi ditolak oleh aturan keamanan.' : 'Reaksi belum tersimpan. Coba lagi.');
+      setNotice(error?.code === 'permission-denied'
+        ? 'Reaksi ditolak oleh aturan keamanan.'
+        : 'Reaksi belum tersimpan. Coba lagi.');
     }
   }
 
@@ -807,7 +871,7 @@ export default function App() {
         cardProps={{
           user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
           reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost,
-          postReactions, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
+          postReactions, reactionSummaries, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
           handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
           handleReply, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
           deletingPostId, handleDeletePost

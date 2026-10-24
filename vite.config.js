@@ -7,5 +7,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.{js,jsx}'],
+    // CI runner memory is limited; serialize test files and fail hung tests promptly.
+    fileParallelism: false,
+    maxWorkers: 1,
+    testTimeout: 15000,
+    hookTimeout: 15000,
   },
 });

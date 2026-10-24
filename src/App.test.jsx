@@ -23,10 +23,20 @@ vi.mock('firebase/firestore', () => ({
   getCountFromServer: vi.fn(() => Promise.resolve({ data: () => ({ count: 0 }) })),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
+  increment: vi.fn((amount) => ({ increment: amount })),
   limit: vi.fn((n) => ({ limit: n })),
-  onSnapshot: vi.fn((q, next, error) => { state.snapshotNext = next; state.snapshotError = error; return vi.fn(); }),
+  onSnapshot: vi.fn((q, next, error) => {
+    // Simpan callback feed/direktori saja; subscription likes/replies tidak boleh menimpa helper tes.
+    const path = q?.args?.[0]?.path ?? q?.path;
+    if (path === 'posts' || path === 'warungs') {
+      state.snapshotNext = next;
+      state.snapshotError = error;
+    }
+    return vi.fn();
+  }),
   orderBy: vi.fn(),
   query: vi.fn((...args) => ({ args })),
+  runTransaction: vi.fn(async (db, callback) => callback({ get: vi.fn(), set: vi.fn(), update: vi.fn(), delete: vi.fn() })),
   startAfter: vi.fn((cursor) => ({ startAfter: cursor })),
   where: vi.fn((...args) => ({ where: args })),
   updateDoc: vi.fn().mockResolvedValue(undefined),
@@ -290,7 +300,7 @@ describe('balasan komentar', () => {
     emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
 
     await user.click(await screen.findByRole('button', { name: 'Balas' }));
-    await user.type(await screen.findByLabelText('Tulis balasan'), 'Setuju, terima kasih');
+    await user.type(await screen.findByLabelText('Tulis komentar'), 'Setuju, terima kasih');
     await user.click(screen.getByRole('button', { name: 'Kirim komentar' }));
 
     expect(await screen.findByText('Setuju, terima kasih')).toBeTruthy();
@@ -313,12 +323,12 @@ describe('balasan komentar', () => {
     emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
 
     await user.click(await screen.findByRole('button', { name: 'Balas' }));
-    await user.type(await screen.findByLabelText('Tulis balasan'), 'Balasan perlu dipulihkan');
+    await user.type(await screen.findByLabelText('Tulis komentar'), 'Balasan perlu dipulihkan');
     await user.click(screen.getByRole('button', { name: 'Kirim komentar' }));
 
     expect(await screen.findByText('Balasan ditolak oleh aturan keamanan.')).toBeTruthy();
     expect(screen.queryByText('Balasan perlu dipulihkan')).toBeNull();
-    expect(screen.getByLabelText('Tulis balasan').value).toBe('Balasan perlu dipulihkan');
+    expect(screen.getByLabelText('Tulis komentar').value).toBe('Balasan perlu dipulihkan');
   });
 });
 
@@ -346,6 +356,7 @@ describe('membuat postingan', () => {
     await waitFor(() => expect(fs.setDoc).toHaveBeenCalledTimes(1));
     expect(fs.setDoc).toHaveBeenCalledWith({ path: 'posts/new-post' }, {
       authorId: 'u1', authorName: 'Sari', authorPhotoURL: null, body: 'Halo komunitas', topic: 'Info Layanan', createdAt: '__SERVER_TS__',
+      reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0,
     });
     expect(await screen.findByText(/Obrolan berhasil dipublikasikan/)).toBeTruthy();
     expect(screen.getByLabelText('Isi obrolan').value).toBe('');

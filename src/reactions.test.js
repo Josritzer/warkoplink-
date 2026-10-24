@@ -8,17 +8,17 @@ describe('summarizeReactions', () => {
     expect(summarizeReactions([
       doc('u1', { uid: 'u1', emoji: '😂' }),
       doc('u2', { uid: 'u2', emoji: '❤️' })
-    ], 'u1')).toEqual({ count: 2, liked: true, emoji: '😂' });
+    ], 'u1')).toEqual({ count: 2, totalReactions: 2, reactions: { like: 0, love: 1, haha: 1, wow: 0, sad: 0, angry: 0 }, liked: true, emoji: '😂' });
   });
 
   it('counts a legacy like without selecting an emoji', () => {
     expect(summarizeReactions([doc('u1', { uid: 'u1', createdAt: 1 })], 'u1'))
-      .toEqual({ count: 1, liked: true, emoji: '' });
+      .toEqual({ count: 1, totalReactions: 1, reactions: { like: 1, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, liked: true, emoji: '' });
   });
 
   it('does not select another user reaction', () => {
     expect(summarizeReactions([doc('u1', { emoji: '👍' })], 'u2'))
-      .toEqual({ count: 1, liked: false, emoji: '' });
+      .toEqual({ count: 1, totalReactions: 1, reactions: { like: 1, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, liked: false, emoji: '' });
   });
 });
 

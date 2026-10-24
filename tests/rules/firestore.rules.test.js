@@ -17,6 +17,8 @@ const validPost = (overrides = {}) => ({
   body: 'Halo komunitas',
   topic: 'Obrolan Umum',
   createdAt: serverTimestamp(),
+  reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
+  totalReactions: 0,
   ...overrides,
 });
 
@@ -51,7 +53,7 @@ beforeEach(async () => {
       displayName: 'Bob', email: 'bob@example.test', createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
     });
     await setDoc(doc(db, 'posts/post-alice'), {
-      authorId: 'alice', authorName: 'Alice', body: 'Postingan Alice', topic: 'Tanya Jawab', createdAt: Timestamp.now(),
+      authorId: 'alice', authorName: 'Alice', body: 'Postingan Alice', topic: 'Tanya Jawab', createdAt: Timestamp.now(), reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0,
     });
   });
 });
@@ -83,6 +85,24 @@ describe('postReports', () => {
 });
 
 describe('posts', () => {
+  it('menerima penghitung reaksi hanya bersama dokumen reaksi pengguna', async () => {
+    const db = asUser('alice');
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'posts/post-alice/likes/alice'), {
+      uid: 'alice', emoji: '👍', createdAt: serverTimestamp(),
+    });
+    batch.update(doc(db, 'posts/post-alice'), {
+      'reactions.like': 1, totalReactions: 1,
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('menolak manipulasi penghitung reaksi tanpa reaksi yang cocok', async () => {
+    await assertFails(updateDoc(doc(asUser('alice'), 'posts/post-alice'), {
+      'reactions.like': 99, totalReactions: 99,
+    }));
+  });
+
   it('pengunjung anonim boleh membaca postingan', async () => {
     await assertSucceeds(getDocs(collection(asAnon(), 'posts')));
   });

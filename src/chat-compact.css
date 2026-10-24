@@ -1,0 +1,46 @@
+/* Twitter Compact feed redesign — visual-only overrides, no data or business logic changes. */
+:root { --feed-separator: #e7e9ec; }
+#community-feed { padding-top: 12px; }
+#community-feed .section-heading { gap: 10px; margin-bottom: 12px; }
+#community-feed .section-heading h2 { font-size: 21px; letter-spacing: -.35px; }
+#community-feed .section-heading p { font-size: 13px; line-height: 1.4; }
+#community-feed .feed-tools { margin-bottom: 8px; }
+#community-feed .topic-scroll-wrap { margin-bottom: 8px; }
+#community-feed .composer { margin: 8px 0 0; border-radius: 0; box-shadow: none; }
+#community-feed .composer-collapsed { padding: 10px 0; border: 0; border-bottom: 1px solid var(--feed-separator); background: transparent; }
+#community-feed .composer-trigger { min-height: 44px; border-radius: 24px; }
+#community-feed .post-list { display: block; gap: 0; }
+#community-feed .post-card { display: grid; grid-template-columns: 36px minmax(0,1fr); column-gap: 10px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--feed-separator); border-radius: 0; background: transparent; box-shadow: none; }
+#community-feed .post-avatar { width: 36px; height: 36px; min-width: 36px; font-size: 13px; }
+#community-feed .post-content { min-width: 0; }
+#community-feed .post-head { gap: 6px; align-items: flex-start; margin-bottom: 4px; }
+#community-feed .post-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 6px; min-width: 0; }
+#community-feed .post-meta b { color: #16181c; font-size: 15px; line-height: 1.35; font-weight: 750; }
+#community-feed .post-meta span, #community-feed .post-meta small { font-size: 13px; line-height: 1.35; color: #68707a; }
+#community-feed .post-content > p { margin: 3px 0 8px; color: #202124; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; }
+#community-feed .post-menu-trigger { width: 28px; height: 28px; }
+#community-feed .post-reaction-summary { margin: 6px 0 3px; padding: 3px 0; min-height: 24px; border-radius: 0; background: transparent; }
+#community-feed .engagement-summary { min-height: 20px; }
+#community-feed .engagement-comment-count { font-size: 13px; }
+#community-feed .post-actions { margin-top: 5px; padding-top: 4px; border-top: 1px solid var(--feed-separator); }
+#community-feed .post-action { min-height: 34px; font-size: 13px; }
+#community-feed .comment-section { max-height: 600px; margin-top: 7px; padding: 8px 0 0 0; border-top: 0; overflow: visible; }
+#community-feed .inline-reply { position: relative; gap: 8px; padding-left: 0; border-left: 0; }
+#community-feed .inline-reply-avatar { flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; font-size: 11px; }
+#community-feed .inline-reply-body { flex: 1; min-width: 0; padding: 0; border-radius: 0; background: transparent; }
+#community-feed .inline-reply-body b { display: inline; color: #16181c; font-size: 14px; line-height: 1.4; font-weight: 750; }
+#community-feed .inline-reply-body p { margin: 2px 0 1px; color: #292b2f; font-size: 14px; line-height: 1.4; }
+#community-feed .inline-reply-body small { margin-top: 2px; color: #727780; font-size: 12px; }
+#community-feed .comment-section:has(.inline-reply) { border-left: 2px solid #7950c7; margin-left: 40px; padding: 0 0 0 10px; }
+#community-feed .comment-section:has(.inline-reply) .inline-reply { margin-bottom: 10px; }
+#community-feed .comment-empty { font-size: 13px; padding: 6px 0; }
+#community-feed .reply-form { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+#community-feed .reply-form input { box-sizing: border-box; flex: 1; min-width: 0; height: 44px; padding: 0 16px; border: 1px solid #e1e4e8; border-radius: 999px; outline: none; background: #f7f8fa; font-size: 14px; }
+#community-feed .reply-form input:focus { border-color: #7950c7; background: #fff; box-shadow: 0 0 0 2px #7950c71c; }
+#community-feed .reply-form button { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
+@media (max-width: 620px) {
+  #community-feed { padding-left: 14px; padding-right: 14px; }
+  #community-feed .section-heading { align-items: flex-start; }
+  #community-feed .section-heading h2 { font-size: 19px; }
+  #community-feed .status-pill { max-width: 45%; font-size: 10px; }
+}

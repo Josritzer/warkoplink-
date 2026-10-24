@@ -1,6 +1,7 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const requiredKeys = [
   'VITE_FIREBASE_API_KEY',
@@ -14,6 +15,7 @@ export const firebaseConfigured = missingKeys.length === 0;
 
 let auth = null;
 let db = null;
+let storage = null;
 
 if (firebaseConfigured) {
   const config = {
@@ -31,6 +33,7 @@ if (firebaseConfigured) {
   const app = getApps().length ? getApp() : initializeApp(config);
   auth = getAuth(app);
   db = getFirestore(app);
+  storage = getStorage(app);
 }
 
-export { auth, db };
+export { auth, db, storage };

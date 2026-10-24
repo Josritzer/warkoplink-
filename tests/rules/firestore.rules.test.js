@@ -21,12 +21,7 @@ const validPost = (overrides = {}) => ({
 });
 
 async function createPost(db, post = validPost()) {
-  const postRef = doc(collection(db, 'posts'));
-  const rateLimitRef = doc(db, 'postRateLimits', post.authorId);
-  const batch = writeBatch(db);
-  batch.set(postRef, post);
-  batch.set(rateLimitRef, { uid: post.authorId, lastSentAt: serverTimestamp() });
-  return batch.commit();
+  return addDoc(collection(db, 'posts'), post);
 }
 
 beforeAll(async () => {
@@ -150,15 +145,9 @@ describe('posts', () => {
     await assertFails(createPost(asUser('alice'), validPost({ isAdmin: true })));
   });
 
-  it('postingan kedua dalam jeda 10 detik ditolak oleh aturan server', async () => {
+  it('pengguna boleh mengirim beberapa postingan berturut-turut tanpa jeda paksa', async () => {
     await assertSucceeds(createPost(asUser('alice'), validPost()));
-    await assertFails(createPost(asUser('alice'), validPost({ body: 'Spam kedua' })));
-  });
-
-  it('penanda cooldown tidak dapat ditulis untuk pengguna lain', async () => {
-    await assertFails(setDoc(doc(asUser('alice'), 'postRateLimits/bob'), {
-      uid: 'bob', lastSentAt: serverTimestamp(),
-    }));
+    await assertSucceeds(createPost(asUser('alice'), validPost({ body: 'Obrolan berikutnya langsung' })));
   });
 
   it('pemilik boleh mengubah isi dan topik postingannya', async () => {

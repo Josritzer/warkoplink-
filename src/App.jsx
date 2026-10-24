@@ -5,7 +5,7 @@ import {
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where, writeBatch
+  addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where
 } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { auth, db, storage, firebaseConfigured } from './firebase.js';
@@ -253,26 +253,12 @@ export default function App() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
   const [posting, setPosting] = useState(false);
-  const [cooldownUntil, setCooldownUntil] = useState(0);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [reportingPostId, setReportingPostId] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState('');
   const [deletingPostId, setDeletingPostId] = useState('');
   const [reportReason, setReportReason] = useState('Spam atau promosi berulang');
   const [reporting, setReporting] = useState(false);
   const registering = useRef(false);
-
-  useEffect(() => {
-    if (!cooldownUntil) { setCooldownRemaining(0); return undefined; }
-    const updateCooldown = () => {
-      const remaining = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
-      setCooldownRemaining(remaining);
-      if (remaining === 0) setCooldownUntil(0);
-    };
-    updateCooldown();
-    const timer = setInterval(updateCooldown, 250);
-    return () => clearInterval(timer);
-  }, [cooldownUntil]);
 
   // Membuat dokumen profil jika akun Auth sudah ada tetapi profil belum tersimpan
   // (misalnya pembuatan profil gagal saat registrasi). Aman dipanggil berulang.
@@ -541,11 +527,8 @@ export default function App() {
         setNotice('Profil Anda belum tersimpan sehingga pesan belum dapat dikirim. Coba lagi sebentar lagi.');
         return;
       }
-      // Postingan dan penanda cooldown ditulis atomik; Firestore Rules menegakkan jeda 10 detik.
       const postRef = doc(collection(db, 'posts'));
-      const rateLimitRef = doc(db, 'postRateLimits', user.uid);
-      const batch = writeBatch(db);
-      batch.set(postRef, {
+      await setDoc(postRef, {
         authorId: user.uid,
         authorName: authorNameFor(user),
         authorPhotoURL: user.photoURL || null,
@@ -553,11 +536,8 @@ export default function App() {
         topic: topic === 'Semua' ? 'Obrolan Umum' : topic,
         createdAt: serverTimestamp()
       });
-      batch.set(rateLimitRef, { uid: user.uid, lastSentAt: serverTimestamp() });
-      await batch.commit();
       setDraft('');
-      setCooldownUntil(Date.now() + 10000);
-      setNotice('Obrolan berhasil dipublikasikan. Tunggu 10 detik sebelum mengirim pesan berikutnya.');
+      setNotice('Obrolan berhasil dipublikasikan.');
     } catch (error) {
       setNotice(postErrorMessage(error));
     } finally {
@@ -830,7 +810,7 @@ export default function App() {
         topic={topic} setTopic={setTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
         openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
         activeCategory={activeCategory} handlePost={handlePost} posting={posting}
-        cooldownRemaining={cooldownRemaining} postsStatus={postsStatus} setPostsRetry={setPostsRetry}
+        postsStatus={postsStatus} setPostsRetry={setPostsRetry}
         visiblePosts={visiblePosts} hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts}
          loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
         cardProps={{
@@ -854,7 +834,7 @@ export default function App() {
         </form>
         <button className="switch-auth" onClick={() => { setRegisterMode(!registerMode); setAuthError(''); }}>{registerMode ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Daftar'}</button>
       </section></div>}
-      {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice('')} aria-label="Tutup">×</button></div>}
+      {notice && <span className="visually-hidden" role="status">{notice}</span>}
     </main>
     <nav className="bottom-nav" aria-label="Navigasi aplikasi">
       <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>

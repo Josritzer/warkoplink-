@@ -260,7 +260,7 @@ describe('login, sesi, dan logout', () => {
     render(<App />);
     emitAuth(fakeUser());
     await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith({ path: 'profiles/u1' }, {
-      displayName: 'Sari', email: 'sari@example.test', createdAt: '__SERVER_TS__', updatedAt: '__SERVER_TS__',
+      displayName: 'Sari', email: 'sari@example.test', photoURL: '', createdAt: '__SERVER_TS__', updatedAt: '__SERVER_TS__',
     }));
   });
 

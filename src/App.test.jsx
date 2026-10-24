@@ -159,7 +159,7 @@ describe('halaman publik', () => {
     emitPosts(POSTS);
     await user.click(screen.getByRole('button', { name: 'Ide & Saran' }));
     expect(screen.getByRole('button', { name: 'Ide & Saran' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByLabelText('Kategori obrolan')).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Kategori obrolan' })).toBeNull();
   });
 });
 
@@ -323,8 +323,7 @@ describe('membuat postingan', () => {
     emitAuth(fakeUser());
     await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     await user.type(screen.getByLabelText('Isi obrolan'), '   ');
-    await user.click(screen.getByRole('button', { name: 'Kirim' }));
-    expect(await screen.findByText('Tulis pesan terlebih dahulu.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Kirim' }).disabled).toBe(true);
     expect(fs.addDoc).not.toHaveBeenCalled();
   });
 

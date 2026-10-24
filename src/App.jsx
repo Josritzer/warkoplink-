@@ -10,6 +10,8 @@ import {
 import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { auth, db, storage, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
+import ChatPostCard from './chat/ChatPostCard.jsx';
+import { deleteOwnPost } from './services/postService.js';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
@@ -243,6 +245,8 @@ export default function App() {
   const [cooldownUntil, setCooldownUntil] = useState(0);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [reportingPostId, setReportingPostId] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState('');
+  const [deletingPostId, setDeletingPostId] = useState('');
   const [reportReason, setReportReason] = useState('Spam atau promosi berulang');
   const [reporting, setReporting] = useState(false);
   const registering = useRef(false);
@@ -488,6 +492,23 @@ export default function App() {
     }
   }
 
+  async function handleDeletePost(post) {
+    if (!user || !db || !post?.id || post.authorId !== user.uid || deletingPostId) return;
+    setDeletingPostId(post.id);
+    try {
+      await deleteOwnPost(db, post.id);
+      setDeleteConfirmId('');
+      setOpenPostMenuId('');
+      setNotice('Obrolan Anda berhasil dihapus.');
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied'
+        ? 'Penghapusan ditolak oleh aturan keamanan. Hanya pemilik obrolan yang dapat menghapusnya.'
+        : 'Obrolan belum dapat dihapus. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setDeletingPostId('');
+    }
+  }
+
   async function handleReactPost(post, emoji) {
     if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk bereaksi pada status.'); return; }
     if (!db || !post?.id) return;
@@ -689,34 +710,19 @@ export default function App() {
         <div className="post-list">
           {postsStatus === 'loading' && <div className="empty-state" role="status"><h3>Memuat obrolan…</h3><p>Mohon tunggu sebentar.</p></div>}
           {postsStatus === 'error' && <div className="empty-state" role="alert"><h3>Obrolan belum dapat dimuat</h3><p>Periksa koneksi internet Anda lalu coba lagi.</p><button className="button button-dark" onClick={() => setPostsRetry(n => n + 1)}>Coba lagi</button></div>}
-          {postsStatus === 'ready' && visiblePosts.map(post => <article className="post-card" key={post.id}>
-            <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : String(post.authorName || 'A').slice(0,1).toUpperCase()}</div>
-            <div className="post-content">
-              <div className="post-head"><div className="post-meta"><b>{post.authorName || 'Anggota SL'}</b><span>{post.topic || 'Obrolan Umum'}</span><small title={post.createdAt?.toDate?.()?.toLocaleString('id-ID') || ''}>{relativePostTime(post.createdAt)}</small></div>
-                <div className="post-menu-wrap"><button className="post-menu-trigger" type="button" aria-label="Opsi postingan" aria-expanded={openPostMenuId === post.id} onClick={() => setOpenPostMenuId(current => current === post.id ? '' : post.id)}><MoreHorizontal size={20}/></button>
-                  {openPostMenuId === post.id && <div className="post-menu"><button type="button" onClick={() => { setOpenPostMenuId(''); if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>⚑ Laporkan obrolan</button><button type="button" onClick={() => { setOpenPostMenuId(''); sharePost(post); }}><Share2 size={14}/> Bagikan</button></div>}
-                </div>
-              </div>
-              <p>{post.body}</p>
-              <div className="status-reactions" role="group" aria-label="Reaksi pada status">
-                {['👍', '❤️', '😂', '😮', '😢', '😡'].map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => handleReactPost(post, emoji)}>{emoji}</button>)}
-              </div>
-              <div className="engagement-summary"><span>{(likeCounts[post.id] || 0) > 0 ? `${likeCounts[post.id]} reaksi` : ''}</span><span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !expandedReplies[post.id] ? '3+' : replyCounts[post.id]} komentar` : ''}</span></div>
-              <div className="post-actions">
-                <button className={likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" onClick={() => handleLikePost(post)}><Heart size={17} fill={likedPosts[post.id] ? 'currentColor' : 'none'}/> <span>Suka</span></button>
-                <button className="post-action" type="button" onClick={() => openReplies(post)}><MessageSquare size={17}/> <span>Balas</span></button>
-                <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
-              </div>
-              {(repliesByPost[post.id] || []).length > 0 && <div className="inline-replies" aria-label="Komentar dan balasan">
-                {(expandedReplies[post.id] ? repliesByPost[post.id] : repliesByPost[post.id].slice(0, 3)).map(reply => <div className="inline-reply" key={reply.id}>
-                  <div className="inline-reply-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0, 1).toUpperCase()}</div>
-                  <div className="inline-reply-body"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
-                </div>)}
-                {(repliesByPost[post.id].length >= 4 || (replyCounts[post.id] || 0) > 3) && !expandedReplies[post.id] && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar</button>}
-              </div>}
-              {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><input aria-label="Tulis balasan" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/><button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
-              {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
-            </div></article>)}
+          {postsStatus === 'ready' && visiblePosts.map(post => <ChatPostCard
+            key={post.id} post={post} user={user} relativePostTime={relativePostTime}
+            openPostMenuId={openPostMenuId} setOpenPostMenuId={setOpenPostMenuId}
+            openAuth={openAuth} setNotice={setNotice} reportingPostId={reportingPostId}
+            setReportingPostId={setReportingPostId} reportReason={reportReason} setReportReason={setReportReason}
+            sharePost={sharePost} postReactions={postReactions} handleReactPost={handleReactPost}
+            likeCounts={likeCounts} replyCounts={replyCounts} expandedReplies={expandedReplies}
+            likedPosts={likedPosts} handleLikePost={handleLikePost} openReplies={openReplies}
+            repliesByPost={repliesByPost} replyingPostId={replyingPostId} replyDraft={replyDraft}
+            setReplyDraft={setReplyDraft} handleReply={handleReply} handleReportPost={handleReportPost}
+            reporting={reporting} deleteConfirmId={deleteConfirmId} setDeleteConfirmId={setDeleteConfirmId}
+            deletingPostId={deletingPostId} handleDeletePost={handleDeletePost}
+          />)}
           {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}
         </div>
       </section>}

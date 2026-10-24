@@ -7,7 +7,7 @@ export default function ChatPanel(props) {
   const {
     user, firebaseConfigured, search, setSearch, topic, setTopic, composerOpen, setComposerOpen,
     openAuth, setNotice, draft, setDraft, activeCategory, handlePost, posting, cooldownRemaining,
-    postsStatus, setPostsRetry, visiblePosts, cardProps
+    postsStatus, setPostsRetry, visiblePosts, cardProps, hasMorePosts, loadingMorePosts, loadMoreError, onLoadMorePosts
   } = props;
 
   return <section className="content-section" id="community-feed">
@@ -28,5 +28,11 @@ export default function ChatPanel(props) {
       {postsStatus === 'ready' && visiblePosts.map(post => <ChatPostCard key={post.id} post={post} {...cardProps}/>)}
       {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}
     </div>
+    {postsStatus === 'ready' && hasMorePosts && <div className="feed-pagination">
+      {loadMoreError && <p className="form-error" role="alert">{loadMoreError}</p>}
+      <button className="button button-quiet" type="button" onClick={onLoadMorePosts} disabled={loadingMorePosts}>
+        {loadingMorePosts ? 'Memuat obrolan…' : 'Muat obrolan lebih lama'}
+      </button>
+    </div>}
   </section>;
 }

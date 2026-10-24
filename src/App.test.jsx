@@ -18,7 +18,7 @@ vi.mock('firebase/auth', () => ({
 vi.mock('firebase/firestore', () => ({
   addDoc: vi.fn(),
   deleteDoc: vi.fn().mockResolvedValue(undefined),
-  collection: vi.fn((db, name) => ({ path: name })),
+  collection: vi.fn((db, ...segments) => ({ path: segments.join('/') })),
   doc: vi.fn((db, col, id) => ({ path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` })),
   getCountFromServer: vi.fn(() => Promise.resolve({ data: () => ({ count: 0 }) })),
   getDoc: vi.fn(),
@@ -53,6 +53,7 @@ const POSTS = [
 ];
 
 beforeEach(() => {
+  window.localStorage.clear();
   vi.clearAllMocks();
   fs.getDoc.mockResolvedValue({ exists: () => true });
   fs.getDocs.mockResolvedValue({ docs: [], empty: true });
@@ -276,6 +277,48 @@ describe('login, sesi, dan logout', () => {
     await user.click(await screen.findByRole('button', { name: 'Keluar' }));
     expect(fbAuth.signOut).toHaveBeenCalledWith({ name: 'auth' });
     expect(await screen.findByText('Anda sudah keluar dari akun.')).toBeTruthy();
+  });
+});
+
+describe('balasan komentar', () => {
+  it('menampilkan balasan seketika dengan status mengirim sebelum Firestore selesai', async () => {
+    let resolveAdd;
+    fs.addDoc.mockImplementationOnce(() => new Promise(resolve => { resolveAdd = resolve; }));
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
+
+    await user.click(await screen.findByRole('button', { name: 'Balas' }));
+    await user.type(await screen.findByLabelText('Tulis balasan'), 'Setuju, terima kasih');
+    await user.click(screen.getByRole('button', { name: 'Kirim komentar' }));
+
+    expect(await screen.findByText('Setuju, terima kasih')).toBeTruthy();
+    expect(screen.getByText('Mengirim…')).toBeTruthy();
+    expect(fs.addDoc).toHaveBeenCalledWith({ path: 'posts/post-reply/replies' }, {
+      authorId: 'u1', authorName: 'Sari', authorPhotoURL: null,
+      body: 'Setuju, terima kasih', createdAt: '__SERVER_TS__',
+    });
+
+    await act(async () => { resolveAdd({ id: 'reply-saved' }); });
+    expect(await screen.findByText('Balasan berhasil dikirim.')).toBeTruthy();
+    expect(screen.queryByText('Mengirim…')).toBeNull();
+  });
+
+  it('menghapus balasan optimistis dan mengembalikan teks jika Firestore menolak', async () => {
+    fs.addDoc.mockRejectedValueOnce({ code: 'permission-denied' });
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
+
+    await user.click(await screen.findByRole('button', { name: 'Balas' }));
+    await user.type(await screen.findByLabelText('Tulis balasan'), 'Balasan perlu dipulihkan');
+    await user.click(screen.getByRole('button', { name: 'Kirim komentar' }));
+
+    expect(await screen.findByText('Balasan ditolak oleh aturan keamanan.')).toBeTruthy();
+    expect(screen.queryByText('Balasan perlu dipulihkan')).toBeNull();
+    expect(screen.getByLabelText('Tulis balasan').value).toBe('Balasan perlu dipulihkan');
   });
 });
 

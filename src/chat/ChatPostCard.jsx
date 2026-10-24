@@ -46,7 +46,7 @@ export default function ChatPostCard({
       {replyRows.length > 0 && <div className="inline-replies" aria-label="Komentar dan balasan">
         {(showAllReplies ? replyRows : replyRows.slice(0, 4)).map(reply => <div className="inline-reply" key={reply.id}>
           <div className="inline-reply-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0, 1).toUpperCase()}</div>
-          <div className="inline-reply-body"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
+          <div className="inline-reply-body"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
         </div>)}
         {(replyRows.length >= 4 || (replyCounts[post.id] || 0) > 3) && !showAllReplies && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar ({Math.max((replyCounts[post.id] || 0) - replyRows.length, 0) > 0 ? `${Math.max((replyCounts[post.id] || 0) - replyRows.length, 0)} lagi` : 'selengkapnya'})</button>}
       </div>}

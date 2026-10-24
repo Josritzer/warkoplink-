@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { shouldRemoveReaction, summarizeReactions } from './reactions.js';
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, updateDoc, where, writeBatch
+  addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where, writeBatch
 } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { auth, db, storage, firebaseConfigured } from './firebase.js';
@@ -19,7 +19,23 @@ import {
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
 } from './lib.js';
 
-const POSTS_LIMIT = 100;
+const POSTS_LIMIT = 10;
+const FEED_CACHE_KEY = 'warkoplink:community-feed:v1';
+
+function readCachedPosts() {
+  try {
+    const cached = JSON.parse(window.localStorage.getItem(FEED_CACHE_KEY) || '[]');
+    if (!Array.isArray(cached)) return [];
+    return cached.slice(0, POSTS_LIMIT).map((post) => ({
+      ...post,
+      createdAt: post.createdAt?.seconds != null
+        ? Timestamp.fromMillis(post.createdAt.seconds * 1000 + (post.createdAt.nanoseconds || 0) / 1e6)
+        : post.createdAt
+    }));
+  } catch {
+    return [];
+  }
+}
 
 
 function normalizeSearchText(value) {
@@ -219,8 +235,13 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authReady, setAuthReady] = useState(!auth);
-  const [posts, setPosts] = useState([]);
-  const [postsStatus, setPostsStatus] = useState(db ? 'loading' : 'ready');
+  const [posts, setPosts] = useState(readCachedPosts);
+  const [olderPosts, setOlderPosts] = useState([]);
+  const [lastPostDoc, setLastPostDoc] = useState(null);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState('');
+  const [postsStatus, setPostsStatus] = useState(() => db ? (readCachedPosts().length ? 'ready' : 'loading') : 'ready');
   const [postsRetry, setPostsRetry] = useState(0);
   const [authOpen, setAuthOpen] = useState(false);
   const [registerMode, setRegisterMode] = useState(false);
@@ -330,19 +351,58 @@ export default function App() {
 
   useEffect(() => {
     if (!db) return undefined;
-    setPostsStatus('loading');
+    setPostsStatus(current => current === 'ready' && posts.length ? current : 'loading');
+    setOlderPosts([]);
+    setLastPostDoc(null);
+    setHasMorePosts(false);
+    setLoadMoreError('');
     const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(POSTS_LIMIT));
     return onSnapshot(postsQuery, (snapshot) => {
-      setPosts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      const nextPosts = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      setPosts(nextPosts);
+      setLastPostDoc(snapshot.docs.at(-1) || null);
+      setHasMorePosts(snapshot.docs.length === POSTS_LIMIT);
       setPostsStatus('ready');
-    }, () => setPostsStatus('error'));
+      try {
+        window.localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(nextPosts.slice(0, POSTS_LIMIT)));
+      } catch {
+        // Cache opsional; feed tetap berjalan jika penyimpanan penuh/nonaktif.
+      }
+    }, () => setPostsStatus(current => current === 'ready' && posts.length ? current : 'error'));
   }, [postsRetry]);
+
+  const allPosts = useMemo(() => {
+    const unique = new Map();
+    [...posts, ...olderPosts].forEach((post) => { if (!unique.has(post.id)) unique.set(post.id, post); });
+    return [...unique.values()];
+  }, [posts, olderPosts]);
+
+  async function loadMorePosts() {
+    if (!db || !lastPostDoc || loadingMorePosts || !hasMorePosts) return;
+    setLoadingMorePosts(true);
+    setLoadMoreError('');
+    try {
+      const nextQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(lastPostDoc), limit(POSTS_LIMIT));
+      const snapshot = await getDocs(nextQuery);
+      const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      setOlderPosts((current) => {
+        const seen = new Set([...posts, ...current].map((post) => post.id));
+        return [...current, ...nextRows.filter((post) => !seen.has(post.id))];
+      });
+      setLastPostDoc(snapshot.docs.at(-1) || lastPostDoc);
+      setHasMorePosts(snapshot.docs.length === POSTS_LIMIT);
+    } catch {
+      setLoadMoreError('Belum bisa memuat obrolan lama. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setLoadingMorePosts(false);
+    }
+  }
 
   // Reaksi berasal dari Firestore agar pulih setelah refresh dan sinkron antarpengguna.
   useEffect(() => {
-    if (!db || !posts.length) return undefined;
+    if (!db || !allPosts.length) return undefined;
     let active = true;
-    const unsubscribers = posts.map((post) => onSnapshot(
+    const unsubscribers = allPosts.map((post) => onSnapshot(
       collection(db, 'posts', post.id, 'likes'),
       (snapshot) => {
         if (!active) return;
@@ -359,14 +419,14 @@ export default function App() {
       active = false;
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  }, [posts, user?.uid]);
+  }, [allPosts, user?.uid]);
 
   // Muat pratinjau komentar untuk posting terbaru agar balasan terlihat langsung tanpa membuka panel.
   useEffect(() => {
-    if (!db || !posts.length) return undefined;
+    if (!db || !allPosts.length) return undefined;
     let cancelled = false;
     const loadPreviews = async () => {
-      const latestPosts = posts.slice(0, 12);
+      const latestPosts = allPosts.slice(0, 12);
       const results = await Promise.all(latestPosts.map(async (post) => {
         try {
           const repliesRef = collection(db, 'posts', post.id, 'replies');
@@ -380,12 +440,31 @@ export default function App() {
         }
       }));
       if (cancelled) return;
-      setRepliesByPost(current => ({ ...current, ...Object.fromEntries(results.map(([id, replies]) => [id, replies])) }));
-      setReplyCounts(current => ({ ...current, ...Object.fromEntries(results.map(([id, , count]) => [id, count])) }));
+      setRepliesByPost(current => {
+        const next = { ...current };
+        results.forEach(([id, serverReplies]) => {
+          const pendingReplies = (current[id] || []).filter(reply => reply.pending);
+          const serverIds = new Set(serverReplies.map(reply => reply.id));
+          next[id] = [
+            ...serverReplies,
+            ...pendingReplies.filter(reply => !serverIds.has(reply.id))
+          ];
+        });
+        return next;
+      });
+      setReplyCounts(current => {
+        const next = { ...current };
+        results.forEach(([id, , serverCount]) => {
+          const pendingCount = (repliesByPost[id] || []).filter(reply => reply.pending).length;
+          // Hitungan server menjadi sumber utama; tambahkan balasan optimistis yang belum tersimpan.
+          next[id] = serverCount + pendingCount;
+        });
+        return next;
+      });
     };
     loadPreviews();
     return () => { cancelled = true; };
-  }, [posts]);
+  }, [allPosts]);
 
   function openAuth(register) {
     setRegisterMode(register);
@@ -506,7 +585,20 @@ export default function App() {
   async function handleReactPost(post, emoji) {
     if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk bereaksi pada status.'); return; }
     if (!db || !post?.id) return;
-    const reactionRef = doc(db, 'posts', post.id, 'likes', user.uid);
+
+    // Optimistic UI: tampilkan reaksi segera, lalu pulihkan nilai sebelumnya jika Firestore menolak.
+    const postId = post.id;
+    const previous = {
+      count: likeCounts[postId] || 0,
+      liked: Boolean(likedPosts[postId]),
+      emoji: postReactions[postId] || ''
+    };
+    const removing = previous.liked && previous.emoji === emoji;
+    setLikeCounts(current => ({ ...current, [postId]: Math.max(0, previous.count + (removing ? -1 : previous.liked ? 0 : 1)) }));
+    setLikedPosts(current => ({ ...current, [postId]: !removing }));
+    setPostReactions(current => ({ ...current, [postId]: removing ? '' : emoji }));
+
+    const reactionRef = doc(db, 'posts', postId, 'likes', user.uid);
     try {
       const existing = await getDoc(reactionRef);
       const existingData = existing.exists() ? existing.data() : null;
@@ -519,6 +611,9 @@ export default function App() {
         await setDoc(reactionRef, { uid: user.uid, emoji, createdAt: serverTimestamp() });
       }
     } catch (error) {
+      setLikeCounts(current => ({ ...current, [postId]: previous.count }));
+      setLikedPosts(current => ({ ...current, [postId]: previous.liked }));
+      setPostReactions(current => ({ ...current, [postId]: previous.emoji }));
       setNotice(error?.code === 'permission-denied' ? 'Reaksi ditolak oleh aturan keamanan.' : 'Reaksi belum tersimpan. Coba lagi.');
     }
   }
@@ -535,10 +630,21 @@ export default function App() {
     try {
       const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'replies'), orderBy('createdAt', 'asc'), limit(50)));
       const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
-      setRepliesByPost(current => ({ ...current, [post.id]: replies }));
+      setRepliesByPost(current => {
+        const pendingReplies = (current[post.id] || []).filter(reply => reply.pending);
+        const serverIds = new Set(replies.map(reply => reply.id));
+        return {
+          ...current,
+          [post.id]: [...replies, ...pendingReplies.filter(reply => !serverIds.has(reply.id))]
+        };
+      });
       setExpandedReplies(current => ({ ...current, [post.id]: true }));
       const countSnapshot = await getCountFromServer(collection(db, 'posts', post.id, 'replies'));
-      setReplyCounts(current => ({ ...current, [post.id]: countSnapshot.data().count }));
+      setReplyCounts(current => {
+        const pendingCount = (repliesByPost[post.id] || []).filter(reply => reply.pending).length;
+        // Gunakan hitungan server terbaru ditambah balasan optimistis yang belum tersimpan.
+        return { ...current, [post.id]: countSnapshot.data().count + pendingCount };
+      });
     } catch {
       setNotice('Balasan belum dapat dimuat. Coba lagi sebentar lagi.');
     }
@@ -549,16 +655,45 @@ export default function App() {
     if (!user) { openAuth(false); return; }
     const body = replyDraft.trim();
     if (!body || body.length > 1000) { setNotice('Balasan harus berisi 1–1000 karakter.'); return; }
+
+    // Tampilkan balasan segera, lalu konfirmasi ke Firestore. Jika gagal, batalkan perubahan lokal.
+    const temporaryId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimisticReply = {
+      id: temporaryId,
+      authorId: user.uid,
+      authorName: authorNameFor(user),
+      authorPhotoURL: user.photoURL || null,
+      body,
+      createdAt: null,
+      pending: true
+    };
+    setRepliesByPost(current => ({
+      ...current,
+      [post.id]: [...(current[post.id] || []).filter(reply => reply.id !== temporaryId), optimisticReply]
+    }));
+    setReplyCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
+    setReplyDraft('');
+    setReplyingPostId('');
+
     try {
-      await addDoc(collection(db, 'posts', post.id, 'replies'), {
+      const savedReply = await addDoc(collection(db, 'posts', post.id, 'replies'), {
         authorId: user.uid, authorName: authorNameFor(user), authorPhotoURL: user.photoURL || null, body, createdAt: serverTimestamp()
       });
-      setReplyDraft('');
-      setReplyingPostId('');
-      setReplyCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
-      setRepliesByPost(current => ({ ...current, [post.id]: [...(current[post.id] || []), { id: `local-${Date.now()}`, authorId: user.uid, authorName: authorNameFor(user), authorPhotoURL: user.photoURL || null, body, createdAt: null }] }));
+      setRepliesByPost(current => ({
+        ...current,
+        [post.id]: (current[post.id] || []).map(reply =>
+          reply.id === temporaryId ? { ...optimisticReply, id: savedReply.id, pending: false } : reply
+        )
+      }));
       setNotice('Balasan berhasil dikirim.');
     } catch (error) {
+      setRepliesByPost(current => ({
+        ...current,
+        [post.id]: (current[post.id] || []).filter(reply => reply.id !== temporaryId)
+      }));
+      setReplyCounts(current => ({ ...current, [post.id]: Math.max(0, (current[post.id] || 1) - 1) }));
+      setReplyDraft(body);
+      setReplyingPostId(post.id);
       setNotice(error?.code === 'permission-denied' ? 'Balasan ditolak oleh aturan keamanan.' : 'Balasan belum terkirim. Coba lagi.');
     }
   }
@@ -662,7 +797,7 @@ export default function App() {
     }
   }
 
-  const visiblePosts = filterPosts(posts, topic, search);
+  const visiblePosts = filterPosts(allPosts, topic, search);
   const activeCategory = topic === 'Semua' ? 'Obrolan Umum' : topic;
 
   return <div className="app-shell">
@@ -696,7 +831,8 @@ export default function App() {
         openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
         activeCategory={activeCategory} handlePost={handlePost} posting={posting}
         cooldownRemaining={cooldownRemaining} postsStatus={postsStatus} setPostsRetry={setPostsRetry}
-        visiblePosts={visiblePosts}
+        visiblePosts={visiblePosts} hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts}
+         loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
         cardProps={{
           user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
           reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost,

@@ -27,7 +27,14 @@ describe('ChatPostCard', () => {
     expect(values.handleReactPost).toHaveBeenCalledWith(values.post, '❤️');
   });
 
-  it('offers delete only to the owner and asks for confirmation before deleting', () => {
+  it('asks for confirmation before invoking deletion', () => {
+    const values = props({ deleteConfirmId: 'post-1' });
+    render(<ChatPostCard {...values} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, hapus' }));
+    expect(values.handleDeletePost).toHaveBeenCalledWith(values.post);
+  });
+
+  it('offers the delete action only to the owner', () => {
     const values = props({ openPostMenuId: 'post-1' });
     render(<ChatPostCard {...values} />);
     fireEvent.click(screen.getByRole('button', { name: 'Hapus obrolan' }));

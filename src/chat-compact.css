@@ -1,0 +1,460 @@
+/* SL Community Platform — compact social timeline.
+   Visual-only overrides: keep Firebase, auth, data and moderation logic untouched. */
+:root {
+  --feed-separator: #e7e9ec;
+  --feed-ink: #17191c;
+  --feed-muted: #68707a;
+  --feed-accent: #7650c7;
+  --feed-soft: #f5f6f8;
+}
+
+/* Reduce the oversized landing-page spacing around the actual community feed. */
+#community-feed.content-section {
+  padding: 22px 2% 32px;
+  scroll-margin-top: 12px;
+}
+#community-feed .section-heading {
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+#community-feed .section-heading h2 {
+  margin: 4px 0 3px;
+  color: var(--feed-ink);
+  font-size: 21px;
+  line-height: 1.25;
+  letter-spacing: -.45px;
+}
+#community-feed .section-heading p {
+  margin: 0;
+  color: var(--feed-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+#community-feed .eyebrow {
+  font-size: 10px;
+  letter-spacing: 1.1px;
+}
+#community-feed .status-pill {
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  padding: 7px 10px;
+}
+#community-feed .feed-tools { margin-top: 12px; }
+#community-feed .search {
+  max-width: none;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e4e7eb;
+  border-radius: 999px;
+  background: #f7f8fa;
+  color: #737b86;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+#community-feed .search:focus-within {
+  border-color: #b9a4e7;
+  background: #fff;
+  box-shadow: 0 0 0 3px #7650c714;
+}
+#community-feed .search span { font-size: 19px; line-height: 1; }
+#community-feed .search input { padding: 10px 0; font-size: 13px; }
+#community-feed .topic-scroll-wrap {
+  position: relative;
+  margin-bottom: 4px;
+}
+#community-feed .topic-list {
+  gap: 7px;
+  padding: 10px 0 9px;
+  scrollbar-width: none;
+}
+#community-feed .topic-list::-webkit-scrollbar { display: none; }
+#community-feed .topic {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border-color: #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  color: #515965;
+  font-size: 12px;
+  font-weight: 600;
+  transition: color .15s, background .15s, border-color .15s;
+}
+#community-feed .topic:hover { border-color: #c9b9ee; color: var(--feed-accent); }
+#community-feed .topic.selected {
+  border-color: #7650c7;
+  background: #7650c7;
+  color: #fff;
+}
+#community-feed .topic-scroll-hint { display: none; }
+
+/* Composer: lightweight prompt row, not another card. */
+#community-feed .composer {
+  margin: 2px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#community-feed .composer-collapsed {
+  padding: 10px 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--feed-separator);
+  background: transparent;
+}
+#community-feed .composer-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #7a818b;
+  text-align: left;
+  font-size: 14px;
+}
+#community-feed .composer-trigger:hover { color: var(--feed-ink); background: transparent; }
+#community-feed .composer-avatar {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #eee8fa;
+  color: #6842b0;
+  font-size: 12px;
+  font-weight: 700;
+}
+#community-feed .composer-avatar img,
+#community-feed .post-avatar img,
+#community-feed .inline-reply-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#community-feed .composer-expanded {
+  margin: 8px 0 0;
+  padding: 12px;
+  border: 1px solid #e7e2f2;
+  border-radius: 14px;
+  background: #fff;
+}
+#community-feed .composer-context { gap: 9px; margin-bottom: 10px; }
+#community-feed .composer-context b { font-size: 13px; }
+#community-feed .composer-context small { font-size: 11px; }
+#community-feed .composer-expanded textarea {
+  width: 100%;
+  min-height: 92px;
+  padding: 4px 0;
+  border: 0;
+  outline: 0;
+  resize: vertical;
+  background: transparent;
+  color: var(--feed-ink);
+  font-size: 15px;
+  line-height: 1.5;
+}
+#community-feed .composer-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid #f0edf5;
+}
+#community-feed .char-count { margin-right: auto; color: #858b94; font-size: 11px; }
+#community-feed .composer-bottom .button {
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* Posts use a single continuous timeline with fine separators. */
+#community-feed .post-list { display: block; gap: 0; }
+#community-feed .post-card {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  column-gap: 10px;
+  padding: 13px 0 10px;
+  border: 0;
+  border-bottom: 1px solid var(--feed-separator);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#community-feed .post-card:hover { background: transparent; }
+#community-feed .post-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #e9eaf0;
+  color: #555e6a;
+  font-size: 12px;
+  font-weight: 700;
+}
+#community-feed .post-content { min-width: 0; }
+#community-feed .post-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0 0 3px;
+}
+#community-feed .post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  min-width: 0;
+}
+#community-feed .post-meta b {
+  color: var(--feed-ink);
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 750;
+}
+#community-feed .post-meta span,
+#community-feed .post-meta small {
+  color: var(--feed-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+#community-feed .post-meta span::before,
+#community-feed .post-meta small::before { content: '·'; margin-right: 6px; color: #9ba1a9; }
+#community-feed .post-content > p {
+  margin: 3px 0 7px;
+  color: #24272b;
+  font-size: 14px;
+  line-height: 1.48;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+#community-feed .post-menu-trigger {
+  display: grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  margin: -4px -5px 0 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #747b85;
+}
+#community-feed .post-menu-trigger:hover { background: #f0edf7; color: var(--feed-accent); }
+#community-feed .post-reaction-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 23px;
+  margin: 4px 0 2px;
+  padding: 2px 0;
+  border-radius: 0;
+  background: transparent;
+}
+#community-feed .post-reaction-counts { gap: 5px; }
+#community-feed .post-reaction-count { gap: 3px; font-size: 11px; }
+#community-feed .post-reaction-total { color: var(--feed-muted); font-size: 11px; }
+#community-feed .engagement-summary { min-height: 18px; }
+#community-feed .engagement-comment-count { padding: 2px 0; color: var(--feed-muted); font-size: 12px; }
+#community-feed .post-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #f0f1f3;
+}
+#community-feed .post-action-wrap { flex: 1; min-width: 0; }
+#community-feed .post-action {
+  display: flex;
+  width: 100%;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 4px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #6c737d;
+  font-size: 12px;
+  font-weight: 600;
+}
+#community-feed .post-action:hover,
+#community-feed .post-action.liked { background: #f4f0fb; color: var(--feed-accent); }
+#community-feed .status-reactions {
+  bottom: calc(100% + 4px);
+  padding: 5px;
+  border: 1px solid #e9e4f2;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 8px 24px #20202a16;
+}
+#community-feed .status-reaction { width: 32px; height: 32px; }
+
+/* Thread replies: readable text rows, connected by one subtle guide line. */
+#community-feed .comment-section {
+  max-height: none;
+  margin: 7px 0 0;
+  padding: 0;
+  border-top: 0;
+  overflow: visible;
+}
+#community-feed .comment-section:has(.inline-reply) {
+  margin-left: 18px;
+  padding: 0 0 0 10px;
+  border-left: 2px solid #d5c5f3;
+}
+#community-feed .inline-reply {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+}
+#community-feed .inline-reply-avatar {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #f0edf7;
+  color: #6b50a2;
+  font-size: 10px;
+  font-weight: 700;
+}
+#community-feed .inline-reply-body {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+#community-feed .inline-reply-body b {
+  display: inline;
+  color: #242329;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 750;
+}
+#community-feed .inline-reply-body p {
+  margin: 2px 0 1px;
+  color: #34363b;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+#community-feed .inline-reply-body small {
+  display: inline-block;
+  margin-top: 2px;
+  color: #858b94;
+  font-size: 11px;
+}
+#community-feed .comment-empty { margin: 4px 0 8px; padding: 0; color: #858b94; font-size: 12px; }
+#community-feed .comment-skeleton { gap: 6px; padding: 5px 0 9px; }
+#community-feed .reply-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+}
+#community-feed .reply-form input {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 15px;
+  border: 1px solid #e3e5e9;
+  border-radius: 999px;
+  outline: 0;
+  background: #f7f8fa;
+  color: var(--feed-ink);
+  font-size: 13px;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+#community-feed .reply-form input:focus {
+  border-color: #b9a4e7;
+  background: #fff;
+  box-shadow: 0 0 0 3px #7650c714;
+}
+#community-feed .reply-form button {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* Compact native-app header and install icon. */
+.app-header {
+  min-height: 56px;
+  height: 56px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.app-header .brand { gap: 8px; }
+.app-header .brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.app-header .brand-mark svg { width: 17px; height: 17px; }
+.app-header .brand strong { font-size: 13px; letter-spacing: .5px; }
+.app-header .brand small { font-size: 10px; }
+.app-header .header-actions { gap: 6px; }
+.app-header .button-install {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+  gap: 0;
+}
+.app-header .button-install svg { width: 16px; height: 16px; }
+#community-feed button:focus-visible,
+#community-feed input:focus-visible,
+#community-feed textarea:focus-visible,
+.app-header button:focus-visible {
+  outline: 2px solid #7650c7;
+  outline-offset: 2px;
+}
+@media (max-width: 620px) {
+  .app-shell { padding-left: 16px; padding-right: 16px; }
+  #community-feed.content-section { padding: 18px 0 26px; }
+  #community-feed .section-heading { align-items: flex-start; }
+  #community-feed .section-heading h2 { font-size: 19px; }
+  #community-feed .status-pill { max-width: 43%; font-size: 9px; padding: 6px 8px; }
+  #community-feed .post-card { grid-template-columns: 34px minmax(0, 1fr); column-gap: 9px; padding: 12px 0 9px; }
+  #community-feed .post-avatar { width: 34px; height: 34px; min-width: 34px; }
+  #community-feed .post-meta b { font-size: 13px; }
+  #community-feed .post-meta span, #community-feed .post-meta small { font-size: 11px; }
+  #community-feed .post-content > p { font-size: 14px; }
+  #community-feed .post-action { gap: 4px; font-size: 11px; }
+  #community-feed .post-action svg { width: 15px; height: 15px; }
+  #community-feed .comment-section:has(.inline-reply) { margin-left: 8px; padding-left: 8px; }
+  .app-header .brand small { display: none; }
+  .app-header .header-actions .button { min-height: 30px; padding: 6px 9px; font-size: 12px; }
+  .app-header .header-actions .button-install { width: 28px; height: 28px; padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #community-feed *, .app-header * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

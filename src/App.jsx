@@ -226,6 +226,7 @@ export default function App() {
   const [expandedReplies, setExpandedReplies] = useState({});
   const [likedPosts, setLikedPosts] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
+  const [postReactions, setPostReactions] = useState({});
   const [openPostMenuId, setOpenPostMenuId] = useState('');
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
@@ -472,24 +473,34 @@ export default function App() {
     }
   }
 
-  async function handleLikePost(post) {
-    if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk menyukai obrolan.'); return; }
+  async function handleReactPost(post, emoji) {
+    if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk bereaksi pada status.'); return; }
     if (!db || !post?.id) return;
-    const likeRef = doc(db, 'posts', post.id, 'likes', user.uid);
+    const reactionRef = doc(db, 'posts', post.id, 'likes', user.uid);
     try {
-      const existing = await getDoc(likeRef);
-      if (existing.exists()) {
-        await deleteDoc(likeRef);
+      const existing = await getDoc(reactionRef);
+      if (existing.exists() && (existing.data().emoji || '❤️') === emoji) {
+        await deleteDoc(reactionRef);
         setLikedPosts(current => ({ ...current, [post.id]: false }));
+        setPostReactions(current => ({ ...current, [post.id]: '' }));
         setLikeCounts(current => ({ ...current, [post.id]: Math.max(0, (current[post.id] || 1) - 1) }));
-      } else {
-        await setDoc(likeRef, { uid: user.uid, createdAt: serverTimestamp() });
+      } else if (existing.exists()) {
+        await updateDoc(reactionRef, { emoji });
         setLikedPosts(current => ({ ...current, [post.id]: true }));
+        setPostReactions(current => ({ ...current, [post.id]: emoji }));
+      } else {
+        await setDoc(reactionRef, { uid: user.uid, emoji, createdAt: serverTimestamp() });
+        setLikedPosts(current => ({ ...current, [post.id]: true }));
+        setPostReactions(current => ({ ...current, [post.id]: emoji }));
         setLikeCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
       }
     } catch (error) {
-      setNotice(error?.code === 'permission-denied' ? 'Anda belum dapat menyukai obrolan ini.' : 'Suka belum tersimpan. Coba lagi.');
+      setNotice(error?.code === 'permission-denied' ? 'Reaksi ditolak oleh aturan keamanan.' : 'Reaksi belum tersimpan. Coba lagi.');
     }
+  }
+
+  async function handleLikePost(post) {
+    return handleReactPost(post, '❤️');
   }
 
   async function openReplies(post) {
@@ -663,8 +674,7 @@ export default function App() {
           {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi obrolan.'); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><span>{user ? 'Ayo ngobrol…' : 'Masuk untuk mulai ngobrol…'}</span></button> : <>
             <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'S').slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || 'Anggota komunitas'}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
             <textarea aria-label="Isi obrolan" autoFocus value={draft} onFocus={() => setEmojiTarget('composer')} onChange={e => setDraft(e.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ayo ngobrol…" rows={3}/>
-            {emojiTarget === 'composer' && <div className="chat-emoji-picker" role="group" aria-label="Pilih emoji"><span className="chat-emoji-heading">Reaksi & suasana warkop</span><div className="chat-emoji-grid">{CHAT_EMOJIS.map(item => <button key={item.emoji} type="button" className="chat-emoji-option" title={item.label} aria-label={item.label} onMouseDown={event => event.preventDefault()} onClick={() => { setDraft(value => value + item.emoji); setEmojiTarget(''); }}>{item.emoji}</button>)}</div></div>}
-            <div className="composer-bottom"><button className="chat-emoji-trigger" type="button" aria-label="Buka emoji" aria-expanded={emojiTarget === 'composer'} onClick={() => setEmojiTarget(current => current === 'composer' ? '' : 'composer')}>😀</button><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(''); }}>Batal</button><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0 || !draft.trim()}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Kirim'} <Send size={16}/></button></div>
+            <div className="composer-bottom"><small className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(''); }}>Batal</button><button className="button button-dark" type="submit" disabled={posting || cooldownRemaining > 0 || !draft.trim()}>{posting ? 'Mengirim…' : cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} dtk` : 'Kirim'} <Send size={16}/></button></div>
           </>}
         </form>
         <div className="post-list">
@@ -679,6 +689,9 @@ export default function App() {
                 </div>
               </div>
               <p>{post.body}</p>
+              <div className="status-reactions" role="group" aria-label="Reaksi pada status">
+                {['👍', '❤️', '😂', '😮', '😢', '😡'].map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => handleReactPost(post, emoji)}>{emoji}</button>)}
+              </div>
               <div className="engagement-summary"><span>{(likeCounts[post.id] || 0) > 0 ? `❤️ ${likeCounts[post.id]}` : ''}</span><span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !expandedReplies[post.id] ? '3+' : replyCounts[post.id]} komentar` : ''}</span></div>
               <div className="post-actions">
                 <button className={likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" onClick={() => handleLikePost(post)}><Heart size={17} fill={likedPosts[post.id] ? 'currentColor' : 'none'}/> <span>Suka</span></button>
@@ -692,7 +705,7 @@ export default function App() {
                 </div>)}
                 {(repliesByPost[post.id].length >= 4 || (replyCounts[post.id] || 0) > 3) && !expandedReplies[post.id] && <button className="show-more-replies" type="button" onClick={() => openReplies(post)}>Lihat semua komentar</button>}
               </div>}
-              {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><button className="chat-emoji-trigger reply-emoji-trigger" type="button" aria-label="Buka emoji balasan" aria-expanded={emojiTarget === post.id} onClick={() => setEmojiTarget(current => current === post.id ? '' : post.id)}>😀</button><input aria-label="Tulis balasan" value={replyDraft} onFocus={() => setEmojiTarget(post.id)} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/>{emojiTarget === post.id && <div className="chat-emoji-picker reply-emoji-picker" role="group" aria-label="Pilih emoji balasan"><div className="chat-emoji-grid">{CHAT_EMOJIS.map(item => <button key={item.emoji} type="button" className="chat-emoji-option" title={item.label} aria-label={item.label} onMouseDown={event => event.preventDefault()} onClick={() => { setReplyDraft(value => value + item.emoji); setEmojiTarget(''); }}>{item.emoji}</button>)}</div></div>}<button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
+              {replyingPostId === post.id && <form className="reply-form" onSubmit={event => handleReply(event, post)}><input aria-label="Tulis balasan" value={replyDraft} onFocus={() => setEmojiTarget(post.id)} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar atau balasan…"/><button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button></form>}
               {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
             </div></article>)}
           {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}

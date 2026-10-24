@@ -20,6 +20,15 @@ const validPost = (overrides = {}) => ({
   ...overrides,
 });
 
+async function createPost(db, post = validPost()) {
+  const postRef = doc(collection(db, 'posts'));
+  const rateLimitRef = doc(db, 'postRateLimits', post.authorId);
+  const batch = writeBatch(db);
+  batch.set(postRef, post);
+  batch.set(rateLimitRef, { uid: post.authorId, lastSentAt: serverTimestamp() });
+  return batch.commit();
+}
+
 beforeAll(async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-sl-community-rules',
@@ -66,30 +75,33 @@ describe('posts', () => {
   });
 
   it('pengguna login boleh membuat postingan yang valid', async () => {
-    await assertSucceeds(addDoc(collection(asUser('alice'), 'posts'), validPost()));
+    await assertSucceeds(createPost(asUser('alice'), validPost()));
   });
 
   it('semua kategori yang diizinkan diterima', async () => {
-    for (const topic of ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']) {
-      await assertSucceeds(addDoc(collection(asUser('alice'), 'posts'), validPost({ topic })));
+    for (const [index, topic] of ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'].entries()) {
+      const uid = `topic-user-${index}`;
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `profiles/${uid}`), {
+          displayName: 'Alice', email: `${uid}@example.test`, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+        });
+      });
+      await assertSucceeds(createPost(asUser(uid), validPost({ authorId: uid, topic })));
     }
   });
 
   it('kategori di luar daftar ditolak', async () => {
-    await assertFails(addDoc(collection(asUser('alice'), 'posts'), validPost({ topic: 'Lainnya' })));
+    await assertFails(createPost(asUser('alice'), validPost({ topic: 'Lainnya' })));
   });
 
   it('isi tepat 2000 karakter diterima, 2001 ditolak, kosong ditolak', async () => {
-    const col = collection(asUser('alice'), 'posts');
-    await assertSucceeds(addDoc(col, validPost({ body: 'a'.repeat(2000) })));
-    await assertFails(addDoc(col, validPost({ body: 'a'.repeat(2001) })));
-    await assertFails(addDoc(col, validPost({ body: '' })));
+    await assertSucceeds(createPost(asUser('alice'), validPost({ body: 'a'.repeat(2000) })));
+    await assertFails(createPost(asUser('bob'), validPost({ authorId: 'bob', authorName: 'Bob', body: 'a'.repeat(2001) })));
+    await assertFails(createPost(asUser('bob'), validPost({ authorId: 'bob', authorName: 'Bob', body: '' })));
   });
 
   it('isi 2000 karakter dengan baris baru tetap diterima', async () => {
-    await assertSucceeds(
-      addDoc(collection(asUser('alice'), 'posts'), validPost({ body: 'a\n'.repeat(1000) }))
-    );
+    await assertSucceeds(createPost(asUser('alice'), validPost({ body: 'a\n'.repeat(1000) })));
   });
 
   it('authorId harus sama dengan uid pengirim', async () => {
@@ -108,12 +120,23 @@ describe('posts', () => {
 
   it('createdAt harus waktu server', async () => {
     await assertFails(
-      addDoc(collection(asUser('alice'), 'posts'), validPost({ createdAt: Timestamp.fromMillis(1000) }))
+      createPost(asUser('alice'), validPost({ createdAt: Timestamp.fromMillis(1000) }))
     );
   });
 
   it('field tambahan ditolak', async () => {
-    await assertFails(addDoc(collection(asUser('alice'), 'posts'), validPost({ isAdmin: true })));
+    await assertFails(createPost(asUser('alice'), validPost({ isAdmin: true })));
+  });
+
+  it('postingan kedua dalam jeda 10 detik ditolak oleh aturan server', async () => {
+    await assertSucceeds(createPost(asUser('alice'), validPost()));
+    await assertFails(createPost(asUser('alice'), validPost({ body: 'Spam kedua' })));
+  });
+
+  it('penanda cooldown tidak dapat ditulis untuk pengguna lain', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'postRateLimits/bob'), {
+      uid: 'bob', lastSentAt: serverTimestamp(),
+    }));
   });
 
   it('pemilik boleh mengubah isi dan topik postingannya', async () => {

@@ -438,3 +438,134 @@ describe('verifikasi admin dan audit otomatis', () => {
     await assertFails(getDoc(doc(asAnon(), 'verificationAudit/audit-private')));
   });
 });
+
+
+describe('moderasi laporan obrolan dan audit append-only', () => {
+  async function seedReport() {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'postReports/post-alice_bob'), {
+        targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'bob',
+        reason: 'Spam atau promosi berulang', createdAt: Timestamp.now(),
+      });
+    });
+  }
+
+  async function seedModeration(status = 'Ditinjau') {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'postReportModeration/post-alice_bob'), {
+        reportId: 'post-alice_bob', status, updatedBy: 'admin',
+        updatedAt: Timestamp.now(), latestAuditId: 'audit-seed',
+      });
+      await setDoc(doc(db, 'postReportAudit/audit-seed'), {
+        reportId: 'post-alice_bob', previousStatus: 'Baru', newStatus: status,
+        actorUid: 'admin', note: '', createdAt: Timestamp.now(),
+      });
+    });
+  }
+
+  it('admin dapat mengubah Baru menjadi Ditinjau bersama audit dalam satu batch', async () => {
+    await seedReport();
+    const db = asAdmin();
+    const stateRef = doc(db, 'postReportModeration/post-alice_bob');
+    const auditRef = doc(collection(db, 'postReportAudit'));
+    const batch = writeBatch(db);
+    batch.set(stateRef, {
+      reportId: 'post-alice_bob', status: 'Ditinjau', updatedBy: 'admin',
+      updatedAt: serverTimestamp(), latestAuditId: auditRef.id,
+    });
+    batch.set(auditRef, {
+      reportId: 'post-alice_bob', previousStatus: 'Baru', newStatus: 'Ditinjau',
+      actorUid: 'admin', note: 'Sedang diperiksa', createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
+    await assertSucceeds(getDoc(stateRef));
+    await assertSucceeds(getDoc(auditRef));
+  });
+
+  it('admin dapat menyelesaikan laporan dengan audit yang cocok', async () => {
+    await seedReport();
+    await seedModeration('Ditinjau');
+    const db = asAdmin();
+    const stateRef = doc(db, 'postReportModeration/post-alice_bob');
+    const auditRef = doc(collection(db, 'postReportAudit'));
+    const batch = writeBatch(db);
+    batch.update(stateRef, {
+      status: 'Selesai', updatedBy: 'admin',
+      updatedAt: serverTimestamp(), latestAuditId: auditRef.id,
+    });
+    batch.set(auditRef, {
+      reportId: 'post-alice_bob', previousStatus: 'Ditinjau', newStatus: 'Selesai',
+      actorUid: 'admin', note: '', createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('pengguna biasa dan anonim tidak dapat membaca status atau audit moderasi', async () => {
+    await seedReport();
+    await seedModeration();
+    await assertFails(getDoc(doc(asUser('alice'), 'postReportModeration/post-alice_bob')));
+    await assertFails(getDoc(doc(asAnon(), 'postReportModeration/post-alice_bob')));
+    await assertFails(getDoc(doc(asUser('alice'), 'postReportAudit/audit-seed')));
+    await assertFails(getDoc(doc(asAnon(), 'postReportAudit/audit-seed')));
+    await assertSucceeds(getDoc(doc(asAdmin(), 'postReportModeration/post-alice_bob')));
+    await assertSucceeds(getDoc(doc(asAdmin(), 'postReportAudit/audit-seed')));
+  });
+
+  it('perubahan status tanpa audit atomik ditolak', async () => {
+    await seedReport();
+    const db = asAdmin();
+    await assertFails(setDoc(doc(db, 'postReportModeration/post-alice_bob'), {
+      reportId: 'post-alice_bob', status: 'Ditinjau', updatedBy: 'admin',
+      updatedAt: serverTimestamp(), latestAuditId: 'audit-missing',
+    }));
+  });
+
+  it('audit tanpa perubahan status yang cocok ditolak', async () => {
+    await seedReport();
+    await assertFails(setDoc(doc(asAdmin(), 'postReportAudit/audit-alone'), {
+      reportId: 'post-alice_bob', previousStatus: 'Baru', newStatus: 'Ditinjau',
+      actorUid: 'admin', note: '', createdAt: serverTimestamp(),
+    }));
+  });
+
+  it('status tidak boleh mundur atau memakai previousStatus palsu', async () => {
+    await seedReport();
+    await seedModeration('Ditinjau');
+    const db = asAdmin();
+    const stateRef = doc(db, 'postReportModeration/post-alice_bob');
+    const auditRef = doc(collection(db, 'postReportAudit'));
+    const batch = writeBatch(db);
+    batch.update(stateRef, {
+      status: 'Selesai', updatedBy: 'admin',
+      updatedAt: serverTimestamp(), latestAuditId: auditRef.id,
+    });
+    batch.set(auditRef, {
+      reportId: 'post-alice_bob', previousStatus: 'Baru', newStatus: 'Selesai',
+      actorUid: 'admin', note: '', createdAt: serverTimestamp(),
+    });
+    await assertFails(batch.commit());
+  });
+
+  it('audit tidak dapat diperbarui atau dihapus, status tidak dapat dihapus', async () => {
+    await seedReport();
+    await seedModeration();
+    const adminDb = asAdmin();
+    await assertFails(updateDoc(doc(adminDb, 'postReportAudit/audit-seed'), { note: 'Diubah' }));
+    await assertFails(deleteDoc(doc(adminDb, 'postReportAudit/audit-seed')));
+    await assertFails(deleteDoc(doc(adminDb, 'postReportModeration/post-alice_bob')));
+  });
+
+  it('non-admin tidak dapat menulis status atau audit moderasi', async () => {
+    await seedReport();
+    await assertFails(setDoc(doc(asUser('alice'), 'postReportModeration/post-alice_bob'), {
+      reportId: 'post-alice_bob', status: 'Ditinjau', updatedBy: 'alice',
+      updatedAt: serverTimestamp(), latestAuditId: 'fake',
+    }));
+    await assertFails(setDoc(doc(asUser('alice'), 'postReportAudit/fake'), {
+      reportId: 'post-alice_bob', previousStatus: 'Baru', newStatus: 'Ditinjau',
+      actorUid: 'alice', note: '', createdAt: serverTimestamp(),
+    }));
+  });
+});

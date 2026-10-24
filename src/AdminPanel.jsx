@@ -3,6 +3,7 @@ import {
   collection, doc, limit, onSnapshot, orderBy, query, serverTimestamp, where, writeBatch
 } from 'firebase/firestore';
 import { CheckCircle2, Clock3, History, ShieldAlert, XCircle } from 'lucide-react';
+import ReportModerationPanel from './ReportModerationPanel.jsx';
 
 function formatDate(value) {
   if (!value || typeof value.toDate !== 'function') return 'Waktu server';
@@ -98,6 +99,7 @@ export default function AdminPanel({ db, user, onNotice }) {
     <p>Verifikasi pendaftaran dan periksa riwayat keputusan. Perubahan status dan catatan audit disimpan dalam satu batch atomik.</p>
     <div className="admin-security-note"><ShieldAlert size={18}/><span>Akses menggunakan klaim admin dari Firebase Authentication. Panel ini tidak memberikan hak admin kepada pengguna.</span></div>
     {error && <p className="form-error" role="alert">{error}</p>}
+    <ReportModerationPanel db={db} user={user} onNotice={onNotice}/>
     <div className="admin-subheading"><h3><Clock3 size={18}/> Pendaftaran menunggu</h3><span>{pending.length} / 50</span></div>
     {loadingPending && <p role="status">Memuat pendaftaran…</p>}
     {!loadingPending && pending.length === 0 && <div className="empty-state"><h3>Tidak ada pendaftaran menunggu</h3><p>Pendaftaran baru akan muncul di sini.</p></div>}

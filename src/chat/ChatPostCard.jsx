@@ -37,7 +37,7 @@ export default function ChatPostCard({
       </div>
       <p>{post.body}</p>
       <div className="engagement-summary">
-        <span>{(likeCounts[post.id] || 0) > 0 ? <><span className="reaction-count-emoji" aria-hidden="true">{postReactions[post.id] || '👍'}</span> {likeCounts[post.id]} reaksi</> : ''}</span>
+        <span>{(likeCounts[post.id] || 0) > 0 ? `${likeCounts[post.id]} reaksi` : ''}</span>
         <span>{(replyCounts[post.id] || 0) > 0 ? `${replyCounts[post.id] >= 4 && !showAllReplies ? '3+' : replyCounts[post.id]} komentar` : ''}</span>
       </div>
       {reactionPickerOpen && <div className="status-reactions" role="group" aria-label="Pilih reaksi">

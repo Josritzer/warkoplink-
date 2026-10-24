@@ -88,7 +88,7 @@ export function authErrorMessage(error) {
 
 export function postErrorMessage(error) {
   if (error?.code === 'permission-denied') {
-    return 'Pesan ditolak oleh aturan keamanan. Pastikan Anda sudah masuk dan isi pesan sesuai ketentuan.';
+    return 'Pesan ditolak oleh aturan keamanan. Tunggu 10 detik antar pesan dan pastikan isi pesan sesuai ketentuan.';
   }
   if (error?.code === 'unavailable') {
     return 'Koneksi bermasalah. Pesan belum terkirim, silakan coba lagi.';

@@ -56,5 +56,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SL_COMMUNITY_PLATFORM }}
         run: |
           node -e 'const c=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON); console.log("Firebase deploy service account:", c.client_email)'
-      - name: Deploy Hosting, Firestore Rules, and Storage Rules
-        run: npx --yes firebase-tools deploy --only hosting,firestore:rules,storage --project sl-community-platform --non-interactive
+
+      # Storage is intentionally excluded until Firebase Storage is explicitly initialized.
+      - name: Deploy Hosting and Firestore Rules
+        run: npx --yes firebase-tools deploy --only hosting,firestore:rules --project sl-community-platform --non-interactive

@@ -1,5 +1,6 @@
 import { MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 const REACTION_FIELDS = {
@@ -29,7 +30,28 @@ export default function ChatPostCard({
   const [comments, setComments] = useState(NO_COMMENTS);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const commentInputRef = useRef(null);
+  const menuTriggerRef = useRef(null);
+  const [menuPosition, setMenuPosition] = useState(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (openPostMenuId !== post.id || !menuTriggerRef.current) return undefined;
+    const updateMenuPosition = () => {
+      const rect = menuTriggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({
+        top: Math.min(rect.bottom + 8, window.innerHeight - 120),
+        right: Math.max(8, window.innerWidth - rect.right)
+      });
+    };
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [openPostMenuId, post.id]);
 
   useEffect(() => {
     setComments(showComments ? replyRows : NO_COMMENTS);
@@ -73,13 +95,16 @@ export default function ChatPostCard({
           <small title={post.createdAt?.toDate?.()?.toLocaleString('id-ID') || ''}>{relativePostTime(post.createdAt)}</small>
         </div>
         <div className="post-menu-wrap">
-          <button className="post-menu-trigger" type="button" aria-label="Opsi postingan" aria-expanded={openPostMenuId === post.id} onClick={() => setOpenPostMenuId(current => current === post.id ? '' : post.id)}><MoreHorizontal size={20}/></button>
-          {openPostMenuId === post.id && <div className="post-menu">
-            {ownPost
-              ? <button type="button" onClick={() => { setOpenPostMenuId(''); setDeleteConfirmId(post.id); }}><Trash2 size={14}/> Hapus obrolan</button>
-              : <button type="button" onClick={() => { setOpenPostMenuId(''); if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>⚑ Laporkan obrolan</button>}
-            <button type="button" onClick={() => { setOpenPostMenuId(''); sharePost(post); }}><Share2 size={14}/> Bagikan</button>
-          </div>}
+          <button ref={menuTriggerRef} className="post-menu-trigger" type="button" aria-label="Opsi postingan" aria-expanded={openPostMenuId === post.id} onClick={() => setOpenPostMenuId(current => current === post.id ? '' : post.id)}><MoreHorizontal size={20}/></button>
+          {openPostMenuId === post.id && menuPosition && typeof document !== 'undefined' && createPortal(
+            <div className="post-menu post-menu-portal" role="menu" style={{ position: 'fixed', top: menuPosition.top, right: menuPosition.right, zIndex: 9999 }}>
+              {ownPost
+                ? <button type="button" role="menuitem" onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); setDeleteConfirmId(post.id); }}><Trash2 size={14}/> Hapus obrolan</button>
+                : <button type="button" role="menuitem" onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>⚑ Laporkan obrolan</button>}
+              <button type="button" role="menuitem" onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); sharePost(post); }}><Share2 size={14}/> Bagikan</button>
+            </div>,
+            document.body
+          )}
         </div>
       </div>
       <p>{post.body}</p>

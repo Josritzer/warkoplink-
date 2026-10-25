@@ -57,33 +57,21 @@ describe('ChatPostCard', () => {
     expect(screen.queryByRole('button', { name: 'Beri reaksi ❤️' })).toBeNull();
   });
 
-  it('keeps comments hidden by default and fetches only after tapping the count', async () => {
-    const values = props({
-      replyCounts: { 'post-1': 3 },
-      openReplies: vi.fn().mockResolvedValue([
-        { id: 'comment-1', authorName: 'Budi', body: 'Iya saya di sini' }
-      ])
-    });
+  it('opens the dedicated reply page when tapping the comment count', () => {
+    const values = props({ replyCounts: { 'post-1': 3 }, openReplyPage: vi.fn().mockResolvedValue(undefined) });
     render(<ChatPostCard {...values} />);
     expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
-    expect(values.openReplies).not.toHaveBeenCalled();
-
+    expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '3 komentar' }));
-    expect(await screen.findByText('Iya saya di sini')).toBeTruthy();
-    expect(values.openReplies).toHaveBeenCalledWith(values.post);
-    expect(screen.getByRole('textbox', { name: 'Tulis komentar' })).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: '3 komentar' }));
-    expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
-    expect(values.closeReplies).toHaveBeenCalledWith(values.post);
+    expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
   });
 
-  it('Balas opens the comment panel and focuses the comment input', async () => {
-    const values = props();
+  it('Balas opens the dedicated reply page', () => {
+    const values = props({ openReplyPage: vi.fn().mockResolvedValue(undefined) });
     render(<ChatPostCard {...values} />);
     fireEvent.click(screen.getByRole('button', { name: 'Balas' }));
-    expect(await screen.findByRole('textbox', { name: 'Tulis komentar' })).toBeTruthy();
-    expect(values.openReplies).toHaveBeenCalledWith(values.post);
+    expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
+    expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
   });
 
   // Regresi: `repliesByPost[post.id] || []` menghasilkan array baru di tiap render, sehingga efek

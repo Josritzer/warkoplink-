@@ -19,6 +19,24 @@ function props(overrides = {}) {
 }
 
 describe('ChatPostCard', () => {
+  it('collapses long post text and expands it on demand', () => {
+    const longBody = Array.from({ length: 45 }, (_, index) => `Kalimat ${index + 1} untuk menguji teks panjang.`).join(' ');
+    render(<ChatPostCard {...props({ post: { ...props().post, body: longBody } })} />);
+    const body = screen.getByText(longBody);
+    expect(body.className).toContain('is-collapsed');
+    const toggle = screen.getByRole('button', { name: 'Baca selengkapnya ↓' });
+    fireEvent.click(toggle);
+    expect(body.className).not.toContain('is-collapsed');
+    expect(screen.getByRole('button', { name: 'Tampilkan lebih sedikit ↑' }).getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('wires the explicit like button to the persisted reaction handler', () => {
+    const values = props({ handleLikePost: vi.fn(), postReactions: {} });
+    render(<ChatPostCard {...values} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Suka' }));
+    expect(values.handleLikePost).toHaveBeenCalledWith(values.post);
+  });
+
   it('hides the reaction summary entirely when total is zero', () => {
     render(<ChatPostCard {...props({
       reactionSummaries: { 'post-1': { reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0 } }

@@ -510,3 +510,10 @@
 .reply-page-form textarea{width:100%;resize:vertical;min-height:76px;border:1px solid #dfe4f1;border-radius:13px;padding:12px;outline:none}
 .reply-page-form textarea:focus{border-color:#8097f4;box-shadow:0 0 0 3px #3156d91c}
 @media(max-width:640px){.reply-thread-list{gap:9px}.reply-page-item{gap:8px;padding:10px;border-radius:14px}.reply-page-item-nested{margin-left:16px}.reply-page-avatar{flex:0 0 34px;width:34px;height:34px}.reply-page-form{margin-left:-2%;margin-right:-2%;border-radius:16px 16px 0 0;padding:11px}.reply-comment-actions{gap:12px}.reply-comment-actions button{min-height:28px}.reply-page-form-bottom{gap:8px}}
+
+.reply-comment-menu-trigger{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:0;background:transparent;color:#6c7897}
+.reply-comment-menu-trigger:hover,.reply-comment-menu-trigger[aria-expanded="true"]{background:#edf1ff;color:#3156d9}
+.reply-comment-menu{display:flex;flex-direction:column;gap:3px;align-items:stretch;margin:5px 0 2px auto;padding:5px;background:#fff;border:1px solid #e3e8f4;border-radius:12px;box-shadow:0 8px 24px #17255414;max-width:210px}
+.reply-comment-menu button{display:flex;align-items:center;gap:9px;text-align:left;border:0;background:transparent;padding:9px 11px;border-radius:8px;color:#35415f;font-size:12px;font-weight:600}
+.reply-comment-menu button:hover{background:#f0f3ff;color:#3156d9}
+.reply-comment-menu button:disabled{opacity:.55;cursor:wait}

@@ -127,16 +127,18 @@ describe('ChatPostCard', () => {
     expect(values.handleDeletePost).toHaveBeenCalledWith(values.post);
   });
 
-  it('offers the delete action only to the owner', () => {
+  it('offers the delete action only to the owner', async () => {
     const values = props({ openPostMenuId: 'post-1' });
     render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Hapus obrolan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Opsi postingan' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Hapus obrolan/ }));
     expect(values.setDeleteConfirmId).toHaveBeenCalledWith('post-1');
   });
 
-  it('does not offer delete to another user', () => {
+  it('does not offer delete to another user', async () => {
     render(<ChatPostCard {...props({ user: { uid: 'someone-else' }, openPostMenuId: 'post-1' })} />);
-    expect(screen.queryByRole('button', { name: /Hapus obrolan/ })).toBeNull();
-    expect(screen.getByRole('button', { name: /Laporkan obrolan/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Opsi postingan' }));
+    expect(screen.queryByRole('menuitem', { name: /Hapus obrolan/ })).toBeNull();
+    expect(await screen.findByRole('menuitem', { name: /Laporkan obrolan/ })).toBeTruthy();
   });
 });

@@ -730,9 +730,11 @@ export default function App() {
     const reactionRef = doc(db, 'posts', post.id, 'replies', reply.id, 'reactions', user.uid);
     setCommentActionBusyId(reply.id);
     try {
-      const existing = await getDoc(reactionRef);
-      if (existing.exists()) await deleteDoc(reactionRef);
-      else await setDoc(reactionRef, { uid: user.uid, emoji: '👍', createdAt: serverTimestamp() });
+      await runTransaction(db, async transaction => {
+        const existing = await transaction.get(reactionRef);
+        if (existing.exists()) transaction.delete(reactionRef);
+        else transaction.set(reactionRef, { uid: user.uid, emoji: '👍', createdAt: serverTimestamp() });
+      });
       const [count, mine] = await Promise.all([
         getCountFromServer(collection(db, 'posts', post.id, 'replies', reply.id, 'reactions')),
         getDoc(reactionRef)

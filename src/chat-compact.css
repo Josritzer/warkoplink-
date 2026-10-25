@@ -369,42 +369,29 @@
 }
 #community-feed .comment-empty { margin: 4px 0 8px; padding: 0; color: #858b94; font-size: 12px; }
 #community-feed .comment-skeleton { gap: 6px; padding: 5px 0 9px; }
-#community-feed .reply-form {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 9px;
+#community-feed .reply-form input,
+#community-feed .tulis-komentar {
+  box-sizing: border-box; flex: 1; min-width: 0; width: 100%; height: 44px;
+  padding: 0 16px; border: 1px solid transparent; border-radius: 999px;
+  background: #f0f2f5; color: #1f2328; font-size: 14px;
+  outline: none !important; box-shadow: none !important;
+  transition: background-color .15s ease, border-color .15s ease;
 }
-#community-feed .reply-form input {
-  box-sizing: border-box;
-  flex: 1;
-  min-width: 0;
-  height: 40px;
-  padding: 0 15px;
-  border: 1px solid #e3e5e9;
-  border-radius: 999px;
-  outline: 0;
-  background: #f7f8fa;
-  color: var(--feed-ink);
-  font-size: 13px;
-  transition: border-color .15s, background .15s, box-shadow .15s;
-}
-#community-feed .reply-form input:focus {
-  border-color: #b9a4e7;
-  background: #fff;
-  box-shadow: 0 0 0 3px #7650c714;
+#community-feed .reply-form input:focus,
+#community-feed .tulis-komentar:focus {
+  background: #fff; border-color: #d0d7de; outline: none !important; box-shadow: none !important;
 }
 #community-feed .reply-form button {
-  display: grid;
-  flex: 0 0 34px;
-  width: 34px;
-  height: 34px;
-  min-height: 34px;
-  place-items: center;
-  padding: 0;
-  border-radius: 50%;
+  display: grid; flex: 0 0 44px; width: 44px; height: 44px; min-height: 44px;
+  place-items: center; padding: 0; border-radius: 50%;
 }
-
+.reply-composer-sticky {
+  position: sticky; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  display: flex; align-items: center; gap: 8px; margin: 0;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #e5e7eb; background: #fff;
+}
+#community-feed .post-card { overflow: visible; }
 /* Compact native-app header and install icon. */
 .app-header {
   min-height: 56px;
@@ -436,12 +423,9 @@
 }
 .app-header .button-install svg { width: 16px; height: 16px; }
 #community-feed button:focus-visible,
+.app-header button:focus-visible { outline: 2px solid #d0d7de; outline-offset: 2px; }
 #community-feed input:focus-visible,
-#community-feed textarea:focus-visible,
-.app-header button:focus-visible {
-  outline: 2px solid #7650c7;
-  outline-offset: 2px;
-}
+#community-feed textarea:focus-visible { outline: none !important; box-shadow: none !important; }
 @media (max-width: 620px) {
   .app-shell { padding-left: 16px; padding-right: 16px; }
   #community-feed.content-section { padding: 18px 0 26px; }
@@ -464,22 +448,8 @@
   #community-feed *, .app-header * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
 
-/* Keep the reply composer available at the bottom while reading a thread. */
-#community-feed .comment-section { padding-bottom: 50px; }
-#community-feed .reply-form {
-  position: sticky;
-  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
-  z-index: 4;
-  margin: 8px -12px -50px;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid #eff3f4;
-  background: rgba(255,255,255,.97);
-  backdrop-filter: blur(10px);
-}
-@media (max-width: 620px) {
-  #community-feed .reply-form { margin-left: -12px; margin-right: -12px; }
-}
-
+/* Composer is a sibling of the post card and keeps its own layout space. */
+#community-feed .comment-section { padding-bottom: 8px; }
 #community-feed .comment-section:has(.inline-reply)::before {
   content: '';
   position: absolute;
@@ -523,23 +493,7 @@
 }
 .post-menu-portal button:hover { background: #fff1f1; color: #c62828; }
 
-/* Twitter-like comment field: neutral by default, a thin blue focus indicator. */
-#community-feed .reply-form .tulis-komentar,
-#community-feed .tulis-komentar {
-  border: 1px solid #eff3f4;
-  background: #eff3f4;
-  outline: none !important;
-  box-shadow: none !important;
-}
-#community-feed .reply-form .tulis-komentar:focus,
-#community-feed .tulis-komentar:focus {
-  border-color: #1d9bf0;
-  background: #fff;
-  outline: none !important;
-  box-shadow: 0 0 0 1px #1d9bf0 !important;
-}
-#community-feed .reply-form {
-  position: sticky;
-  bottom: calc(60px + env(safe-area-inset-bottom, 0px));
-  z-index: 10;
-}
+/* Layer order: navigation 20, composer 30, backdrop 40, menu 50. */
+.post-menu-backdrop { position: fixed; inset: 0; z-index: 40; background: transparent; }
+.post-menu-portal { z-index: 50; }
+.bottom-nav { z-index: 20; }

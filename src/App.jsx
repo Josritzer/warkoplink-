@@ -220,6 +220,8 @@ export default function App() {
   const [topic, setTopic] = useState('Semua');
   const [composerOpen, setComposerOpen] = useState(false);
   const [replyingPostId, setReplyingPostId] = useState('');
+  const [selectedReplyPost, setSelectedReplyPost] = useState(null);
+  const [replyPageLoading, setReplyPageLoading] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
   const [replyCounts, setReplyCounts] = useState({});
   const [repliesByPost, setRepliesByPost] = useState({});
@@ -688,6 +690,16 @@ export default function App() {
     setRepliesByPost(current => ({ ...current, [post.id]: [] }));
   }
 
+  async function openReplyPage(post) {
+    if (!post?.id) return;
+    setSelectedReplyPost(post);
+    setSection('Balas');
+    setReplyPageLoading(true);
+    await openReplies(post);
+    setReplyPageLoading(false);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
   async function handleReply(event, post) {
     event.preventDefault();
     if (!user) { openAuth(false); return false; }
@@ -857,6 +869,29 @@ export default function App() {
     <main>
       {section === 'Panel Admin' && isAdmin ? <AdminPanel db={db} user={user} onNotice={setNotice}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => setSection('Beranda')}>Kembali</button></section> :
+      section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
+        <button className="button button-quiet reply-page-back" type="button" onClick={() => setSection('Beranda')}>← Kembali ke beranda</button>
+        <span className="eyebrow">RUANG DISKUSI</span><h2>Balas obrolan</h2>
+        {selectedReplyPost ? <article className="reply-original-post">
+          <div className="reply-original-meta"><b>{selectedReplyPost.authorName || 'Anggota SL'}</b><span>{selectedReplyPost.topic || 'Obrolan Umum'}</span></div>
+          <p>{selectedReplyPost.body}</p><small>{relativePostTime(selectedReplyPost.createdAt)}</small>
+        </article> : <p>Obrolan tidak ditemukan. Kembali ke beranda untuk memilih obrolan.</p>}
+        <div className="reply-thread-list" aria-label="Komentar dan balasan">
+          <h3>Komentar {selectedReplyPost ? '(' + (replyCounts[selectedReplyPost.id] ?? selectedReplyPost.commentCount ?? 0) + ')' : ''}</h3>
+          {replyPageLoading ? <div className="empty-state" role="status"><p>Memuat komentar…</p></div> :
+            selectedReplyPost && (repliesByPost[selectedReplyPost.id] || []).length === 0
+              ? <p className="reply-page-empty">Belum ada komentar. Jadilah yang pertama menanggapi.</p>
+              : (selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []) : []).map(reply => <article className="reply-page-item" key={reply.id}>
+                  <div className="reply-page-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0,1).toUpperCase()}</div>
+                  <div><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
+                </article>)}
+        </div>
+        {selectedReplyPost && <form className="reply-page-form" onSubmit={event => handleReply(event, selectedReplyPost)}>
+          <label htmlFor="reply-page-input">Tulis komentar</label>
+          <textarea id="reply-page-input" autoFocus value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} rows={4} placeholder="Tulis tanggapan yang relevan…"/>
+          <div className="reply-page-form-bottom"><small>{replyDraft.length}/1000</small><button className="button button-dark" type="submit" disabled={!replyDraft.trim()}>Kirim balasan <Send size={15}/></button></div>
+        </form>}
+      </section> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
         {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article>{isAdmin && <button className="button button-dark admin-entry-button" onClick={() => setSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
@@ -866,6 +901,7 @@ export default function App() {
       (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Cari warkop</button></section> :
       <ChatPanel
+        readOnly={section === 'Beranda'} onOpenDiscussion={() => { setSection('Obrolan'); setComposerOpen(true); }}
         user={user} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
         topic={topic} setTopic={setTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
         openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
@@ -878,7 +914,7 @@ export default function App() {
           reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost,
           postReactions, reactionSummaries, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
           handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
-          handleReply, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
+          handleReply, openReplyPage, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
           deletingPostId, handleDeletePost
         }}
       />}

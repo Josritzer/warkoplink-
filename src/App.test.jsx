@@ -106,7 +106,7 @@ describe('laporan obrolan', () => {
     emitPosts([{ id: 'post-1', authorId: 'author-1', authorName: 'Budi', body: 'Pesan contoh', topic: 'Obrolan Umum' }]);
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Opsi postingan' }));
-    await user.click(await screen.findByRole('button', { name: /Laporkan obrolan/ }));
+    await user.click(await screen.findByRole('menuitem', { name: /Laporkan obrolan/ }));
     await user.selectOptions(screen.getByLabelText('Alasan laporan'), 'Lainnya');
     await user.click(screen.getByRole('button', { name: 'Kirim laporan' }));
     await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ targetPostId: 'post-1', targetAuthorId: 'author-1', reporterUid: 'u1', reason: 'Lainnya', createdAt: '__SERVER_TS__' })));

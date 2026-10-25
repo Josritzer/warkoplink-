@@ -79,7 +79,10 @@ const AUTH_MESSAGES = {
   'auth/wrong-password': 'Email atau kata sandi salah.',
   'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.',
   'auth/network-request-failed': 'Koneksi internet bermasalah. Periksa jaringan Anda lalu coba lagi.',
-  'auth/operation-not-allowed': 'Pendaftaran dengan email belum diaktifkan.',
+  'auth/operation-not-allowed': 'Metode masuk ini belum diaktifkan.',
+  'auth/popup-blocked': 'Jendela login diblokir browser. Izinkan pop-up lalu coba lagi.',
+  'auth/account-exists-with-different-credential': 'Email ini sudah terdaftar dengan cara masuk lain. Masuk memakai email dan kata sandi.',
+  'auth/unauthorized-domain': 'Domain ini belum diizinkan untuk login Facebook.',
 };
 
 export function authErrorMessage(error) {

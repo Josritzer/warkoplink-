@@ -486,3 +486,27 @@
 #community-feed .post-action-wrap .status-reaction{width:32px;height:32px;flex:0 0 32px;font-size:20px}
 @keyframes reactionPickerIn{from{opacity:0;translate:0 5px}to{opacity:1;translate:0 0}}
 @media(prefers-reduced-motion:reduce){#community-feed .animate-reaction-summary,#community-feed .post-action-wrap .status-reactions{animation:none}}
+
+
+/* Komentar mobile-first: thread bertingkat, identitas induk, dan aksi ringkas. */
+.reply-thread-list{display:flex;flex-direction:column;gap:12px}
+.reply-page-item{display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border:1px solid #e8ebf4;border-radius:16px;background:#fff;min-width:0}
+.reply-page-item-nested{margin-left:clamp(18px,5vw,44px);border-left:3px solid #d9e1ff;background:#fbfcff}
+.reply-page-item-content{min-width:0;flex:1}
+.reply-page-item-content>p{white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0 8px;line-height:1.55;font-size:14px}
+.reply-parent-identity{display:block;color:#68759a;margin:0 0 5px;font-size:11px}
+.reply-parent-identity b{color:#3156d9}
+.reply-deleted-body{color:#7b849b;font-style:italic}
+.reply-comment-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.reply-comment-actions small{color:#818ba2;font-size:11px}
+.reply-comment-actions button{border:0;background:transparent;color:#5e6a87;font-size:12px;font-weight:700;padding:3px 0}
+.reply-comment-actions button:disabled{opacity:.55;cursor:wait}
+.reply-comment-actions button:hover{color:#3156d9}
+.reply-load-more{width:100%;margin:4px 0 12px}
+.reply-target-banner{display:flex;align-items:center;gap:6px;background:#edf1ff;color:#46557f;border-radius:10px;padding:9px 11px;font-size:12px}
+.reply-target-banner b{color:#3156d9}
+.reply-target-banner button{margin-left:auto;border:0;background:transparent;color:#3156d9;font-weight:700}
+.reply-page-form{position:sticky;bottom:0;z-index:4;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border:1px solid #e8ebf4;border-radius:18px;padding:13px;margin-top:14px;box-shadow:0 -6px 24px #1725540b}
+.reply-page-form textarea{width:100%;resize:vertical;min-height:76px;border:1px solid #dfe4f1;border-radius:13px;padding:12px;outline:none}
+.reply-page-form textarea:focus{border-color:#8097f4;box-shadow:0 0 0 3px #3156d91c}
+@media(max-width:640px){.reply-thread-list{gap:9px}.reply-page-item{gap:8px;padding:10px;border-radius:14px}.reply-page-item-nested{margin-left:16px}.reply-page-avatar{flex:0 0 34px;width:34px;height:34px}.reply-page-form{margin-left:-2%;margin-right:-2%;border-radius:16px 16px 0 0;padding:11px}.reply-comment-actions{gap:12px}.reply-comment-actions button{min-height:28px}.reply-page-form-bottom{gap:8px}}

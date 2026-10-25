@@ -278,7 +278,7 @@ service cloud.firestore {
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.authorName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
         && (!request.resource.data.keys().hasAny(['authorPhotoURL']) || request.resource.data.authorPhotoURL == null || (request.resource.data.authorPhotoURL is string && request.resource.data.authorPhotoURL.size() <= 2048))
-        && (!request.resource.data.keys().hasAny(['parentReplyId']) || request.resource.data.parentReplyId == null || (request.resource.data.parentReplyId is string && exists(/databases/$(database)/documents/posts/$(postId)/replies/$(request.resource.data.parentReplyId))))
+        && (!request.resource.data.keys().hasAny(['parentReplyId']) || request.resource.data.parentReplyId == null || (request.resource.data.parentReplyId is string && exists(/databases/$(database)/documents/posts/$(postId)/replies/$(request.resource.data.parentReplyId)) && request.resource.data.parentAuthorName == get(/databases/$(database)/documents/posts/$(postId)/replies/$(request.resource.data.parentReplyId)).data.authorName))
         && (!request.resource.data.keys().hasAny(['parentAuthorName']) || request.resource.data.parentAuthorName == null || (request.resource.data.parentAuthorName is string && request.resource.data.parentAuthorName.size() <= 60))
         && request.resource.data.body is string
         && request.resource.data.body.size() >= 1

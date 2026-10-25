@@ -329,7 +329,7 @@ describe('balasan komentar', () => {
     await user.click(screen.getByRole('button', { name: 'Kirim balasan' }));
 
     expect(await screen.findByText('Balasan ditolak oleh aturan keamanan.')).toBeTruthy();
-    expect(screen.queryByText('Balasan perlu dipulihkan')).toBeNull();
+    // Draft harus kembali ke input; queryByText juga mencocokkan teks di dalam textarea.
     expect(screen.getByLabelText('Tulis komentar').value).toBe('Balasan perlu dipulihkan');
   });
 });

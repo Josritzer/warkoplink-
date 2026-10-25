@@ -231,6 +231,7 @@ export default function App() {
   const [replyTarget, setReplyTarget] = useState(null);
   const [commentReactionSummaries, setCommentReactionSummaries] = useState({});
   const [commentActionBusyId, setCommentActionBusyId] = useState('');
+  const [openCommentMenuId, setOpenCommentMenuId] = useState('');
   const [expandedReplies, setExpandedReplies] = useState({});
   const [likedPosts, setLikedPosts] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
@@ -968,10 +969,13 @@ export default function App() {
                     <b>{reply.authorName || 'Anggota komunitas'}</b><p className={reply.deleted ? "reply-deleted-body" : ""}>{reply.body}</p>
                     <div className="reply-comment-actions">
                       <small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small>
-                      {!reply.deleted && !reply.pending && <button type="button" onClick={() => { setReplyTarget(reply); document.getElementById('reply-page-input')?.focus(); }}>Balas</button>}
-                      {!reply.deleted && !reply.pending && <button type="button" onClick={() => handleCommentReaction(selectedReplyPost, reply)} disabled={commentActionBusyId === reply.id}>{commentReactionSummaries[reply.id]?.mine ? '👍 Disukai' : '👍 Suka'}{commentReactionSummaries[reply.id]?.count ? ` · ${commentReactionSummaries[reply.id].count}` : ''}</button>}
-                      {user?.uid === reply.authorId && !reply.deleted && !reply.pending && <button type="button" onClick={() => handleDeleteReply(selectedReplyPost, reply)} disabled={commentActionBusyId === reply.id}>Hapus</button>}
+                      {!reply.deleted && !reply.pending && <button className="reply-comment-menu-trigger" type="button" aria-label="Opsi komentar" aria-expanded={openCommentMenuId === reply.id} onClick={() => setOpenCommentMenuId(current => current === reply.id ? '' : reply.id)}><MoreHorizontal size={18}/></button>}
                     </div>
+                    {openCommentMenuId === reply.id && !reply.deleted && !reply.pending && <div className="reply-comment-menu" role="menu">
+                      <button type="button" role="menuitem" onClick={() => { setReplyTarget(reply); setOpenCommentMenuId(''); document.getElementById('reply-page-input')?.focus(); }}><MessageSquare size={14}/> Balas</button>
+                      <button type="button" role="menuitem" onClick={() => { setOpenCommentMenuId(''); handleCommentReaction(selectedReplyPost, reply); }} disabled={commentActionBusyId === reply.id}><Heart size={14}/>{commentReactionSummaries[reply.id]?.mine ? 'Batal suka' : 'Suka'}{commentReactionSummaries[reply.id]?.count ? ` · ${commentReactionSummaries[reply.id].count}` : ''}</button>
+                      {user?.uid === reply.authorId && <button type="button" role="menuitem" onClick={() => { setOpenCommentMenuId(''); handleDeleteReply(selectedReplyPost, reply); }} disabled={commentActionBusyId === reply.id}>Hapus komentar</button>}
+                    </div>}
                   </div>
                 </article>)}
           {selectedReplyPost && hasMoreRepliesByPost[selectedReplyPost.id] && <button className="button button-quiet reply-load-more" type="button" onClick={() => loadMoreReplies(selectedReplyPost)} disabled={loadingMoreRepliesPostId === selectedReplyPost.id}>{loadingMoreRepliesPostId === selectedReplyPost.id ? 'Memuat komentar…' : 'Lihat komentar sebelumnya'}</button>}

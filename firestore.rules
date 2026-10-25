@@ -274,18 +274,44 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) != true
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
         && request.resource.data.keys().hasAll(['authorId', 'authorName', 'body', 'createdAt'])
-        && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'createdAt', 'parentReplyId', 'parentAuthorName'])
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.authorName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
         && (!request.resource.data.keys().hasAny(['authorPhotoURL']) || request.resource.data.authorPhotoURL == null || (request.resource.data.authorPhotoURL is string && request.resource.data.authorPhotoURL.size() <= 2048))
+        && (!request.resource.data.keys().hasAny(['parentReplyId']) || request.resource.data.parentReplyId == null || (request.resource.data.parentReplyId is string && exists(/databases/$(database)/documents/posts/$(postId)/replies/$(request.resource.data.parentReplyId))))
+        && (!request.resource.data.keys().hasAny(['parentAuthorName']) || request.resource.data.parentAuthorName == null || (request.resource.data.parentAuthorName is string && request.resource.data.parentAuthorName.size() <= 60))
         && request.resource.data.body is string
         && request.resource.data.body.size() >= 1
         && request.resource.data.body.size() <= 1000
         && request.resource.data.createdAt == request.time;
-      allow update: if false;
+      // Penghapusan komentar oleh pemilik adalah soft-delete agar balasan anak tetap punya konteks.
+      allow update: if signedIn()
+        && resource.data.authorId == request.auth.uid
+        && resource.data.get('deleted', false) != true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'deleted'])
+        && request.resource.data.deleted == true
+        && request.resource.data.body == 'Komentar ini telah dihapus.';
+      // Hard-delete hanya untuk proses penghapusan status induk yang sudah ditandai.
       allow delete: if signedIn()
         && get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid
         && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) == true;
+
+      match /reactions/{userId} {
+        allow read: if true;
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasAll(['uid', 'emoji', 'createdAt'])
+          && request.resource.data.keys().hasOnly(['uid', 'emoji', 'createdAt'])
+          && request.resource.data.uid == userId
+          && request.resource.data.emoji == '👍'
+          && request.resource.data.createdAt == request.time
+          && exists(/databases/$(database)/documents/posts/$(postId)/replies/$(replyId))
+          && get(/databases/$(database)/documents/posts/$(postId)/replies/$(replyId)).data.get('deleted', false) != true
+          && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) != true;
+        allow update: if false;
+        allow delete: if signedIn()
+          && request.auth.uid == userId;
+      }
     }
 
     // Direktori publik hanya menampilkan warkop yang telah diverifikasi.

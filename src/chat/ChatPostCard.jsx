@@ -102,9 +102,9 @@ export default function ChatPostCard({
             <div className="post-menu-backdrop" aria-hidden="true" onMouseDown={event => event.preventDefault()} onClick={() => setOpenPostMenuId('')} />
             <div className="post-menu post-menu-portal" role="menu" style={{ position: 'fixed', top: menuPosition.top, right: menuPosition.right, zIndex: 50 }}>
               {ownPost
-                ? <button type="button" role="menuitem" onMouseDown={event => { event.preventDefault(); event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); setDeleteConfirmId(post.id); }}><Trash2 size={14}/> Hapus obrolan</button>
-                : <button type="button" role="menuitem" onMouseDown={event => { event.preventDefault(); event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>⚑ Laporkan obrolan</button>}
-              <button type="button" role="menuitem" onMouseDown={event => { event.preventDefault(); event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); sharePost(post); }}><Share2 size={14}/> Bagikan</button>
+                ? <button type="button" role="menuitem" onMouseDown={event => { event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); setDeleteConfirmId(post.id); }}><Trash2 size={14}/> Hapus obrolan</button>
+                : <button type="button" role="menuitem" onMouseDown={event => { event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>⚑ Laporkan obrolan</button>}
+              <button type="button" role="menuitem" onMouseDown={event => { event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); sharePost(post); }}><Share2 size={14}/> Bagikan</button>
             </div>
             </>,
             document.body
@@ -154,7 +154,11 @@ export default function ChatPostCard({
       {deleteConfirmId === post.id && <div className="delete-confirm" role="group" aria-label="Konfirmasi hapus obrolan"><p>Hapus obrolan ini secara permanen?</p><div className="report-form-actions"><button className="button button-reject" type="button" onClick={() => handleDeletePost(post)} disabled={deletingPostId === post.id}>{deletingPostId === post.id ? 'Menghapus…' : 'Ya, hapus'}</button><button className="button button-quiet" type="button" onClick={() => setDeleteConfirmId('')} disabled={deletingPostId === post.id}>Batal</button></div></div>}
     </div>
   </article>
-  {showComments && <form className="reply-form reply-composer-sticky" onSubmit={event => handleReply(event, post)}>
+  {showComments && <form className="reply-form reply-composer-sticky" onSubmit={async event => {
+    event.preventDefault();
+    const sent = await handleReply(event, post);
+    if (sent) commentInputRef.current?.blur();
+  }}>
     <input className="tulis-komentar" ref={commentInputRef} autoFocus aria-label="Tulis komentar" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar…"/>
     <button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button>
   </form>}

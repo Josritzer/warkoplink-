@@ -497,3 +497,19 @@
 .post-menu-backdrop { position: fixed; inset: 0; z-index: 40; background: transparent; }
 .post-menu-portal { z-index: 50; }
 .bottom-nav { z-index: 20; }
+
+
+/* Final comment composer fixes: neutral focus and a reliably clickable menu. */
+#community-feed .reply-form input.tulis-komentar,
+#community-feed .reply-form input.tulis-komentar:focus,
+#community-feed .reply-form input.tulis-komentar:focus-visible {
+  outline: 0 !important;
+  box-shadow: none !important;
+  border-color: #d0d7de !important;
+  -webkit-tap-highlight-color: transparent;
+}
+#community-feed .reply-form input.tulis-komentar:focus,
+#community-feed .reply-form input.tulis-komentar:focus-visible { background: #fff !important; }
+.post-menu-backdrop { z-index: 1000 !important; }
+.post-menu-portal { z-index: 1001 !important; }
+.reply-composer-sticky { z-index: 30; }

@@ -310,7 +310,9 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) != true;
         allow update: if false;
         allow delete: if signedIn()
-          && request.auth.uid == userId;
+          && (request.auth.uid == userId
+            || (get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid
+              && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) == true));
       }
     }
 

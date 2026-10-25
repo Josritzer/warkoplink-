@@ -667,6 +667,7 @@ export default function App() {
         getCountFromServer(collection(db, 'posts', post.id, 'replies'))
       ]);
       const replies = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
+      void loadCommentReactionSummaries(post, replies);
       setReplyCursorByPost(current => ({ ...current, [post.id]: snapshot.docs.at(-1) || null }));
       setHasMoreRepliesByPost(current => ({ ...current, [post.id]: snapshot.size === 10 }));
       setRepliesByPost(current => {
@@ -685,6 +686,21 @@ export default function App() {
     }
   }
 
+  async function loadCommentReactionSummaries(post, replies) {
+    if (!db || !post?.id || !replies.length) return;
+    try {
+      const entries = await Promise.all(replies.filter(reply => !reply.pending).map(async reply => {
+        const path = collection(db, 'posts', post.id, 'replies', reply.id, 'reactions');
+        const [count, mine] = await Promise.all([
+          getCountFromServer(path),
+          user?.uid ? getDoc(doc(db, 'posts', post.id, 'replies', reply.id, 'reactions', user.uid)) : Promise.resolve(null)
+        ]);
+        return [reply.id, { count: count.data().count, mine: Boolean(mine?.exists()) }];
+      }));
+      setCommentReactionSummaries(current => ({ ...current, ...Object.fromEntries(entries) }));
+    } catch { /* Ringkasan dapat dimuat kembali saat pengguna berinteraksi. */ }
+  }
+
   async function loadMoreReplies(post) {
     if (!db || !post?.id || !replyCursorByPost[post.id] || loadingMoreRepliesPostId) return;
     setLoadingMoreRepliesPostId(post.id);
@@ -692,6 +708,7 @@ export default function App() {
       const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'replies'),
         orderBy('createdAt', 'desc'), startAfter(replyCursorByPost[post.id]), limit(10)));
       const older = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
+      void loadCommentReactionSummaries(post, older);
       setReplyCursorByPost(current => ({ ...current, [post.id]: snapshot.docs.at(-1) || current[post.id] }));
       setHasMoreRepliesByPost(current => ({ ...current, [post.id]: snapshot.size === 10 }));
       setRepliesByPost(current => {

@@ -146,7 +146,7 @@ export default function ChatPostCard({
                 <div className="inline-reply-body"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
               </div>)}
         <form className="reply-form" onSubmit={event => handleReply(event, post)}>
-          <input ref={commentInputRef} autoFocus aria-label="Tulis komentar" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar…"/>
+          <input className="tulis-komentar" ref={commentInputRef} autoFocus aria-label="Tulis komentar" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} placeholder="Tulis komentar…"/>
           <button className="button button-dark" type="submit" disabled={!replyDraft.trim()} aria-label="Kirim komentar"><Send size={15}/></button>
         </form>
       </div>}

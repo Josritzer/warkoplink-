@@ -54,9 +54,9 @@
   transition: border-color .15s, background .15s, box-shadow .15s;
 }
 #community-feed .search:focus-within {
-  border-color: #b9a4e7;
+  border-color: #d0d7de;
   background: #fff;
-  box-shadow: 0 0 0 3px #7650c714;
+  box-shadow: none;
 }
 #community-feed .search span { font-size: 19px; line-height: 1; }
 #community-feed .search input { padding: 10px 0; font-size: 13px; }

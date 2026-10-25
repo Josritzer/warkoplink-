@@ -7,10 +7,6 @@ const REACTION_FIELDS = {
   like: '👍', love: '❤️', haha: '😂', wow: '😮', sad: '😢', angry: '😡'
 };
 const EMPTY_REACTIONS = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
-// Referensi tunggal untuk "belum ada komentar". Literal `[]` baru di setiap render akan membuat
-// useEffect di bawah berjalan terus-menerus (setComments([]) -> render ulang -> `[]` baru -> ...).
-const NO_COMMENTS = [];
-
 // Tampilan satu status; state dan operasi tetap dimiliki App agar data tersinkron antarpengguna.
 export default function ChatPostCard({
   post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,

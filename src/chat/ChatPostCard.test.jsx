@@ -93,17 +93,16 @@ describe('ChatPostCard', () => {
     expect(counter.renders).toBeLessThanOrEqual(3);
   });
 
-  it('keeps render count bounded while opening and closing the comment panel', async () => {
+  it('keeps render count bounded when opening the dedicated reply page', () => {
     const counter = renderCounter(60);
     const values = props({
       relativePostTime: counter.relativePostTime,
       replyCounts: { 'post-1': 1 },
-      openReplies: vi.fn().mockResolvedValue([{ id: 'comment-1', authorName: 'Budi', body: 'Komentar stabil' }])
+      openReplyPage: vi.fn().mockResolvedValue(undefined)
     });
     render(<ChatPostCard {...values} />);
     fireEvent.click(screen.getByRole('button', { name: '1 komentar' }));
-    expect(await screen.findByText('Komentar stabil')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '1 komentar' }));
+    expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
     expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
     expect(counter.renders).toBeLessThanOrEqual(30);
   });

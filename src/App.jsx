@@ -652,11 +652,15 @@ export default function App() {
     setReplyingPostId(post.id);
     setReplyDraft('');
     try {
-      const snapshot = await getDocs(query(
-        collection(db, 'posts', post.id, 'replies'),
-        orderBy('createdAt', 'asc'),
-        limit(5)
-      ));
+      // Muat daftar dan total komentar secara paralel agar panel lebih cepat terbuka.
+      const [snapshot, countSnapshot] = await Promise.all([
+        getDocs(query(
+          collection(db, 'posts', post.id, 'replies'),
+          orderBy('createdAt', 'asc'),
+          limit(5)
+        )),
+        getCountFromServer(collection(db, 'posts', post.id, 'replies'))
+      ]);
       const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
       setRepliesByPost(current => {
         const pendingReplies = (current[post.id] || []).filter(reply => reply.pending);
@@ -666,7 +670,6 @@ export default function App() {
           [post.id]: [...replies, ...pendingReplies.filter(reply => !serverIds.has(reply.id))]
         };
       });
-      const countSnapshot = await getCountFromServer(collection(db, 'posts', post.id, 'replies'));
       setReplyCounts(current => {
         const pendingCount = (repliesByPost[post.id] || []).filter(reply => reply.pending).length;
         return { ...current, [post.id]: countSnapshot.data().count + pendingCount };
@@ -687,9 +690,9 @@ export default function App() {
 
   async function handleReply(event, post) {
     event.preventDefault();
-    if (!user) { openAuth(false); return; }
+    if (!user) { openAuth(false); return false; }
     const body = replyDraft.trim();
-    if (!body || body.length > 1000) { setNotice('Balasan harus berisi 1–1000 karakter.'); return; }
+    if (!body || body.length > 1000) { setNotice('Balasan harus berisi 1–1000 karakter.'); return false; }
 
     // Tampilkan balasan segera, lalu konfirmasi ke Firestore. Jika gagal, batalkan perubahan lokal.
     const temporaryId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -721,6 +724,7 @@ export default function App() {
         )
       }));
       setNotice('Balasan berhasil dikirim.');
+      return true;
     } catch (error) {
       setRepliesByPost(current => ({
         ...current,
@@ -730,6 +734,7 @@ export default function App() {
       setReplyDraft(body);
       setReplyingPostId(post.id);
       setNotice(error?.code === 'permission-denied' ? 'Balasan ditolak oleh aturan keamanan.' : 'Balasan belum terkirim. Coba lagi.');
+      return false;
     }
   }
 

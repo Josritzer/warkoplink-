@@ -86,7 +86,8 @@ export default function ChatPostCard({
     await toggleComments();
   }
 
-  return <article className="post-card" key={post.id}>
+  return <>
+  <article className="post-card" key={post.id}>
     <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : String(post.authorName || 'A').slice(0, 1).toUpperCase()}</div>
     <div className="post-content">
       <div className="post-head">

@@ -6,6 +6,7 @@ export default defineConfig({
   // Dibaca oleh Vitest; tidak memengaruhi build produksi.
   test: {
     environment: 'jsdom',
+    setupFiles: ['./src/test-setup.js'],
     include: ['src/**/*.test.{js,jsx}'],
     // CI runner memory is limited; serialize test files and fail hung tests promptly.
     fileParallelism: false,

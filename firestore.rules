@@ -90,8 +90,8 @@ service cloud.firestore {
       // Legacy likes without emoji are counted as 👍 in the aggregate.
       let beforeEmoji = beforeExists ? get(reactionPath).data.get('emoji', '👍') : '';
       let afterEmoji = afterExists ? getAfter(reactionPath).data.get('emoji', '') : '';
-      let oldReactions = resource.data.reactions;
-      let newReactions = request.resource.data.reactions;
+      let oldReactions = resource.data.get('reactions', {});
+      let newReactions = request.resource.data.get('reactions', {});
       return signedIn()
         && resource.data.keys().hasAll(['reactions', 'totalReactions'])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'totalReactions'])

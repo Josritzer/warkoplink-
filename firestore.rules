@@ -67,43 +67,45 @@ service cloud.firestore {
     }
 
     function reactionField(emoji) {
-      return emoji == '👍' ? 'like'
-        : emoji == '❤️' ? 'love'
-        : emoji == '😂' ? 'haha'
-        : emoji == '😮' ? 'wow'
-        : emoji == '😢' ? 'sad'
-        : emoji == '😡' ? 'angry'
-        : emoji == '👎' ? 'thumbs_down'
-        : emoji == '🔥' ? 'fire'
-        : emoji == '🎉' ? 'party'
-        : emoji == '🤩' ? 'star_eyes'
-        : emoji == '😱' ? 'scream'
-        : emoji == '💩' ? 'poop'
-        : emoji == '🤮' ? 'vomit'
-        : emoji == '💔' ? 'broken_heart'
-        : emoji == '🥰' ? 'smiling_hearts'
-        : emoji == '😍' ? 'heart_eyes'
-        : emoji == '😎' ? 'sunglasses'
-        : emoji == '🤓' ? 'nerd'
-        : emoji == '🤔' ? 'thinking'
-        : emoji == '🫡' ? 'salute'
-        : emoji == '🤝' ? 'handshake'
-        : emoji == '👏' ? 'clap'
-        : emoji == '🙏' ? 'pray'
-        : emoji == '💯' ? 'hundred'
-        : emoji == '⚡' ? 'lightning'
-        : emoji == '🕊️' ? 'dove'
-        : emoji == '🎃' ? 'jack_o_lantern'
-        : emoji == '💅' ? 'nail_polish'
-        : emoji == '🤡' ? 'clown'
-        : emoji == '🗿' ? 'moai'
-        : emoji == '🆒' ? 'cool_button'
-        : emoji == '😐' ? 'neutral'
-        : emoji == '😴' ? 'sleep'
-        : emoji == '🤨' ? 'raised_eyebrow'
-        : emoji == '🤷‍♂️' ? 'shrug_man'
-        : emoji == '🤷‍♀️' ? 'shrug_woman'
-        : '';
+      let fields = {
+        '👍': 'like',
+        '❤️': 'love',
+        '😂': 'haha',
+        '😮': 'wow',
+        '😢': 'sad',
+        '😡': 'angry',
+        '👎': 'thumbs_down',
+        '🔥': 'fire',
+        '🎉': 'party',
+        '🤩': 'star_eyes',
+        '😱': 'scream',
+        '💩': 'poop',
+        '🤮': 'vomit',
+        '💔': 'broken_heart',
+        '🥰': 'smiling_hearts',
+        '😍': 'heart_eyes',
+        '😎': 'sunglasses',
+        '🤓': 'nerd',
+        '🤔': 'thinking',
+        '🫡': 'salute',
+        '🤝': 'handshake',
+        '👏': 'clap',
+        '🙏': 'pray',
+        '💯': 'hundred',
+        '⚡': 'lightning',
+        '🕊️': 'dove',
+        '🎃': 'jack_o_lantern',
+        '💅': 'nail_polish',
+        '🤡': 'clown',
+        '🗿': 'moai',
+        '🆒': 'cool_button',
+        '😐': 'neutral',
+        '😴': 'sleep',
+        '🤨': 'raised_eyebrow',
+        '🤷‍♂️': 'shrug_man',
+        '🤷‍♀️': 'shrug_woman'
+      };
+      return fields.get(emoji, '');
     }
 
     function expectedReactionCount(oldReactions, newReactions, oldEmoji, newEmoji, emoji) {

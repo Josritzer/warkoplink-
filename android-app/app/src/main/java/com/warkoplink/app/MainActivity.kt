@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -267,7 +269,7 @@ private fun createPost(user: FirebaseUser, name: String, body: String, topic: St
                 done("Profil belum siap. Coba lagi sebentar.")
                 return@addOnSuccessListener
             }
-            val reactions = mapOf("like" to 0, "love" to 0, "haha" to 0, "wow" to 0, "sad" to 0, "angry" to 0)
+            val reactions = ReactionOptions.associate { (key, _) -> key to 0 }
             db.collection("posts").add(
                 mapOf(
                     "authorId" to user.uid,
@@ -285,8 +287,42 @@ private fun createPost(user: FirebaseUser, name: String, body: String, topic: St
 }
 
 private val ReactionOptions = listOf(
-    "like" to "👍", "love" to "❤️", "haha" to "😂",
-    "wow" to "😮", "sad" to "😢", "angry" to "😡"
+    "like" to "👍",
+    "love" to "❤️",
+    "haha" to "😂",
+    "wow" to "😮",
+    "sad" to "😢",
+    "angry" to "😡",
+    "thumbs_down" to "👎",
+    "fire" to "🔥",
+    "party" to "🎉",
+    "star_eyes" to "🤩",
+    "scream" to "😱",
+    "poop" to "💩",
+    "vomit" to "🤮",
+    "broken_heart" to "💔",
+    "smiling_hearts" to "🥰",
+    "heart_eyes" to "😍",
+    "sunglasses" to "😎",
+    "nerd" to "🤓",
+    "thinking" to "🤔",
+    "salute" to "🫡",
+    "handshake" to "🤝",
+    "clap" to "👏",
+    "pray" to "🙏",
+    "hundred" to "💯",
+    "lightning" to "⚡",
+    "dove" to "🕊️",
+    "jack_o_lantern" to "🎃",
+    "nail_polish" to "💅",
+    "clown" to "🤡",
+    "moai" to "🗿",
+    "cool_button" to "🆒",
+    "neutral" to "😐",
+    "sleep" to "😴",
+    "raised_eyebrow" to "🤨",
+    "shrug_man" to "🤷‍♂️",
+    "shrug_woman" to "🤷‍♀️"
 )
 
 private fun toggleReaction(user: FirebaseUser, postId: String, emoji: String, done: (String?) -> Unit) {
@@ -460,26 +496,42 @@ private fun FeedScreen(
                         Spacer(Modifier.height(8.dp))
                         Text(post.body, color = WarkopInk, fontSize = 15.sp, lineHeight = 21.sp)
                         Spacer(Modifier.height(10.dp))
+                        var showReactionPicker by remember(post.id) { mutableStateOf(false) }
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            ReactionOptions.forEach { (key, emoji) ->
-                                val count = post.reactions[key] ?: 0L
-                                TextButton(
-                                    onClick = { onReact(post.id, emoji) { result -> if (result != null) message = result } },
-                                    modifier = Modifier.padding(end = 1.dp)
-                                ) {
-                                    Text(
-                                        if (count > 0L) "$emoji $count" else emoji,
-                                        fontSize = 12.sp,
-                                        color = if (count > 0L) WarkopBlue else Muted
-                                    )
+                            ReactionOptions.filter { (key, _) -> (post.reactions[key] ?: 0L) > 0L }
+                                .forEach { (key, emoji) ->
+                                    val count = post.reactions[key] ?: 0L
+                                    TextButton(
+                                        onClick = { onReact(post.id, emoji) { result -> if (result != null) message = result } },
+                                        modifier = Modifier.padding(horizontal = 0.dp)
+                                    ) {
+                                        Text("$emoji $count", fontSize = 12.sp, color = WarkopBlue)
+                                    }
+                                }
+                            TextButton(onClick = { showReactionPicker = !showReactionPicker }) {
+                                Text(if (showReactionPicker) "✕" else "☺️ +", fontSize = 13.sp, color = Muted)
+                            }
+                            Text("${post.totalReactions} reaksi", color = Muted, fontSize = 11.sp)
+                        }
+                        if (showReactionPicker) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                ReactionOptions.forEach { (_, emoji) ->
+                                    TextButton(
+                                        onClick = {
+                                            onReact(post.id, emoji) { result -> if (result != null) message = result }
+                                            showReactionPicker = false
+                                        }
+                                    ) { Text(emoji, fontSize = 20.sp) }
                                 }
                             }
-                            Spacer(Modifier.weight(1f))
-                            Text("${post.totalReactions} reaksi", color = Muted, fontSize = 11.sp)
                         }
                         ReplySection(post.id, currentUserId, profileName)
                     }

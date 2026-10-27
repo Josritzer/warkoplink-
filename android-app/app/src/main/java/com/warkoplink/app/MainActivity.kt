@@ -291,7 +291,7 @@ private val ReactionOptions = listOf(
 
 private fun toggleReaction(user: FirebaseUser, postId: String, emoji: String, done: (String?) -> Unit) {
     val db = FirebaseRuntime.db ?: run { done("Firebase belum dikonfigurasi."); return }
-    if (emoji !in ReactionOptions.map { it.first }) {
+    if (emoji !in ReactionOptions.map { it.second }) {
         done("Jenis reaksi tidak valid.")
         return
     }
@@ -305,7 +305,8 @@ private fun toggleReaction(user: FirebaseUser, postId: String, emoji: String, do
         val counts = (postSnapshot.get("reactions") as? Map<*, *>)
             ?.mapNotNull { (key, value) -> if (key is String && value is Number) key to value.toLong() else null }
             ?.toMutableMap() ?: mutableMapOf()
-        ReactionOptions.forEach { (key, _) -> if ((counts[key] ?: 0L) < 0L) counts[key] = 0L }
+        // Keep every required aggregate key present, including on older/malformed documents.
+        ReactionOptions.forEach { (key, _) -> counts[key] = (counts[key] ?: 0L).coerceAtLeast(0L) }
         // Existing legacy likes without an emoji are treated as 👍 by Firestore Rules.
         val previousEmoji = if (reactionSnapshot.exists()) reactionSnapshot.getString("emoji") ?: "👍" else null
         val oldKey = previousEmoji?.let { previous -> ReactionOptions.firstOrNull { it.second == previous }?.first }

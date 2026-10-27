@@ -24,9 +24,14 @@ concurrency:
 
 jobs:
   build-apk:
-    name: Build debug APK
+    name: Build Firebase-connected debug APK
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      WARKOP_FIREBASE_API_KEY: ${{ secrets.WARKOP_FIREBASE_API_KEY || vars.WARKOP_FIREBASE_API_KEY || 'AIzaSyBybSZDKMxhtF8KRGlBIbWLuqkiLSiBrzA' }}
+      WARKOP_FIREBASE_APP_ID: ${{ secrets.WARKOP_FIREBASE_APP_ID || vars.WARKOP_FIREBASE_APP_ID || '1:77912673126:android:1a3a3eb33df6605f1316a7' }}
+      WARKOP_FIREBASE_PROJECT_ID: ${{ secrets.WARKOP_FIREBASE_PROJECT_ID || vars.WARKOP_FIREBASE_PROJECT_ID || 'sl-community-platform' }}
+      WARKOP_FIREBASE_SENDER_ID: ${{ secrets.WARKOP_FIREBASE_SENDER_ID || vars.WARKOP_FIREBASE_SENDER_ID || '77912673126' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,13 +48,30 @@ jobs:
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Build debug APK
+      - name: Validate Firebase client configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          for name in WARKOP_FIREBASE_API_KEY WARKOP_FIREBASE_APP_ID WARKOP_FIREBASE_PROJECT_ID WARKOP_FIREBASE_SENDER_ID; do
+            if [[ -z "${!name:-}" ]]; then missing+=("$name"); fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            printf '::error::APK tidak akan diterbitkan karena konfigurasi Firebase belum tersedia. Variabel/secrets yang diperlukan: %s\n' "${missing[*]}"
+            exit 1
+          fi
+      - name: Build Firebase-connected debug APK
         working-directory: android-app
-        run: gradle --no-daemon assembleDebug
+        run: |
+          gradle --no-daemon assembleDebug \
+            -PfirebaseApiKey="$WARKOP_FIREBASE_API_KEY" \
+            -PfirebaseAppId="$WARKOP_FIREBASE_APP_ID" \
+            -PfirebaseProjectId="$WARKOP_FIREBASE_PROJECT_ID" \
+            -PfirebaseSenderId="$WARKOP_FIREBASE_SENDER_ID"
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: warkoplink-debug-apk
+          name: warkoplink-firebase-connected-debug-apk
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14

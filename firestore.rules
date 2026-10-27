@@ -67,61 +67,76 @@ service cloud.firestore {
     }
 
     function reactionField(emoji) {
-      return emoji == '👍' ? 'like'
-        : emoji == '❤️' ? 'love'
-        : emoji == '😂' ? 'haha'
-        : emoji == '😮' ? 'wow'
-        : emoji == '😢' ? 'sad'
-        : emoji == '😡' ? 'angry'
-        : '';
-    }
-
-    function expectedReactionCount(oldReactions, newReactions, oldEmoji, newEmoji, emoji) {
-      let field = reactionField(emoji);
-      return newReactions.get(field, -1) == oldReactions.get(field, 0)
-        + (newEmoji == emoji ? 1 : 0)
-        - (oldEmoji == emoji ? 1 : 0);
+      let fields = {
+        '👍': 'like',
+        '❤️': 'love',
+        '😂': 'haha',
+        '😮': 'wow',
+        '😢': 'sad',
+        '😡': 'angry',
+        '👎': 'thumbs_down',
+        '🔥': 'fire',
+        '🎉': 'party',
+        '🤩': 'star_eyes',
+        '😱': 'scream',
+        '💩': 'poop',
+        '🤮': 'vomit',
+        '💔': 'broken_heart',
+        '🥰': 'smiling_hearts',
+        '😍': 'heart_eyes',
+        '😎': 'sunglasses',
+        '🤓': 'nerd',
+        '🤔': 'thinking',
+        '🫡': 'salute',
+        '🤝': 'handshake',
+        '👏': 'clap',
+        '🙏': 'pray',
+        '💯': 'hundred',
+        '⚡': 'lightning',
+        '🕊️': 'dove',
+        '🎃': 'jack_o_lantern',
+        '💅': 'nail_polish',
+        '🤡': 'clown',
+        '🗿': 'moai',
+        '🆒': 'cool_button',
+        '😐': 'neutral',
+        '😴': 'sleep',
+        '🤨': 'raised_eyebrow',
+        '🤷‍♂️': 'shrug_man',
+        '🤷‍♀️': 'shrug_woman'
+      };
+      return fields.get(emoji, '');
     }
 
     function validReactionAggregateUpdate(postId) {
       let reactionPath = /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
       let beforeExists = exists(reactionPath);
       let afterExists = existsAfter(reactionPath);
-      // Legacy likes without emoji are counted as 👍 in the aggregate.
       let beforeEmoji = beforeExists ? get(reactionPath).data.get('emoji', '👍') : '';
       let afterEmoji = afterExists ? getAfter(reactionPath).data.get('emoji', '') : '';
       let oldReactions = resource.data.get('reactions', {});
       let newReactions = request.resource.data.get('reactions', {});
+      let oldField = reactionField(beforeEmoji);
+      let newField = reactionField(afterEmoji);
+      let oldCount = oldReactions.get(oldField, 0);
+      let oldNewFieldCount = oldReactions.get(newField, 0);
       return signedIn()
         && resource.data.keys().hasAll(['reactions', 'totalReactions'])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'totalReactions'])
         && oldReactions is map && newReactions is map
         && oldReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && oldReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && newReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && newReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && newReactions.like is number && newReactions.like >= 0
-        && newReactions.love is number && newReactions.love >= 0
-        && newReactions.haha is number && newReactions.haha >= 0
-        && newReactions.wow is number && newReactions.wow >= 0
-        && newReactions.sad is number && newReactions.sad >= 0
-        && newReactions.angry is number && newReactions.angry >= 0
-        && resource.data.totalReactions is number && request.resource.data.totalReactions is number
+        && oldReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
+        && newReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
+        && newReactions.diff(oldReactions).affectedKeys().hasOnly([oldField, newField])
+        && (!beforeExists || (beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️'] && oldField != ''
+          && oldCount is number
+          && newReactions.get(oldField, 0) == oldCount - (afterExists && oldField == newField ? 0 : 1)))
+        && (!afterExists || (afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️'] && newField != ''
+          && oldNewFieldCount is number
+          && newReactions.get(newField, 0) == oldNewFieldCount + (beforeExists && oldField == newField ? 0 : 1)))
+        && request.resource.data.totalReactions is number
+        && resource.data.totalReactions is number
         && request.resource.data.totalReactions >= 0
-        && request.resource.data.totalReactions == newReactions.like + newReactions.love + newReactions.haha + newReactions.wow + newReactions.sad + newReactions.angry
-        && (
-          (beforeExists && !afterExists && beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
-          || (!beforeExists && afterExists && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
-          || (beforeExists && afterExists && beforeEmoji != afterEmoji
-            && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']
-            && (beforeEmoji == '' || beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']))
-        )
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '👍')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '❤️')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😂')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😮')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😢')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😡')
         && request.resource.data.totalReactions == resource.data.totalReactions
           + (beforeExists ? (afterExists ? 0 : -1) : 1);
     }
@@ -132,14 +147,10 @@ service cloud.firestore {
         && data.reactions is map
         && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && data.reactions.like is number && data.reactions.like >= 0
-        && data.reactions.love is number && data.reactions.love >= 0
-        && data.reactions.haha is number && data.reactions.haha >= 0
-        && data.reactions.wow is number && data.reactions.wow >= 0
-        && data.reactions.sad is number && data.reactions.sad >= 0
-        && data.reactions.angry is number && data.reactions.angry >= 0
-        && data.totalReactions is number && data.totalReactions >= 0
-        && data.totalReactions == data.reactions.like + data.reactions.love + data.reactions.haha + data.reactions.wow + data.reactions.sad + data.reactions.angry
+        && data.reactions.like == 0 && data.reactions.love == 0
+        && data.reactions.haha == 0 && data.reactions.wow == 0
+        && data.reactions.sad == 0 && data.reactions.angry == 0
+        && data.totalReactions is number && data.totalReactions == 0
         && data.authorId is string
         && data.authorId == request.auth.uid
         && data.authorName is string
@@ -250,7 +261,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['uid', 'createdAt', 'emoji'])
         && request.resource.data.uid == userId
         && request.resource.data.createdAt == request.time
-        && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
+        && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️'])
         && exists(/databases/$(database)/documents/posts/$(postId))
         && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) != true;
       allow delete: if signedIn()
@@ -264,7 +275,7 @@ service cloud.firestore {
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emoji'])
-        && request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡'];
+        && request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️'];
     }
 
     match /posts/{postId}/replies/{replyId} {

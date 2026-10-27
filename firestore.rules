@@ -222,46 +222,61 @@ service cloud.firestore {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
         && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
         && data.reactions is map
-        && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
-        && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
-        && data.reactions.like is number && data.reactions.like >= 0
-        && data.reactions.love is number && data.reactions.love >= 0
-        && data.reactions.haha is number && data.reactions.haha >= 0
-        && data.reactions.wow is number && data.reactions.wow >= 0
-        && data.reactions.sad is number && data.reactions.sad >= 0
-        && data.reactions.angry is number && data.reactions.angry >= 0
-        && data.reactions.thumbs_down is number && data.reactions.thumbs_down >= 0
-        && data.reactions.fire is number && data.reactions.fire >= 0
-        && data.reactions.party is number && data.reactions.party >= 0
-        && data.reactions.star_eyes is number && data.reactions.star_eyes >= 0
-        && data.reactions.scream is number && data.reactions.scream >= 0
-        && data.reactions.poop is number && data.reactions.poop >= 0
-        && data.reactions.vomit is number && data.reactions.vomit >= 0
-        && data.reactions.broken_heart is number && data.reactions.broken_heart >= 0
-        && data.reactions.smiling_hearts is number && data.reactions.smiling_hearts >= 0
-        && data.reactions.heart_eyes is number && data.reactions.heart_eyes >= 0
-        && data.reactions.sunglasses is number && data.reactions.sunglasses >= 0
-        && data.reactions.nerd is number && data.reactions.nerd >= 0
-        && data.reactions.thinking is number && data.reactions.thinking >= 0
-        && data.reactions.salute is number && data.reactions.salute >= 0
-        && data.reactions.handshake is number && data.reactions.handshake >= 0
-        && data.reactions.clap is number && data.reactions.clap >= 0
-        && data.reactions.pray is number && data.reactions.pray >= 0
-        && data.reactions.hundred is number && data.reactions.hundred >= 0
-        && data.reactions.lightning is number && data.reactions.lightning >= 0
-        && data.reactions.dove is number && data.reactions.dove >= 0
-        && data.reactions.jack_o_lantern is number && data.reactions.jack_o_lantern >= 0
-        && data.reactions.nail_polish is number && data.reactions.nail_polish >= 0
-        && data.reactions.clown is number && data.reactions.clown >= 0
-        && data.reactions.moai is number && data.reactions.moai >= 0
-        && data.reactions.cool_button is number && data.reactions.cool_button >= 0
-        && data.reactions.neutral is number && data.reactions.neutral >= 0
-        && data.reactions.sleep is number && data.reactions.sleep >= 0
-        && data.reactions.raised_eyebrow is number && data.reactions.raised_eyebrow >= 0
-        && data.reactions.shrug_man is number && data.reactions.shrug_man >= 0
-        && data.reactions.shrug_woman is number && data.reactions.shrug_woman >= 0
-        && data.totalReactions is number && data.totalReactions >= 0
-        && data.totalReactions == data.reactions.like + data.reactions.love + data.reactions.haha + data.reactions.wow + data.reactions.sad + data.reactions.angry + data.reactions.thumbs_down + data.reactions.fire + data.reactions.party + data.reactions.star_eyes + data.reactions.scream + data.reactions.poop + data.reactions.vomit + data.reactions.broken_heart + data.reactions.smiling_hearts + data.reactions.heart_eyes + data.reactions.sunglasses + data.reactions.nerd + data.reactions.thinking + data.reactions.salute + data.reactions.handshake + data.reactions.clap + data.reactions.pray + data.reactions.hundred + data.reactions.lightning + data.reactions.dove + data.reactions.jack_o_lantern + data.reactions.nail_polish + data.reactions.clown + data.reactions.moai + data.reactions.cool_button + data.reactions.neutral + data.reactions.sleep + data.reactions.raised_eyebrow + data.reactions.shrug_man + data.reactions.shrug_woman
+        && (
+          // Existing web posts still use the original six-key schema.
+          (data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+            && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+          && data.reactions.like is number && data.reactions.like >= 0
+          && data.reactions.love is number && data.reactions.love >= 0
+          && data.reactions.haha is number && data.reactions.haha >= 0
+          && data.reactions.wow is number && data.reactions.wow >= 0
+          && data.reactions.sad is number && data.reactions.sad >= 0
+          && data.reactions.angry is number && data.reactions.angry >= 0
+            && data.totalReactions is number && data.totalReactions >= 0
+            && data.totalReactions == data.reactions.like + data.reactions.love + data.reactions.haha + data.reactions.wow + data.reactions.sad + data.reactions.angry)
+          ||
+          // New Android posts use the expanded Telegram-style reaction schema.
+          (data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
+            && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
+          && data.reactions.like is number && data.reactions.like >= 0
+          && data.reactions.love is number && data.reactions.love >= 0
+          && data.reactions.haha is number && data.reactions.haha >= 0
+          && data.reactions.wow is number && data.reactions.wow >= 0
+          && data.reactions.sad is number && data.reactions.sad >= 0
+          && data.reactions.angry is number && data.reactions.angry >= 0
+          && data.reactions.thumbs_down is number && data.reactions.thumbs_down >= 0
+          && data.reactions.fire is number && data.reactions.fire >= 0
+          && data.reactions.party is number && data.reactions.party >= 0
+          && data.reactions.star_eyes is number && data.reactions.star_eyes >= 0
+          && data.reactions.scream is number && data.reactions.scream >= 0
+          && data.reactions.poop is number && data.reactions.poop >= 0
+          && data.reactions.vomit is number && data.reactions.vomit >= 0
+          && data.reactions.broken_heart is number && data.reactions.broken_heart >= 0
+          && data.reactions.smiling_hearts is number && data.reactions.smiling_hearts >= 0
+          && data.reactions.heart_eyes is number && data.reactions.heart_eyes >= 0
+          && data.reactions.sunglasses is number && data.reactions.sunglasses >= 0
+          && data.reactions.nerd is number && data.reactions.nerd >= 0
+          && data.reactions.thinking is number && data.reactions.thinking >= 0
+          && data.reactions.salute is number && data.reactions.salute >= 0
+          && data.reactions.handshake is number && data.reactions.handshake >= 0
+          && data.reactions.clap is number && data.reactions.clap >= 0
+          && data.reactions.pray is number && data.reactions.pray >= 0
+          && data.reactions.hundred is number && data.reactions.hundred >= 0
+          && data.reactions.lightning is number && data.reactions.lightning >= 0
+          && data.reactions.dove is number && data.reactions.dove >= 0
+          && data.reactions.jack_o_lantern is number && data.reactions.jack_o_lantern >= 0
+          && data.reactions.nail_polish is number && data.reactions.nail_polish >= 0
+          && data.reactions.clown is number && data.reactions.clown >= 0
+          && data.reactions.moai is number && data.reactions.moai >= 0
+          && data.reactions.cool_button is number && data.reactions.cool_button >= 0
+          && data.reactions.neutral is number && data.reactions.neutral >= 0
+          && data.reactions.sleep is number && data.reactions.sleep >= 0
+          && data.reactions.raised_eyebrow is number && data.reactions.raised_eyebrow >= 0
+          && data.reactions.shrug_man is number && data.reactions.shrug_man >= 0
+          && data.reactions.shrug_woman is number && data.reactions.shrug_woman >= 0
+            && data.totalReactions is number && data.totalReactions >= 0
+            && data.totalReactions == data.reactions.like + data.reactions.love + data.reactions.haha + data.reactions.wow + data.reactions.sad + data.reactions.angry + data.reactions.thumbs_down + data.reactions.fire + data.reactions.party + data.reactions.star_eyes + data.reactions.scream + data.reactions.poop + data.reactions.vomit + data.reactions.broken_heart + data.reactions.smiling_hearts + data.reactions.heart_eyes + data.reactions.sunglasses + data.reactions.nerd + data.reactions.thinking + data.reactions.salute + data.reactions.handshake + data.reactions.clap + data.reactions.pray + data.reactions.hundred + data.reactions.lightning + data.reactions.dove + data.reactions.jack_o_lantern + data.reactions.nail_polish + data.reactions.clown + data.reactions.moai + data.reactions.cool_button + data.reactions.neutral + data.reactions.sleep + data.reactions.raised_eyebrow + data.reactions.shrug_man + data.reactions.shrug_woman)
+        )
         && data.authorId is string
         && data.authorId == request.auth.uid
         && data.authorName is string

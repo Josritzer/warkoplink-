@@ -269,7 +269,7 @@ private fun createPost(user: FirebaseUser, name: String, body: String, topic: St
                 done("Profil belum siap. Coba lagi sebentar.")
                 return@addOnSuccessListener
             }
-            val reactions = ReactionOptions.associate { (key, _) -> key to 0 }
+            val reactions = ReactionOptions.take(6).associate { (key, _) -> key to 0 }
             db.collection("posts").add(
                 mapOf(
                     "authorId" to user.uid,
@@ -342,7 +342,7 @@ private fun toggleReaction(user: FirebaseUser, postId: String, emoji: String, do
             ?.mapNotNull { (key, value) -> if (key is String && value is Number) key to value.toLong() else null }
             ?.toMutableMap() ?: mutableMapOf()
         // Keep every required aggregate key present, including on older/malformed documents.
-        ReactionOptions.forEach { (key, _) -> counts[key] = (counts[key] ?: 0L).coerceAtLeast(0L) }
+        counts.keys.toList().forEach { key -> counts[key] = (counts[key] ?: 0L).coerceAtLeast(0L) }
         // Existing legacy likes without an emoji are treated as 👍 by Firestore Rules.
         val previousEmoji = if (reactionSnapshot.exists()) reactionSnapshot.getString("emoji") ?: "👍" else null
         val oldKey = previousEmoji?.let { previous -> ReactionOptions.firstOrNull { it.second == previous }?.first }

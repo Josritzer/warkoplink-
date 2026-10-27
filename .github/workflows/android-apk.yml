@@ -6,10 +6,12 @@ on:
       - "warkoplink/**"
     paths:
       - "android-app/**"
+      - "firestore.rules"
       - ".github/workflows/android-apk.yml"
   pull_request:
     paths:
       - "android-app/**"
+      - "firestore.rules"
       - ".github/workflows/android-apk.yml"
   workflow_dispatch:
 

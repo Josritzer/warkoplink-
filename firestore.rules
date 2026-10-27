@@ -235,7 +235,10 @@ service cloud.firestore {
         && request.resource.data.body.size() >= 1
         && request.resource.data.body.size() <= 2000
         && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
-      ) || validReactionAggregateUpdate(postId);
+      ) || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'totalReactions'])
+        && validReactionAggregateUpdate(postId)
+      );
       allow delete: if signedIn()
         && resource.data.authorId == request.auth.uid
         && resource.data.get('deleting', false) == true;

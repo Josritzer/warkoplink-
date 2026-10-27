@@ -86,6 +86,7 @@ private object FirebaseRuntime {
                 .build()
             val app = FirebaseApp.getApps(activity).firstOrNull()
                 ?: FirebaseApp.initializeApp(activity, options)
+                ?: throw IllegalStateException("Firebase app tidak dapat diinisialisasi")
             auth = FirebaseAuth.getInstance(app)
             db = FirebaseFirestore.getInstance(app)
             configurationError = null
@@ -247,20 +248,29 @@ private fun WarkopLinkApp() {
 }
 
 private fun createPost(user: FirebaseUser, name: String, body: String, topic: String, done: (String?) -> Unit) {
-    val reactions = mapOf("like" to 0, "love" to 0, "haha" to 0, "wow" to 0, "sad" to 0, "angry" to 0)
-    FirebaseRuntime.db!!.collection("posts").add(
-        mapOf(
-            "authorId" to user.uid,
-            "authorName" to name.ifBlank { user.email?.substringBefore("@") ?: "Anggota" },
-            "body" to body.trim(),
-            "topic" to topic,
-            "createdAt" to FieldValue.serverTimestamp(),
-            "reactions" to reactions,
-            "totalReactions" to 0
-        )
-    ).addOnSuccessListener { done(null) }.addOnFailureListener {
-        done("Posting gagal. Periksa profil dan aturan Firestore.")
-    }
+    val db = FirebaseRuntime.db ?: run { done("Firebase belum dikonfigurasi."); return }
+    db.collection("profiles").document(user.uid).get()
+        .addOnSuccessListener { profile ->
+            val authorName = profile.getString("displayName")
+            if (authorName.isNullOrBlank()) {
+                done("Profil belum siap. Coba lagi sebentar.")
+                return@addOnSuccessListener
+            }
+            val reactions = mapOf("like" to 0, "love" to 0, "haha" to 0, "wow" to 0, "sad" to 0, "angry" to 0)
+            db.collection("posts").add(
+                mapOf(
+                    "authorId" to user.uid,
+                    "authorName" to authorName,
+                    "body" to body.trim(),
+                    "topic" to topic,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "reactions" to reactions,
+                    "totalReactions" to 0
+                )
+            ).addOnSuccessListener { done(null) }.addOnFailureListener {
+                done("Posting gagal. Periksa profil dan aturan Firestore.")
+            }
+        }.addOnFailureListener { done("Profil gagal diperiksa. Periksa koneksi.") }
 }
 
 @Composable

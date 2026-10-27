@@ -233,7 +233,8 @@ service cloud.firestore {
           )
           || (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting'])
-            && request.resource.data.get('deleting', false) == true
+            && request.resource.data.keys().hasAny(['deleting'])
+            && request.resource.data.deleting == true
           )
         )
       ) || validReactionAggregateUpdate(postId);

@@ -299,7 +299,8 @@ private fun toggleReaction(user: FirebaseUser, postId: String, emoji: String, do
             ?.mapNotNull { (key, value) -> if (key is String && value is Number) key to value.toLong() else null }
             ?.toMutableMap() ?: mutableMapOf()
         ReactionOptions.forEach { (key, _) -> if ((counts[key] ?: 0L) < 0L) counts[key] = 0L }
-        val previousEmoji = reactionSnapshot.getString("emoji")
+        // Existing legacy likes without an emoji are treated as 👍 by Firestore Rules.
+        val previousEmoji = if (reactionSnapshot.exists()) reactionSnapshot.getString("emoji") ?: "👍" else null
         val oldKey = previousEmoji?.let { previous -> ReactionOptions.firstOrNull { it.second == previous }?.first }
         val targetKey = emoji
 

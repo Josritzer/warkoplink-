@@ -123,6 +123,13 @@ private data class CommunityPost(
     val reactions: Map<String, Long>
 )
 
+private data class CommunityReply(
+    val id: String,
+    val authorName: String,
+    val body: String
+)
+
+
 @Composable
 private fun WarkopLinkApp() {
     val auth = FirebaseRuntime.auth
@@ -473,10 +480,103 @@ private fun FeedScreen(
                             Spacer(Modifier.weight(1f))
                             Text("${post.totalReactions} reaksi", color = Muted, fontSize = 11.sp)
                         }
+                        ReplySection(post.id, currentUserId, profileName)
                     }
                     HorizontalDivider(color = Color(0xFFE7EAF0))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ReplySection(postId: String, userId: String, displayName: String) {
+    val db = FirebaseRuntime.db
+    var expanded by remember(postId) { mutableStateOf(false) }
+    var replies by remember(postId) { mutableStateOf(emptyList<CommunityReply>()) }
+    var draft by remember(postId) { mutableStateOf("") }
+    var sending by remember(postId) { mutableStateOf(false) }
+    var status by remember(postId) { mutableStateOf<String?>(null) }
+
+    DisposableEffect(postId, expanded, db) {
+        if (!expanded || db == null) return@DisposableEffect onDispose { }
+        val listener = db.collection("posts").document(postId).collection("replies")
+            .orderBy("createdAt", Query.Direction.ASCENDING)
+            .limit(50)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    status = "Balasan belum bisa dimuat."
+                    return@addSnapshotListener
+                }
+                replies = snapshot?.documents.orEmpty().map { doc ->
+                    CommunityReply(
+                        id = doc.id,
+                        authorName = doc.getString("authorName").orEmpty().ifBlank { "Anggota" },
+                        body = doc.getString("body").orEmpty()
+                    )
+                }
+            }
+        onDispose { listener.remove() }
+    }
+
+    TextButton(onClick = { expanded = !expanded; status = null }) {
+        Text(if (expanded) "Sembunyikan balasan" else "Balas · lihat balasan", fontSize = 12.sp)
+    }
+    if (expanded) {
+        Column(
+            Modifier.fillMaxWidth().padding(start = 12.dp, top = 2.dp, bottom = 6.dp)
+                .background(Color(0xFFF7F8FC), RoundedCornerShape(10.dp)).padding(10.dp)
+        ) {
+            if (replies.isEmpty()) {
+                Text("Belum ada balasan. Mulai percakapan di sini.", color = Muted, fontSize = 12.sp)
+            } else {
+                replies.forEach { reply ->
+                    Column(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
+                        Text(reply.authorName, color = WarkopInk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text(reply.body, color = WarkopInk, fontSize = 13.sp, lineHeight = 18.sp)
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = draft,
+                onValueChange = { if (it.length <= 1000) draft = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Tulis balasan…") },
+                minLines = 1,
+                maxLines = 4
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Button(
+                    enabled = !sending && draft.isNotBlank() && displayName.trim().length >= 2,
+                    onClick = {
+                        val text = draft.trim()
+                        if (text.isEmpty()) return@Button
+                        sending = true
+                        status = null
+                        val ref = db?.collection("posts")?.document(postId)?.collection("replies")?.document()
+                        if (ref == null) {
+                            sending = false
+                            status = "Firebase belum tersedia."
+                        } else {
+                            ref.set(mapOf(
+                                "authorId" to userId,
+                                "authorName" to displayName.trim(),
+                                "body" to text,
+                                "createdAt" to FieldValue.serverTimestamp()
+                            )).addOnSuccessListener {
+                                sending = false
+                                draft = ""
+                                status = "Balasan terkirim."
+                            }.addOnFailureListener {
+                                sending = false
+                                status = "Balasan gagal dikirim. Periksa profil dan aturan Firestore."
+                            }
+                        }
+                    }
+                ) { Text(if (sending) "Mengirim…" else "Kirim balasan") }
+            }
+            if (status != null) Text(status!!, color = if (status!!.contains("gagal")) Color(0xFFB42318) else Muted, fontSize = 11.sp)
         }
     }
 }

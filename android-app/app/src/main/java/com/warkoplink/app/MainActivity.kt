@@ -119,7 +119,8 @@ private data class CommunityPost(
     val authorName: String,
     val body: String,
     val topic: String,
-    val totalReactions: Long
+    val totalReactions: Long,
+    val reactions: Map<String, Long>
 )
 
 @Composable
@@ -170,7 +171,10 @@ private fun WarkopLinkApp() {
                         authorName = doc.getString("authorName").orEmpty().ifBlank { "Anggota" },
                         body = doc.getString("body").orEmpty(),
                         topic = doc.getString("topic").orEmpty(),
-                        totalReactions = doc.getLong("totalReactions") ?: 0L
+                        totalReactions = doc.getLong("totalReactions") ?: 0L,
+                        reactions = (doc.get("reactions") as? Map<*, *>)
+                            ?.mapNotNull { (key, value) -> if (key is String && value is Number) key to value.toLong() else null }
+                            ?.toMap().orEmpty()
                     )
                 }
             }
@@ -235,12 +239,12 @@ private fun WarkopLinkApp() {
     ) { padding ->
         Surface(Modifier.fillMaxSize().padding(padding), color = MaterialTheme.colorScheme.background) {
             when (selectedTab) {
-                0 -> FeedScreen(posts, loadingPosts, feedError, profileName, "Bagikan sesuatu ke komunitas") { body, topic, done ->
-                    createPost(user!!, profileName, body, topic, done)
-                }
-                1 -> FeedScreen(posts, loadingPosts, feedError, profileName, "Mulai percakapan baru") { body, topic, done ->
-                    createPost(user!!, profileName, body, topic, done)
-                }
+                0 -> FeedScreen(posts, loadingPosts, feedError, profileName, user!!.uid, "Bagikan sesuatu ke komunitas",
+                    onPost = { body, topic, done -> createPost(user!!, profileName, body, topic, done) },
+                    onReact = { postId, emoji, done -> toggleReaction(user!!, postId, emoji, done) })
+                1 -> FeedScreen(posts, loadingPosts, feedError, profileName, user!!.uid, "Mulai percakapan baru",
+                    onPost = { body, topic, done -> createPost(user!!, profileName, body, topic, done) },
+                    onReact = { postId, emoji, done -> toggleReaction(user!!, postId, emoji, done) })
                 else -> ProfileScreen(user!!, profileName) { auth.signOut(); selectedTab = 0 }
             }
         }
@@ -271,6 +275,60 @@ private fun createPost(user: FirebaseUser, name: String, body: String, topic: St
                 done("Posting gagal. Periksa profil dan aturan Firestore.")
             }
         }.addOnFailureListener { done("Profil gagal diperiksa. Periksa koneksi.") }
+}
+
+private val ReactionOptions = listOf(
+    "like" to "👍", "love" to "❤️", "haha" to "😂",
+    "wow" to "😮", "sad" to "😢", "angry" to "😡"
+)
+
+private fun toggleReaction(user: FirebaseUser, postId: String, emoji: String, done: (String?) -> Unit) {
+    val db = FirebaseRuntime.db ?: run { done("Firebase belum dikonfigurasi."); return }
+    if (emoji !in ReactionOptions.map { it.first }) {
+        done("Jenis reaksi tidak valid.")
+        return
+    }
+    val postRef = db.collection("posts").document(postId)
+    val reactionRef = postRef.collection("likes").document(user.uid)
+    db.runTransaction { transaction ->
+        val postSnapshot = transaction.get(postRef)
+        val reactionSnapshot = transaction.get(reactionRef)
+        if (!postSnapshot.exists()) throw IllegalStateException("Postingan sudah tidak tersedia.")
+
+        val counts = (postSnapshot.get("reactions") as? Map<*, *>)
+            ?.mapNotNull { (key, value) -> if (key is String && value is Number) key to value.toLong() else null }
+            ?.toMutableMap() ?: mutableMapOf()
+        ReactionOptions.forEach { (key, _) -> if ((counts[key] ?: 0L) < 0L) counts[key] = 0L }
+        val previousEmoji = reactionSnapshot.getString("emoji")
+        val oldKey = previousEmoji?.let { previous -> ReactionOptions.firstOrNull { it.second == previous }?.first }
+        val targetKey = emoji
+
+        if (oldKey == targetKey) {
+            transaction.delete(reactionRef)
+            counts[targetKey] = ((counts[targetKey] ?: 0L) - 1L).coerceAtLeast(0L)
+            transaction.update(postRef, "reactions", counts, "totalReactions",
+                ((postSnapshot.getLong("totalReactions") ?: 0L) - 1L).coerceAtLeast(0L))
+        } else {
+            if (reactionSnapshot.exists()) {
+                transaction.update(reactionRef, "emoji", emoji)
+                if (oldKey != null) counts[oldKey] = ((counts[oldKey] ?: 0L) - 1L).coerceAtLeast(0L)
+            } else {
+                transaction.set(reactionRef, mapOf(
+                    "uid" to user.uid,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "emoji" to emoji
+                ))
+            }
+            counts[targetKey] = (counts[targetKey] ?: 0L) + 1L
+            val oldTotal = postSnapshot.getLong("totalReactions") ?: 0L
+            transaction.update(postRef, "reactions", counts, "totalReactions", oldTotal + if (reactionSnapshot.exists()) 0L else 1L)
+        }
+    }.addOnSuccessListener { done(null) }
+        .addOnFailureListener { error ->
+            done(if (error.message?.contains("PERMISSION_DENIED", ignoreCase = true) == true)
+                "Reaksi ditolak oleh aturan Firestore. Data tidak diubah."
+            else "Reaksi gagal disimpan. Periksa koneksi lalu coba lagi.")
+        }
 }
 
 @Composable
@@ -333,8 +391,10 @@ private fun FeedScreen(
     loading: Boolean,
     error: String?,
     profileName: String,
+    currentUserId: String,
     prompt: String,
-    onPost: (String, String, (String?) -> Unit) -> Unit
+    onPost: (String, String, (String?) -> Unit) -> Unit,
+    onReact: (String, String, (String?) -> Unit) -> Unit
 ) {
     var body by remember { mutableStateOf("") }
     var topicIndex by remember { mutableStateOf(0) }
@@ -391,7 +451,27 @@ private fun FeedScreen(
                         Spacer(Modifier.height(8.dp))
                         Text(post.body, color = WarkopInk, fontSize = 15.sp, lineHeight = 21.sp)
                         Spacer(Modifier.height(10.dp))
-                        Text("♡  ${post.totalReactions} reaksi", color = Muted, fontSize = 12.sp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            ReactionOptions.forEach { (key, emoji) ->
+                                val count = post.reactions[key] ?: 0L
+                                TextButton(
+                                    onClick = { onReact(post.id, emoji) { result -> if (result != null) message = result } },
+                                    modifier = Modifier.padding(end = 1.dp)
+                                ) {
+                                    Text(
+                                        if (count > 0L) "$emoji $count" else emoji,
+                                        fontSize = 12.sp,
+                                        color = if (count > 0L) WarkopBlue else Muted
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.weight(1f))
+                            Text("${post.totalReactions} reaksi", color = Muted, fontSize = 11.sp)
+                        }
                     }
                     HorizontalDivider(color = Color(0xFFE7EAF0))
                 }

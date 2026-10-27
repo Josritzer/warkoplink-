@@ -228,8 +228,8 @@ service cloud.firestore {
           && newReactions.sad is number && newReactions.sad >= 0
           && newReactions.angry is number && newReactions.angry >= 0
             && request.resource.data.totalReactions == newReactions.like + newReactions.love + newReactions.haha + newReactions.wow + newReactions.sad + newReactions.angry
-            && beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']
-            && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']
+            && (!beforeExists || beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
+            && (!afterExists || afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
             && (
               (beforeExists && !afterExists)
               || (!beforeExists && afterExists)

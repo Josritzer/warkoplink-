@@ -1,18 +1,39 @@
 # WarkopLink Android
 
-Native Android starter built with Kotlin and Jetpack Compose. This folder is intentionally separate from the existing React/Vite web app.
+Native Android application built with Kotlin and Jetpack Compose, kept separate from the existing web app.
+
+## Current native features
+
+- Email/password sign-in and account registration with Firebase Authentication.
+- Creates the member profile in the existing `profiles` collection.
+- Live community feed from the existing `posts` collection (latest 50 posts).
+- Text post creation with the four existing topic values and reaction-count display.
+- Profile screen and sign-out.
+- Explicit setup screen when Firebase configuration is not supplied.
+
+## Firebase configuration
+
+Do not commit API config values or service-account credentials to source control. The Android build accepts these Gradle properties or environment variables:
+
+| Gradle property | Environment variable |
+| --- | --- |
+| `firebaseApiKey` | `WARKOP_FIREBASE_API_KEY` |
+| `firebaseAppId` | `WARKOP_FIREBASE_APP_ID` |
+| `firebaseProjectId` | `WARKOP_FIREBASE_PROJECT_ID` |
+| `firebaseSenderId` | `WARKOP_FIREBASE_SENDER_ID` |
+
+Example local build:
+
+```sh
+gradle --no-daemon assembleDebug \
+  -PfirebaseApiKey="$WARKOP_FIREBASE_API_KEY" \
+  -PfirebaseAppId="$WARKOP_FIREBASE_APP_ID" \
+  -PfirebaseProjectId="$WARKOP_FIREBASE_PROJECT_ID" \
+  -PfirebaseSenderId="$WARKOP_FIREBASE_SENDER_ID"
+```
+
+These values are Firebase client configuration, not admin credentials. Enable Email/Password sign-in in Firebase Authentication. The signed-in user's Firestore profile must exist before posting, and Firestore Rules remain the authority for access.
 
 ## Build
 
-The APK is built in GitHub Actions so development does not require Android Studio or a local Gradle installation.
-
-1. Push changes on a branch named `warkoplink/*`, or run the **WarkopLink Android APK** workflow manually.
-2. Open the workflow run in GitHub Actions.
-3. Download the `warkoplink-debug-apk` artifact.
-
-## Current scope
-
-- Native Compose shell and bottom navigation.
-- Placeholder Community, Obrolan, and Profil screens.
-- No authentication or Firebase calls yet; this starter does not alter the existing web app or backend.
-- Package ID: `com.warkoplink.app`.
+The **WarkopLink Android APK** GitHub Actions workflow builds a debug APK. Without the four Firebase values, the APK still builds but shows the configuration-required screen and cannot sign in. To produce a connected APK, supply the values to the build workflow via approved repository secrets; never add a service-account key to the Android app.

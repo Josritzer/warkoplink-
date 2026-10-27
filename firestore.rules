@@ -73,6 +73,36 @@ service cloud.firestore {
         : emoji == '😮' ? 'wow'
         : emoji == '😢' ? 'sad'
         : emoji == '😡' ? 'angry'
+        : emoji == '👎' ? 'thumbs_down'
+        : emoji == '🔥' ? 'fire'
+        : emoji == '🎉' ? 'party'
+        : emoji == '🤩' ? 'star_eyes'
+        : emoji == '😱' ? 'scream'
+        : emoji == '💩' ? 'poop'
+        : emoji == '🤮' ? 'vomit'
+        : emoji == '💔' ? 'broken_heart'
+        : emoji == '🥰' ? 'smiling_hearts'
+        : emoji == '😍' ? 'heart_eyes'
+        : emoji == '😎' ? 'sunglasses'
+        : emoji == '🤓' ? 'nerd'
+        : emoji == '🤔' ? 'thinking'
+        : emoji == '🫡' ? 'salute'
+        : emoji == '🤝' ? 'handshake'
+        : emoji == '👏' ? 'clap'
+        : emoji == '🙏' ? 'pray'
+        : emoji == '💯' ? 'hundred'
+        : emoji == '⚡' ? 'lightning'
+        : emoji == '🕊️' ? 'dove'
+        : emoji == '🎃' ? 'jack_o_lantern'
+        : emoji == '💅' ? 'nail_polish'
+        : emoji == '🤡' ? 'clown'
+        : emoji == '🗿' ? 'moai'
+        : emoji == '🆒' ? 'cool_button'
+        : emoji == '😐' ? 'neutral'
+        : emoji == '😴' ? 'sleep'
+        : emoji == '🤨' ? 'raised_eyebrow'
+        : emoji == '🤷‍♂️' ? 'shrug_man'
+        : emoji == '🤷‍♀️' ? 'shrug_woman'
         : '';
     }
 
@@ -87,7 +117,7 @@ service cloud.firestore {
       let reactionPath = /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
       let beforeExists = exists(reactionPath);
       let afterExists = existsAfter(reactionPath);
-      // Legacy likes without emoji are counted as 👍 in the aggregate.
+      // Legacy likes without emoji are treated as 👍.
       let beforeEmoji = beforeExists ? get(reactionPath).data.get('emoji', '👍') : '';
       let afterEmoji = afterExists ? getAfter(reactionPath).data.get('emoji', '') : '';
       let oldReactions = resource.data.get('reactions', {});
@@ -97,24 +127,54 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'totalReactions'])
         && oldReactions is map && newReactions is map
         && oldReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && oldReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && newReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && newReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+        && oldReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
+        && newReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
+        && newReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
         && newReactions.like is number && newReactions.like >= 0
         && newReactions.love is number && newReactions.love >= 0
         && newReactions.haha is number && newReactions.haha >= 0
         && newReactions.wow is number && newReactions.wow >= 0
         && newReactions.sad is number && newReactions.sad >= 0
         && newReactions.angry is number && newReactions.angry >= 0
+        && newReactions.thumbs_down is number && newReactions.thumbs_down >= 0
+        && newReactions.fire is number && newReactions.fire >= 0
+        && newReactions.party is number && newReactions.party >= 0
+        && newReactions.star_eyes is number && newReactions.star_eyes >= 0
+        && newReactions.scream is number && newReactions.scream >= 0
+        && newReactions.poop is number && newReactions.poop >= 0
+        && newReactions.vomit is number && newReactions.vomit >= 0
+        && newReactions.broken_heart is number && newReactions.broken_heart >= 0
+        && newReactions.smiling_hearts is number && newReactions.smiling_hearts >= 0
+        && newReactions.heart_eyes is number && newReactions.heart_eyes >= 0
+        && newReactions.sunglasses is number && newReactions.sunglasses >= 0
+        && newReactions.nerd is number && newReactions.nerd >= 0
+        && newReactions.thinking is number && newReactions.thinking >= 0
+        && newReactions.salute is number && newReactions.salute >= 0
+        && newReactions.handshake is number && newReactions.handshake >= 0
+        && newReactions.clap is number && newReactions.clap >= 0
+        && newReactions.pray is number && newReactions.pray >= 0
+        && newReactions.hundred is number && newReactions.hundred >= 0
+        && newReactions.lightning is number && newReactions.lightning >= 0
+        && newReactions.dove is number && newReactions.dove >= 0
+        && newReactions.jack_o_lantern is number && newReactions.jack_o_lantern >= 0
+        && newReactions.nail_polish is number && newReactions.nail_polish >= 0
+        && newReactions.clown is number && newReactions.clown >= 0
+        && newReactions.moai is number && newReactions.moai >= 0
+        && newReactions.cool_button is number && newReactions.cool_button >= 0
+        && newReactions.neutral is number && newReactions.neutral >= 0
+        && newReactions.sleep is number && newReactions.sleep >= 0
+        && newReactions.raised_eyebrow is number && newReactions.raised_eyebrow >= 0
+        && newReactions.shrug_man is number && newReactions.shrug_man >= 0
+        && newReactions.shrug_woman is number && newReactions.shrug_woman >= 0
         && resource.data.totalReactions is number && request.resource.data.totalReactions is number
         && request.resource.data.totalReactions >= 0
-        && request.resource.data.totalReactions == newReactions.like + newReactions.love + newReactions.haha + newReactions.wow + newReactions.sad + newReactions.angry
+        && request.resource.data.totalReactions == newReactions.like + newReactions.love + newReactions.haha + newReactions.wow + newReactions.sad + newReactions.angry + newReactions.thumbs_down + newReactions.fire + newReactions.party + newReactions.star_eyes + newReactions.scream + newReactions.poop + newReactions.vomit + newReactions.broken_heart + newReactions.smiling_hearts + newReactions.heart_eyes + newReactions.sunglasses + newReactions.nerd + newReactions.thinking + newReactions.salute + newReactions.handshake + newReactions.clap + newReactions.pray + newReactions.hundred + newReactions.lightning + newReactions.dove + newReactions.jack_o_lantern + newReactions.nail_polish + newReactions.clown + newReactions.moai + newReactions.cool_button + newReactions.neutral + newReactions.sleep + newReactions.raised_eyebrow + newReactions.shrug_man + newReactions.shrug_woman
         && (
-          (beforeExists && !afterExists && beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
-          || (!beforeExists && afterExists && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
+          (beforeExists && !afterExists && beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️'])
+          || (!beforeExists && afterExists && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️'])
           || (beforeExists && afterExists && beforeEmoji != afterEmoji
-            && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']
-            && (beforeEmoji == '' || beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']))
+            && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️']
+            && (beforeEmoji == '' || beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️']))
         )
         && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '👍')
         && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '❤️')
@@ -122,6 +182,36 @@ service cloud.firestore {
         && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😮')
         && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😢')
         && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😡')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '👎')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🔥')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🎉')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🤩')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😱')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '💩')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🤮')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '💔')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🥰')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😍')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😎')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🤓')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🤔')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🫡')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🤝')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '👏')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🙏')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '💯')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '⚡')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🕊️')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🎃')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '💅')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🤡')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🗿')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🆒')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😐')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😴')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🤨')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🤷‍♂️')
+        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '🤷‍♀️')
         && request.resource.data.totalReactions == resource.data.totalReactions
           + (beforeExists ? (afterExists ? 0 : -1) : 1);
     }
@@ -130,16 +220,46 @@ service cloud.firestore {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
         && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
         && data.reactions is map
-        && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+        && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
+        && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry', 'thumbs_down', 'fire', 'party', 'star_eyes', 'scream', 'poop', 'vomit', 'broken_heart', 'smiling_hearts', 'heart_eyes', 'sunglasses', 'nerd', 'thinking', 'salute', 'handshake', 'clap', 'pray', 'hundred', 'lightning', 'dove', 'jack_o_lantern', 'nail_polish', 'clown', 'moai', 'cool_button', 'neutral', 'sleep', 'raised_eyebrow', 'shrug_man', 'shrug_woman'])
         && data.reactions.like is number && data.reactions.like >= 0
         && data.reactions.love is number && data.reactions.love >= 0
         && data.reactions.haha is number && data.reactions.haha >= 0
         && data.reactions.wow is number && data.reactions.wow >= 0
         && data.reactions.sad is number && data.reactions.sad >= 0
         && data.reactions.angry is number && data.reactions.angry >= 0
+        && data.reactions.thumbs_down is number && data.reactions.thumbs_down >= 0
+        && data.reactions.fire is number && data.reactions.fire >= 0
+        && data.reactions.party is number && data.reactions.party >= 0
+        && data.reactions.star_eyes is number && data.reactions.star_eyes >= 0
+        && data.reactions.scream is number && data.reactions.scream >= 0
+        && data.reactions.poop is number && data.reactions.poop >= 0
+        && data.reactions.vomit is number && data.reactions.vomit >= 0
+        && data.reactions.broken_heart is number && data.reactions.broken_heart >= 0
+        && data.reactions.smiling_hearts is number && data.reactions.smiling_hearts >= 0
+        && data.reactions.heart_eyes is number && data.reactions.heart_eyes >= 0
+        && data.reactions.sunglasses is number && data.reactions.sunglasses >= 0
+        && data.reactions.nerd is number && data.reactions.nerd >= 0
+        && data.reactions.thinking is number && data.reactions.thinking >= 0
+        && data.reactions.salute is number && data.reactions.salute >= 0
+        && data.reactions.handshake is number && data.reactions.handshake >= 0
+        && data.reactions.clap is number && data.reactions.clap >= 0
+        && data.reactions.pray is number && data.reactions.pray >= 0
+        && data.reactions.hundred is number && data.reactions.hundred >= 0
+        && data.reactions.lightning is number && data.reactions.lightning >= 0
+        && data.reactions.dove is number && data.reactions.dove >= 0
+        && data.reactions.jack_o_lantern is number && data.reactions.jack_o_lantern >= 0
+        && data.reactions.nail_polish is number && data.reactions.nail_polish >= 0
+        && data.reactions.clown is number && data.reactions.clown >= 0
+        && data.reactions.moai is number && data.reactions.moai >= 0
+        && data.reactions.cool_button is number && data.reactions.cool_button >= 0
+        && data.reactions.neutral is number && data.reactions.neutral >= 0
+        && data.reactions.sleep is number && data.reactions.sleep >= 0
+        && data.reactions.raised_eyebrow is number && data.reactions.raised_eyebrow >= 0
+        && data.reactions.shrug_man is number && data.reactions.shrug_man >= 0
+        && data.reactions.shrug_woman is number && data.reactions.shrug_woman >= 0
         && data.totalReactions is number && data.totalReactions >= 0
-        && data.totalReactions == data.reactions.like + data.reactions.love + data.reactions.haha + data.reactions.wow + data.reactions.sad + data.reactions.angry
+        && data.totalReactions == data.reactions.like + data.reactions.love + data.reactions.haha + data.reactions.wow + data.reactions.sad + data.reactions.angry + data.reactions.thumbs_down + data.reactions.fire + data.reactions.party + data.reactions.star_eyes + data.reactions.scream + data.reactions.poop + data.reactions.vomit + data.reactions.broken_heart + data.reactions.smiling_hearts + data.reactions.heart_eyes + data.reactions.sunglasses + data.reactions.nerd + data.reactions.thinking + data.reactions.salute + data.reactions.handshake + data.reactions.clap + data.reactions.pray + data.reactions.hundred + data.reactions.lightning + data.reactions.dove + data.reactions.jack_o_lantern + data.reactions.nail_polish + data.reactions.clown + data.reactions.moai + data.reactions.cool_button + data.reactions.neutral + data.reactions.sleep + data.reactions.raised_eyebrow + data.reactions.shrug_man + data.reactions.shrug_woman
         && data.authorId is string
         && data.authorId == request.auth.uid
         && data.authorName is string
@@ -250,7 +370,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['uid', 'createdAt', 'emoji'])
         && request.resource.data.uid == userId
         && request.resource.data.createdAt == request.time
-        && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
+        && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️'])
         && exists(/databases/$(database)/documents/posts/$(postId))
         && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) != true;
       allow delete: if signedIn()
@@ -264,7 +384,7 @@ service cloud.firestore {
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emoji'])
-        && request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡'];
+        && request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🔥', '🎉', '🤩', '😱', '💩', '🤮', '💔', '🥰', '😍', '😎', '🤓', '🤔', '🫡', '🤝', '👏', '🙏', '💯', '⚡', '🕊️', '🎃', '💅', '🤡', '🗿', '🆒', '😐', '😴', '🤨', '🤷‍♂️', '🤷‍♀️'];
     }
 
     match /posts/{postId}/replies/{replyId} {

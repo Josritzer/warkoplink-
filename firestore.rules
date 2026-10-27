@@ -220,26 +220,22 @@ service cloud.firestore {
       allow create: if signedIn()
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
         && validPost(request.resource.data);
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasAny(['body', 'topic', 'deleting'])
-        ? (
-          signedIn()
-          && resource.data.authorId == request.auth.uid
-          && (
-            (
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic'])
-              && request.resource.data.body is string
-              && request.resource.data.body.size() >= 1
-              && request.resource.data.body.size() <= 2000
-              && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
-            )
-            || (
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting'])
-              && request.resource.data.keys().hasAny(['deleting'])
-              && request.resource.data.get('deleting', false) == true
-            )
-          )
-        )
-        : validReactionAggregateUpdate(postId);
+      allow update: if (
+        signedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting'])
+        && request.resource.data.keys().hasAny(['deleting'])
+        && request.resource.data.deleting == true
+      ) || (
+        signedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic'])
+        && request.resource.data.keys().hasAll(['body', 'topic'])
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 1
+        && request.resource.data.body.size() <= 2000
+        && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
+      ) || validReactionAggregateUpdate(postId);
       allow delete: if signedIn()
         && resource.data.authorId == request.auth.uid
         && resource.data.get('deleting', false) == true;

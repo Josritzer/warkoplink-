@@ -486,3 +486,37 @@
 #community-feed .post-action-wrap .status-reaction{width:32px;height:32px;flex:0 0 32px;font-size:20px}
 @keyframes reactionPickerIn{from{opacity:0;translate:0 5px}to{opacity:1;translate:0 0}}
 @media(prefers-reduced-motion:reduce){#community-feed .animate-reaction-summary,#community-feed .post-action-wrap .status-reactions{animation:none}}
+
+
+/* Penyempurnaan feed komunitas: filter ringkas, isi mudah dipindai, aksi jelas. */
+#community-feed .topic-scroll-wrap{position:sticky;top:0;z-index:8;background:#f7f8fc}
+#community-feed .topic-list{padding:12px 0;scrollbar-width:none}
+#community-feed .topic-list::-webkit-scrollbar{display:none}
+#community-feed .topic{border-color:transparent;background:transparent;color:#68728b;transition:background-color .16s ease,color .16s ease,transform .16s ease}
+#community-feed .topic:active{transform:scale(.96)}
+#community-feed .topic.selected{background:#172554;border-color:#172554;color:#fff;box-shadow:0 4px 12px #17255420}
+#community-feed .post-list{gap:12px}
+#community-feed .post-card{border-radius:17px;box-shadow:0 4px 18px #17255408;transition:border-color .18s ease,box-shadow .18s ease}
+#community-feed .post-card:hover{border-color:#d8def2;box-shadow:0 8px 24px #1725540d}
+#community-feed .post-body-copy{white-space:pre-wrap;overflow-wrap:anywhere}
+#community-feed .post-body-copy.is-collapsed{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
+#community-feed .post-read-more{display:inline-flex;margin-top:7px;padding:2px 0;border:0;background:transparent;color:#3156d9;font-size:12px;font-weight:700}
+#community-feed .post-read-more:focus-visible,#community-feed .post-action:focus-visible,#community-feed .topic:focus-visible{outline:3px solid #91a5ff;outline-offset:3px}
+#community-feed .post-actions{align-items:center}
+#community-feed .post-action{min-height:38px;border-radius:10px;transition:background-color .16s ease,color .16s ease,transform .16s ease}
+#community-feed .post-action:active{transform:scale(.97)}
+#community-feed .post-action.liked{color:#e11d48}
+#community-feed .post-action-count{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+#community-feed .post-menu-trigger{border-radius:10px}
+#community-feed .composer-collapsed .composer-trigger{min-height:54px}
+@media(max-width:620px){
+  #community-feed .topic-scroll-wrap{margin-inline:-2px}
+  #community-feed .topic-list{gap:6px}
+  #community-feed .topic{padding:9px 12px}
+  #community-feed .post-card{padding:13px;gap:10px}
+  #community-feed .post-actions{gap:2px}
+  #community-feed .post-action{gap:5px;padding:8px 7px;font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+  #community-feed .topic,#community-feed .post-card,#community-feed .post-action{transition:none}
+}

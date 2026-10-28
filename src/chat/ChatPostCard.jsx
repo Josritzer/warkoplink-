@@ -1,4 +1,4 @@
-import { MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from 'lucide-react';
+import { Heart, MessageSquare, MoreHorizontal, Share2, SmilePlus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -11,7 +11,7 @@ const EMPTY_REACTIONS = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
 export default function ChatPostCard({
   post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
   reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, postReactions,
-  reactionSummaries, handleReactPost, likeCounts, replyCounts, likedPosts,
+  reactionSummaries, handleReactPost, likeCounts, replyCounts, likedPosts, handleLikePost,
   openReplyPage,
   handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId, deletingPostId,
   handleDeletePost
@@ -24,6 +24,9 @@ export default function ChatPostCard({
   const menuTriggerRef = useRef(null);
   const [menuPosition, setMenuPosition] = useState(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
+  const [bodyExpanded, setBodyExpanded] = useState(false);
+  const postBody = String(post.body || '');
+  const canCollapseBody = postBody.length > 220;
 
   useEffect(() => {
     if (openPostMenuId !== post.id || !menuTriggerRef.current) return undefined;
@@ -73,7 +76,10 @@ export default function ChatPostCard({
           )}
         </div>
       </div>
-      <p>{post.body}</p>
+      <p className={canCollapseBody && !bodyExpanded ? 'post-body-copy is-collapsed' : 'post-body-copy'}>{postBody}</p>
+      {canCollapseBody && <button className="post-read-more" type="button" aria-expanded={bodyExpanded} onClick={() => setBodyExpanded(expanded => !expanded)}>
+        {bodyExpanded ? 'Tampilkan lebih sedikit ↑' : 'Baca selengkapnya ↓'}
+      </button>}
 
       {totalReactions > 0 && <div className="post-reaction-summary animate-reaction-summary" aria-label="Ringkasan reaksi">
         <div className="post-reaction-counts">
@@ -92,13 +98,16 @@ export default function ChatPostCard({
       </div>
       <div className="post-actions">
         <div className="post-action-wrap">
+          <button className={postReactions[post.id] === '❤️' ? 'post-action liked' : 'post-action'} type="button" aria-label={postReactions[post.id] === '❤️' ? 'Batalkan suka' : 'Suka'} aria-pressed={postReactions[post.id] === '❤️'} onClick={() => handleLikePost(post)}><Heart size={17} fill={postReactions[post.id] === '❤️' ? 'currentColor' : 'none'}/> <span>Suka</span>{reactions.love > 0 && <span className="post-action-count">{reactions.love}</span>}</button>
+        </div>
+        <div className="post-action-wrap">
           {reactionPickerOpen && <div className="status-reactions" role="group" aria-label="Pilih reaksi">
             {EMOJIS.map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => { handleReactPost(post, emoji); setReactionPickerOpen(false); }}>{emoji}</button>)}
           </div>}
           <button className={reactionPickerOpen || likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" aria-label="Reaksi" aria-expanded={reactionPickerOpen} onClick={() => setReactionPickerOpen(open => !open)}>{postReactions[post.id] ? <span className="reaction-action-emoji" aria-hidden="true">{postReactions[post.id]}</span> : <SmilePlus size={17}/>} <span>Reaksi</span></button>
         </div>
         <div className="post-action-wrap">
-          <button className="post-action" type="button" onClick={openCommentsForReply}><MessageSquare size={17}/> <span>Balas</span></button>
+          <button className="post-action" type="button" onClick={openCommentsForReply}><MessageSquare size={17}/> <span>Komentar</span></button>
         </div>
         <div className="post-action-wrap">
           <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>

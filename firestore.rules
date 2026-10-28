@@ -129,12 +129,12 @@ service cloud.firestore {
             && afterField != ''
             && (beforeEmoji == '' || beforeField != ''))
         )
-        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '👍')
-        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '❤️')
-        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '😂')
-        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '😮')
-        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '😢')
-        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '😡')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'like')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'love')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'haha')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'wow')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'sad')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'angry')
         && request.resource.data.get('totalReactions', -1) == resource.data.get('totalReactions', -1)
           + (beforeExists ? (afterExists ? 0 : -1) : 1);
     }

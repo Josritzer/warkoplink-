@@ -84,6 +84,13 @@ service cloud.firestore {
     }
 
     function validReactionAggregateUpdate(postId) {
+      // Do not evaluate reaction-specific lookups for legacy posts that lack aggregate fields.
+      return resource.data.keys().hasAll(['reactions', 'totalReactions'])
+        ? validReactionAggregateUpdateWithFields(postId)
+        : false;
+    }
+
+    function validReactionAggregateUpdateWithFields(postId) {
       let reactionPath = /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
       let beforeExists = exists(reactionPath);
       let afterExists = existsAfter(reactionPath);
@@ -93,7 +100,6 @@ service cloud.firestore {
       let oldReactions = resource.data.get('reactions', {});
       let newReactions = request.resource.data.get('reactions', {});
       return signedIn()
-        && resource.data.keys().hasAll(['reactions', 'totalReactions'])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'totalReactions'])
         && oldReactions is map && newReactions is map
         && oldReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])

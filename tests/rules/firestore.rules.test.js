@@ -15,7 +15,7 @@ const validPost = (overrides = {}) => ({
   authorId: 'alice',
   authorName: 'Alice',
   body: 'Halo komunitas',
-  topic: 'Obrolan Umum',
+  topic: 'Ngopi Bareng',
   createdAt: serverTimestamp(),
   reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
   totalReactions: 0,

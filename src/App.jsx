@@ -616,7 +616,7 @@ export default function App() {
   }
 
   async function sharePost(post) {
-    const shareUrl = `${window.location.origin}/#community-feed`;
+    const shareUrl = `${window.location.origin}/#post-${encodeURIComponent(post.id)}`;
     const shareText = `${post.body || ''}\n\nLihat obrolan dan gabung di WarkopLink:\n${shareUrl}`;
     const shareData = { title: 'Obrolan WarkopLink', text: shareText };
     try {

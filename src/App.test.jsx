@@ -11,6 +11,8 @@ vi.mock('firebase/auth', () => ({
   onAuthStateChanged: vi.fn((auth, callback) => { state.authCallback = callback; return vi.fn(); }),
   createUserWithEmailAndPassword: vi.fn(),
   signInWithEmailAndPassword: vi.fn(),
+  signInWithPopup: vi.fn(),
+  FacebookAuthProvider: class { addScope() {} },
   signOut: vi.fn(),
   updateProfile: vi.fn(),
 }));
@@ -278,6 +280,38 @@ describe('login, sesi, dan logout', () => {
     await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith({ path: 'profiles/u1' }, {
       displayName: 'Sari', email: 'sari@example.test', photoURL: '', createdAt: '__SERVER_TS__', updatedAt: '__SERVER_TS__',
     }));
+  });
+
+  it('login Facebook memanggil signInWithPopup dan menutup dialog', async () => {
+    fbAuth.signInWithPopup.mockResolvedValue({ user: fakeUser() });
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(await screen.findByRole('button', { name: 'Masuk' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Lanjutkan dengan Facebook' }));
+    expect(fbAuth.signInWithPopup).toHaveBeenCalledWith({ name: 'auth' }, expect.anything());
+    expect(await screen.findByText('Berhasil masuk dengan Facebook.')).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('login Facebook yang dibatalkan tidak menampilkan error', async () => {
+    fbAuth.signInWithPopup.mockRejectedValue({ code: 'auth/popup-closed-by-user' });
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(await screen.findByRole('button', { name: 'Masuk' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Lanjutkan dengan Facebook' }));
+    await waitFor(() => expect(fbAuth.signInWithPopup).toHaveBeenCalled());
+    expect(within(dialog).queryByRole('alert')).toBeNull();
+  });
+
+  it('profil akun Facebook tanpa email tetap dibuat dengan email kosong', async () => {
+    fs.getDoc.mockResolvedValue({ exists: () => false });
+    render(<App />);
+    emitAuth(fakeUser({ email: null }));
+    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith({ path: 'profiles/u1' }, expect.objectContaining({ email: '' })));
   });
 
   it('logout memanggil signOut', async () => {

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EMPTY_REACTIONS, reactionFieldForEmoji, shouldRemoveReaction, summarizeReactions } from './reactions.js';
 import {
-  createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
-  signOut, updateProfile
+  FacebookAuthProvider, createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
+  signInWithPopup, signOut, updateProfile
 } from 'firebase/auth';
 import {
   addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, increment, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where
@@ -273,7 +273,7 @@ export default function App() {
       if (existing.exists()) return true;
       await setDoc(ref, {
         displayName: authorNameFor(currentUser),
-        email: currentUser.email,
+        email: currentUser.email || '',
         photoURL: currentUser.photoURL || '',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -490,6 +490,28 @@ export default function App() {
       setAuthError(authErrorMessage(error));
     } finally {
       registering.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function handleFacebookLogin() {
+    if (!auth || !db) {
+      setAuthError('Firebase belum dikonfigurasi. Isi variabel VITE_FIREBASE_* terlebih dahulu.');
+      return;
+    }
+    setAuthError('');
+    setBusy(true);
+    try {
+      const provider = new FacebookAuthProvider();
+      provider.addScope('email');
+      await signInWithPopup(auth, provider);
+      setNotice('Berhasil masuk dengan Facebook.');
+      setAuthOpen(false);
+    } catch (error) {
+      if (error?.code !== 'auth/popup-closed-by-user' && error?.code !== 'auth/cancelled-popup-request') {
+        setAuthError(authErrorMessage(error));
+      }
+    } finally {
       setBusy(false);
     }
   }
@@ -928,6 +950,8 @@ export default function App() {
           {authError && <p className="form-error" role="alert">{authError}</p>}
           <button className="button button-dark auth-submit" type="submit" disabled={busy}>{busy ? 'Memproses…' : registerMode ? 'Buat akun' : 'Masuk'}</button>
         </form>
+        <div className="auth-divider"><span>atau</span></div>
+        <button type="button" className="button auth-facebook" onClick={handleFacebookLogin} disabled={busy}>Lanjutkan dengan Facebook</button>
         <button className="switch-auth" onClick={() => { setRegisterMode(!registerMode); setAuthError(''); }}>{registerMode ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Daftar'}</button>
       </section></div>}
       {notice && <span className="visually-hidden" role="status">{notice}</span>}

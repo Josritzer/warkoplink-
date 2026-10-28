@@ -84,31 +84,37 @@ service cloud.firestore {
     }
 
     function validReactionAggregateUpdate(postId) {
+      // Gate the helper before it declares reaction-path lookups: legacy posts have no aggregate fields.
+      return signedIn()
+        && resource.data.keys().hasAll(['reactions', 'totalReactions'])
+        && validReactionAggregateUpdateWithFields(postId);
+    }
+
+    function validReactionAggregateUpdateWithFields(postId) {
       let reactionPath = /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
       let beforeExists = exists(reactionPath);
       let afterExists = existsAfter(reactionPath);
       // Legacy likes without emoji are counted as 👍 in the aggregate.
       let beforeEmoji = beforeExists ? get(reactionPath).data.get('emoji', '👍') : '';
       let afterEmoji = afterExists ? getAfter(reactionPath).data.get('emoji', '') : '';
-      let oldReactions = resource.data.reactions;
-      let newReactions = request.resource.data.reactions;
+      let oldReactions = resource.data.get('reactions', {});
+      let newReactions = request.resource.data.get('reactions', {});
       return signedIn()
-        && resource.data.keys().hasAll(['reactions', 'totalReactions'])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'totalReactions'])
         && oldReactions is map && newReactions is map
         && oldReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && oldReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && newReactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && newReactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
-        && newReactions.like is number && newReactions.like >= 0
-        && newReactions.love is number && newReactions.love >= 0
-        && newReactions.haha is number && newReactions.haha >= 0
-        && newReactions.wow is number && newReactions.wow >= 0
-        && newReactions.sad is number && newReactions.sad >= 0
-        && newReactions.angry is number && newReactions.angry >= 0
-        && resource.data.totalReactions is number && request.resource.data.totalReactions is number
-        && request.resource.data.totalReactions >= 0
-        && request.resource.data.totalReactions == newReactions.like + newReactions.love + newReactions.haha + newReactions.wow + newReactions.sad + newReactions.angry
+        && newReactions.get('like', -1) is number && newReactions.get('like', -1) >= 0
+        && newReactions.get('love', -1) is number && newReactions.get('love', -1) >= 0
+        && newReactions.get('haha', -1) is number && newReactions.get('haha', -1) >= 0
+        && newReactions.get('wow', -1) is number && newReactions.get('wow', -1) >= 0
+        && newReactions.get('sad', -1) is number && newReactions.get('sad', -1) >= 0
+        && newReactions.get('angry', -1) is number && newReactions.get('angry', -1) >= 0
+        && resource.data.get('totalReactions', -1) is number && request.resource.data.get('totalReactions', -1) is number
+        && request.resource.data.get('totalReactions', -1) >= 0
+        && request.resource.data.get('totalReactions', -1) == newReactions.get('like', -1) + newReactions.get('love', -1) + newReactions.get('haha', -1) + newReactions.get('wow', -1) + newReactions.get('sad', -1) + newReactions.get('angry', -1)
         && (
           (beforeExists && !afterExists && beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
           || (!beforeExists && afterExists && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
@@ -122,7 +128,7 @@ service cloud.firestore {
         && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😮')
         && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😢')
         && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😡')
-        && request.resource.data.totalReactions == resource.data.totalReactions
+        && request.resource.data.get('totalReactions', -1) == resource.data.get('totalReactions', -1)
           + (beforeExists ? (afterExists ? 0 : -1) : 1);
     }
 
@@ -222,18 +228,18 @@ service cloud.firestore {
         && validPost(request.resource.data);
       allow update: if (
         signedIn()
-        && resource.data.authorId == request.auth.uid
+        && resource.data.get('authorId', '') == request.auth.uid
         && (
           (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic'])
-            && request.resource.data.body is string
-            && request.resource.data.body.size() >= 1
-            && request.resource.data.body.size() <= 2000
-            && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
+            && request.resource.data.get('body', '') is string
+            && request.resource.data.get('body', '').size() >= 1
+            && request.resource.data.get('body', '').size() <= 2000
+            && request.resource.data.get('topic', '') in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
           )
           || (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting'])
-            && request.resource.data.deleting == true
+            && request.resource.data.get('deleting', false) == true
           )
         )
       ) || validReactionAggregateUpdate(postId);
@@ -257,8 +263,10 @@ service cloud.firestore {
         && (
           request.auth.uid == userId
           || (
-            get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid
-            && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) == true
+            exists(/databases/$(database)/documents/posts/$(postId))
+            && get(/databases/$(database)/documents/posts/$(postId)).data.keys().hasAll(['authorId', 'deleting'])
+            && get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid
+            && get(/databases/$(database)/documents/posts/$(postId)).data.deleting == true
           )
         );
       allow update: if signedIn()

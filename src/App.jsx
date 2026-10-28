@@ -225,6 +225,13 @@ export default function App() {
   const [replyDraft, setReplyDraft] = useState('');
   const [replyCounts, setReplyCounts] = useState({});
   const [repliesByPost, setRepliesByPost] = useState({});
+  const [replyCursorByPost, setReplyCursorByPost] = useState({});
+  const [hasMoreRepliesByPost, setHasMoreRepliesByPost] = useState({});
+  const [loadingMoreRepliesPostId, setLoadingMoreRepliesPostId] = useState('');
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [commentReactionSummaries, setCommentReactionSummaries] = useState({});
+  const [commentActionBusyId, setCommentActionBusyId] = useState('');
+  const [openCommentMenuId, setOpenCommentMenuId] = useState('');
   const [expandedReplies, setExpandedReplies] = useState({});
   const [likedPosts, setLikedPosts] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
@@ -653,24 +660,21 @@ export default function App() {
     if (!db || !post?.id) return [];
     setReplyingPostId(post.id);
     setReplyDraft('');
+    setReplyTarget(null);
     try {
-      // Muat daftar dan total komentar secara paralel agar panel lebih cepat terbuka.
+      // Muat komentar terbaru; tombol pagination mengambil komentar yang lebih lama.
       const [snapshot, countSnapshot] = await Promise.all([
-        getDocs(query(
-          collection(db, 'posts', post.id, 'replies'),
-          orderBy('createdAt', 'asc'),
-          limit(5)
-        )),
+        getDocs(query(collection(db, 'posts', post.id, 'replies'), orderBy('createdAt', 'desc'), limit(10))),
         getCountFromServer(collection(db, 'posts', post.id, 'replies'))
       ]);
-      const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const replies = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
+      void loadCommentReactionSummaries(post, replies);
+      setReplyCursorByPost(current => ({ ...current, [post.id]: snapshot.docs.at(-1) || null }));
+      setHasMoreRepliesByPost(current => ({ ...current, [post.id]: snapshot.size === 10 }));
       setRepliesByPost(current => {
-        const pendingReplies = (current[post.id] || []).filter(reply => reply.pending);
-        const serverIds = new Set(replies.map(reply => reply.id));
-        return {
-          ...current,
-          [post.id]: [...replies, ...pendingReplies.filter(reply => !serverIds.has(reply.id))]
-        };
+        const pending = (current[post.id] || []).filter(reply => reply.pending);
+        const ids = new Set(replies.map(reply => reply.id));
+        return { ...current, [post.id]: [...replies, ...pending.filter(reply => !ids.has(reply.id))] };
       });
       setReplyCounts(current => {
         const pendingCount = (repliesByPost[post.id] || []).filter(reply => reply.pending).length;
@@ -683,10 +687,83 @@ export default function App() {
     }
   }
 
+  async function loadCommentReactionSummaries(post, replies) {
+    if (!db || !post?.id || !replies.length) return;
+    try {
+      const entries = await Promise.all(replies.filter(reply => !reply.pending).map(async reply => {
+        const path = collection(db, 'posts', post.id, 'replies', reply.id, 'reactions');
+        const [count, mine] = await Promise.all([
+          getCountFromServer(path),
+          user?.uid ? getDoc(doc(db, 'posts', post.id, 'replies', reply.id, 'reactions', user.uid)) : Promise.resolve(null)
+        ]);
+        return [reply.id, { count: count.data().count, mine: Boolean(mine?.exists()) }];
+      }));
+      setCommentReactionSummaries(current => ({ ...current, ...Object.fromEntries(entries) }));
+    } catch { /* Ringkasan dapat dimuat kembali saat pengguna berinteraksi. */ }
+  }
+
+  async function loadMoreReplies(post) {
+    if (!db || !post?.id || !replyCursorByPost[post.id] || loadingMoreRepliesPostId) return;
+    setLoadingMoreRepliesPostId(post.id);
+    try {
+      const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'replies'),
+        orderBy('createdAt', 'desc'), startAfter(replyCursorByPost[post.id]), limit(10)));
+      const older = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).reverse();
+      void loadCommentReactionSummaries(post, older);
+      setReplyCursorByPost(current => ({ ...current, [post.id]: snapshot.docs.at(-1) || current[post.id] }));
+      setHasMoreRepliesByPost(current => ({ ...current, [post.id]: snapshot.size === 10 }));
+      setRepliesByPost(current => {
+        const existing = current[post.id] || [];
+        const ids = new Set(existing.map(reply => reply.id));
+        return { ...current, [post.id]: [...older.filter(reply => !ids.has(reply.id)), ...existing] };
+      });
+    } catch {
+      setNotice('Komentar lama belum dapat dimuat. Coba lagi.');
+    } finally {
+      setLoadingMoreRepliesPostId('');
+    }
+  }
+
+  async function handleCommentReaction(post, reply) {
+    if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk bereaksi pada komentar.'); return; }
+    if (!db || !post?.id || !reply?.id || reply.pending || reply.deleted) return;
+    const reactionRef = doc(db, 'posts', post.id, 'replies', reply.id, 'reactions', user.uid);
+    setCommentActionBusyId(reply.id);
+    try {
+      await runTransaction(db, async transaction => {
+        const existing = await transaction.get(reactionRef);
+        if (existing.exists()) transaction.delete(reactionRef);
+        else transaction.set(reactionRef, { uid: user.uid, emoji: '👍', createdAt: serverTimestamp() });
+      });
+      const [count, mine] = await Promise.all([
+        getCountFromServer(collection(db, 'posts', post.id, 'replies', reply.id, 'reactions')),
+        getDoc(reactionRef)
+      ]);
+      setCommentReactionSummaries(current => ({ ...current, [reply.id]: { count: count.data().count, mine: mine.exists() } }));
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied' ? 'Reaksi komentar ditolak oleh aturan keamanan.' : 'Reaksi komentar belum tersimpan. Coba lagi.');
+    } finally { setCommentActionBusyId(''); }
+  }
+
+  async function handleDeleteReply(post, reply) {
+    if (!user || !db || !post?.id || !reply?.id || reply.pending || reply.authorId !== user.uid || reply.deleted || commentActionBusyId) return;
+    setCommentActionBusyId(reply.id);
+    try {
+      // Soft-delete menjaga identitas komentar induk pada percakapan bertingkat.
+      await updateDoc(doc(db, 'posts', post.id, 'replies', reply.id), { body: 'Komentar ini telah dihapus.', deleted: true });
+      setRepliesByPost(current => ({ ...current, [post.id]: (current[post.id] || []).map(item =>
+        item.id === reply.id ? { ...item, body: 'Komentar ini telah dihapus.', deleted: true } : item) }));
+      setNotice('Komentar dihapus.');
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied' ? 'Penghapusan komentar ditolak oleh aturan keamanan.' : 'Komentar belum dapat dihapus. Coba lagi.');
+    } finally { setCommentActionBusyId(''); }
+  }
+
   function closeReplies(post) {
     if (!post?.id) return;
     setReplyingPostId(current => current === post.id ? '' : current);
     setReplyDraft('');
+    setReplyTarget(null);
     setRepliesByPost(current => ({ ...current, [post.id]: [] }));
   }
 
@@ -707,6 +784,7 @@ export default function App() {
     if (!body || body.length > 1000) { setNotice('Balasan harus berisi 1–1000 karakter.'); return false; }
 
     // Tampilkan balasan segera, lalu konfirmasi ke Firestore. Jika gagal, batalkan perubahan lokal.
+    const target = replyTarget;
     const temporaryId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const optimisticReply = {
       id: temporaryId,
@@ -714,6 +792,8 @@ export default function App() {
       authorName: authorNameFor(user),
       authorPhotoURL: user.photoURL || null,
       body,
+      parentReplyId: target?.id || null,
+      parentAuthorName: target?.authorName || null,
       createdAt: null,
       pending: true
     };
@@ -723,11 +803,13 @@ export default function App() {
     }));
     setReplyCounts(current => ({ ...current, [post.id]: (current[post.id] || 0) + 1 }));
     setReplyDraft('');
+    setReplyTarget(null);
     setReplyingPostId('');
 
     try {
       const savedReply = await addDoc(collection(db, 'posts', post.id, 'replies'), {
-        authorId: user.uid, authorName: authorNameFor(user), authorPhotoURL: user.photoURL || null, body, createdAt: serverTimestamp()
+        authorId: user.uid, authorName: authorNameFor(user), authorPhotoURL: user.photoURL || null, body,
+        parentReplyId: target?.id || null, parentAuthorName: target?.authorName || null, createdAt: serverTimestamp()
       });
       setRepliesByPost(current => ({
         ...current,
@@ -745,6 +827,7 @@ export default function App() {
       setReplyCounts(current => ({ ...current, [post.id]: Math.max(0, (current[post.id] || 1) - 1) }));
       setReplyDraft(body);
       setReplyingPostId(post.id);
+      setReplyTarget(target || null);
       setNotice(error?.code === 'permission-denied' ? 'Balasan ditolak oleh aturan keamanan.' : 'Balasan belum terkirim. Coba lagi.');
       return false;
     }
@@ -881,15 +964,29 @@ export default function App() {
           {replyPageLoading ? <div className="empty-state" role="status"><p>Memuat komentar…</p></div> :
             selectedReplyPost && (repliesByPost[selectedReplyPost.id] || []).length === 0
               ? <p className="reply-page-empty">Belum ada komentar. Jadilah yang pertama menanggapi.</p>
-              : (selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []) : []).map(reply => <article className="reply-page-item" key={reply.id}>
+              : (selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []) : []).map(reply => <article className={reply.parentReplyId ? "reply-page-item reply-page-item-nested" : "reply-page-item"} key={reply.id}>
                   <div className="reply-page-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0,1).toUpperCase()}</div>
-                  <div><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
+                  <div className="reply-page-item-content">
+                    {reply.parentAuthorName && <small className="reply-parent-identity">Membalas <b>{reply.parentAuthorName}</b></small>}
+                    <b>{reply.authorName || 'Anggota komunitas'}</b><p className={reply.deleted ? "reply-deleted-body" : ""}>{reply.body}</p>
+                    <div className="reply-comment-actions">
+                      <small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small>
+                      {!reply.deleted && !reply.pending && <button className="reply-comment-menu-trigger" type="button" aria-label="Opsi komentar" aria-expanded={openCommentMenuId === reply.id} onClick={() => setOpenCommentMenuId(current => current === reply.id ? '' : reply.id)}><MoreHorizontal size={18}/></button>}
+                    </div>
+                    {openCommentMenuId === reply.id && !reply.deleted && !reply.pending && <div className="reply-comment-menu" role="menu">
+                      <button type="button" role="menuitem" onClick={() => { setReplyTarget(reply); setOpenCommentMenuId(''); document.getElementById('reply-page-input')?.focus(); }}><MessageSquare size={14}/> Balas</button>
+                      <button type="button" role="menuitem" onClick={() => { setOpenCommentMenuId(''); handleCommentReaction(selectedReplyPost, reply); }} disabled={commentActionBusyId === reply.id}><Heart size={14}/>{commentReactionSummaries[reply.id]?.mine ? 'Batal suka' : 'Suka'}{commentReactionSummaries[reply.id]?.count ? ` · ${commentReactionSummaries[reply.id].count}` : ''}</button>
+                      {user?.uid === reply.authorId && <button type="button" role="menuitem" onClick={() => { setOpenCommentMenuId(''); handleDeleteReply(selectedReplyPost, reply); }} disabled={commentActionBusyId === reply.id}>Hapus komentar</button>}
+                    </div>}
+                  </div>
                 </article>)}
+          {selectedReplyPost && hasMoreRepliesByPost[selectedReplyPost.id] && <button className="button button-quiet reply-load-more" type="button" onClick={() => loadMoreReplies(selectedReplyPost)} disabled={loadingMoreRepliesPostId === selectedReplyPost.id}>{loadingMoreRepliesPostId === selectedReplyPost.id ? 'Memuat komentar…' : 'Lihat komentar sebelumnya'}</button>}
         </div>
         {selectedReplyPost && <form className="reply-page-form" onSubmit={event => handleReply(event, selectedReplyPost)}>
-          <label htmlFor="reply-page-input">Tulis komentar</label>
+          {replyTarget && <div className="reply-target-banner">Membalas <b>{replyTarget.authorName || 'Anggota komunitas'}</b><button type="button" onClick={() => setReplyTarget(null)} aria-label="Batal membalas">Batal</button></div>}
+          <label htmlFor="reply-page-input">{replyTarget ? 'Tulis balasan' : 'Tulis komentar'}</label>
           <textarea id="reply-page-input" autoFocus value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} rows={4} placeholder="Tulis tanggapan yang relevan…"/>
-          <div className="reply-page-form-bottom"><small>{replyDraft.length}/1000</small><button className="button button-dark" type="submit" disabled={!replyDraft.trim()}>Kirim balasan <Send size={15}/></button></div>
+          <div className="reply-page-form-bottom"><small>{replyDraft.length}/1000</small><button className="button button-dark" type="submit" disabled={!replyDraft.trim() || !user}>{replyTarget ? 'Kirim balasan' : 'Kirim komentar'} <Send size={15}/></button></div>
         </form>}
       </section> :
       section === 'Akun' ? <section className="content-section account-section">

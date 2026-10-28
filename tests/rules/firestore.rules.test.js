@@ -84,6 +84,57 @@ describe('postReports', () => {
   });
 });
 
+describe('komentar bertingkat dan interaksi aman', () => {
+  it('menerima komentar dan balasan dengan identitas induk yang benar', async () => {
+    const parent = await addDoc(collection(asUser('bob'), 'posts/post-alice/replies'), {
+      authorId: 'bob', authorName: 'Bob', body: 'Komentar induk', createdAt: serverTimestamp(),
+      parentReplyId: null, parentAuthorName: null,
+    });
+    await assertSucceeds(addDoc(collection(asUser('alice'), 'posts/post-alice/replies'), {
+      authorId: 'alice', authorName: 'Alice', body: 'Balasan', createdAt: serverTimestamp(),
+      parentReplyId: parent.id, parentAuthorName: 'Bob',
+    }));
+  });
+
+  it('menolak identitas induk yang dipalsukan', async () => {
+    const parent = await addDoc(collection(asUser('bob'), 'posts/post-alice/replies'), {
+      authorId: 'bob', authorName: 'Bob', body: 'Komentar induk', createdAt: serverTimestamp(),
+      parentReplyId: null, parentAuthorName: null,
+    });
+    await assertFails(addDoc(collection(asUser('alice'), 'posts/post-alice/replies'), {
+      authorId: 'alice', authorName: 'Alice', body: 'Balasan', createdAt: serverTimestamp(),
+      parentReplyId: parent.id, parentAuthorName: 'Anggota palsu',
+    }));
+  });
+
+  it('pemilik komentar boleh soft-delete, pengguna lain tidak boleh', async () => {
+    const reply = await addDoc(collection(asUser('alice'), 'posts/post-alice/replies'), {
+      authorId: 'alice', authorName: 'Alice', body: 'Komentar saya', createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'posts/post-alice/replies', reply.id), {
+      body: 'Komentar ini telah dihapus.', deleted: true,
+    }));
+    const other = await addDoc(collection(asUser('bob'), 'posts/post-alice/replies'), {
+      authorId: 'bob', authorName: 'Bob', body: 'Komentar Bob', createdAt: serverTimestamp(),
+    });
+    await assertFails(updateDoc(doc(asUser('alice'), 'posts/post-alice/replies', other.id), {
+      body: 'Komentar ini telah dihapus.', deleted: true,
+    }));
+  });
+
+  it('reaksi komentar hanya dapat dibuat oleh pemilik dokumen reaksi', async () => {
+    const reply = await addDoc(collection(asUser('alice'), 'posts/post-alice/replies'), {
+      authorId: 'alice', authorName: 'Alice', body: 'Komentar', createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(setDoc(doc(asUser('bob'), 'posts/post-alice/replies', reply.id, 'reactions', 'bob'), {
+      uid: 'bob', emoji: '👍', createdAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(asUser('alice'), 'posts/post-alice/replies', reply.id, 'reactions', 'bob'), {
+      uid: 'bob', emoji: '👍', createdAt: serverTimestamp(),
+    }));
+  });
+});
+
 describe('posts', () => {
   it('menerima penghitung reaksi hanya bersama dokumen reaksi pengguna', async () => {
     const db = asUser('alice');

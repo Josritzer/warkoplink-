@@ -102,6 +102,25 @@ describe('posts', () => {
       'reactions.like': 99, totalReactions: 99,
     }));
   });
+  it('menerima emoji reaksi tambahan dan menghitungnya ke kategori yang sesuai', async () => {
+    const db = asUser('alice');
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'posts/post-alice/likes/alice'), {
+      uid: 'alice', emoji: '👏', createdAt: serverTimestamp(),
+    });
+    batch.update(doc(db, 'posts/post-alice'), {
+      'reactions.like': 1, totalReactions: 1,
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('menolak emoji reaksi yang tidak masuk daftar izin', async () => {
+    const db = asUser('alice');
+    await assertFails(setDoc(doc(db, 'posts/post-alice/likes/alice'), {
+      uid: 'alice', emoji: '🚀', createdAt: serverTimestamp(),
+    }));
+  });
+
 
   it('pengunjung anonim boleh membaca postingan', async () => {
     await assertSucceeds(getDocs(collection(asAnon(), 'posts')));

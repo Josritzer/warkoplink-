@@ -789,7 +789,7 @@ export default function App() {
           postReactions, reactionSummaries, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
           handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
           handleReply, openReplyPage, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
-          deletingPostId, handleDeletePost
+          deletingPostId, handleDeletePost, onEditPost: handleEditPost
         }}
       />}
       {authOpen && <div className="modal-backdrop" role="presentation" onClick={() => setAuthOpen(false)}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={e => e.stopPropagation()}>

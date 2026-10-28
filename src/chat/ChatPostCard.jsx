@@ -91,7 +91,15 @@ export default function ChatPostCard({
       {metaItems.length > 0 && <div className="post-detail-row" aria-label="Detail posting">
         {metaItems.map(item => <span key={item.label}><span aria-hidden="true">{item.icon}</span>{item.label}</span>)}
       </div>}
-      {['Jual Beli & Jasa Lokal', 'Loker'].includes(category) && post.contact && <a className="post-contact-link" href={/^https:\/\//i.test(post.contact) ? post.contact : `https://www.instagram.com/${post.contact.replace(/^@/, '')}/`} target="_blank" rel="noopener noreferrer">{category === 'Loker' ? 'Hubungi pengiklan' : 'Lihat kontak'} <span aria-hidden="true">↗</span></a>}
+      {['Jual Beli & Jasa Lokal', 'Loker'].includes(category) && post.contact && (/^https:\/\//i.test(post.contact)
+        ? <a className="post-contact-link" href={post.contact} target="_blank" rel="noopener noreferrer">{category === 'Loker' ? 'Lihat lowongan / kontak' : 'Lihat kontak'} <span aria-hidden="true">↗</span></a>
+        : <button className="post-contact-link" type="button" onClick={async () => {
+            try {
+              if (!navigator.clipboard?.writeText) { setNotice(`Kontak: ${post.contact}. Salin secara manual.`); return; }
+              await navigator.clipboard.writeText(post.contact);
+              setNotice('Kontak berhasil disalin.');
+            } catch { setNotice(`Kontak: ${post.contact}. Salin secara manual.`); }
+          }}>Salin kontak {post.contact}</button>)}
 
       <div className="post-stats">
         {totalReactions > 0 && <div className="post-reaction-summary animate-reaction-summary" aria-label="Ringkasan reaksi">

@@ -500,25 +500,44 @@ private fun FeedScreen(
                         Text(post.body, color = WarkopInk, fontSize = 15.sp, lineHeight = 21.sp)
                         Spacer(Modifier.height(10.dp))
                         var showReactionPicker by remember(post.id) { mutableStateOf(false) }
+                        var myReaction by remember(post.id, currentUserId) { mutableStateOf<String?>(null) }
+                        DisposableEffect(post.id, currentUserId) {
+                            val db = FirebaseRuntime.db
+                            if (db == null) return@DisposableEffect onDispose { }
+                            val registration = db.collection("posts").document(post.id)
+                                .collection("likes").document(currentUserId)
+                                .addSnapshotListener { snapshot, _ ->
+                                    myReaction = if (snapshot?.exists() == true) {
+                                        snapshot.getString("emoji") ?: "👍"
+                                    } else null
+                                }
+                            onDispose { registration.remove() }
+                        }
+                        val displayedReactions = ReactionOptions
+                            .filter { (key, _) -> (post.reactions[key] ?: 0L) > 0L }
+                            .sortedByDescending { (key, _) -> post.reactions[key] ?: 0L }
+                            .take(3)
+                            .toMutableList()
+                        ReactionOptions.firstOrNull { it.second == myReaction }?.let { own ->
+                            if (displayedReactions.none { it.first == own.first }) displayedReactions.add(own)
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            ReactionOptions.filter { (key, _) -> (post.reactions[key] ?: 0L) > 0L }
-                                .sortedByDescending { (key, _) -> post.reactions[key] ?: 0L }
-                                .take(3)
-                                .forEach { (key, emoji) ->
-                                    val count = post.reactions[key] ?: 0L
-                                    Surface(
-                                        onClick = { onReact(post.id, emoji) { result -> if (result != null) message = result } },
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = Color(0xFFF0F4FF),
-                                        contentColor = WarkopBlue
-                                    ) {
-                                        Text("$emoji $count", modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp), fontSize = 12.sp)
-                                    }
+                            displayedReactions.forEach { (key, emoji) ->
+                                val count = post.reactions[key] ?: 0L
+                                val selectedByMe = emoji == myReaction
+                                Surface(
+                                    onClick = { onReact(post.id, emoji) { result -> if (result != null) message = result } },
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (selectedByMe) Color(0xFFDCE7FF) else Color(0xFFF0F2F5),
+                                    contentColor = if (selectedByMe) WarkopBlue else WarkopInk
+                                ) {
+                                    Text("$emoji $count", modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp), fontSize = 12.sp)
                                 }
+                            }
                             TextButton(onClick = { showReactionPicker = true }) {
                                 Text("☺️ Reaksi", fontSize = 13.sp, color = Muted)
                             }

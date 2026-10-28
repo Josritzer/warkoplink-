@@ -20,6 +20,12 @@ describe('summarizeReactions', () => {
     expect(summarizeReactions([doc('u1', { emoji: '👍' })], 'u2'))
       .toEqual({ count: 1, totalReactions: 1, reactions: { like: 1, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, liked: false, emoji: '' });
   });
+  it('does not misclassify unknown explicit emojis as likes', () => {
+    expect(summarizeReactions([
+      doc('u1', { emoji: '🧪' }), doc('u2', { emoji: '👍' }), doc('u3', {})
+    ]).reactions).toEqual({ like: 2, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 });
+  });
+
   it('maps expanded emoji to their stable aggregate category', () => {
     expect(summarizeReactions([
       doc('u1', { emoji: '👏' }),

@@ -21,6 +21,21 @@ describe('summarizeReactions', () => {
       .toEqual({ count: 1, totalReactions: 1, reactions: { like: 1, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, liked: false, emoji: '' });
   });
 
+  it('ignores prototype property names as invalid emoji values', () => {
+    expect(summarizeReactions([
+      doc('u1', { emoji: 'constructor' }),
+      doc('u2', { emoji: 'toString' }),
+      doc('u3', { emoji: '__proto__' }),
+      doc('u4', { emoji: '❤️' })
+    ])).toEqual({
+      count: 1,
+      totalReactions: 1,
+      reactions: { like: 0, love: 1, haha: 0, wow: 0, sad: 0, angry: 0 },
+      liked: false,
+      emoji: ''
+    });
+  });
+
   it('ignores unknown or malformed emoji data instead of counting it as a like', () => {
     expect(summarizeReactions([
       doc('u1', { emoji: '🫠' }),

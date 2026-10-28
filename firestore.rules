@@ -123,11 +123,11 @@ service cloud.firestore {
         && request.resource.data.get('totalReactions', -1) >= 0
         && request.resource.data.get('totalReactions', -1) == newReactions.get('like', -1) + newReactions.get('love', -1) + newReactions.get('haha', -1) + newReactions.get('wow', -1) + newReactions.get('sad', -1) + newReactions.get('angry', -1)
         && (
-          (beforeExists && !afterExists && validReactionEmoji(beforeEmoji))
-          || (!beforeExists && afterExists && validReactionEmoji(afterEmoji))
+          (beforeExists && !afterExists && beforeField != '')
+          || (!beforeExists && afterExists && afterField != '')
           || (beforeExists && afterExists && beforeEmoji != afterEmoji
-            && validReactionEmoji(afterEmoji)
-            && (beforeEmoji == '' || validReactionEmoji(beforeEmoji)))
+            && afterField != ''
+            && (beforeEmoji == '' || beforeField != ''))
         )
         && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '👍')
         && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '❤️')

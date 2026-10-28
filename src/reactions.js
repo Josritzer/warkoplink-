@@ -54,8 +54,11 @@ export function summarizeReactions(docs, userId = '') {
   const reactions = { ...EMPTY_REACTIONS };
   entries.forEach((entry) => {
     // Legacy likes had no emoji field; preserve them in the 👍 bucket.
-    const field = reactionFieldForEmoji(entry.emoji) || 'like';
-    reactions[field] += 1;
+    // Legacy likes without an emoji stay in the like aggregate; unknown explicit emoji values are ignored.
+    const field = typeof entry.emoji !== 'string' || !entry.emoji
+      ? 'like'
+      : reactionFieldForEmoji(entry.emoji);
+    if (field) reactions[field] += 1;
   });
   return {
     count: entries.length,

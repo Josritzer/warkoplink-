@@ -1,0 +1,222 @@
+/* WarkopLink interaction and status refactor — 2026
+   Functional feedback, readable status hierarchy, touch targets and reduced motion.
+   No data, Firebase, authorization, routing, or schema changes. */
+:root {
+  --wl-state-info: #2456b8;
+  --wl-state-info-bg: #edf4ff;
+  --wl-state-success: #17664b;
+  --wl-state-success-bg: #e7f6ee;
+  --wl-state-warning: #82540b;
+  --wl-state-warning-bg: #fff5dc;
+  --wl-state-danger: #a32d38;
+  --wl-state-danger-bg: #fff0f1;
+  --wl-interaction-ring: rgba(23, 105, 255, .28);
+}
+
+/* Click feedback should confirm the action, not distract from the content. */
+button, [role="button"], a.button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button:not(:disabled):active,
+.button:not(:disabled):active,
+.bottom-nav-item:not(:disabled):active,
+.post-action:not(:disabled):active,
+.topic:not(:disabled):active {
+  transform: scale(.975);
+}
+button:disabled, .button:disabled {
+  cursor: progress;
+  opacity: .62;
+  box-shadow: none;
+}
+button[aria-busy="true"], [aria-busy="true"] {
+  cursor: progress;
+}
+button:focus-visible, a:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible {
+  outline: 3px solid var(--wl-interaction-ring);
+  outline-offset: 3px;
+}
+
+/* Status indicators are compact, explicit and never rely on color alone. */
+#community-feed .status-pill {
+  max-width: min(48%, 290px);
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  border: 1px solid rgba(23, 37, 61, .08);
+}
+#community-feed .feed-readonly-note {
+  border-radius: 12px;
+  gap: 10px;
+}
+#community-feed .config-warning,
+#community-feed .form-error,
+#community-feed [role="alert"] {
+  line-height: 1.55;
+}
+#community-feed .empty-state {
+  margin: 12px 0;
+  padding: 28px 16px;
+  border: 1px dashed #dfe4eb;
+  border-radius: 18px;
+  background: rgba(255,254,250,.72);
+}
+#community-feed .empty-state h3 { margin-top: 12px; }
+#community-feed .feed-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0;
+}
+#community-feed .feed-pagination .form-error { width: 100%; }
+
+/* Post card hierarchy: author/status, readable text, metrics, then actions. */
+#community-feed .post-card {
+  border-bottom: 1px solid #e5e9ef;
+  border-radius: 12px;
+  transition: background-color .16s ease, border-color .16s ease;
+}
+#community-feed .post-card:focus-within {
+  border-bottom-color: #c8d8f6;
+}
+#community-feed .post-meta {
+  align-items: center;
+  row-gap: 3px;
+}
+#community-feed .post-meta b { letter-spacing: -.015em; }
+#community-feed .post-meta span {
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: #eef3ff;
+  color: #3158a7;
+  font-size: 11px;
+}
+#community-feed .post-meta span::before { content: none; }
+#community-feed .post-meta small { color: #788394; }
+#community-feed .post-content > p {
+  margin-top: 7px;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+#community-feed .engagement-summary {
+  flex-wrap: wrap;
+  border-top: 1px solid #f0f2f5;
+  padding-top: 4px;
+}
+#community-feed .engagement-reaction-count {
+  color: #52627a;
+  font-variant-numeric: tabular-nums;
+}
+#community-feed .engagement-comment-count {
+  border-radius: 8px;
+  text-decoration: none;
+}
+#community-feed .engagement-comment-count:hover {
+  background: #edf3ff;
+  text-decoration: none;
+}
+#community-feed .post-actions { border-top: 0; }
+#community-feed .post-action {
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+#community-feed .post-action:active { background: #eaf1ff; }
+#community-feed .post-action.liked {
+  background: #eaf1ff;
+  color: #174fb7;
+}
+#community-feed .post-reaction-count {
+  font-variant-numeric: tabular-nums;
+}
+#community-feed .status-reaction {
+  min-width: 38px;
+  min-height: 38px;
+}
+#community-feed .status-reaction:active { transform: scale(.92); }
+#community-feed .status-reaction.selected {
+  outline: 2px solid #1769ff;
+  outline-offset: 1px;
+}
+
+/* Comment thread: make original post and each reply read as one conversation. */
+.reply-page { max-width: 720px; }
+.reply-original-post {
+  border-radius: 18px;
+  background: #fffefa;
+  box-shadow: 0 4px 16px rgba(23,37,61,.035);
+}
+.reply-original-meta span {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #eef3ff;
+  color: #3158a7;
+}
+.reply-thread-list h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reply-page-item {
+  gap: 12px;
+  padding: 14px 0;
+}
+.reply-page-item p { line-height: 1.6; }
+.reply-page-form {
+  border-color: #dfe6f1;
+  box-shadow: 0 8px 28px rgba(23,37,61,.09);
+}
+.reply-page-form textarea:focus-visible {
+  border-color: #8db1ff;
+  outline: 3px solid var(--wl-interaction-ring);
+  outline-offset: 1px;
+}
+.reply-page-form-bottom button:disabled { opacity: .5; }
+
+/* Composer and forms: the action state is visible and tap-friendly. */
+#community-feed .composer-trigger {
+  min-height: 48px;
+  border-radius: 14px;
+  padding: 5px 8px;
+}
+#community-feed .composer-trigger:active { background: #f0f4fb; }
+#community-feed .composer-expanded textarea { line-height: 1.6; }
+#community-feed .composer-bottom .button { min-height: 40px; }
+.auth-modal input:focus-visible,
+.warung-form input:focus-visible,
+.warung-form textarea:focus-visible,
+.warung-form select:focus-visible {
+  outline: 3px solid var(--wl-interaction-ring);
+  outline-offset: 1px;
+}
+.form-error { border-left: 3px solid #c43c49; }
+.post-menu-portal button:active { background: #edf3ff; color: #174fb7; }
+
+@media (max-width: 620px) {
+  #community-feed .status-pill { max-width: 48%; }
+  #community-feed .post-card { padding: 13px 4px 11px; }
+  #community-feed .post-meta span { font-size: 10px; }
+  #community-feed .post-content > p { font-size: 14px; line-height: 1.58; }
+  #community-feed .post-action { min-height: 44px; }
+  #community-feed .status-reaction { min-width: 34px; min-height: 34px; }
+  .reply-page-form { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:not(:disabled):active,
+  .button:not(:disabled):active,
+  .bottom-nav-item:not(:disabled):active,
+  .post-action:not(:disabled):active,
+  .topic:not(:disabled):active,
+  #community-feed .status-reaction:active { transform: none; }
+}

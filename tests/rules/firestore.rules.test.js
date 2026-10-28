@@ -135,7 +135,7 @@ describe('posts', () => {
   });
 
   it('semua kategori yang diizinkan diterima', async () => {
-    for (const [index, topic] of ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'].entries()) {
+    for (const [index, topic] of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal'].entries()) {
       const uid = `topic-user-${index}`;
       await env.withSecurityRulesDisabled(async (ctx) => {
         await setDoc(doc(ctx.firestore(), `profiles/${uid}`), {
@@ -148,6 +148,7 @@ describe('posts', () => {
 
   it('kategori di luar daftar ditolak', async () => {
     await assertFails(createPost(asUser('alice'), validPost({ topic: 'Lainnya' })));
+    await assertFails(createPost(asUser('alice'), validPost({ topic: 'Tanya Jawab' })));
   });
 
   it('isi tepat 2000 karakter diterima, 2001 ditolak, kosong ditolak', async () => {
@@ -190,7 +191,8 @@ describe('posts', () => {
   });
 
   it('pemilik boleh mengubah isi dan topik postingannya', async () => {
-    await assertSucceeds(updateDoc(doc(asUser('alice'), 'posts/post-alice'), { body: 'Diubah', topic: 'Info Layanan' }));
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'posts/post-alice'), { body: 'Diubah', topic: 'Info & Acara' }));
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'posts/post-alice'), { body: 'Diperbarui tanpa migrasi' }));
   });
 
   it('pengguna lain TIDAK boleh mengubah postingan orang lain', async () => {

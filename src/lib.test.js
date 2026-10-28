@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
-  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validateTopic
+  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts,
+  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails, validateTopic
 } from './lib.js';
 
 describe('validateDisplayName', () => {
@@ -42,12 +42,24 @@ describe('validatePostBody', () => {
 });
 
 describe('kategori', () => {
-  it('sama dengan empat kategori yang diizinkan Rules', () => {
-    expect(POST_TOPICS).toEqual(['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']);
-    expect(FILTER_TOPICS[0]).toBe('Semua');
-    expect(validateTopic('Ide & Saran')).toBe(true);
+  it('hanya menyediakan lima kategori utama final', () => {
+    expect(POST_TOPICS).toEqual(['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']);
+    expect(FILTER_TOPICS).toEqual(['Semua', ...POST_TOPICS]);
+    expect(validateTopic('Ngopi Bareng')).toBe(true);
     expect(validateTopic('Semua')).toBe(false);
     expect(validateTopic('Lainnya')).toBe(false);
+  });
+  it('memetakan kategori lama tanpa migrasi data', () => {
+    expect(canonicalTopic('Obrolan Umum')).toBe('Ngopi Bareng');
+    expect(canonicalTopic('Tanya Jawab')).toBe('Tanya Warkop');
+    expect(canonicalTopic('Info Layanan')).toBe('Info & Acara');
+    expect(canonicalTopic('Ide & Saran')).toBe('Info & Acara');
+    expect(filterPosts([{ topic: 'Tanya Jawab', body: 'wifi' }], 'Tanya Warkop', '')).toHaveLength(1);
+  });
+  it('memvalidasi detail opsional dan kontak aman', () => {
+    expect(validatePostDetails('Loker', { workType: 'Paruh waktu', contact: 'https://example.com' }).ok).toBe(true);
+    expect(validatePostDetails('Loker', { contact: 'javascript:alert(1)' }).ok).toBe(false);
+    expect(validatePostDetails('kategori asing', {}).ok).toBe(false);
   });
 });
 
@@ -66,7 +78,7 @@ describe('filterPosts', () => {
   ];
   it('memfilter berdasarkan topik', () => {
     expect(filterPosts(posts, 'Semua', '')).toHaveLength(2);
-    expect(filterPosts(posts, 'Tanya Jawab', '')).toHaveLength(1);
+    expect(filterPosts(posts, 'Tanya Warkop', '')).toHaveLength(1);
   });
   it('mencari pada isi dan nama penulis tanpa membedakan huruf besar/kecil', () => {
     expect(filterPosts(posts, 'Semua', 'HALO')).toHaveLength(1);

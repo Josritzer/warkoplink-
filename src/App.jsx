@@ -17,7 +17,7 @@ import WarungDirectory from './directory/WarungDirectory.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
-  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
+  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
 } from './lib.js';
 
 const POSTS_LIMIT = 10;
@@ -43,6 +43,7 @@ function readCachedPosts() {
 export default function App() {
   const [section, setSection] = useState('Beranda');
   const [topic, setTopic] = useState('Semua');
+  const [composerTopic, setComposerTopic] = useState('Ngopi Bareng');
   const [composerOpen, setComposerOpen] = useState(false);
   const [replyingPostId, setReplyingPostId] = useState('');
   const [selectedReplyPost, setSelectedReplyPost] = useState(null);
@@ -319,7 +320,7 @@ export default function App() {
     }
   }
 
-  async function handlePost(event) {
+  async function handlePost(event, details = {}) {
     event.preventDefault();
     if (!user) {
       openAuth(false);
@@ -328,6 +329,8 @@ export default function App() {
     }
     const bodyCheck = validatePostBody(draft);
     if (!bodyCheck.ok) return setNotice(bodyCheck.error);
+    const detailsCheck = validatePostDetails(composerTopic, details);
+    if (!detailsCheck.ok) return setNotice(detailsCheck.error);
     if (!db) return setNotice('Firebase belum dikonfigurasi.');
     setPosting(true);
     try {
@@ -343,7 +346,13 @@ export default function App() {
         authorName: authorNameFor(user),
         authorPhotoURL: user.photoURL || null,
         body: bodyCheck.value,
-        topic: topic === 'Semua' ? 'Obrolan Umum' : topic,
+        topic: composerTopic,
+        ...(details.postType?.trim() ? { postType: details.postType.trim() } : {}),
+        ...(details.location?.trim() ? { location: details.location.trim() } : {}),
+        ...(details.eventDate?.trim() ? { eventDate: details.eventDate.trim() } : {}),
+        ...(details.price?.trim() ? { price: details.price.trim() } : {}),
+        ...(details.workType?.trim() ? { workType: details.workType.trim() } : {}),
+        ...(details.contact?.trim() ? { contact: details.contact.trim() } : {}),
         createdAt: serverTimestamp(),
         reactions: { ...EMPTY_REACTIONS },
         totalReactions: 0
@@ -354,6 +363,37 @@ export default function App() {
       setNotice(postErrorMessage(error));
     } finally {
       setPosting(false);
+    }
+  }
+
+  async function handleEditPost(event, post, values) {
+    event.preventDefault();
+    if (!user || !db || !post?.id || post.authorId !== user.uid) {
+      setNotice('Hanya pemilik posting yang dapat mengeditnya.');
+      return false;
+    }
+    const bodyCheck = validatePostBody(values.body);
+    if (!bodyCheck.ok) { setNotice(bodyCheck.error); return false; }
+    const detailsCheck = validatePostDetails(values.topic, values);
+    if (!detailsCheck.ok) { setNotice(detailsCheck.error); return false; }
+    try {
+      await updateDoc(doc(db, 'posts', post.id), {
+        body: bodyCheck.value,
+        topic: values.topic,
+        postType: String(values.postType || '').trim(),
+        location: String(values.location || '').trim(),
+        eventDate: String(values.eventDate || '').trim(),
+        price: String(values.price || '').trim(),
+        workType: String(values.workType || '').trim(),
+        contact: String(values.contact || '').trim()
+      });
+      setNotice('Posting berhasil diperbarui.');
+      return true;
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied'
+        ? 'Edit ditolak oleh aturan keamanan.'
+        : 'Posting belum dapat diperbarui. Periksa koneksi lalu coba lagi.');
+      return false;
     }
   }
 
@@ -675,7 +715,7 @@ export default function App() {
   }
 
   const visiblePosts = filterPosts(allPosts, topic, search);
-  const activeCategory = topic === 'Semua' ? 'Obrolan Umum' : topic;
+  const activeCategory = composerTopic;
 
   return <div className="app-shell">
     <header className="topbar app-header">
@@ -737,7 +777,7 @@ export default function App() {
       <ChatPanel
         readOnly={section === 'Beranda'} onOpenDiscussion={() => { setSection('Obrolan'); setComposerOpen(true); }}
         user={user} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
-        topic={topic} setTopic={setTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
+        topic={topic} setTopic={setTopic} composerTopic={composerTopic} setComposerTopic={setComposerTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
         openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
         activeCategory={activeCategory} handlePost={handlePost} posting={posting}
         postsStatus={postsStatus} setPostsRetry={setPostsRetry}
@@ -749,7 +789,7 @@ export default function App() {
           postReactions, reactionSummaries, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
           handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
           handleReply, openReplyPage, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
-          deletingPostId, handleDeletePost
+          deletingPostId, handleDeletePost, onEditPost: handleEditPost
         }}
       />}
       {authOpen && <div className="modal-backdrop" role="presentation" onClick={() => setAuthOpen(false)}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={e => e.stopPropagation()}>

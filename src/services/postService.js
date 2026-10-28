@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, limit, query, updateDoc, writeBatch } from 'firebase/firestore';
 
 const DELETE_BATCH_SIZE = 450;
 
@@ -13,7 +13,9 @@ export async function deleteOwnPost(db, postId) {
   for (const childCollection of ['likes', 'replies']) {
     const childRef = collection(db, 'posts', postId, childCollection);
     while (true) {
-      const snapshot = await getDocs(childRef);
+      // Baca hanya satu batch per putaran; membaca seluruh subkoleksi tiap putaran
+      // akan mengunduh ulang sisa dokumen berkali-kali.
+      const snapshot = await getDocs(query(childRef, limit(DELETE_BATCH_SIZE)));
       if (snapshot.empty) break;
 
       const batch = writeBatch(db);

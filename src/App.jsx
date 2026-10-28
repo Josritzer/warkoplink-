@@ -366,6 +366,11 @@ export default function App() {
     return [...unique.values()];
   }, [posts, olderPosts]);
 
+  // Kunci berdasarkan daftar ID (pemisah "/" tidak mungkin ada di ID dokumen) agar pemantau reaksi
+  // dan hitung balasan tidak dipasang ulang setiap dokumen postingan berubah (mis. penghitung
+  // reaksi bertambah), melainkan hanya saat himpunan postingan yang tampil berubah.
+  const postIdsKey = useMemo(() => allPosts.map((post) => post.id).join('/'), [allPosts]);
+
   async function loadMorePosts() {
     if (!db || !lastPostDoc || loadingMorePosts || !hasMorePosts) return;
     setLoadingMorePosts(true);
@@ -389,17 +394,17 @@ export default function App() {
 
   // Reaksi berasal dari Firestore agar pulih setelah refresh dan sinkron antarpengguna.
   useEffect(() => {
-    if (!db || !allPosts.length) return undefined;
+    if (!db || !postIdsKey) return undefined;
     let active = true;
-    const unsubscribers = allPosts.map((post) => onSnapshot(
-      collection(db, 'posts', post.id, 'likes'),
+    const unsubscribers = postIdsKey.split('/').map((postId) => onSnapshot(
+      collection(db, 'posts', postId, 'likes'),
       (snapshot) => {
         if (!active) return;
         const summary = summarizeReactions(snapshot.docs, user?.uid || '');
-        setLikeCounts((current) => ({ ...current, [post.id]: summary.totalReactions }));
-        setLikedPosts((current) => ({ ...current, [post.id]: summary.liked }));
-        setPostReactions((current) => ({ ...current, [post.id]: summary.emoji }));
-        setReactionSummaries((current) => ({ ...current, [post.id]: { reactions: summary.reactions, totalReactions: summary.totalReactions } }));
+        setLikeCounts((current) => ({ ...current, [postId]: summary.totalReactions }));
+        setLikedPosts((current) => ({ ...current, [postId]: summary.liked }));
+        setPostReactions((current) => ({ ...current, [postId]: summary.emoji }));
+        setReactionSummaries((current) => ({ ...current, [postId]: { reactions: summary.reactions, totalReactions: summary.totalReactions } }));
       },
       () => {
         if (active) setNotice('Reaksi belum dapat dimuat. Periksa koneksi lalu coba lagi.');
@@ -409,18 +414,19 @@ export default function App() {
       active = false;
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  }, [allPosts, user?.uid]);
+  }, [postIdsKey, user?.uid]);
 
   // Ambil angka komentar saja; isi komentar baru dimuat saat pengguna membuka panel.
+  // Hanya dijalankan ulang saat himpunan postingan berubah, bukan setiap dokumen postingan berubah.
   useEffect(() => {
-    if (!db || !allPosts.length) return undefined;
+    if (!db || !postIdsKey) return undefined;
     let cancelled = false;
-    Promise.all(allPosts.map(async (post) => {
+    Promise.all(postIdsKey.split('/').map(async (postId) => {
       try {
-        const count = await getCountFromServer(collection(db, 'posts', post.id, 'replies'));
-        return [post.id, count.data().count];
+        const count = await getCountFromServer(collection(db, 'posts', postId, 'replies'));
+        return [postId, count.data().count];
       } catch {
-        return [post.id, null];
+        return [postId, null];
       }
     })).then((results) => {
       if (cancelled) return;
@@ -436,7 +442,7 @@ export default function App() {
       });
     });
     return () => { cancelled = true; };
-  }, [allPosts]);
+  }, [postIdsKey]);
   function openAuth(register) {
     setRegisterMode(register);
     setAuthError('');

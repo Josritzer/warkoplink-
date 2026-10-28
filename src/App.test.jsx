@@ -168,6 +168,28 @@ describe('halaman publik', () => {
     expect(fs.onSnapshot).toHaveBeenCalledTimes(2);
   });
 
+  it('tidak memasang ulang pemantau reaksi dan hitung balasan bila hanya isi postingan yang berubah', async () => {
+    render(<App />);
+    emitAuth(null);
+    emitPosts(POSTS);
+    await screen.findByText('Halo semuanya');
+
+    const likesPaths = () => fs.onSnapshot.mock.calls.map(([target]) => target?.path).filter((path) => path?.endsWith('/likes'));
+    await waitFor(() => expect(likesPaths()).toHaveLength(POSTS.length));
+    await waitFor(() => expect(fs.getCountFromServer).toHaveBeenCalledTimes(POSTS.length));
+
+    // Dokumen berubah (mis. penghitung reaksi bertambah) tetapi himpunan ID sama.
+    emitPosts(POSTS.map((post) => ({ ...post, totalReactions: 1 })));
+    await screen.findByText('Halo semuanya');
+    expect(likesPaths()).toHaveLength(POSTS.length);
+    expect(fs.getCountFromServer).toHaveBeenCalledTimes(POSTS.length);
+
+    // Postingan baru mengubah himpunan ID, sehingga pemantau dipasang untuk ID baru.
+    emitPosts([{ id: 'p4', authorName: 'Rina', body: 'Postingan baru', topic: 'Obrolan Umum' }, ...POSTS]);
+    await waitFor(() => expect(likesPaths()).toContain('posts/p4/likes'));
+    await waitFor(() => expect(fs.getCountFromServer).toHaveBeenCalledWith({ path: 'posts/p4/replies' }));
+  });
+
   it('kategori aktif menentukan kategori posting tanpa dropdown kedua', async () => {
     const user = userEvent.setup();
     render(<App />);

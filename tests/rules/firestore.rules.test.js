@@ -131,6 +131,17 @@ describe('posts', () => {
     await assertFails(createPost(asUser('alice'), validPost({ topic: 'Lainnya' })));
   });
 
+  it('postingan baru tidak boleh dibuat dengan penghitung reaksi tidak nol', async () => {
+    const zero = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+    // Angka dan total konsisten satu sama lain, tetapi dipalsukan sejak awal.
+    await assertFails(createPost(asUser('alice'), validPost({ reactions: { ...zero, like: 999 }, totalReactions: 999 })));
+    await assertFails(createPost(asUser('alice'), validPost({ reactions: { ...zero, love: 1 }, totalReactions: 1 })));
+    // Total tidak sama dengan jumlah rincian tetap ditolak.
+    await assertFails(createPost(asUser('alice'), validPost({ reactions: { ...zero, like: 1 }, totalReactions: 0 })));
+    // Kontrol: postingan dengan semua penghitung nol tetap diterima.
+    await assertSucceeds(createPost(asUser('alice'), validPost({ reactions: zero, totalReactions: 0 })));
+  });
+
   it('isi tepat 2000 karakter diterima, 2001 ditolak, kosong ditolak', async () => {
     await assertSucceeds(createPost(asUser('alice'), validPost({ body: 'a'.repeat(2000) })));
     await assertFails(createPost(asUser('bob'), validPost({ authorId: 'bob', authorName: 'Bob', body: 'a'.repeat(2001) })));

@@ -140,6 +140,8 @@ service cloud.firestore {
         && data.reactions.angry is number && data.reactions.angry >= 0
         && data.totalReactions is number && data.totalReactions >= 0
         && data.totalReactions == data.reactions.like + data.reactions.love + data.reactions.haha + data.reactions.wow + data.reactions.sad + data.reactions.angry
+        // Postingan baru selalu mulai tanpa reaksi; angka hanya bertambah lewat dokumen likes yang cocok.
+        && data.totalReactions == 0
         && data.authorId is string
         && data.authorId == request.auth.uid
         && data.authorName is string

@@ -78,7 +78,7 @@ describe('filterPosts', () => {
   ];
   it('memfilter berdasarkan topik', () => {
     expect(filterPosts(posts, 'Semua', '')).toHaveLength(2);
-    expect(filterPosts(posts, 'Tanya Jawab', '')).toHaveLength(1);
+    expect(filterPosts(posts, 'Tanya Warkop', '')).toHaveLength(1);
   });
   it('mencari pada isi dan nama penulis tanpa membedakan huruf besar/kecil', () => {
     expect(filterPosts(posts, 'Semua', 'HALO')).toHaveLength(1);

@@ -1,6 +1,6 @@
 import { MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { displayTopic } from '../lib.js';
+import { displayTopic, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
 import { createPortal } from 'react-dom';
 
 const EMOJIS = ["👍","👏","🙌","💪","🤝","💯","❤️","🥰","😍","😘","💖","💕","😂","🤣","😆","😹","😅","🤪","😮","😲","🤯","🤩","🥳","✨","😢","😭","🥺","😔","💔","🫂","😡","🤬","😤","🙄","😠","👎"];
@@ -18,7 +18,7 @@ export default function ChatPostCard({
   reactionSummaries, handleReactPost, likeCounts, replyCounts, likedPosts,
   openReplyPage,
   handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId, deletingPostId,
-  handleDeletePost
+  handleDeletePost, onEditPost
 }) {
   const ownPost = Boolean(user?.uid && user.uid === post.authorId);
   const commentCount = replyCounts[post.id] ?? post.commentCount ?? 0;
@@ -29,6 +29,15 @@ export default function ChatPostCard({
   const [menuPosition, setMenuPosition] = useState(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const [moreEmojisOpen, setMoreEmojisOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editBody, setEditBody] = useState(post.body || '');
+  const [editTopic, setEditTopic] = useState(displayTopic(post.topic));
+  const [editType, setEditType] = useState(post.postType || POST_SUBTYPES[displayTopic(post.topic)]?.[0] || '');
+  const [editLocation, setEditLocation] = useState(post.location || '');
+  const [editDate, setEditDate] = useState(post.eventDate || '');
+  const [editPrice, setEditPrice] = useState(post.price || '');
+  const [editWorkType, setEditWorkType] = useState(post.workType || '');
+  const [editContact, setEditContact] = useState(post.contact || '');
 
   useEffect(() => {
     if (openPostMenuId !== post.id || !menuTriggerRef.current) return undefined;
@@ -78,7 +87,10 @@ export default function ChatPostCard({
             <div className="post-menu-backdrop" aria-hidden="true" onMouseDown={event => event.preventDefault()} onClick={() => setOpenPostMenuId('')} />
             <div className="post-menu post-menu-portal" role="menu" style={{ position: 'fixed', top: menuPosition.top, right: menuPosition.right, zIndex: 50 }}>
               {ownPost
-                ? <button type="button" role="menuitem" onMouseDown={event => { event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); setDeleteConfirmId(post.id); }}><Trash2 size={14}/> Hapus obrolan</button>
+                ? <>
+                    <button type="button" role="menuitem" onMouseDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setOpenPostMenuId(''); setEditing(true); }}><MessageSquare size={14}/> Edit posting</button>
+                    <button type="button" role="menuitem" onMouseDown={event => { event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); setDeleteConfirmId(post.id); }}><Trash2 size={14}/> Hapus obrolan</button>
+                  </>
                 : <button type="button" role="menuitem" onMouseDown={event => { event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk melaporkan obrolan.'); return; } setReportingPostId(current => current === post.id ? '' : post.id); setReportReason('Spam atau promosi berulang'); }}>⚑ Laporkan obrolan</button>}
               <button type="button" role="menuitem" onMouseDown={event => { event.stopPropagation(); }} onClick={(event) => { event.stopPropagation(); setOpenPostMenuId(''); sharePost(post); }}><Share2 size={14}/> Bagikan</button>
             </div>
@@ -87,8 +99,21 @@ export default function ChatPostCard({
           )}
         </div>
       </div>
-      <p>{post.body}</p>
-      {metaItems.length > 0 && <div className="post-detail-row" aria-label="Detail posting">
+      {editing ? <form className="post-edit-form" onSubmit={async event => {
+        const saved = await onEditPost(event, post, { body: editBody, topic: editTopic, postType: editType, location: editLocation, eventDate: editDate, price: editPrice, workType: editWorkType, contact: editContact });
+        if (saved) setEditing(false);
+      }}>
+        <label>Isi posting<textarea aria-label="Edit isi posting" value={editBody} onChange={event => setEditBody(event.target.value)} maxLength={2000} rows={4} required /></label>
+        <label>Kategori<select aria-label="Edit kategori" value={editTopic} onChange={event => { setEditTopic(event.target.value); setEditType(POST_SUBTYPES[event.target.value]?.[0] || ''); }}>{POST_TOPICS.map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label>Jenis posting<select aria-label="Edit jenis posting" value={editType} onChange={event => setEditType(event.target.value)}>{(POST_SUBTYPES[editTopic] || []).map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label>Area / lokasi<input aria-label="Edit lokasi" value={editLocation} onChange={event => setEditLocation(event.target.value)} maxLength={160}/></label>
+        <label>Waktu / tanggal<input aria-label="Edit waktu" value={editDate} onChange={event => setEditDate(event.target.value)} maxLength={40}/></label>
+        <label>Harga<input aria-label="Edit harga" value={editPrice} onChange={event => setEditPrice(event.target.value)} maxLength={60}/></label>
+        <label>Tipe kerja<input aria-label="Edit tipe kerja" value={editWorkType} onChange={event => setEditWorkType(event.target.value)} maxLength={60}/></label>
+        <label>Kontak (HTTPS atau @akun)<input aria-label="Edit kontak" value={editContact} onChange={event => setEditContact(event.target.value)} maxLength={240}/></label>
+        <div className="report-form-actions"><button className="button button-dark" type="submit">Simpan perubahan</button><button className="button button-quiet" type="button" onClick={() => setEditing(false)}>Batal</button></div>
+      </form> : <p>{post.body}</p>}
+      {!editing && metaItems.length > 0 && <div className="post-detail-row" aria-label="Detail posting">
         {metaItems.map(item => <span key={item.label}><span aria-hidden="true">{item.icon}</span>{item.label}</span>)}
       </div>}
       {['Jual Beli & Jasa Lokal', 'Loker'].includes(category) && post.contact && (/^https:\/\//i.test(post.contact)

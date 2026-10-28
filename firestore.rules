@@ -83,11 +83,10 @@ service cloud.firestore {
       return reactionField(emoji) != '';
     }
 
-    function expectedReactionCount(oldReactions, newReactions, oldEmoji, newEmoji, emoji) {
-      let field = reactionField(emoji);
+    function expectedReactionCount(oldReactions, newReactions, oldField, newField, field) {
       return newReactions.get(field, -1) == oldReactions.get(field, 0)
-        + (reactionField(newEmoji) == field ? 1 : 0)
-        - (reactionField(oldEmoji) == field ? 1 : 0);
+        + (newField == field ? 1 : 0)
+        - (oldField == field ? 1 : 0);
     }
 
     function validReactionAggregateUpdate(postId) {
@@ -104,6 +103,8 @@ service cloud.firestore {
       // Legacy likes without emoji are counted as 👍 in the aggregate.
       let beforeEmoji = beforeExists ? get(reactionPath).data.get('emoji', '👍') : '';
       let afterEmoji = afterExists ? getAfter(reactionPath).data.get('emoji', '') : '';
+      let beforeField = reactionField(beforeEmoji);
+      let afterField = reactionField(afterEmoji);
       let oldReactions = resource.data.get('reactions', {});
       let newReactions = request.resource.data.get('reactions', {});
       return signedIn()
@@ -129,12 +130,12 @@ service cloud.firestore {
             && validReactionEmoji(afterEmoji)
             && (beforeEmoji == '' || validReactionEmoji(beforeEmoji)))
         )
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '👍')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '❤️')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😂')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😮')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😢')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😡')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '👍')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '❤️')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '😂')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '😮')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '😢')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, '😡')
         && request.resource.data.get('totalReactions', -1) == resource.data.get('totalReactions', -1)
           + (beforeExists ? (afterExists ? 0 : -1) : 1);
     }

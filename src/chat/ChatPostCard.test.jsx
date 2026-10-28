@@ -62,7 +62,7 @@ describe('ChatPostCard', () => {
     render(<ChatPostCard {...values} />);
     expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
     expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '3 komentar' }));
+    fireEvent.click(screen.getByRole('button', { name: /3 komentar/ }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
   });
 
@@ -101,7 +101,7 @@ describe('ChatPostCard', () => {
       openReplyPage: vi.fn().mockResolvedValue(undefined)
     });
     render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: '1 komentar' }));
+    fireEvent.click(screen.getByRole('button', { name: /1 komentar/ }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
     expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
     expect(counter.renders).toBeLessThanOrEqual(30);

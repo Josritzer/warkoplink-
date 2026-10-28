@@ -20,6 +20,16 @@ describe('summarizeReactions', () => {
     expect(summarizeReactions([doc('u1', { emoji: '👍' })], 'u2'))
       .toEqual({ count: 1, totalReactions: 1, reactions: { like: 1, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, liked: false, emoji: '' });
   });
+  it('maps expanded emoji to their stable aggregate category', () => {
+    expect(summarizeReactions([
+      doc('u1', { emoji: '👏' }),
+      doc('u2', { emoji: '🥰' }),
+      doc('u3', { emoji: '🤣' }),
+      doc('u4', { emoji: '🤯' }),
+      doc('u5', { emoji: '😭' }),
+      doc('u6', { emoji: '🤬' })
+    ]).reactions).toEqual({ like: 1, love: 1, haha: 1, wow: 1, sad: 1, angry: 1 });
+  });
 });
 
 describe('shouldRemoveReaction', () => {

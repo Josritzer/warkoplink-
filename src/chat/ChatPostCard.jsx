@@ -2,7 +2,7 @@ import { MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from '
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+const EMOJIS = ["👍","👏","🙌","💪","🤝","💯","❤️","🥰","😍","😘","💖","💕","😂","🤣","😆","😹","😅","🤪","😮","😲","🤯","🤩","🥳","✨","😢","😭","🥺","😔","💔","🫂","😡","🤬","😤","🙄","😠","👎"];
 const REACTION_FIELDS = {
   like: '👍', love: '❤️', haha: '😂', wow: '😮', sad: '😢', angry: '😡'
 };
@@ -84,9 +84,11 @@ export default function ChatPostCard({
         <span className="post-reaction-total" aria-label={`${totalReactions} total reaksi`}>{totalReactions}</span>
       </div>}
 
-      <div className="engagement-summary">
-        <span aria-hidden="true"></span>
-        {commentCount > 0 && <button className="engagement-comment-count" type="button" onClick={openCommentsForReply}>{commentCount} komentar</button>}
+      <div className="engagement-summary" aria-label="Ringkasan interaksi">
+        {totalReactions > 0 && <span className="engagement-reaction-count" aria-label={`${totalReactions} reaksi`}>{totalReactions} reaksi</span>}
+        <button className="engagement-comment-count" type="button" onClick={openCommentsForReply} aria-label={`Buka komentar, ${commentCount} komentar`}>
+          {commentCount > 0 ? `${commentCount} komentar` : 'Jadi yang pertama berkomentar'}
+        </button>
       </div>
       <div className="post-actions">
         <div className="post-action-wrap">

@@ -66,21 +66,26 @@ service cloud.firestore {
         && data.email is string;
     }
 
+    // Six stable aggregate buckets; exact emoji stays in each user's likes document.
+    // A direct lookup avoids repeatedly evaluating a 36-item allowlist in update rules.
     function reactionField(emoji) {
-      return emoji == '👍' ? 'like'
-        : emoji == '❤️' ? 'love'
-        : emoji == '😂' ? 'haha'
-        : emoji == '😮' ? 'wow'
-        : emoji == '😢' ? 'sad'
-        : emoji == '😡' ? 'angry'
+      return emoji in ['👍', '👏', '🙌', '💪', '🤝', '💯'] ? 'like'
+        : emoji in ['❤️', '🥰', '😍', '😘', '💖', '💕'] ? 'love'
+        : emoji in ['😂', '🤣', '😆', '😹', '😅', '🤪'] ? 'haha'
+        : emoji in ['😮', '😲', '🤯', '🤩', '🥳', '✨'] ? 'wow'
+        : emoji in ['😢', '😭', '🥺', '😔', '💔', '🫂'] ? 'sad'
+        : emoji in ['😡', '🤬', '😤', '🙄', '😠', '👎'] ? 'angry'
         : '';
     }
 
-    function expectedReactionCount(oldReactions, newReactions, oldEmoji, newEmoji, emoji) {
-      let field = reactionField(emoji);
+    function validReactionEmoji(emoji) {
+      return reactionField(emoji) != '';
+    }
+
+    function expectedReactionCount(oldReactions, newReactions, oldField, newField, field) {
       return newReactions.get(field, -1) == oldReactions.get(field, 0)
-        + (newEmoji == emoji ? 1 : 0)
-        - (oldEmoji == emoji ? 1 : 0);
+        + (newField == field ? 1 : 0)
+        - (oldField == field ? 1 : 0);
     }
 
     function validReactionAggregateUpdate(postId) {
@@ -97,6 +102,8 @@ service cloud.firestore {
       // Legacy likes without emoji are counted as 👍 in the aggregate.
       let beforeEmoji = beforeExists ? get(reactionPath).data.get('emoji', '👍') : '';
       let afterEmoji = afterExists ? getAfter(reactionPath).data.get('emoji', '') : '';
+      let beforeField = reactionField(beforeEmoji);
+      let afterField = reactionField(afterEmoji);
       let oldReactions = resource.data.get('reactions', {});
       let newReactions = request.resource.data.get('reactions', {});
       return signedIn()
@@ -116,18 +123,18 @@ service cloud.firestore {
         && request.resource.data.get('totalReactions', -1) >= 0
         && request.resource.data.get('totalReactions', -1) == newReactions.get('like', -1) + newReactions.get('love', -1) + newReactions.get('haha', -1) + newReactions.get('wow', -1) + newReactions.get('sad', -1) + newReactions.get('angry', -1)
         && (
-          (beforeExists && !afterExists && beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
-          || (!beforeExists && afterExists && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
+          (beforeExists && !afterExists && beforeField != '')
+          || (!beforeExists && afterExists && afterField != '')
           || (beforeExists && afterExists && beforeEmoji != afterEmoji
-            && afterEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']
-            && (beforeEmoji == '' || beforeEmoji in ['👍', '❤️', '😂', '😮', '😢', '😡']))
+            && afterField != ''
+            && (beforeEmoji == '' || beforeField != ''))
         )
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '👍')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '❤️')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😂')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😮')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😢')
-        && expectedReactionCount(oldReactions, newReactions, beforeEmoji, afterEmoji, '😡')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'like')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'love')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'haha')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'wow')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'sad')
+        && expectedReactionCount(oldReactions, newReactions, beforeField, afterField, 'angry')
         && request.resource.data.get('totalReactions', -1) == resource.data.get('totalReactions', -1)
           + (beforeExists ? (afterExists ? 0 : -1) : 1);
     }
@@ -256,7 +263,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['uid', 'createdAt', 'emoji'])
         && request.resource.data.uid == userId
         && request.resource.data.createdAt == request.time
-        && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡'])
+        && (!('emoji' in request.resource.data) || validReactionEmoji(request.resource.data.emoji))
         && exists(/databases/$(database)/documents/posts/$(postId))
         && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) != true;
       allow delete: if signedIn()
@@ -272,7 +279,7 @@ service cloud.firestore {
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emoji'])
-        && request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '😡'];
+        && validReactionEmoji(request.resource.data.emoji);
     }
 
     match /posts/{postId}/replies/{replyId} {

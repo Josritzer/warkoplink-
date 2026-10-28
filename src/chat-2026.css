@@ -1,0 +1,173 @@
+/* Obrolan WarkopLink — penyatuan gaya 2026.
+   Dimuat paling akhir untuk menggantikan aturan yang bertabrakan di style.css, chat-compact.css,
+   ui-2026.css, dan interaction-states-2026.css (sebelumnya aksen ungu dan biru bercampur).
+   Prinsip: satu warna aksen, hierarki nama > waktu, aksi seperlunya, pemisah tipis, target sentuh 40px+.
+   Hanya visual: tidak mengubah data, auth, atau moderasi. */
+:root {
+  --chat-ink: var(--wl-ink, #17253d);
+  --chat-muted: #6b7587;
+  --chat-line: #e8ebf0;
+  --chat-soft: #f2f4f8;
+  --chat-accent: var(--wl-blue, #1769ff);
+  --chat-accent-deep: var(--wl-blue-deep, #124cc5);
+  --chat-ring: rgba(23, 105, 255, .28);
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Kartu status ---------- */
+#community-feed .post-card {
+  border: 0;
+  border-bottom: 1px solid var(--chat-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 16px 4px 8px;
+  margin: 0;
+}
+#community-feed .post-card:hover { background: transparent; }
+#community-feed .post-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+#community-feed .post-meta b { color: var(--chat-ink); font-size: 14px; font-weight: 650; }
+#community-feed .post-meta span {
+  padding: 0; border: 0; background: transparent; color: var(--chat-muted); font-size: 12px;
+}
+#community-feed .post-meta small { color: var(--chat-muted); font-size: 12px; }
+#community-feed .post-content > p { margin: 6px 0 10px; color: var(--chat-ink); font-size: 15px; line-height: 1.6; }
+
+/* Baris ringkasan: reaksi di kiri, jumlah komentar di kanan (menggantikan dua baris ganda). */
+#community-feed .post-stats {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 32px; margin: 0;
+}
+#community-feed .post-reaction-summary {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0; min-width: 0;
+}
+#community-feed .post-reaction-counts { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+#community-feed .post-reaction-count {
+  display: inline-flex; align-items: center; gap: 4px;
+  min-height: 0; padding: 0; border: 0; background: transparent;
+  color: var(--chat-muted); font-size: 12px; font-variant-numeric: tabular-nums;
+}
+#community-feed .post-reaction-total { display: none; }
+#community-feed .engagement-comment-count {
+  margin-left: auto; min-height: 32px; padding: 0 2px; border: 0; background: transparent;
+  color: var(--chat-muted); font-size: 12px; cursor: pointer;
+}
+#community-feed .engagement-comment-count:hover { color: var(--chat-accent-deep); text-decoration: underline; }
+
+/* Aksi: ringan, rata kiri, tanpa blok warna. */
+#community-feed .post-actions {
+  display: flex; flex-wrap: wrap; gap: 2px; margin: 0 -8px; padding: 0; border: 0;
+}
+#community-feed .post-action-wrap { position: relative; flex: 0 0 auto; }
+#community-feed .post-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; padding: 0 12px; border-radius: 999px;
+  color: var(--chat-muted); background: transparent; font-size: 13px; font-weight: 500;
+}
+#community-feed .post-action:hover { background: var(--chat-soft); color: var(--chat-ink); }
+#community-feed .post-action.liked { background: transparent; color: var(--chat-accent-deep); font-weight: 600; }
+#community-feed .post-action:active { background: var(--chat-soft); }
+
+/* Pemilih reaksi: enam reaksi utama, sisanya di balik tombol “+”. */
+#community-feed .post-action-wrap .status-reactions {
+  position: absolute; left: 0; bottom: calc(100% + 6px); transform: none; z-index: 8;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px; width: max-content; max-width: min(340px, calc(100vw - 40px));
+  max-height: none; overflow: visible; margin: 0; padding: 6px;
+  border: 1px solid var(--chat-line); border-radius: 999px; background: #fff;
+  box-shadow: 0 8px 24px rgba(23, 37, 61, .12);
+}
+#community-feed .status-reaction {
+  width: 40px; height: 40px; flex: 0 0 40px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; font-size: 22px; line-height: 1; outline: 0;
+  transition: transform .12s ease, background-color .12s ease;
+}
+#community-feed .status-reaction:hover { background: var(--chat-soft); transform: scale(1.12); }
+#community-feed .status-reaction.selected { background: #e8f0ff; box-shadow: inset 0 0 0 1.5px var(--chat-accent); }
+#community-feed .status-reaction-more { color: var(--chat-muted); font-size: 20px; }
+#community-feed .status-reactions-extra {
+  display: grid; grid-template-columns: repeat(6, 40px); gap: 2px; flex: 1 0 100%;
+  max-height: 200px; overflow-y: auto; overscroll-behavior: contain;
+  margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--chat-line);
+}
+#community-feed .status-reactions:has(.status-reactions-extra) { border-radius: 20px; }
+
+#community-feed button:focus-visible,
+#community-feed a:focus-visible,
+#community-feed input:focus-visible,
+#community-feed textarea:focus-visible { outline: 2px solid var(--chat-accent) !important; outline-offset: 2px; }
+
+/* ---------- Halaman komentar ---------- */
+.reply-page { max-width: 720px; margin: 0 auto; padding: 0 4px 120px; }
+.reply-page-top { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 6px 0 12px; }
+.reply-page-top h2 { margin: 0; font-size: 20px; color: var(--chat-ink); }
+.reply-page-back {
+  min-height: 44px; padding: 0 12px 0 0; border: 0; background: transparent;
+  color: var(--chat-muted); font-size: 14px; cursor: pointer;
+}
+.reply-page-back:hover { color: var(--chat-ink); }
+
+.reply-original-post {
+  display: flex; gap: 12px; padding: 4px 0 16px; border: 0; border-bottom: 1px solid var(--chat-line);
+  border-radius: 0; background: transparent; box-shadow: none;
+}
+.reply-original-avatar, .reply-page-avatar {
+  display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; overflow: hidden;
+  border-radius: 50%; background: #e8f0ff; color: var(--chat-accent-deep); font-weight: 650;
+}
+.reply-original-avatar img, .reply-page-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.reply-original-body { min-width: 0; flex: 1; }
+.reply-original-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.reply-original-meta b { color: var(--chat-ink); font-size: 14px; }
+.reply-original-meta span, .reply-original-meta small {
+  padding: 0; background: transparent; color: var(--chat-muted); font-size: 12px;
+}
+.reply-original-post p { margin: 6px 0 0; color: var(--chat-ink); font-size: 16px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.reply-thread-list { margin: 16px 0 0; }
+.reply-thread-list h3 { margin: 0 0 12px; color: var(--chat-muted); font-size: 13px; font-weight: 600; }
+.reply-page-empty { margin: 0; padding: 20px 0; color: var(--chat-muted); font-size: 14px; text-align: center; }
+.reply-page-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border: 0; background: transparent; box-shadow: none; }
+.reply-page-avatar { flex-basis: 32px; width: 32px; height: 32px; font-size: 13px; }
+.reply-page-main { min-width: 0; max-width: 100%; }
+.reply-bubble { display: inline-block; max-width: 100%; padding: 8px 14px 10px; border-radius: 18px 18px 18px 6px; background: var(--chat-soft); }
+.reply-page-item b { display: block; color: var(--chat-ink); font-size: 13px; font-weight: 650; }
+.reply-page-item p { margin: 2px 0 0; color: var(--chat-ink); font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.reply-page-item small { display: block; margin: 3px 0 0 14px; color: var(--chat-muted); font-size: 11px; }
+.reply-page-item.is-pending { opacity: .6; }
+
+/* Kolom tulis komentar: satu baris, tumbuh sesuai isi, tombol kirim bulat. */
+.reply-page-form {
+  position: sticky; bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: flex-end; gap: 8px; margin-top: 16px; padding: 8px 8px 8px 14px;
+  border: 1px solid var(--chat-line); border-radius: 26px; background: #fff;
+  box-shadow: 0 6px 22px rgba(23, 37, 61, .1);
+}
+.reply-page-form textarea {
+  flex: 1; min-width: 0; min-height: 40px; max-height: 140px; margin: 0; padding: 9px 0;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none; resize: none;
+  color: var(--chat-ink); font-size: 15px; line-height: 1.4; field-sizing: content;
+}
+.reply-page-form textarea:focus, .reply-page-form textarea:focus-visible { outline: 0 !important; box-shadow: none; background: transparent; }
+.reply-page-form:focus-within { border-color: var(--chat-accent); box-shadow: 0 0 0 3px var(--chat-ring), 0 6px 22px rgba(23, 37, 61, .1); }
+.reply-send {
+  display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border: 0; border-radius: 50%;
+  background: var(--chat-accent); color: #fff; cursor: pointer; transition: background-color .15s ease, opacity .15s ease;
+}
+.reply-send:hover:not(:disabled) { background: var(--chat-accent-deep); }
+.reply-send:disabled { opacity: .4; cursor: not-allowed; }
+.reply-send:focus-visible { outline: 2px solid var(--chat-accent-deep); outline-offset: 2px; }
+.reply-counter { position: absolute; right: 64px; top: -20px; color: var(--chat-muted); font-size: 11px; }
+
+@media (max-width: 620px) {
+  #community-feed .post-card { padding: 14px 2px 6px; }
+  #community-feed .post-content > p { font-size: 15px; }
+  #community-feed .status-reactions-extra { grid-template-columns: repeat(6, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #community-feed .status-reaction, .reply-send { transition: none; }
+  #community-feed .status-reaction:hover { transform: none; }
+}

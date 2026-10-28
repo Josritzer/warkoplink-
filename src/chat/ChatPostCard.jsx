@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const EMOJIS = ["👍","👏","🙌","💪","🤝","💯","❤️","🥰","😍","😘","💖","💕","😂","🤣","😆","😹","😅","🤪","😮","😲","🤯","🤩","🥳","✨","😢","😭","🥺","😔","💔","🫂","😡","🤬","😤","🙄","😠","👎"];
+const PRIMARY_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+const EXTRA_EMOJIS = EMOJIS.filter(emoji => !PRIMARY_EMOJIS.includes(emoji));
 const REACTION_FIELDS = {
   like: '👍', love: '❤️', haha: '😂', wow: '😮', sad: '😢', angry: '😡'
 };
@@ -24,6 +26,7 @@ export default function ChatPostCard({
   const menuTriggerRef = useRef(null);
   const [menuPosition, setMenuPosition] = useState(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
+  const [moreEmojisOpen, setMoreEmojisOpen] = useState(false);
 
   useEffect(() => {
     if (openPostMenuId !== post.id || !menuTriggerRef.current) return undefined;
@@ -75,25 +78,27 @@ export default function ChatPostCard({
       </div>
       <p>{post.body}</p>
 
-      {totalReactions > 0 && <div className="post-reaction-summary animate-reaction-summary" aria-label="Ringkasan reaksi">
-        <div className="post-reaction-counts">
-          {Object.entries(REACTION_FIELDS).map(([field, emoji]) => reactions[field] > 0
-            ? <span className="post-reaction-count" key={field}><span aria-hidden="true">{emoji}</span><span>{reactions[field]}</span></span>
-            : null)}
-        </div>
-        <span className="post-reaction-total" aria-label={`${totalReactions} total reaksi`}>{totalReactions}</span>
-      </div>}
-
-      <div className="engagement-summary" aria-label="Ringkasan interaksi">
-        {totalReactions > 0 && <span className="engagement-reaction-count" aria-label={`${totalReactions} reaksi`}>{totalReactions} reaksi</span>}
+      <div className="post-stats">
+        {totalReactions > 0 && <div className="post-reaction-summary animate-reaction-summary" aria-label="Ringkasan reaksi">
+          <div className="post-reaction-counts">
+            {Object.entries(REACTION_FIELDS).map(([field, emoji]) => reactions[field] > 0
+              ? <span className="post-reaction-count" key={field}><span aria-hidden="true">{emoji}</span><span>{reactions[field]}</span></span>
+              : null)}
+          </div>
+          <span className="post-reaction-total" aria-label={`${totalReactions} total reaksi`}>{totalReactions}</span>
+        </div>}
         <button className="engagement-comment-count" type="button" onClick={openCommentsForReply} aria-label={`Buka komentar, ${commentCount} komentar`}>
-          {commentCount > 0 ? `${commentCount} komentar` : 'Jadi yang pertama berkomentar'}
+          {commentCount > 0 ? `${commentCount} komentar` : 'Belum ada komentar'}
         </button>
       </div>
       <div className="post-actions">
         <div className="post-action-wrap">
           {reactionPickerOpen && <div className="status-reactions" role="group" aria-label="Pilih reaksi">
-            {EMOJIS.map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => { handleReactPost(post, emoji); setReactionPickerOpen(false); }}>{emoji}</button>)}
+            {PRIMARY_EMOJIS.map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => { handleReactPost(post, emoji); setReactionPickerOpen(false); setMoreEmojisOpen(false); }}>{emoji}</button>)}
+            <button type="button" className="status-reaction status-reaction-more" aria-label={moreEmojisOpen ? 'Sembunyikan reaksi lainnya' : 'Tampilkan reaksi lainnya'} aria-expanded={moreEmojisOpen} onClick={() => setMoreEmojisOpen(open => !open)}>{moreEmojisOpen ? '−' : '+'}</button>
+            {moreEmojisOpen && <div className="status-reactions-extra">
+              {EXTRA_EMOJIS.map(emoji => <button key={emoji} type="button" className={postReactions[post.id] === emoji ? 'status-reaction selected' : 'status-reaction'} aria-label={`Beri reaksi ${emoji}`} aria-pressed={postReactions[post.id] === emoji} onClick={() => { handleReactPost(post, emoji); setReactionPickerOpen(false); setMoreEmojisOpen(false); }}>{emoji}</button>)}
+            </div>}
           </div>}
           <button className={reactionPickerOpen || likedPosts[post.id] ? 'post-action liked' : 'post-action'} type="button" aria-label="Reaksi" aria-expanded={reactionPickerOpen} onClick={() => setReactionPickerOpen(open => !open)}>{postReactions[post.id] ? <span className="reaction-action-emoji" aria-hidden="true">{postReactions[post.id]}</span> : <SmilePlus size={17}/>} <span>Reaksi</span></button>
         </div>

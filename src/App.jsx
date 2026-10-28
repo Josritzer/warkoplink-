@@ -366,6 +366,37 @@ export default function App() {
     }
   }
 
+  async function handleEditPost(event, post, values) {
+    event.preventDefault();
+    if (!user || !db || !post?.id || post.authorId !== user.uid) {
+      setNotice('Hanya pemilik posting yang dapat mengeditnya.');
+      return false;
+    }
+    const bodyCheck = validatePostBody(values.body);
+    if (!bodyCheck.ok) { setNotice(bodyCheck.error); return false; }
+    const detailsCheck = validatePostDetails(values.topic, values);
+    if (!detailsCheck.ok) { setNotice(detailsCheck.error); return false; }
+    try {
+      await updateDoc(doc(db, 'posts', post.id), {
+        body: bodyCheck.value,
+        topic: values.topic,
+        postType: String(values.postType || '').trim(),
+        location: String(values.location || '').trim(),
+        eventDate: String(values.eventDate || '').trim(),
+        price: String(values.price || '').trim(),
+        workType: String(values.workType || '').trim(),
+        contact: String(values.contact || '').trim()
+      });
+      setNotice('Posting berhasil diperbarui.');
+      return true;
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied'
+        ? 'Edit ditolak oleh aturan keamanan.'
+        : 'Posting belum dapat diperbarui. Periksa koneksi lalu coba lagi.');
+      return false;
+    }
+  }
+
   async function handleDeletePost(post) {
     if (!user || !db || !post?.id || post.authorId !== user.uid || deletingPostId) return;
     setDeletingPostId(post.id);

@@ -662,14 +662,15 @@ export default function App() {
         getDocs(query(
           collection(db, 'posts', post.id, 'replies'),
           orderBy('createdAt', 'desc'),
-          limit(5)
+          limit(6)
         )),
         getCountFromServer(collection(db, 'posts', post.id, 'replies'))
       ]);
-      // Ambil lima balasan terbaru agar thread panjang tetap terasa hidup; balik urutannya untuk membaca kronologis.
-      const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).reverse();
-      setReplyCursors(current => ({ ...current, [post.id]: snapshot.docs.at(-1) || null }));
-      setHasMoreReplies(current => ({ ...current, [post.id]: countSnapshot.data().count > replies.length }));
+      // Ambil lima balasan terbaru; satu dokumen ekstra memastikan status "masih ada" akurat.
+      const pageDocs = snapshot.docs.slice(0, 5);
+      const replies = pageDocs.map((item) => ({ id: item.id, ...item.data() })).reverse();
+      setReplyCursors(current => ({ ...current, [post.id]: pageDocs.at(-1) || null }));
+      setHasMoreReplies(current => ({ ...current, [post.id]: snapshot.docs.length > 5 || countSnapshot.data().count > replies.length }));
       setRepliesByPost(current => {
         const pendingReplies = (current[post.id] || []).filter(reply => reply.pending);
         const serverIds = new Set(replies.map(reply => reply.id));
@@ -697,16 +698,17 @@ export default function App() {
         collection(db, 'posts', post.id, 'replies'),
         orderBy('createdAt', 'desc'),
         startAfter(replyCursors[post.id]),
-        limit(5)
+        limit(6)
       ));
-      const olderReplies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).reverse();
+      const pageDocs = snapshot.docs.slice(0, 5);
+      const olderReplies = pageDocs.map((item) => ({ id: item.id, ...item.data() })).reverse();
       setRepliesByPost(current => {
         const existing = current[post.id] || [];
         const seen = new Set(existing.map(reply => reply.id));
         return { ...current, [post.id]: [...olderReplies.filter(reply => !seen.has(reply.id)), ...existing] };
       });
-      setReplyCursors(current => ({ ...current, [post.id]: snapshot.docs.at(-1) || current[post.id] }));
-      setHasMoreReplies(current => ({ ...current, [post.id]: snapshot.docs.length === 5 }));
+      setReplyCursors(current => ({ ...current, [post.id]: pageDocs.at(-1) || current[post.id] }));
+      setHasMoreReplies(current => ({ ...current, [post.id]: snapshot.docs.length > 5 }));
     } catch {
       setNotice('Komentar sebelumnya belum dapat dimuat. Coba lagi.');
     } finally {

@@ -13,6 +13,7 @@ import AdminPanel from './AdminPanel.jsx';
 import ChatPanel from './chat/ChatPanel.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { deleteOwnPost } from './services/postService.js';
+import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs } from './directory/directoryFilters.js';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
@@ -37,16 +38,6 @@ function readCachedPosts() {
   }
 }
 
-
-function normalizeSearchText(value) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('id')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
   const [warungs, setWarungs] = useState([]);
   const [status, setStatus] = useState(db ? 'loading' : 'error');
@@ -55,6 +46,8 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [priceFilter, setPriceFilter] = useState('semua');
+  const [facilityFilter, setFacilityFilter] = useState([]);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState('');
@@ -188,19 +181,25 @@ function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
     </section>;
   }
 
-  const normalizedSearch = normalizeSearchText(searchTerm);
-  const visibleWarungs = warungs.filter((item) => {
-    const haystack = normalizeSearchText([item.name, item.address, ...(item.facilities || [])].join(' '));
-    return haystack.includes(normalizedSearch);
-  });
+  const facilityOptions = collectFacilities(warungs);
+  const visibleWarungs = filterWarungs(warungs, { search: searchTerm, price: priceFilter, facilities: facilityFilter });
+  const hasActiveFilter = Boolean(searchTerm.trim()) || priceFilter !== 'semua' || facilityFilter.length > 0;
+  function toggleFacility(key) {
+    setFacilityFilter((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
+  }
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>
     <h2>Cari warkop di Lamongan.</h2>
     <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Pencarian memfilter data yang sudah dimuat; muat halaman berikutnya untuk menelusuri lebih banyak hasil.</p>
     <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, fasilitas…" aria-label="Cari warkop"/></label>
+    <div className="directory-filters" role="group" aria-label="Filter warkop">
+      <label>Kisaran harga<select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)}>{PRICE_FILTER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+      {facilityOptions.length > 0 && <div className="facility-filter-list">{facilityOptions.map((facility) => <button type="button" key={facility.key} className={facilityFilter.includes(facility.key) ? 'facility-chip active' : 'facility-chip'} aria-pressed={facilityFilter.includes(facility.key)} onClick={() => toggleFacility(facility.key)}>{facility.label}</button>)}</div>}
+      {hasActiveFilter && <button type="button" className="button button-quiet" onClick={() => { setSearchTerm(''); setPriceFilter('semua'); setFacilityFilter([]); }}>Hapus filter</button>}
+    </div>
     {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
     {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi nanti.</p></div>}
-    {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{searchTerm ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{searchTerm ? 'Coba kata kunci lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
+    {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
     <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
       <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3>{item.name}</h3><p><MapPin size={14}/>{item.address}</p>
       <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}</div>

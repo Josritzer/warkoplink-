@@ -264,8 +264,9 @@ service cloud.firestore {
           request.auth.uid == userId
           || (
             exists(/databases/$(database)/documents/posts/$(postId))
-            && get(/databases/$(database)/documents/posts/$(postId)).data.get('authorId', '') == request.auth.uid
-            && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) == true
+            && get(/databases/$(database)/documents/posts/$(postId)).data.keys().hasAll(['authorId', 'deleting'])
+            && get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid
+            && get(/databases/$(database)/documents/posts/$(postId)).data.deleting == true
           )
         );
       allow update: if signedIn()

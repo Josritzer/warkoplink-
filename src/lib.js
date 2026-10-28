@@ -6,9 +6,28 @@ export const DISPLAY_NAME_MAX = 60;
 export const PASSWORD_MIN = 6;
 export const FALLBACK_AUTHOR_NAME = 'Anggota';
 
-// Harus sama persis dengan daftar kategori di firestore.rules.
-export const POST_TOPICS = ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'];
+// Kategori baru adalah satu-satunya kategori utama yang dapat dipublikasikan.
+export const POST_TOPICS = ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal'];
 export const FILTER_TOPICS = ['Semua', ...POST_TOPICS];
+export const POST_SUBTYPES = {
+  'Ngopi Bareng': ['Cari teman ngopi', 'Cari teman hobi', 'Ajakan kegiatan'],
+  'Tanya Warkop': ['Wi-Fi & fasilitas', 'Rekomendasi warkop', 'Pertanyaan komunitas'],
+  'Info & Acara': ['Info lokal', 'Acara komunitas', 'Promo warkop'],
+  'Loker': ['Lowongan kerja', 'Cari pekerja', 'Paruh waktu / shift'],
+  'Jual Beli & Jasa Lokal': ['Jual barang', 'Cari barang', 'Tawarkan jasa', 'Promosi usaha']
+};
+const LEGACY_TOPIC_MAP = {
+  'Obrolan Umum': 'Ngopi Bareng',
+  'Tanya Jawab': 'Tanya Warkop',
+  'Info Layanan': 'Info & Acara',
+  'Ide & Saran': 'Info & Acara'
+};
+export function canonicalTopic(topic) {
+  return POST_TOPICS.includes(topic) ? topic : LEGACY_TOPIC_MAP[topic] || 'Ngopi Bareng';
+}
+export function displayTopic(topic) {
+  return canonicalTopic(topic);
+}
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -51,6 +70,18 @@ export function validateTopic(topic) {
   return POST_TOPICS.includes(topic);
 }
 
+export function validatePostDetails(topic, details = {}) {
+  if (!validateTopic(topic)) return { ok: false, error: 'Pilih salah satu dari lima kategori yang tersedia.' };
+  const limits = { postType: 80, location: 160, eventDate: 40, price: 60, workType: 60, contact: 240 };
+  for (const [key, max] of Object.entries(limits)) {
+    if (String(details[key] ?? '').trim().length > max) return { ok: false, error: 'Detail posting terlalu panjang.' };
+  }
+  if (details.contact && !/^https:\/\//i.test(String(details.contact).trim()) && !/^@[\w.]{2,40}$/.test(String(details.contact).trim())) {
+    return { ok: false, error: 'Kontak harus berupa tautan HTTPS atau nama akun @pengguna.' };
+  }
+  return { ok: true };
+}
+
 // Nama penulis tidak pernah memakai bagian dari email (menghindari kebocoran data pribadi).
 export function authorNameFor(user) {
   const name = String(user?.displayName ?? '').trim();
@@ -60,11 +91,13 @@ export function authorNameFor(user) {
 export function filterPosts(posts, topic, search) {
   const needle = String(search ?? '').trim().toLowerCase();
   return posts.filter((post) => {
-    if (topic && topic !== 'Semua' && post.topic !== topic) return false;
+    if (topic && topic !== 'Semua' && canonicalTopic(post.topic) !== topic) return false;
     if (!needle) return true;
     return (
       String(post.body ?? '').toLowerCase().includes(needle) ||
-      String(post.authorName ?? '').toLowerCase().includes(needle)
+      String(post.authorName ?? '').toLowerCase().includes(needle) ||
+      String(post.location ?? '').toLowerCase().includes(needle) ||
+      String(post.postType ?? '').toLowerCase().includes(needle)
     );
   });
 }

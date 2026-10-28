@@ -12,7 +12,9 @@ export const EMPTY_REACTIONS = Object.freeze({
 });
 
 export function reactionFieldForEmoji(emoji) {
-  return REACTION_FIELDS[emoji] || '';
+  return typeof emoji === 'string' && Object.prototype.hasOwnProperty.call(REACTION_FIELDS, emoji)
+    ? REACTION_FIELDS[emoji]
+    : '';
 }
 
 export function summarizeReactions(docs, userId = '') {
@@ -20,16 +22,25 @@ export function summarizeReactions(docs, userId = '') {
     id: item.id,
     ...(typeof item.data === 'function' ? item.data() : item.data)
   }));
-  const ownReaction = userId ? entries.find((entry) => entry.id === userId) : null;
+
+  // Preserve legacy likes without an emoji field, but don't reinterpret unknown
+  // or malformed emoji data as 👍. Firestore Rules remain the authoritative guard.
+  const validEntries = entries.filter((entry) => (
+    !Object.prototype.hasOwnProperty.call(entry, 'emoji')
+    || Boolean(reactionFieldForEmoji(entry.emoji))
+  ));
+  const ownReaction = userId ? validEntries.find((entry) => entry.id === userId) : null;
   const reactions = { ...EMPTY_REACTIONS };
-  entries.forEach((entry) => {
-    // Legacy likes had no emoji field; preserve them in the 👍 bucket.
-    const field = reactionFieldForEmoji(entry.emoji) || 'like';
-    reactions[field] += 1;
+
+  validEntries.forEach((entry) => {
+    const hasEmoji = Object.prototype.hasOwnProperty.call(entry, 'emoji');
+    const field = hasEmoji ? reactionFieldForEmoji(entry.emoji) : 'like';
+    if (field) reactions[field] += 1;
   });
+
   return {
-    count: entries.length,
-    totalReactions: entries.length,
+    count: validEntries.length,
+    totalReactions: validEntries.length,
     reactions,
     liked: Boolean(ownReaction),
     emoji: typeof ownReaction?.emoji === 'string' ? ownReaction.emoji : ''

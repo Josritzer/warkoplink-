@@ -66,19 +66,8 @@ service cloud.firestore {
         && data.email is string;
     }
 
-    // Enam kategori agregat tetap stabil; setiap kategori menerima enam reaksi.
-    // Emoji disimpan persis di dokumen likes, sedangkan agregat tetap berukuran kecil.
-    function validReactionEmoji(emoji) {
-      return emoji in [
-        '👍', '👏', '🙌', '💪', '🤝', '💯',
-        '❤️', '🥰', '😍', '😘', '💖', '💕',
-        '😂', '🤣', '😆', '😹', '😅', '🤪',
-        '😮', '😲', '🤯', '🤩', '🥳', '✨',
-        '😢', '😭', '🥺', '😔', '💔', '🫂',
-        '😡', '🤬', '😤', '🙄', '😠', '👎'
-      ];
-    }
-
+    // Six stable aggregate buckets; exact emoji stays in each user's likes document.
+    // A direct lookup avoids repeatedly evaluating a 36-item allowlist in update rules.
     function reactionField(emoji) {
       return {
         '👍': 'like', '👏': 'like', '🙌': 'like', '💪': 'like', '🤝': 'like', '💯': 'like',
@@ -88,6 +77,10 @@ service cloud.firestore {
         '😢': 'sad', '😭': 'sad', '🥺': 'sad', '😔': 'sad', '💔': 'sad', '🫂': 'sad',
         '😡': 'angry', '🤬': 'angry', '😤': 'angry', '🙄': 'angry', '😠': 'angry', '👎': 'angry'
       }.get(emoji, '');
+    }
+
+    function validReactionEmoji(emoji) {
+      return reactionField(emoji) != '';
     }
 
     function expectedReactionCount(oldReactions, newReactions, oldEmoji, newEmoji, emoji) {

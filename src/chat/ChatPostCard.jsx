@@ -1,5 +1,6 @@
 import { MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { displayTopic } from '../lib.js';
 import { createPortal } from 'react-dom';
 
 const EMOJIS = ["👍","👏","🙌","💪","🤝","💯","❤️","🥰","😍","😘","💖","💕","😂","🤣","😆","😹","😅","🤪","😮","😲","🤯","🤩","🥳","✨","😢","😭","🥺","😔","💔","🫂","😡","🤬","😤","🙄","😠","👎"];
@@ -9,6 +10,7 @@ const REACTION_FIELDS = {
   like: '👍', love: '❤️', haha: '😂', wow: '😮', sad: '😢', angry: '😡'
 };
 const EMPTY_REACTIONS = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+const POST_CATEGORY_CLASS = { 'Ngopi Bareng': 'ngopi', 'Tanya Warkop': 'tanya', 'Info & Acara': 'info', 'Loker': 'loker', 'Jual Beli & Jasa Lokal': 'jual-beli' };
 // Tampilan satu status; state dan operasi tetap dimiliki App agar data tersinkron antarpengguna.
 export default function ChatPostCard({
   post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
@@ -51,13 +53,22 @@ export default function ChatPostCard({
     await openReplyPage(post);
   }
 
+  const category = displayTopic(post.topic);
+  const metaItems = [
+    post.postType && { label: post.postType, icon: '✦' },
+    post.eventDate && { label: post.eventDate, icon: '◷' },
+    post.location && { label: post.location, icon: '⌖' },
+    post.workType && { label: post.workType, icon: '↗' },
+    post.price && { label: post.price, icon: 'Rp' }
+  ].filter(Boolean);
+
   return <>
-  <article className="post-card" key={post.id}>
+  <article className={`post-card post-card-category post-category-${POST_CATEGORY_CLASS[category] || 'ngopi'}`} key={post.id}>
     <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : String(post.authorName || 'A').slice(0, 1).toUpperCase()}</div>
     <div className="post-content">
       <div className="post-head">
         <div className="post-meta">
-          <b>{post.authorName || 'Anggota SL'}</b><span>{post.topic || 'Obrolan Umum'}</span>
+          <b>{post.authorName || 'Anggota SL'}</b><span className="post-category-label">{category}</span>
           <small title={post.createdAt?.toDate?.()?.toLocaleString('id-ID') || ''}>{relativePostTime(post.createdAt)}</small>
         </div>
         <div className="post-menu-wrap">
@@ -77,6 +88,10 @@ export default function ChatPostCard({
         </div>
       </div>
       <p>{post.body}</p>
+      {metaItems.length > 0 && <div className="post-detail-row" aria-label="Detail posting">
+        {metaItems.map(item => <span key={item.label}><span aria-hidden="true">{item.icon}</span>{item.label}</span>)}
+      </div>}
+      {['Jual Beli & Jasa Lokal', 'Loker'].includes(category) && post.contact && <a className="post-contact-link" href={/^https:\/\//i.test(post.contact) ? post.contact : `https://www.instagram.com/${post.contact.replace(/^@/, '')}/`} target="_blank" rel="noopener noreferrer">{category === 'Loker' ? 'Hubungi pengiklan' : 'Lihat kontak'} <span aria-hidden="true">↗</span></a>}
 
       <div className="post-stats">
         {totalReactions > 0 && <div className="post-reaction-summary animate-reaction-summary" aria-label="Ringkasan reaksi">

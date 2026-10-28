@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.PersonOutline
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -342,8 +344,8 @@ private fun toggleReaction(user: FirebaseUser, postId: String, emoji: String, do
         (postSnapshot.get("reactions") as? Map<*, *>)?.forEach { (key, value) ->
             if (key is String && value is Number) counts[key] = value.toLong().coerceAtLeast(0L)
         }
-        // Keep every supported aggregate key present, including on older/malformed documents.
-        ReactionOptions.forEach { (key, _) -> counts.putIfAbsent(key, 0L) }
+        // Keep the aggregate sparse: only update the old/new keys. Firestore Rules
+        // deliberately reject unrelated key additions in the same reaction transaction.
         // Existing legacy likes without an emoji are treated as 👍 by Firestore Rules.
         val previousEmoji = if (reactionSnapshot.exists()) reactionSnapshot.getString("emoji") ?: "👍" else null
         val oldKey = previousEmoji?.let { previous -> ReactionOptions.firstOrNull { it.second == previous }?.first }
@@ -498,41 +500,82 @@ private fun FeedScreen(
                         Text(post.body, color = WarkopInk, fontSize = 15.sp, lineHeight = 21.sp)
                         Spacer(Modifier.height(10.dp))
                         var showReactionPicker by remember(post.id) { mutableStateOf(false) }
-                        Row(
-                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            ReactionOptions.filter { (key, _) -> (post.reactions[key] ?: 0L) > 0L }
-                                .forEach { (key, emoji) ->
-                                    val count = post.reactions[key] ?: 0L
-                                    TextButton(
-                                        onClick = { onReact(post.id, emoji) { result -> if (result != null) message = result } },
-                                        modifier = Modifier.padding(horizontal = 0.dp)
-                                    ) {
-                                        Text("$emoji $count", fontSize = 12.sp, color = WarkopBlue)
-                                    }
+                        var myReaction by remember(post.id, currentUserId) { mutableStateOf<String?>(null) }
+                        DisposableEffect(post.id, currentUserId) {
+                            val db = FirebaseRuntime.db
+                            if (db == null) return@DisposableEffect onDispose { }
+                            val registration = db.collection("posts").document(post.id)
+                                .collection("likes").document(currentUserId)
+                                .addSnapshotListener { snapshot, _ ->
+                                    myReaction = if (snapshot?.exists() == true) {
+                                        snapshot.getString("emoji") ?: "👍"
+                                    } else null
                                 }
-                            TextButton(onClick = { showReactionPicker = !showReactionPicker }) {
-                                Text(if (showReactionPicker) "✕" else "☺️ +", fontSize = 13.sp, color = Muted)
+                            onDispose { registration.remove() }
+                        }
+                        val displayedReactions = ReactionOptions
+                            .filter { (key, _) -> (post.reactions[key] ?: 0L) > 0L }
+                            .sortedByDescending { (key, _) -> post.reactions[key] ?: 0L }
+                            .take(3)
+                            .toMutableList()
+                        ReactionOptions.firstOrNull { it.second == myReaction }?.let { own ->
+                            if (displayedReactions.none { it.first == own.first }) displayedReactions.add(own)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            displayedReactions.forEach { (key, emoji) ->
+                                val count = post.reactions[key] ?: 0L
+                                val selectedByMe = emoji == myReaction
+                                Surface(
+                                    onClick = { onReact(post.id, emoji) { result -> if (result != null) message = result } },
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (selectedByMe) Color(0xFFDCE7FF) else Color(0xFFF0F2F5),
+                                    contentColor = if (selectedByMe) WarkopBlue else WarkopInk
+                                ) {
+                                    Text("$emoji $count", modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp), fontSize = 12.sp)
+                                }
                             }
-                            Text("${post.totalReactions} reaksi", color = Muted, fontSize = 11.sp)
+                            TextButton(onClick = { showReactionPicker = true }) {
+                                Text("☺️ Reaksi", fontSize = 13.sp, color = Muted)
+                            }
+                            Spacer(Modifier.weight(1f))
+                            if (post.totalReactions > 0) Text("${post.totalReactions}", color = Muted, fontSize = 12.sp)
                         }
                         if (showReactionPicker) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                ReactionOptions.forEach { (_, emoji) ->
-                                    TextButton(
-                                        onClick = {
-                                            onReact(post.id, emoji) { result -> if (result != null) message = result }
-                                            showReactionPicker = false
+                            AlertDialog(
+                                onDismissRequest = { showReactionPicker = false },
+                                title = { Text("Pilih reaksi") },
+                                text = {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text("Pilihan cepat", fontSize = 12.sp, color = Muted)
+                                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            ReactionOptions.take(6).forEach { (_, emoji) ->
+                                                TextButton(onClick = {
+                                                    onReact(post.id, emoji) { result -> if (result != null) message = result }
+                                                    showReactionPicker = false
+                                                }) { Text(emoji, fontSize = 22.sp) }
+                                            }
                                         }
-                                    ) { Text(emoji, fontSize = 20.sp) }
-                                }
-                            }
+                                        Text("Lainnya", fontSize = 12.sp, color = Muted)
+                                        Column(Modifier.height(220.dp).verticalScroll(rememberScrollState())) {
+                                            ReactionOptions.drop(6).chunked(6).forEach { group ->
+                                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                    group.forEach { (_, emoji) ->
+                                                        TextButton(onClick = {
+                                                            onReact(post.id, emoji) { result -> if (result != null) message = result }
+                                                            showReactionPicker = false
+                                                        }) { Text(emoji, fontSize = 22.sp) }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                confirmButton = { TextButton(onClick = { showReactionPicker = false }) { Text("Tutup") } }
+                            )
                         }
                         ReplySection(post.id, currentUserId, profileName)
                     }

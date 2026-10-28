@@ -69,14 +69,13 @@ service cloud.firestore {
     // Six stable aggregate buckets; exact emoji stays in each user's likes document.
     // A direct lookup avoids repeatedly evaluating a 36-item allowlist in update rules.
     function reactionField(emoji) {
-      return {
-        '👍': 'like', '👏': 'like', '🙌': 'like', '💪': 'like', '🤝': 'like', '💯': 'like',
-        '❤️': 'love', '🥰': 'love', '😍': 'love', '😘': 'love', '💖': 'love', '💕': 'love',
-        '😂': 'haha', '🤣': 'haha', '😆': 'haha', '😹': 'haha', '😅': 'haha', '🤪': 'haha',
-        '😮': 'wow', '😲': 'wow', '🤯': 'wow', '🤩': 'wow', '🥳': 'wow', '✨': 'wow',
-        '😢': 'sad', '😭': 'sad', '🥺': 'sad', '😔': 'sad', '💔': 'sad', '🫂': 'sad',
-        '😡': 'angry', '🤬': 'angry', '😤': 'angry', '🙄': 'angry', '😠': 'angry', '👎': 'angry'
-      }.get(emoji, '');
+      return emoji in ['👍', '👏', '🙌', '💪', '🤝', '💯'] ? 'like'
+        : emoji in ['❤️', '🥰', '😍', '😘', '💖', '💕'] ? 'love'
+        : emoji in ['😂', '🤣', '😆', '😹', '😅', '🤪'] ? 'haha'
+        : emoji in ['😮', '😲', '🤯', '🤩', '🥳', '✨'] ? 'wow'
+        : emoji in ['😢', '😭', '🥺', '😔', '💔', '🫂'] ? 'sad'
+        : emoji in ['😡', '🤬', '😤', '🙄', '😠', '👎'] ? 'angry'
+        : '';
     }
 
     function validReactionEmoji(emoji) {

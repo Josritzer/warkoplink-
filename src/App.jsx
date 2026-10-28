@@ -225,6 +225,9 @@ export default function App() {
   const [replyDraft, setReplyDraft] = useState('');
   const [replyCounts, setReplyCounts] = useState({});
   const [repliesByPost, setRepliesByPost] = useState({});
+  const [replyCursors, setReplyCursors] = useState({});
+  const [hasMoreReplies, setHasMoreReplies] = useState({});
+  const [loadingMoreReplies, setLoadingMoreReplies] = useState({});
   const [expandedReplies, setExpandedReplies] = useState({});
   const [likedPosts, setLikedPosts] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
@@ -658,12 +661,16 @@ export default function App() {
       const [snapshot, countSnapshot] = await Promise.all([
         getDocs(query(
           collection(db, 'posts', post.id, 'replies'),
-          orderBy('createdAt', 'asc'),
-          limit(5)
+          orderBy('createdAt', 'desc'),
+          limit(6)
         )),
         getCountFromServer(collection(db, 'posts', post.id, 'replies'))
       ]);
-      const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      // Ambil lima balasan terbaru; satu dokumen ekstra memastikan status "masih ada" akurat.
+      const pageDocs = snapshot.docs.slice(0, 5);
+      const replies = pageDocs.map((item) => ({ id: item.id, ...item.data() })).reverse();
+      setReplyCursors(current => ({ ...current, [post.id]: pageDocs.at(-1) || null }));
+      setHasMoreReplies(current => ({ ...current, [post.id]: snapshot.docs.length > 5 || countSnapshot.data().count > replies.length }));
       setRepliesByPost(current => {
         const pendingReplies = (current[post.id] || []).filter(reply => reply.pending);
         const serverIds = new Set(replies.map(reply => reply.id));
@@ -680,6 +687,32 @@ export default function App() {
     } catch {
       setNotice('Komentar belum dapat dimuat. Coba lagi sebentar lagi.');
       return [];
+    }
+  }
+
+  async function loadMoreReplies(post) {
+    if (!db || !post?.id || !replyCursors[post.id] || loadingMoreReplies[post.id] || !hasMoreReplies[post.id]) return;
+    setLoadingMoreReplies(current => ({ ...current, [post.id]: true }));
+    try {
+      const snapshot = await getDocs(query(
+        collection(db, 'posts', post.id, 'replies'),
+        orderBy('createdAt', 'desc'),
+        startAfter(replyCursors[post.id]),
+        limit(6)
+      ));
+      const pageDocs = snapshot.docs.slice(0, 5);
+      const olderReplies = pageDocs.map((item) => ({ id: item.id, ...item.data() })).reverse();
+      setRepliesByPost(current => {
+        const existing = current[post.id] || [];
+        const seen = new Set(existing.map(reply => reply.id));
+        return { ...current, [post.id]: [...olderReplies.filter(reply => !seen.has(reply.id)), ...existing] };
+      });
+      setReplyCursors(current => ({ ...current, [post.id]: pageDocs.at(-1) || current[post.id] }));
+      setHasMoreReplies(current => ({ ...current, [post.id]: snapshot.docs.length > 5 }));
+    } catch {
+      setNotice('Komentar sebelumnya belum dapat dimuat. Coba lagi.');
+    } finally {
+      setLoadingMoreReplies(current => ({ ...current, [post.id]: false }));
     }
   }
 
@@ -878,6 +911,7 @@ export default function App() {
         </article> : <p>Obrolan tidak ditemukan. Kembali ke beranda untuk memilih obrolan.</p>}
         <div className="reply-thread-list" aria-label="Komentar dan balasan">
           <h3>Komentar {selectedReplyPost ? '(' + (replyCounts[selectedReplyPost.id] ?? selectedReplyPost.commentCount ?? 0) + ')' : ''}</h3>
+          {selectedReplyPost && hasMoreReplies[selectedReplyPost.id] && <button className="button button-quiet" type="button" onClick={() => loadMoreReplies(selectedReplyPost)} disabled={Boolean(loadingMoreReplies[selectedReplyPost.id])}>{loadingMoreReplies[selectedReplyPost.id] ? 'Memuat komentar…' : 'Muat komentar sebelumnya'}</button>}
           {replyPageLoading ? <div className="empty-state" role="status"><p>Memuat komentar…</p></div> :
             selectedReplyPost && (repliesByPost[selectedReplyPost.id] || []).length === 0
               ? <p className="reply-page-empty">Belum ada komentar. Jadilah yang pertama menanggapi.</p>

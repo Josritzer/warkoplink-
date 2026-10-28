@@ -141,7 +141,7 @@ service cloud.firestore {
 
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
-        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
+        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'location', 'eventDate', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
         && data.reactions is map
         && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
@@ -161,7 +161,14 @@ service cloud.firestore {
         && data.body is string
         && data.body.size() >= 1
         && data.body.size() <= 2000
-        && data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
+        && data.topic in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']
+        && (!data.keys().hasAny(['postType']) || (data.postType is string && data.postType.size() <= 80))
+        && (!data.keys().hasAny(['location']) || (data.location is string && data.location.size() <= 160))
+        && (!data.keys().hasAny(['eventDate']) || (data.eventDate is string && data.eventDate.size() <= 40))
+        && (!data.keys().hasAny(['price']) || (data.price is string && data.price.size() <= 60))
+        && (!data.keys().hasAny(['workType']) || (data.workType is string && data.workType.size() <= 60))
+        && (!data.keys().hasAny(['contact']) || (data.contact is string && data.contact.size() <= 240
+          && (data.contact.matches('https://.*') || data.contact.matches('@[A-Za-z0-9_.]{2,40}'))))
         && data.createdAt == request.time;
     }
 
@@ -242,7 +249,11 @@ service cloud.firestore {
             && request.resource.data.get('body', '') is string
             && request.resource.data.get('body', '').size() >= 1
             && request.resource.data.get('body', '').size() <= 2000
-            && request.resource.data.get('topic', '') in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
+            && (
+              request.resource.data.get('topic', '') in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']
+              || (request.resource.data.get('topic', '') == resource.data.get('topic', '')
+                && resource.data.get('topic', '') in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'])
+            )
           )
           || (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting'])

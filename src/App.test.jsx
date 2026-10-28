@@ -352,16 +352,17 @@ describe('membuat postingan', () => {
     render(<App />);
     emitAuth(fakeUser());
     emitPosts([]);
-    await user.click(screen.getByRole('button', { name: 'Info Layanan' }));
+    await user.click(screen.getByRole('button', { name: 'Info & Acara' }));
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
     await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Kategori posting' }), 'Info & Acara');
     await user.type(screen.getByLabelText('Isi obrolan'), '  Halo komunitas  ');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
 
     await waitFor(() => expect(fs.setDoc).toHaveBeenCalledTimes(1));
     expect(fs.setDoc).toHaveBeenCalledWith({ path: 'posts/new-post' }, {
-      authorId: 'u1', authorName: 'Sari', authorPhotoURL: null, body: 'Halo komunitas', topic: 'Info Layanan', createdAt: '__SERVER_TS__',
+      authorId: 'u1', authorName: 'Sari', authorPhotoURL: null, body: 'Halo komunitas', topic: 'Info & Acara', postType: 'Info lokal', createdAt: '__SERVER_TS__',
       reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0,
     });
     expect(await screen.findByText(/Obrolan berhasil dipublikasikan/)).toBeTruthy();
@@ -369,9 +370,9 @@ describe('membuat postingan', () => {
     expect(screen.getByRole('button', { name: 'Kirim' }).disabled).toBe(true);
   });
 
-  it('keempat kategori tersedia sebagai tab feed', () => {
+  it('lima kategori final tersedia sebagai tab feed', () => {
     render(<App />);
-    for (const category of ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']) {
+    for (const category of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']) {
       expect(screen.getByRole('button', { name: category })).toBeTruthy();
     }
     expect(screen.queryByRole('combobox', { name: 'Kategori obrolan' })).toBeNull();

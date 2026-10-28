@@ -228,7 +228,7 @@ service cloud.firestore {
         && validPost(request.resource.data);
       allow update: if (
         signedIn()
-        && resource.data.authorId == request.auth.uid
+        && resource.data.get('authorId', '') == request.auth.uid
         && (
           (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic'])

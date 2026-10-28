@@ -23,7 +23,7 @@ Untuk Render, variabel `VITE_FIREBASE_*` didefinisikan dalam `render.yaml`. Sete
 ## Struktur data Firestore
 
 - `profiles/{uid}`: nama tampilan dan email pemilik akun; aturan membatasi pembacaan profil kepada pemiliknya.
-- `posts/{postId}`: nama penulis, UID penulis, isi, topik, dan waktu publikasi. Membaca obrolan publik; hanya penulis yang dapat mengubah atau menghapus obrolannya.
+- `posts/{postId}`: nama penulis, UID penulis, isi, topik, dan waktu publikasi. Membaca obrolan publik; hanya penulis yang dapat mengubah atau menghapus obrolannya. Ini adalah koleksi obrolan resmi WarkopLink; lihat `docs/keputusan-skema-obrolan.md`.
 
 ## Render
 

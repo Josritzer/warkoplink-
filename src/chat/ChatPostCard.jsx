@@ -2,7 +2,7 @@ import { MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from '
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+const EMOJIS = ["👍","👏","🙌","💪","🤝","💯","❤️","🥰","😍","😘","💖","💕","😂","🤣","😆","😹","😅","🤪","😮","😲","🤯","🤩","🥳","✨","😢","😭","🥺","😔","💔","🫂","😡","🤬","😤","🙄","😠","👎"];
 const REACTION_FIELDS = {
   like: '👍', love: '❤️', haha: '😂', wow: '😮', sad: '😢', angry: '😡'
 };

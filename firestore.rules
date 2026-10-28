@@ -232,14 +232,14 @@ service cloud.firestore {
         && (
           (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic'])
-            && request.resource.data.body is string
-            && request.resource.data.body.size() >= 1
-            && request.resource.data.body.size() <= 2000
-            && request.resource.data.topic in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
+            && request.resource.data.get('body', '') is string
+            && request.resource.data.get('body', '').size() >= 1
+            && request.resource.data.get('body', '').size() <= 2000
+            && request.resource.data.get('topic', '') in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran']
           )
           || (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting'])
-            && request.resource.data.deleting == true
+            && request.resource.data.get('deleting', false) == true
           )
         )
       ) || validReactionAggregateUpdate(postId);

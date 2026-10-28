@@ -12,7 +12,9 @@ export const EMPTY_REACTIONS = Object.freeze({
 });
 
 export function reactionFieldForEmoji(emoji) {
-  return REACTION_FIELDS[emoji] || '';
+  return typeof emoji === 'string' && Object.prototype.hasOwnProperty.call(REACTION_FIELDS, emoji)
+    ? REACTION_FIELDS[emoji]
+    : '';
 }
 
 export function summarizeReactions(docs, userId = '') {

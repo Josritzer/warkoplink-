@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { afterAll, afterEach, beforeAll, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 let testEnv;
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
-    projectId: 'demo-sl-community-rules',
+    projectId: 'demo-sl-community-post-delete-rules',
     firestore: { rules: readFileSync('firestore.rules', 'utf8') }
   });
 });
@@ -59,6 +59,9 @@ describe('Firestore Rules: penghapusan status', () => {
     await seedPost('delete-like-post', 'author-1');
     const db = testEnv.authenticatedContext('author-1').firestore();
     await markPostDeleting(db, 'delete-like-post');
+    const markedPost = await getDoc(doc(db, 'posts', 'delete-like-post'));
+    if (markedPost.data()?.deleting !== true) throw new Error('Post deletion marker was not persisted as true');
+    if (markedPost.data()?.authorId !== 'author-1') throw new Error('Post owner does not match the authenticated owner');
     await assertSucceeds(deleteDoc(doc(db, 'posts', 'delete-like-post', 'likes', 'reader-2')));
   });
 

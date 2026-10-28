@@ -129,3 +129,43 @@ describe('ChatPostCard', () => {
     expect(await screen.findByRole('menuitem', { name: /Laporkan obrolan/ })).toBeTruthy();
   });
 });
+
+describe('ChatPostCard — tampilan 2026', () => {
+  it('menampilkan enam reaksi utama dan menyembunyikan emoji lain di balik tombol tambahan', () => {
+    render(<ChatPostCard {...props()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Reaksi' }));
+    for (const emoji of ['👍', '❤️', '😂', '😮', '😢', '😡']) {
+      expect(screen.getByRole('button', { name: `Beri reaksi ${emoji}` })).toBeTruthy();
+    }
+    expect(screen.queryByRole('button', { name: 'Beri reaksi 🥳' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan reaksi lainnya' }));
+    expect(screen.getByRole('button', { name: 'Beri reaksi 🥳' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Sembunyikan reaksi lainnya' }).getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('memilih emoji tambahan tetap mengirim reaksi dan menutup pemilih', () => {
+    const values = props();
+    render(<ChatPostCard {...values} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Reaksi' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan reaksi lainnya' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Beri reaksi 🥳' }));
+    expect(values.handleReactPost).toHaveBeenCalledWith(values.post, '🥳');
+    expect(screen.queryByRole('group', { name: 'Pilih reaksi' })).toBeNull();
+  });
+
+  it('tidak menampilkan jumlah reaksi ganda dan memakai satu baris ringkasan', () => {
+    const values = props({
+      replyCounts: { 'post-1': 2 },
+      reactionSummaries: { 'post-1': { reactions: { like: 3, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 3 } }
+    });
+    const { container } = render(<ChatPostCard {...values} />);
+    expect(screen.queryByText('3 reaksi')).toBeNull();
+    expect(container.querySelectorAll('.post-stats')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /2 komentar/ })).toBeTruthy();
+  });
+
+  it('menampilkan teks netral saat belum ada komentar', () => {
+    render(<ChatPostCard {...props()} />);
+    expect(screen.getByRole('button', { name: /0 komentar/ }).textContent).toBe('Belum ada komentar');
+  });
+});

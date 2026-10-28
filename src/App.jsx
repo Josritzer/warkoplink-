@@ -870,26 +870,35 @@ export default function App() {
       {section === 'Panel Admin' && isAdmin ? <AdminPanel db={db} user={user} onNotice={setNotice}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => setSection('Beranda')}>Kembali</button></section> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
-        <button className="button button-quiet reply-page-back" type="button" onClick={() => setSection('Beranda')}>← Kembali ke beranda</button>
-        <span className="eyebrow">RUANG DISKUSI</span><h2>Balas obrolan</h2>
+        <div className="reply-page-top">
+          <button className="reply-page-back" type="button" onClick={() => setSection('Beranda')}>← Kembali ke beranda</button>
+          <h2>Komentar</h2>
+        </div>
         {selectedReplyPost ? <article className="reply-original-post">
-          <div className="reply-original-meta"><b>{selectedReplyPost.authorName || 'Anggota SL'}</b><span>{selectedReplyPost.topic || 'Obrolan Umum'}</span></div>
-          <p>{selectedReplyPost.body}</p><small>{relativePostTime(selectedReplyPost.createdAt)}</small>
+          <div className="reply-original-avatar" aria-hidden="true">{selectedReplyPost.authorPhotoURL ? <img src={selectedReplyPost.authorPhotoURL} alt="" loading="lazy"/> : String(selectedReplyPost.authorName || 'A').slice(0,1).toUpperCase()}</div>
+          <div className="reply-original-body">
+            <div className="reply-original-meta"><b>{selectedReplyPost.authorName || 'Anggota SL'}</b><span>{selectedReplyPost.topic || 'Obrolan Umum'}</span><small>{relativePostTime(selectedReplyPost.createdAt)}</small></div>
+            <p>{selectedReplyPost.body}</p>
+          </div>
         </article> : <p>Obrolan tidak ditemukan. Kembali ke beranda untuk memilih obrolan.</p>}
         <div className="reply-thread-list" aria-label="Komentar dan balasan">
-          <h3>Komentar {selectedReplyPost ? '(' + (replyCounts[selectedReplyPost.id] ?? selectedReplyPost.commentCount ?? 0) + ')' : ''}</h3>
+          <h3>{selectedReplyPost ? (replyCounts[selectedReplyPost.id] ?? selectedReplyPost.commentCount ?? 0) + ' komentar' : 'Komentar'}</h3>
           {replyPageLoading ? <div className="empty-state" role="status"><p>Memuat komentar…</p></div> :
             selectedReplyPost && (repliesByPost[selectedReplyPost.id] || []).length === 0
               ? <p className="reply-page-empty">Belum ada komentar. Jadilah yang pertama menanggapi.</p>
-              : (selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []) : []).map(reply => <article className="reply-page-item" key={reply.id}>
+              : (selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []) : []).map(reply => <article className={reply.pending ? 'reply-page-item is-pending' : 'reply-page-item'} key={reply.id}>
                   <div className="reply-page-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0,1).toUpperCase()}</div>
-                  <div><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p><small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small></div>
+                  <div className="reply-page-main">
+                    <div className="reply-bubble"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p></div>
+                    <small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small>
+                  </div>
                 </article>)}
         </div>
         {selectedReplyPost && <form className="reply-page-form" onSubmit={event => handleReply(event, selectedReplyPost)}>
-          <label htmlFor="reply-page-input">Tulis komentar</label>
-          <textarea id="reply-page-input" autoFocus value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} rows={4} placeholder="Tulis tanggapan yang relevan…"/>
-          <div className="reply-page-form-bottom"><small>{replyDraft.length}/1000</small><button className="button button-dark" type="submit" disabled={!replyDraft.trim()}>Kirim balasan <Send size={15}/></button></div>
+          <label className="sr-only" htmlFor="reply-page-input">Tulis komentar</label>
+          <textarea id="reply-page-input" autoFocus value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} rows={1} placeholder="Tulis komentar…"/>
+          <button className="reply-send" type="submit" aria-label="Kirim balasan" disabled={!replyDraft.trim()}><Send size={18}/></button>
+          {replyDraft.length > 800 && <small className="reply-counter" aria-live="polite">{replyDraft.length}/1000</small>}
         </form>}
       </section> :
       section === 'Akun' ? <section className="content-section account-section">

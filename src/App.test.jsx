@@ -143,7 +143,7 @@ describe('halaman publik', () => {
     emitPosts(POSTS);
     await screen.findByText('Halo semuanya');
 
-    await user.click(screen.getByRole('button', { name: 'Tanya Jawab' }));
+    await user.click(screen.getByRole('button', { name: 'Tanya Warkop' }));
     expect(screen.queryByText('Halo semuanya')).toBeNull();
     expect(screen.getByText('Berapa harga layanan?')).toBeTruthy();
 
@@ -173,8 +173,8 @@ describe('halaman publik', () => {
     render(<App />);
     emitAuth(null);
     emitPosts(POSTS);
-    await user.click(screen.getByRole('button', { name: 'Ide & Saran' }));
-    expect(screen.getByRole('button', { name: 'Ide & Saran' }).getAttribute('aria-pressed')).toBe('true');
+    await user.click(screen.getByRole('button', { name: 'Info & Acara' }));
+    expect(screen.getByRole('button', { name: 'Info & Acara' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByRole('combobox', { name: 'Kategori obrolan' })).toBeNull();
   });
 });

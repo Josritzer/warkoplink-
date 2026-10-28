@@ -543,3 +543,124 @@
 .reply-page-form-bottom small { color:#858b94; font-size:11px; }
 .reply-page-form-bottom button { display:flex; align-items:center; gap:7px; }
 @media(max-width:620px) { .feed-readonly-note { align-items:flex-start; flex-direction:column; } .reply-page { padding-top:14px; } .reply-page-form { padding:12px; } }
+
+
+/* 2026 community feed polish: clear interaction hierarchy, compact controls,
+   touch-friendly hit areas and consistent mobile-first focus states. */
+#community-feed .post-card {
+  border-width: 0 0 1px;
+  border-color: #e8ebef;
+  padding: 14px 12px 12px;
+  margin: 0;
+  transition: background-color .16s ease;
+}
+#community-feed .post-card:hover { background: #fbfbfd; }
+#community-feed .post-content > p { font-size: 15px; line-height: 1.55; }
+#community-feed .post-reaction-summary {
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 7px;
+}
+#community-feed .post-reaction-counts { flex-wrap: wrap; gap: 6px; }
+#community-feed .post-reaction-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 7px;
+  border: 1px solid #eceef2;
+  border-radius: 999px;
+  background: #fff;
+  color: #555e69;
+  font-size: 11px;
+  line-height: 1;
+}
+#community-feed .post-reaction-total {
+  color: #7b828d;
+  font-size: 11px;
+}
+#community-feed .engagement-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+  margin: 3px 0 1px;
+  color: #737b86;
+  font-size: 11px;
+}
+#community-feed .engagement-reaction-count { white-space: nowrap; }
+#community-feed .engagement-comment-count {
+  min-height: 30px;
+  margin-left: auto;
+  padding: 4px 0 4px 8px;
+  border: 0;
+  background: transparent;
+  color: #68707a;
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+#community-feed .engagement-comment-count:hover { color: #6842b0; text-decoration: underline; }
+#community-feed .post-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding-top: 3px;
+  border-top: 1px solid #f0f2f5;
+}
+#community-feed .post-action {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  min-height: 38px;
+  gap: 7px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  color: #68707a;
+  font-size: 12px;
+  transition: background-color .15s ease, color .15s ease;
+}
+#community-feed .post-action:hover { background: #f3f0fa; color: #6842b0; }
+#community-feed .post-action.liked { color: #6842b0; background: #f7f3ff; }
+#community-feed .status-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 5px;
+  border-color: #e4e7ed;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(25, 28, 35, .12);
+}
+#community-feed .status-reaction {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 21px;
+  transition: transform .12s ease, background-color .12s ease;
+}
+#community-feed .status-reaction:hover { transform: translateY(-1px); background: #f2eefb; }
+#community-feed .status-reaction.selected { background: #eee7fb; outline: 1px solid #c9b8ee; }
+#community-feed .post-menu-trigger { min-width: 36px; min-height: 36px; }
+#community-feed button:focus-visible,
+#community-feed a:focus-visible,
+#community-feed input:focus-visible,
+#community-feed textarea:focus-visible {
+  outline: 2px solid #8a6bd1 !important;
+  outline-offset: 2px;
+}
+@media (max-width: 620px) {
+  #community-feed .post-card { padding: 12px 4px 10px; }
+  #community-feed .post-content > p { font-size: 14px; line-height: 1.55; }
+  #community-feed .post-actions { gap: 3px; }
+  #community-feed .post-action { min-height: 40px; gap: 5px; padding: 7px 3px; font-size: 11px; }
+  #community-feed .post-action svg { width: 16px; height: 16px; }
+  #community-feed .status-reactions { max-width: calc(100vw - 48px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #community-feed .post-card,
+  #community-feed .post-action,
+  #community-feed .status-reaction { transition: none; }
+  #community-feed .status-reaction:hover { transform: none; }
+}

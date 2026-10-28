@@ -658,12 +658,13 @@ export default function App() {
       const [snapshot, countSnapshot] = await Promise.all([
         getDocs(query(
           collection(db, 'posts', post.id, 'replies'),
-          orderBy('createdAt', 'asc'),
+          orderBy('createdAt', 'desc'),
           limit(5)
         )),
         getCountFromServer(collection(db, 'posts', post.id, 'replies'))
       ]);
-      const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      // Ambil lima balasan terbaru agar thread panjang tetap terasa hidup; balik urutannya untuk membaca kronologis.
+      const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).reverse();
       setRepliesByPost(current => {
         const pendingReplies = (current[post.id] || []).filter(reply => reply.pending);
         const serverIds = new Set(replies.map(reply => reply.id));

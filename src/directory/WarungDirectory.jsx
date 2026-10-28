@@ -1,0 +1,180 @@
+import { useEffect, useState } from 'react';
+import { addDoc, collection, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
+import { MapPin, Store, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
+
+export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
+  const [warungs, setWarungs] = useState([]);
+  const [status, setStatus] = useState(db ? 'loading' : 'error');
+  const [lastDocument, setLastDocument] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [moreError, setMoreError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [priceFilter, setPriceFilter] = useState('semua');
+  const [facilityFilter, setFacilityFilter] = useState([]);
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [lat, setLat] = useState('');
+  const [lng, setLng] = useState('');
+  const [facilities, setFacilities] = useState('');
+  const [priceRange, setPriceRange] = useState('belum-diisi');
+  const [hours, setHours] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    if (mode !== 'directory' || !db) return undefined;
+    setStatus('loading');
+    setWarungs([]);
+    setLastDocument(null);
+    setHasMore(false);
+    setMoreError('');
+    const verifiedQuery = query(
+      collection(db, 'warungs'),
+      where('verificationStatus', '==', 'verified'),
+      limit(30)
+    );
+    return onSnapshot(verifiedQuery, (snapshot) => {
+      setWarungs(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      setLastDocument(snapshot.docs.at(-1) || null);
+      setHasMore(snapshot.docs.length === 30);
+      setStatus('ready');
+    }, () => setStatus('error'));
+  }, [mode, db]);
+
+  async function handleRegister(event) {
+    event.preventDefault();
+    if (!user) {
+      onRequestAuth();
+      onNotice('Masuk atau buat akun terlebih dahulu untuk mendaftarkan warkop.');
+      return;
+    }
+    if (!db) return setFormError('Firebase belum dikonfigurasi.');
+    const cleanName = name.trim();
+    const cleanAddress = address.trim();
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (cleanName.length < 2 || cleanName.length > 100) return setFormError('Nama warkop harus 2–100 karakter.');
+    if (cleanAddress.length < 5 || cleanAddress.length > 300) return setFormError('Alamat harus 5–300 karakter.');
+    if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude)
+      || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return setFormError('Masukkan koordinat lintang (-90 sampai 90) dan bujur (-180 sampai 180) yang valid.');
+    }
+    const facilityList = [...new Set(facilities.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))];
+    if (facilityList.length > 20) return setFormError('Maksimal 20 fasilitas.');
+    setSaving(true);
+    setFormError('');
+    try {
+      await addDoc(collection(db, 'warungs'), {
+        name: cleanName,
+        nameNormalized: cleanName.toLowerCase(),
+        ownerUid: user.uid,
+        coordinates: { lat: latitude, lng: longitude },
+        address: cleanAddress,
+        regionCode: 'lamongan-kab',
+        facilities: facilityList,
+        priceRange,
+        openingHours: hours.trim() ? { keterangan: hours.trim().slice(0, 120) } : {},
+        photos: [],
+        verificationStatus: 'pending',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      setName('');
+      setAddress('');
+      setLat('');
+      setLng('');
+      setFacilities('');
+      setPriceRange('belum-diisi');
+      setHours('');
+      onNotice('Pendaftaran terkirim. Warkop menunggu verifikasi dan belum tampil di direktori publik.');
+    } catch (error) {
+      setFormError(error?.code === 'permission-denied'
+        ? 'Pendaftaran ditolak oleh aturan keamanan. Pastikan Anda sudah masuk dan coba lagi.'
+        : 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleLoadMore() {
+    if (!db || !lastDocument || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    setMoreError('');
+    try {
+      const nextQuery = query(
+        collection(db, 'warungs'),
+        where('verificationStatus', '==', 'verified'),
+        startAfter(lastDocument),
+        limit(30)
+      );
+      const snapshot = await getDocs(nextQuery);
+      const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      setWarungs((current) => {
+        const seen = new Set(current.map((item) => item.id));
+        return [...current, ...nextRows.filter((item) => !seen.has(item.id))];
+      });
+      setLastDocument(snapshot.docs.at(-1) || lastDocument);
+      setHasMore(snapshot.docs.length === 30);
+    } catch {
+      setMoreError('Halaman berikutnya belum dapat dimuat. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  if (mode === 'register') {
+    return <section className="content-section explore-section">
+      <span className="eyebrow">DAFTAR GRATIS</span>
+      <h2>Daftarkan warkop Anda.</h2>
+      <p>Isi data yang benar. Pendaftaran akan berstatus menunggu sampai proses verifikasi tersedia.</p>
+      {!user && <div className="directory-notice"><ShieldCheck size={18}/><span>Anda perlu masuk ke akun untuk mengirim pendaftaran.</span><button className="button button-dark" onClick={onRequestAuth}>Masuk / Daftar akun</button></div>}
+      <form className="warung-form" onSubmit={handleRegister}>
+        <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>
+        <label>Alamat lengkap di Kabupaten Lamongan<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa, kecamatan"/></label>
+        <div className="coordinate-fields">
+          <label>Lintang (latitude)<input inputMode="decimal" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="-7.0001"/></label>
+          <label>Bujur (longitude)<input inputMode="decimal" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="112.2810"/></label>
+        </div>
+        <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
+        <label>Kisaran harga<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Belum diisi</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select></label>
+        <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>
+        {formError && <p className="form-error" role="alert">{formError}</p>}
+        <button className="button button-dark" type="submit" disabled={saving}>{saving ? 'Mengirim pendaftaran…' : 'Kirim pendaftaran'}</button>
+      </form>
+    </section>;
+  }
+
+  const facilityOptions = collectFacilities(warungs);
+  const visibleWarungs = filterWarungs(warungs, { search: searchTerm, price: priceFilter, facilities: facilityFilter });
+  const hasActiveFilter = Boolean(searchTerm.trim()) || priceFilter !== 'semua' || facilityFilter.length > 0;
+  function toggleFacility(key) {
+    setFacilityFilter((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
+  }
+  return <section className="content-section explore-section">
+    <span className="eyebrow">DIREKTORI WARKOP</span>
+    <h2>Cari warkop di Lamongan.</h2>
+    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Pencarian memfilter data yang sudah dimuat; muat halaman berikutnya untuk menelusuri lebih banyak hasil.</p>
+    <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, fasilitas…" aria-label="Cari warkop"/></label>
+    <div className="directory-filters" role="group" aria-label="Filter warkop">
+      <label>Kisaran harga<select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)}>{PRICE_FILTER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+      {facilityOptions.length > 0 && <div className="facility-filter-list">{facilityOptions.map((facility) => <button type="button" key={facility.key} className={facilityFilter.includes(facility.key) ? 'facility-chip active' : 'facility-chip'} aria-pressed={facilityFilter.includes(facility.key)} onClick={() => toggleFacility(facility.key)}>{facility.label}</button>)}</div>}
+      {hasActiveFilter && <button type="button" className="button button-quiet" onClick={() => { setSearchTerm(''); setPriceFilter('semua'); setFacilityFilter([]); }}>Hapus filter</button>}
+    </div>
+    {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
+    {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi nanti.</p></div>}
+    {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
+    <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
+      <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3>{item.name}</h3><p><MapPin size={14}/>{item.address}</p>
+      <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}</div>
+      <small>{item.priceRange === 'belum-diisi' ? 'Kisaran harga belum diisi' : 'Kisaran harga: ' + item.priceRange}</small>
+      {item.openingHours?.keterangan && <small>Jam buka: {item.openingHours.keterangan}</small>}
+      {Number.isFinite(item.coordinates?.lat) && Number.isFinite(item.coordinates?.lng) && <a className="warung-map-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.coordinates.lat},${item.coordinates.lng}`)}`} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta <ArrowUpRight size={13}/></a>}
+      </div>
+    </article>)}</div>
+    {moreError && <p className="form-error" role="alert">{moreError}</p>}
+    {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore}>{loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
+    <button className="button button-dark directory-register-cta" onClick={() => onNotice('Pilih menu Daftarkan Warkop untuk mengirim data.')}>Daftarkan warkop</button>
+  </section>;
+}

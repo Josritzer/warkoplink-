@@ -19,6 +19,21 @@ function props(overrides = {}) {
 }
 
 describe('ChatPostCard', () => {
+  it('renders category labels and structured posting details', () => {
+    const values = props({ post: { ...props().post, topic: 'Loker', postType: 'Paruh waktu / shift', location: 'Maduran', workType: 'Shift malam', price: 'Rp50.000' } });
+    const { container } = render(<ChatPostCard {...values} />);
+    expect(screen.getByText('Loker')).toBeTruthy();
+    expect(screen.getByText('Paruh waktu / shift')).toBeTruthy();
+    expect(screen.getByText('Maduran')).toBeTruthy();
+    expect(screen.getByText('Shift malam')).toBeTruthy();
+    expect(container.querySelector('.post-category-loker')).toBeTruthy();
+  });
+
+  it('shows old topic labels through compatibility mapping', () => {
+    render(<ChatPostCard {...props({ post: { ...props().post, topic: 'Tanya Jawab' } })} />);
+    expect(screen.getByText('Tanya Warkop')).toBeTruthy();
+  });
+
   it('hides the reaction summary entirely when total is zero', () => {
     render(<ChatPostCard {...props({
       reactionSummaries: { 'post-1': { reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0 } }

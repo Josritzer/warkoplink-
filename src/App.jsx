@@ -17,7 +17,7 @@ import WarungDirectory from './directory/WarungDirectory.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
-  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody
+  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
 } from './lib.js';
 
 const POSTS_LIMIT = 10;
@@ -43,6 +43,7 @@ function readCachedPosts() {
 export default function App() {
   const [section, setSection] = useState('Beranda');
   const [topic, setTopic] = useState('Semua');
+  const [composerTopic, setComposerTopic] = useState('Ngopi Bareng');
   const [composerOpen, setComposerOpen] = useState(false);
   const [replyingPostId, setReplyingPostId] = useState('');
   const [selectedReplyPost, setSelectedReplyPost] = useState(null);
@@ -319,7 +320,7 @@ export default function App() {
     }
   }
 
-  async function handlePost(event) {
+  async function handlePost(event, details = {}) {
     event.preventDefault();
     if (!user) {
       openAuth(false);
@@ -328,6 +329,8 @@ export default function App() {
     }
     const bodyCheck = validatePostBody(draft);
     if (!bodyCheck.ok) return setNotice(bodyCheck.error);
+    const detailsCheck = validatePostDetails(composerTopic, details);
+    if (!detailsCheck.ok) return setNotice(detailsCheck.error);
     if (!db) return setNotice('Firebase belum dikonfigurasi.');
     setPosting(true);
     try {
@@ -343,7 +346,13 @@ export default function App() {
         authorName: authorNameFor(user),
         authorPhotoURL: user.photoURL || null,
         body: bodyCheck.value,
-        topic: topic === 'Semua' ? 'Obrolan Umum' : topic,
+        topic: composerTopic,
+        ...(details.postType?.trim() ? { postType: details.postType.trim() } : {}),
+        ...(details.location?.trim() ? { location: details.location.trim() } : {}),
+        ...(details.eventDate?.trim() ? { eventDate: details.eventDate.trim() } : {}),
+        ...(details.price?.trim() ? { price: details.price.trim() } : {}),
+        ...(details.workType?.trim() ? { workType: details.workType.trim() } : {}),
+        ...(details.contact?.trim() ? { contact: details.contact.trim() } : {}),
         createdAt: serverTimestamp(),
         reactions: { ...EMPTY_REACTIONS },
         totalReactions: 0
@@ -675,7 +684,7 @@ export default function App() {
   }
 
   const visiblePosts = filterPosts(allPosts, topic, search);
-  const activeCategory = topic === 'Semua' ? 'Obrolan Umum' : topic;
+  const activeCategory = composerTopic;
 
   return <div className="app-shell">
     <header className="topbar app-header">
@@ -737,7 +746,7 @@ export default function App() {
       <ChatPanel
         readOnly={section === 'Beranda'} onOpenDiscussion={() => { setSection('Obrolan'); setComposerOpen(true); }}
         user={user} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
-        topic={topic} setTopic={setTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
+        topic={topic} setTopic={setTopic} composerTopic={composerTopic} setComposerTopic={setComposerTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
         openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
         activeCategory={activeCategory} handlePost={handlePost} posting={posting}
         postsStatus={postsStatus} setPostsRetry={setPostsRetry}

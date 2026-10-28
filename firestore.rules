@@ -84,10 +84,10 @@ service cloud.firestore {
     }
 
     function validReactionAggregateUpdate(postId) {
-      // Do not evaluate reaction-specific lookups for legacy posts that lack aggregate fields.
-      return resource.data.keys().hasAll(['reactions', 'totalReactions'])
-        ? validReactionAggregateUpdateWithFields(postId)
-        : false;
+      // Gate the helper before it declares reaction-path lookups: legacy posts have no aggregate fields.
+      return signedIn()
+        && resource.data.keys().hasAll(['reactions', 'totalReactions'])
+        && validReactionAggregateUpdateWithFields(postId);
     }
 
     function validReactionAggregateUpdateWithFields(postId) {

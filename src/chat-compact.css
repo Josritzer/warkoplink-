@@ -664,3 +664,21 @@
   #community-feed .status-reaction { transition: none; }
   #community-feed .status-reaction:hover { transform: none; }
 }
+
+
+/* Expanded 36-reaction picker: compact grid prevents a tall emoji strip. */
+#community-feed .status-reactions {
+  display: grid;
+  grid-template-columns: repeat(6, 38px);
+  gap: 3px;
+  max-height: min(280px, 45vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 620px) {
+  #community-feed .status-reactions {
+    grid-template-columns: repeat(6, 34px);
+    max-width: calc(100vw - 48px);
+  }
+  #community-feed .status-reaction { width: 34px; height: 34px; }
+}

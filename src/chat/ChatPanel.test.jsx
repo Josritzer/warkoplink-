@@ -41,3 +41,45 @@ describe('ChatPanel warung mentions', () => {
     expect(setDraft.mock.calls[0][0]('Ngopi bareng @Warkop Po')).toBe('Ngopi bareng @Warkop Pojok ');
   });
 });
+
+
+describe('ChatPanel homepage layout', () => {
+  it('omits the three story prompts and the auto-sliding story carousel', () => {
+    const { container } = render(<ChatPanel
+      user={null}
+      firebaseConfigured
+      search=""
+      setSearch={vi.fn()}
+      topic="Semua"
+      setTopic={vi.fn()}
+      composerTopic="Ngopi Bareng"
+      setComposerTopic={vi.fn()}
+      composerOpen={false}
+      setComposerOpen={vi.fn()}
+      readOnly
+      onOpenDiscussion={vi.fn()}
+      onOpenDirectory={vi.fn()}
+      openAuth={vi.fn()}
+      setNotice={vi.fn()}
+      draft=""
+      setDraft={vi.fn()}
+      activeCategory="Ngopi Bareng"
+      handlePost={vi.fn()}
+      posting={false}
+      postsStatus="ready"
+      setPostsRetry={vi.fn()}
+      visiblePosts={[]}
+      cardProps={{}}
+      hasMorePosts={false}
+      loadingMorePosts={false}
+      loadMoreError=""
+      onLoadMorePosts={vi.fn()}
+      verifiedWarungs={[]}
+    />);
+
+    expect(container.querySelector('.community-story-strip')).toBeNull();
+    expect(container.querySelector('.warkop-stories')).toBeNull();
+    expect(screen.getAllByLabelText('Kategori obrolan').length).toBeGreaterThan(0);
+    expect(screen.getByText('Beranda · mode baca')).toBeTruthy();
+  });
+});

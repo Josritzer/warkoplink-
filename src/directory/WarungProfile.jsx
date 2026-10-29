@@ -55,7 +55,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       setActivityDraft(Array.isArray(data.activities) ? data.activities : []);
       const schedule = data.openingHours?.schedule || {};
       setHoursDraft(Object.fromEntries(['mon','tue','wed','thu','fri','sat','sun'].map((day) => [day, {
-        closed: schedule[day]?.closed === true,
+        closed: schedule[day]?.closed === true || !schedule[day],
         open: schedule[day]?.open || '08:00',
         close: schedule[day]?.close || '23:00'
       }])));

@@ -179,7 +179,7 @@ service cloud.firestore {
     function validWarung(data) {
       return data.keys().hasAll([
           'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
-          'regionCode', 'facilities', 'activities', 'priceRange', 'openingHours', 'photos',
+          'regionCode', 'facilities', 'priceRange', 'openingHours', 'photos',
           'verificationStatus', 'createdAt', 'updatedAt'
         ])
         && data.keys().hasOnly([
@@ -198,7 +198,7 @@ service cloud.firestore {
         && data.address is string && data.address.size() >= 5 && data.address.size() <= 300
         && data.regionCode == 'lamongan-kab'
         && data.facilities is list && data.facilities.size() <= 20
-        && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.toSet().hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
+        && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
         && data.photos is list && data.photos.size() <= 5
@@ -219,7 +219,7 @@ service cloud.firestore {
         && data.address is string && data.address.size() >= 5 && data.address.size() <= 300
         && data.regionCode == 'lamongan-kab'
         && data.facilities is list && data.facilities.size() <= 20
-        && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.toSet().hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
+        && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
         && data.photos is list && data.photos.size() <= 5

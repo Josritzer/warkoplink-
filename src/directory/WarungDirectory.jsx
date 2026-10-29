@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
 import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock } from 'lucide-react';
-import { ACTIVITY_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
+import { ACTIVITY_OPTIONS, collectFacilities, filterWarungs, isOpenNow } from './directoryFilters.js';
 
 export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
   const [warungs, setWarungs] = useState([]);
@@ -15,6 +15,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [facilityFilter, setFacilityFilter] = useState([]);
   const [activityFilter, setActivityFilter] = useState([]);
   const [operationalFilter, setOperationalFilter] = useState('semua');
+  const [now, setNow] = useState(() => new Date());
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState('');
@@ -24,6 +25,11 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [hours, setHours] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (mode !== 'directory' || !db) return undefined;
@@ -156,7 +162,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   }
 
   const facilityOptions = collectFacilities(warungs);
-  const visibleWarungs = filterWarungs(warungs, { search: searchTerm, facilities: facilityFilter, activities: activityFilter, operational: operationalFilter });
+  const visibleWarungs = filterWarungs(warungs, { search: searchTerm, facilities: facilityFilter, activities: activityFilter, operational: operationalFilter, now });
   const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua';
   function toggleFacility(key) {
     setFacilityFilter((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
@@ -182,7 +188,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
       <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3><button className="warung-profile-link" type="button" onClick={() => onOpenWarung?.(item.id)}>{item.name} <ArrowUpRight size={14}/></button></h3><p><MapPin size={14}/>{item.address}</p>
       <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}{(item.activities || []).map((activity) => <span key={activity}>{ACTIVITY_OPTIONS.find((option) => option.value === activity)?.label || activity}</span>)}</div>
-      {item.openingHours?.is24Hours === true ? <small><Clock size={13} aria-hidden="true"/> Buka 24 jam</small> : item.openingHours?.keterangan ? <small><Clock size={13} aria-hidden="true"/> Jam buka: {item.openingHours.keterangan}</small> : null}
+      {item.openingHours?.is24Hours === true ? <small><Clock size={13} aria-hidden="true"/> Buka 24 jam · Buka sekarang</small> : <>{isOpenNow(item, now) === true ? <small><Clock size={13} aria-hidden="true"/> Buka sekarang</small> : isOpenNow(item, now) === false ? <small><Clock size={13} aria-hidden="true"/> Tutup</small> : null}{item.openingHours?.keterangan && !item.openingHours?.schedule ? <small>Jam buka (keterangan pemilik): {item.openingHours.keterangan}</small> : null}</>
       {Number.isFinite(item.coordinates?.lat) && Number.isFinite(item.coordinates?.lng) && <a className="warung-map-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.coordinates.lat},${item.coordinates.lng}`)}`} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta <ArrowUpRight size={13}/></a>}
       </div>
     </article>)}</div>

@@ -155,7 +155,7 @@ export default function App() {
       await setDoc(doc(db, 'publicProfiles', currentUser.uid), {
         uid: currentUser.uid,
         displayName: profile.displayName || authorNameFor(currentUser),
-        photoURL: profile.photoURL || currentUser.photoURL || '',
+        photoURL: currentUser.photoURL || profile.photoURL || '',
         updatedAt: serverTimestamp()
       }, { merge: true });
       return true;

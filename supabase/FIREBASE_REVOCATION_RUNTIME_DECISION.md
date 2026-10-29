@@ -1,6 +1,6 @@
 # Firebase token revocation — runtime decision
 
-Status: evidence and implementation gate only. No runtime, secret, bucket, billing, database, or deployment changes.
+Status: isolated unit-test groundwork only. No live Auth calls, runtime secrets, bucket, billing, database, or deployment changes.
 
 ## Decision
 
@@ -21,28 +21,29 @@ For any write-capable media gateway, the required identity contract is:
 1. Firebase documents Admin SDK `verifyIdToken(idToken, true)` as checking disabled-user status and ID-token revocation; the revocation check requires an additional Firebase Auth request.
 2. Supabase Edge Functions run on a Deno-compatible TypeScript runtime.
 3. The repository's `firebase-admin` development dependency does not establish that the Admin SDK is supported or operational in Supabase Edge Runtime.
-4. The Deno type-check and JWKS-only unit tests pass.
-5. An isolated import/initialization probe for `firebase-admin@13.5.0` failed in GitHub Actions because transitive Node compatibility modules attempted to enumerate/read process environment variables. Allowing one named variable merely exposed a second unrestricted environment access. The probe was removed rather than granting broad environment access. This is evidence of friction in the Deno test runtime, not definitive proof that every Admin SDK operation is impossible in Supabase Edge Runtime.
-6. Firebase's official Auth REST reference documents `POST https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=API_KEY`, accepting an ID token and returning the matching user's `localId`, `validSince` (seconds), and `disabled` fields. The API key is the Firebase Web API key; this is project configuration, not an Admin private key.
-7. The REST documentation establishes that these fields are returned, but this repository has not yet tested the exact revocation-boundary comparison, disabled-account behavior, API-key restrictions, or behavior during Firebase outages. Therefore this is a promising proof-of-concept path, not an approved production verifier.
+4. An isolated import/initialization probe for `firebase-admin@13.5.0` failed in GitHub Actions because transitive Node compatibility modules attempted to enumerate/read process environment variables. Allowing one named variable merely exposed a second unrestricted environment access. The probe was removed rather than granting broad environment access. This is evidence of friction in the Deno test runtime, not definitive proof that every Admin SDK operation is impossible in Supabase Edge Runtime.
+5. Firebase's official Auth REST reference documents `POST https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=API_KEY`, accepting an ID token and returning the matching user's `localId`, `validSince` (Unix seconds as a string), and `disabled` fields.
+6. Firebase Admin Node SDK source confirms the exact revocation comparison: convert `auth_time` seconds to milliseconds, convert `tokensValidAfterTime` to milliseconds, and reject only when `auth_time_ms < validSince_ms`. Equality is accepted. The SDK checks disabled status before the revocation comparison.
+7. A pure helper and Deno unit tests now cover this boundary. They do not yet prove the REST response handling, API-key restrictions, live disabled-account behavior, or behavior during Firebase outages. This remains proof-of-concept groundwork, not an approved production verifier.
 
 ## Runtime options to evaluate
 
-### Option A — Deno + Firebase Auth REST lookup (new preferred proof-of-concept)
+### Option A — Deno + Firebase Auth REST lookup (preferred isolated POC)
 
 After the existing local JWT signature/issuer/audience/time validation:
 
 1. POST the ID token to Firebase Auth REST `accounts:lookup` over HTTPS using the project's Web API key.
 2. Require exactly one user result.
 3. Require `localId` to equal the UID from the cryptographically verified JWT.
-4. Reject if `disabled === true`.
-5. Parse `validSince` as a finite integer number of seconds and compare it with the verified JWT's `auth_time` using the Firebase-documented revocation boundary semantics. Do not guess the comparison operator; confirm it against Firebase's Admin SDK behavior and a dedicated test account before implementation.
-6. Reject malformed/missing fields, non-2xx responses, timeouts, unexpected response shape, and all network/API errors (fail closed).
-7. Never log or return the ID token, API key, email, account profile, or raw Auth response.
+4. Reject if `disabled === true`; require a valid boolean value.
+5. Require a valid numeric `validSince` string in Unix seconds. Reject missing or malformed values (fail closed).
+6. Reject when `auth_time < validSince`. Equality is accepted, matching Firebase Admin SDK source. Do not round fractional `validSince` values.
+7. Reject non-2xx responses, timeouts, unexpected response shapes, and all network/API errors (fail closed).
+8. Never log or return the ID token, API key, email, account profile, or raw Auth response.
 
 The Web API key is not a substitute for the user's token and must never be treated as authorization. Restrict it to the required Firebase API where compatible with the app's existing configuration. The request must remain server-side; do not add a new client call that exposes account lookup results.
 
-Required POC tests: enabled valid account accepted; disabled account rejected; token issued before the revocation boundary rejected; token issued after the boundary accepted; UID mismatch rejected; malformed `validSince` rejected; Firebase 4xx/5xx/network timeout rejected. Use a dedicated non-production Firebase test account only. Do not revoke or disable a real user's account.
+Unit tests now cover the pure time-boundary helper: before boundary rejected, exact equality accepted, after boundary accepted, fractional seconds, and malformed timestamps rejected. Still required for the full POC: mocked REST response validation (exactly one user, UID match, disabled true/false, malformed fields, HTTP errors, timeout) and a separately approved live test using a dedicated non-production Firebase account.
 
 ### Option B — Supabase Edge Function with Firebase Admin SDK
 
@@ -75,20 +76,21 @@ Re-evaluate only if an existing Firebase Storage bucket can be used within an ap
 | Expired token | Reject |
 | Wrong Firebase project/audience | Reject |
 | Modified signature | Reject |
-| Token issued before revocation boundary | Reject |
-| Token issued after revocation boundary | Accept |
+| `auth_time < validSince` | Reject |
+| `auth_time === validSince` | Accept |
+| `auth_time > validSince` | Accept |
 | Disabled Firebase user | Reject |
+| Missing/malformed `validSince` | Fail closed |
 | Firebase Auth status endpoint unavailable | Fail closed |
-| Malformed or missing `validSince` | Fail closed |
 | Client supplies another UID | Ignore client UID; use verified UID only |
 
 Use a dedicated non-production Firebase test account. Do not revoke or disable a real user account to test this behavior.
 
 ## Next implementation sequence
 
-1. Build a pure, mocked unit-testable REST lookup verifier design; do not add credentials or make live Auth calls in CI.
-2. Confirm the exact `auth_time` vs `validSince` boundary against Firebase documentation/Admin SDK semantics before implementing it.
-3. If semantics are confirmed, run a separately approved POC with a dedicated non-production test account and a server-side key configuration.
+1. Add mocked REST response-validation tests without making live Auth calls in CI.
+2. Review the REST request and response handling against Firebase's official contract.
+3. If mocked tests pass, run a separately approved POC with a dedicated non-production test account and a server-side key configuration.
 4. Keep the current JWKS function read-only until the revocation-aware verifier passes the proof matrix.
 5. Only after a proven verifier exists, design resource ownership checks and image validation.
 6. Only after all gates pass, propose a separate avatar-only upload implementation and staging test.
@@ -104,7 +106,8 @@ Use a dedicated non-production Firebase test account. Do not revoke or disable a
 
 ## References
 
-- Firebase Auth REST API — accounts:lookup and returned `validSince`/`disabled` fields: https://firebase.google.com/docs/reference/rest/auth
+- Firebase Auth REST API — `accounts:lookup`, `validSince`, and `disabled`: https://firebase.google.com/docs/reference/rest/auth
 - Firebase session management and revocation: https://firebase.google.com/docs/auth/admin/manage-sessions
 - Firebase Admin Node Auth API: https://firebase.google.com/docs/reference/admin/node/firebase-admin.auth.baseauth
+- Firebase Admin SDK implementation: https://github.com/firebase/firebase-admin-node/blob/main/src/auth/base-auth.ts
 - Supabase Edge Functions runtime: https://supabase.com/docs/guides/functions

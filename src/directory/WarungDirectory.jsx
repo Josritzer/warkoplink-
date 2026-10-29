@@ -3,9 +3,10 @@ import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverT
 import { MapPin, Store, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
 
-export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung }) {
+export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
   const [warungs, setWarungs] = useState([]);
   const [status, setStatus] = useState(db ? 'loading' : 'error');
+  const [directoryRetry, setDirectoryRetry] = useState(0);
   const [lastDocument, setLastDocument] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -42,7 +43,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setHasMore(snapshot.docs.length === 30);
       setStatus('ready');
     }, () => setStatus('error'));
-  }, [mode, db]);
+  }, [mode, db, directoryRetry]);
 
   async function handleRegister(event) {
     event.preventDefault();
@@ -169,7 +170,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       {hasActiveFilter && <button type="button" className="button button-quiet" onClick={() => { setSearchTerm(''); setPriceFilter('semua'); setFacilityFilter([]); }}>Hapus filter</button>}
     </div>
     {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
-    {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi nanti.</p></div>}
+    {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi.</p><button className="button button-quiet" type="button" onClick={() => setDirectoryRetry((attempt) => attempt + 1)}>Coba lagi</button></div>}
     {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
     {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
     <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
@@ -182,6 +183,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     </article>)}</div>
     {moreError && <p className="form-error" role="alert">{moreError}</p>}
     {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore}>{loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
-    <button className="button button-dark directory-register-cta" onClick={() => onNotice('Pilih menu Daftarkan Warkop untuk mengirim data.')}>Daftarkan warkop</button>
+    <button className="button button-dark directory-register-cta" type="button" onClick={onRegister}>Daftarkan warkop</button>
   </section>;
 }

@@ -378,7 +378,7 @@ describe('membuat postingan', () => {
 
     await waitFor(() => expect(fs.setDoc).toHaveBeenCalledTimes(1));
     expect(fs.setDoc).toHaveBeenCalledWith({ path: 'posts/new-post' }, {
-      authorId: 'u1', authorName: 'Sari', authorPhotoURL: null, body: 'Halo komunitas', topic: 'Info & Acara', postType: 'Info lokal', createdAt: '__SERVER_TS__',
+      authorId: 'u1', authorName: 'Sari', authorPhotoURL: null, body: 'Halo komunitas', topic: 'Info & Acara', postType: 'Info lokal', eventKind: 'Nobar', createdAt: '__SERVER_TS__',
       reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0,
     });
     expect(await screen.findByText(/Obrolan berhasil dipublikasikan/)).toBeTruthy();

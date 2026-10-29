@@ -131,6 +131,10 @@ export default function ChatPostCard({
   const [editType, setEditType] = useState(post.postType || POST_SUBTYPES[displayTopic(post.topic)]?.[0] || '');
   const [editLocation, setEditLocation] = useState(post.location || '');
   const [editDate, setEditDate] = useState(post.eventDate || '');
+  const [editEventStartAt, setEditEventStartAt] = useState(post.eventStartAt || '');
+  const [editEventEndAt, setEditEventEndAt] = useState(post.eventEndAt || '');
+  const [editEventKind, setEditEventKind] = useState(post.eventKind || 'Nobar');
+  const [editEventCapacity, setEditEventCapacity] = useState(post.eventCapacity ? String(post.eventCapacity) : '');
   const [editPrice, setEditPrice] = useState(post.price || '');
   const [editWorkType, setEditWorkType] = useState(post.workType || '');
   const [editContact, setEditContact] = useState(post.contact || '');
@@ -238,7 +242,7 @@ export default function ChatPostCard({
         </div>
       </div>
       {editing ? <form className="post-edit-form" onSubmit={async event => {
-        const saved = await onEditPost(event, post, { body: editBody, topic: editTopic, postType: editType, location: editLocation, eventDate: editDate, price: editPrice, workType: editWorkType, contact: editContact });
+        const saved = await onEditPost(event, post, { body: editBody, topic: editTopic, postType: editType, location: editLocation, eventDate: editDate, eventStartAt: editEventStartAt, eventEndAt: editEventEndAt, eventKind: editEventKind, eventCapacity: editEventCapacity, price: editPrice, workType: editWorkType, contact: editContact });
         if (saved) setEditing(false);
       }}>
         <label>Isi posting<textarea aria-label="Edit isi posting" value={editBody} onChange={event => setEditBody(event.target.value)} maxLength={2000} rows={4} required /></label>
@@ -246,6 +250,12 @@ export default function ChatPostCard({
         <label>Jenis posting<select aria-label="Edit jenis posting" value={editType} onChange={event => setEditType(event.target.value)}>{(POST_SUBTYPES[editTopic] || []).map(item => <option key={item} value={item}>{item}</option>)}</select></label>
         <label>Area / lokasi<input aria-label="Edit lokasi" value={editLocation} onChange={event => setEditLocation(event.target.value)} maxLength={160}/></label>
         <label>Waktu / tanggal<input aria-label="Edit waktu" value={editDate} onChange={event => setEditDate(event.target.value)} maxLength={40}/></label>
+        {editTopic === 'Info & Acara' && <>
+          <label>Jenis acara<select aria-label="Edit jenis acara" value={editEventKind} onChange={event => setEditEventKind(event.target.value)}>{['Nobar', 'Musik', 'Turnamen', 'Komunitas', 'Promo warkop', 'Lainnya'].map(kind => <option key={kind} value={kind}>{kind}</option>)}</select></label>
+          <label>Mulai acara<input aria-label="Edit waktu mulai acara" type="datetime-local" value={editEventStartAt} onChange={event => setEditEventStartAt(event.target.value)} /></label>
+          <label>Selesai acara<input aria-label="Edit waktu selesai acara" type="datetime-local" value={editEventEndAt} min={editEventStartAt || undefined} onChange={event => setEditEventEndAt(event.target.value)} /></label>
+          <label>Kapasitas peserta<input aria-label="Edit kapasitas peserta" type="number" min="1" max="10000" step="1" value={editEventCapacity} onChange={event => setEditEventCapacity(event.target.value)} placeholder="Tanpa batas khusus" /></label>
+        </>}
         <label>Harga<input aria-label="Edit harga" value={editPrice} onChange={event => setEditPrice(event.target.value)} maxLength={60}/></label>
         <label>Tipe kerja<input aria-label="Edit tipe kerja" value={editWorkType} onChange={event => setEditWorkType(event.target.value)} maxLength={60}/></label>
         <label>Kontak (HTTPS atau @akun)<input aria-label="Edit kontak" value={editContact} onChange={event => setEditContact(event.target.value)} maxLength={240}/></label>

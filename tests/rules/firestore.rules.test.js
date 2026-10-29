@@ -605,3 +605,51 @@ describe('moderasi laporan obrolan dan audit append-only', () => {
     }));
   });
 });
+
+
+describe('pengikut profil warkop', () => {
+  async function seedWarung(status = 'verified') {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'warungs/warung-follow'), {
+        name: 'Warkop Pojok', nameNormalized: 'warkop pojok', ownerUid: 'owner',
+        coordinates: { lat: -7, lng: 112 }, address: 'Jl. Merdeka, Lamongan',
+        regionCode: 'lamongan-kab', facilities: [], priceRange: 'hemat',
+        openingHours: {}, photos: [], verificationStatus: status,
+        createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+      });
+    });
+  }
+
+  it('pengguna login dapat mengikuti warkop terverifikasi dengan UID sendiri', async () => {
+    await seedWarung();
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warung-follow/followers/alice'), {
+      uid: 'alice', createdAt: serverTimestamp(),
+    }));
+    await assertSucceeds(getDoc(doc(asUser('bob'), 'warungs/warung-follow/followers/alice')));
+  });
+
+  it('pengguna tidak dapat mengikuti atas nama akun lain', async () => {
+    await seedWarung();
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warung-follow/followers/bob'), {
+      uid: 'bob', createdAt: serverTimestamp(),
+    }));
+  });
+
+  it('warkop yang belum terverifikasi tidak dapat diikuti', async () => {
+    await seedWarung('pending');
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warung-follow/followers/alice'), {
+      uid: 'alice', createdAt: serverTimestamp(),
+    }));
+  });
+
+  it('pengikut hanya dapat dihapus oleh akun pemilik dokumen', async () => {
+    await seedWarung();
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'warungs/warung-follow/followers/alice'), {
+        uid: 'alice', createdAt: Timestamp.now(),
+      });
+    });
+    await assertFails(deleteDoc(doc(asUser('bob'), 'warungs/warung-follow/followers/alice')));
+    await assertSucceeds(deleteDoc(doc(asUser('alice'), 'warungs/warung-follow/followers/alice')));
+  });
+});

@@ -3,7 +3,7 @@ import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverT
 import { MapPin, Store, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
 
-export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice }) {
+export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung }) {
   const [warungs, setWarungs] = useState([]);
   const [status, setStatus] = useState(db ? 'loading' : 'error');
   const [lastDocument, setLastDocument] = useState(null);
@@ -173,7 +173,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
     {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
     <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
-      <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3>{item.name}</h3><p><MapPin size={14}/>{item.address}</p>
+      <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3><button className="warung-profile-link" type="button" onClick={() => onOpenWarung?.(item.id)}>{item.name} <ArrowUpRight size={14}/></button></h3><p><MapPin size={14}/>{item.address}</p>
       <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}</div>
       <small>{item.priceRange === 'belum-diisi' ? 'Kisaran harga belum diisi' : 'Kisaran harga: ' + item.priceRange}</small>
       {item.openingHours?.keterangan && <small>Jam buka: {item.openingHours.keterangan}</small>}

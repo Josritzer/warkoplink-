@@ -177,7 +177,7 @@ describe('halaman publik', () => {
     await screen.findByText('Halo semuanya');
 
     await user.click(screen.getByRole('button', { name: 'Desktop: Jual beli & jasa' }));
-    expect(screen.getByRole('button', { name: 'Jual beli & jasa' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Jual Beli & Jasa Lokal' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByText('Halo semuanya')).toBeNull();
     expect(screen.queryByText('Berapa harga layanan?')).toBeNull();
     expect(screen.queryByText('Usul fitur baru')).toBeNull();

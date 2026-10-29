@@ -1,0 +1,29 @@
+/* Remove full-height vertical dividers that visually cut into the feed.
+   Keep only the subtle horizontal separator between status posts. */
+.desktop-layout,
+.desktop-sidebar,
+.desktop-right-rail,
+.desktop-right-rail .rail-panel,
+.content-section,
+#community-feed,
+#community-feed.content-section {
+  border-left: 0 !important;
+  border-right: 0 !important;
+}
+.desktop-sidebar {
+  border: 0 !important;
+}
+.desktop-right-rail .rail-panel {
+  border-inline: 0 !important;
+}
+#community-feed .post-list {
+  border-top: 0 !important;
+}
+#community-feed .post-card {
+  border-left: 0 !important;
+  border-right: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--wl-line-soft) !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}

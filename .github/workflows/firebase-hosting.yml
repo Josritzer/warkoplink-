@@ -32,6 +32,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -58,6 +60,29 @@ jobs:
         run: |
           node -e 'const c=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON); console.log("Firebase deploy service account:", c.client_email)'
 
+      # A source-only release must not republish production Firestore rules/indexes.
+      # Those are deployed only when their source files change in a push to main.
+      - name: Detect Firestore rule/index changes
+        id: firestore-changes
+        if: github.event_name == 'push'
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          changed_files="$(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA" -- firestore.rules firestore.indexes.json)"
+          if [ -n "$changed_files" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            printf 'Firestore sources changed:\\n%s\\n' "$changed_files"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No Firestore rule/index source changes; production rules will not be republished."
+          fi
+
       # Storage is intentionally excluded until Firebase Storage is explicitly initialized.
-      - name: Deploy Hosting, Firestore Rules and Indexes
-        run: npx --yes firebase-tools deploy --only hosting,firestore:rules,firestore:indexes --project sl-community-platform --non-interactive
+      - name: Deploy Hosting only
+        run: npx --yes firebase-tools deploy --only hosting --project sl-community-platform --non-interactive
+
+      - name: Deploy Firestore Rules and Indexes only when their source changes
+        if: steps.firestore-changes.outputs.changed == 'true'
+        run: npx --yes firebase-tools deploy --only firestore:rules,firestore:indexes --project sl-community-platform --non-interactive

@@ -141,7 +141,7 @@ service cloud.firestore {
 
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
-        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'location', 'eventDate', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
+        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
         && data.reactions is map
         && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
@@ -165,6 +165,10 @@ service cloud.firestore {
         && (!data.keys().hasAny(['postType']) || (data.postType is string && data.postType.size() <= 80))
         && (!data.keys().hasAny(['location']) || (data.location is string && data.location.size() <= 160))
         && (!data.keys().hasAny(['eventDate']) || (data.eventDate is string && data.eventDate.size() <= 40))
+        && (!data.keys().hasAny(['eventStartAt']) || (data.eventStartAt is string && data.eventStartAt.size() <= 40))
+        && (!data.keys().hasAny(['eventEndAt']) || (data.eventEndAt is string && data.eventEndAt.size() <= 40))
+        && (!data.keys().hasAny(['eventKind']) || (data.eventKind is string && data.eventKind.size() <= 40))
+        && (!data.keys().hasAny(['eventCapacity']) || (data.eventCapacity is number && data.eventCapacity >= 1 && data.eventCapacity <= 10000))
         && (!data.keys().hasAny(['price']) || (data.price is string && data.price.size() <= 60))
         && (!data.keys().hasAny(['workType']) || (data.workType is string && data.workType.size() <= 60))
         && (!data.keys().hasAny(['contact']) || (data.contact is string && data.contact.size() <= 240
@@ -245,10 +249,14 @@ service cloud.firestore {
         && resource.data.get('authorId', '') == request.auth.uid
         && (
           (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic'])
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'location', 'postType'])
             && request.resource.data.get('body', '') is string
             && request.resource.data.get('body', '').size() >= 1
             && request.resource.data.get('body', '').size() <= 2000
+            && (!request.resource.data.keys().hasAny(['eventStartAt']) || (request.resource.data.eventStartAt is string && request.resource.data.eventStartAt.size() <= 40))
+            && (!request.resource.data.keys().hasAny(['eventEndAt']) || (request.resource.data.eventEndAt is string && request.resource.data.eventEndAt.size() <= 40))
+            && (!request.resource.data.keys().hasAny(['eventKind']) || (request.resource.data.eventKind is string && request.resource.data.eventKind.size() <= 40))
+            && (!request.resource.data.keys().hasAny(['eventCapacity']) || (request.resource.data.eventCapacity is number && request.resource.data.eventCapacity >= 1 && request.resource.data.eventCapacity <= 10000))
             && (
               request.resource.data.get('topic', '') in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']
               || (request.resource.data.get('topic', '') == resource.data.get('topic', '')

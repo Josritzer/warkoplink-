@@ -3,7 +3,7 @@ import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverT
 import { MapPin, Store, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
 
-export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung }) {
+export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung, onOpenRegister }) {
   const [warungs, setWarungs] = useState([]);
   const [status, setStatus] = useState(db ? 'loading' : 'error');
   const [lastDocument, setLastDocument] = useState(null);
@@ -182,6 +182,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     </article>)}</div>
     {moreError && <p className="form-error" role="alert">{moreError}</p>}
     {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore}>{loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
-    <button className="button button-dark directory-register-cta" onClick={() => onNotice('Pilih menu Daftarkan Warkop untuk mengirim data.')}>Daftarkan warkop</button>
+    <button className="button button-dark directory-register-cta" type="button" onClick={() => onOpenRegister?.()}>Daftarkan warkop</button>
   </section>;
 }

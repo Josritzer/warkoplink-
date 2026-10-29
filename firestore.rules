@@ -338,6 +338,23 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Pengikut hanya dapat ditambahkan oleh akun sendiri untuk warkop terverifikasi.
+    // Daftar pengikut boleh dihitung publik; dokumen identitas hanya berisi UID dan waktu.
+    match /warungs/{warungId}/followers/{userId} {
+      allow read: if (
+        get(/databases/$(database)/documents/warungs/$(warungId)).data.verificationStatus == 'verified'
+      ) || (signedIn() && request.auth.uid == userId);
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && get(/databases/$(database)/documents/warungs/$(warungId)).data.verificationStatus == 'verified'
+        && request.resource.data.keys().hasAll(['uid', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
     // Catatan audit hanya dapat dibuat sebagai bagian dari keputusan admin atomik.
     match /verificationAudit/{auditId} {
       allow read: if isAdmin();

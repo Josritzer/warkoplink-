@@ -141,7 +141,7 @@ service cloud.firestore {
 
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
-        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
+        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'eventPhotoURL', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
         && data.reactions is map
         && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
@@ -158,6 +158,8 @@ service cloud.firestore {
         && data.authorName is string
         && data.authorName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
         && (!data.keys().hasAny(['authorPhotoURL']) || data.authorPhotoURL == null || (data.authorPhotoURL is string && data.authorPhotoURL.size() <= 2048))
+        && (!data.keys().hasAny(['warungId']) || (data.warungId is string && get(/databases/$(database)/documents/warungs/$(data.warungId)).data.ownerUid == request.auth.uid && get(/databases/$(database)/documents/warungs/$(data.warungId)).data.verificationStatus == 'verified'))
+        && (!data.keys().hasAny(['eventPhotoURL']) || (data.eventPhotoURL is string && data.eventPhotoURL.size() <= 2048 && data.keys().hasAny(['warungId'])))
         && data.body is string
         && data.body.size() >= 1
         && data.body.size() <= 2000

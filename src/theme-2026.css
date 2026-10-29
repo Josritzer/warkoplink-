@@ -38,6 +38,15 @@
   --wl-plum: #1c1420;           /* sidebar, tombol gelap */
   --wl-plum-2: #281c2e;
 
+  /* Emas champagne: hanya untuk garis halus dan dekorasi, bukan teks */
+  --wl-gold: #b08d57;
+  --wl-gold-soft: #e3d2b4;
+  --wl-hairline: rgba(176, 141, 87, .3);
+
+  /* Tipografi */
+  --wl-font-display: "Fraunces", "Playfair Display", Georgia, "Times New Roman", serif;
+  --wl-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
   /* Alias lama agar kode yang masih memakai var(--wl-blue) ikut berganti */
   --wl-blue: var(--wl-primary);
   --wl-blue-deep: var(--wl-primary-deep);
@@ -70,6 +79,9 @@ html[data-theme="dark"] {
   --wl-info-tint: #1c2640;
   --wl-plum: #0f0a12;
   --wl-plum-2: #1a1220;
+  --wl-gold: #d4b27a;
+  --wl-gold-soft: #8a7048;
+  --wl-hairline: rgba(212, 178, 122, .28);
   --wl-shadow: none;
 }
 
@@ -126,3 +138,88 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visib
 .badge-open, .status-open, .warung-open { background: var(--wl-jade-tint); color: var(--wl-jade); }
 .badge-highlight { background: var(--wl-wasabi); color: var(--wl-ink); }
 a:not(.button):not(.nav-link):not(.bottom-nav-item) { color: var(--wl-info); }
+
+
+/* ===== Modern luxury: tipografi, jarak, permukaan ===== */
+html { font-size: 100%; }
+body { font-family: var(--wl-font-body); font-size: 15px; line-height: 1.6; letter-spacing: 0; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+h1, h2, h3, .hero h1, .content-section h2, .section-heading h2 {
+  font-family: var(--wl-font-display); font-weight: 500; letter-spacing: -.02em; line-height: 1.15; font-optical-sizing: auto;
+}
+.content-section h2, .section-heading h2 { font-size: clamp(28px, 4vw, 40px); margin: 6px 0 10px; }
+.content-section h3 { font-size: clamp(19px, 2.4vw, 24px); }
+.content-section > p, .section-heading p { color: var(--wl-muted); font-size: 15px; line-height: 1.7; }
+.eyebrow {
+  font: 600 11px/1 var(--wl-font-body); letter-spacing: .18em; text-transform: uppercase; color: var(--wl-primary-deep);
+}
+.eyebrow::before { content: ""; display: inline-block; width: 22px; height: 1px; background: var(--wl-gold); vertical-align: middle; margin-right: 10px; }
+.content-section { padding: clamp(40px, 6vw, 72px) 2% clamp(48px, 7vw, 84px); }
+
+/* Header & tombol: ramping dan tenang */
+.app-header { height: 72px; border-bottom: 1px solid var(--wl-hairline); }
+.app-header .brand strong { font-family: var(--wl-font-display); font-weight: 600; font-size: 16px; letter-spacing: .14em; }
+.app-header .brand small { font-size: 11px; letter-spacing: .04em; }
+.button { min-height: 46px; padding: 12px 22px; font-size: 13.5px; font-weight: 600; letter-spacing: .02em; }
+.app-header .header-actions .button { min-height: 40px; padding: 9px 18px; font-size: 12.5px; }
+.button-light, .button-quiet { border: 1px solid var(--wl-hairline); }
+
+/* Kartu & permukaan: sudut halus, garis emas tipis, bayangan panjang */
+.content-section, .account-card, .rail-panel, #community-feed .post-card, .service-grid article {
+  border: 1px solid var(--wl-hairline); border-radius: 20px;
+}
+.desktop-layout { gap: clamp(20px, 2.4vw, 32px); }
+#community-feed .post-list { gap: 18px; }
+#community-feed .post-card { padding: clamp(18px, 2.4vw, 26px); box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 18px 40px -24px rgba(36, 26, 32, .22); }
+#community-feed .post-card p { font-size: 15.5px; line-height: 1.7; }
+.desktop-sidebar { border-radius: 22px; border: 1px solid rgba(227, 210, 180, .16); }
+.sidebar-label { letter-spacing: .16em; font-size: 10.5px; }
+.rail-panel { padding: 20px; }
+.rail-panel-heading h2 { font-family: var(--wl-font-display); font-weight: 500; font-size: 18px; }
+.topic { padding: 9px 16px; font-size: 12.5px; letter-spacing: .01em; border-color: var(--wl-hairline); }
+input, textarea, select { font-size: 15px; border-radius: 14px; }
+.bottom-nav { border-top: 1px solid var(--wl-hairline); }
+.bottom-nav-item { font-size: 10.5px; letter-spacing: .03em; }
+
+/* Cerita suasana warkop */
+.warkop-stories { margin: 6px 0 20px; padding: clamp(20px, 3vw, 32px); border: 1px solid var(--wl-hairline); border-radius: 24px; background:
+  radial-gradient(ellipse at 100% 0%, rgba(var(--wl-primary-rgb), .08), transparent 22rem), var(--wl-paper); }
+.warkop-stories-head h3 { font-family: var(--wl-font-display); font-weight: 500; font-size: clamp(24px, 3.4vw, 32px); margin: 12px 0 8px; letter-spacing: -.02em; }
+.warkop-stories-head p { margin: 0; max-width: 54ch; color: var(--wl-muted); font-size: 14.5px; line-height: 1.7; }
+.warkop-stories-track { display: flex; gap: 14px; margin-top: 22px; overflow-x: auto; padding: 2px 2px 10px; scroll-snap-type: x proximity; scrollbar-width: none; }
+.warkop-stories-track::-webkit-scrollbar { display: none; }
+.story-card {
+  flex: 0 0 min(280px, 78%); scroll-snap-align: start; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; text-align: left;
+  padding: 20px; border: 1px solid var(--wl-hairline); border-radius: 18px; background: var(--wl-cream); color: var(--wl-ink); cursor: pointer;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.story-card:hover { transform: translateY(-3px); border-color: var(--wl-gold); box-shadow: 0 18px 36px -22px rgba(36, 26, 32, .35); }
+.story-card p { margin: 0; font-family: var(--wl-font-display); font-size: 17px; line-height: 1.5; color: var(--wl-ink); }
+.story-card b { font-size: 13px; font-weight: 600; }
+.story-card small { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--wl-primary-deep); font-weight: 600; }
+.story-card-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--wl-primary-tint); color: var(--wl-primary-deep); border: 1px solid var(--wl-hairline); }
+.story-card-prompt p { font-family: var(--wl-font-body); font-size: 14px; color: var(--wl-muted); line-height: 1.65; }
+.story-card-prompt b { font-family: var(--wl-font-display); font-weight: 500; font-size: 19px; }
+
+@media (max-width: 760px) {
+  body { font-size: 15px; }
+  .content-section { padding-inline: 0; }
+  .app-header { height: 64px; }
+  .warkop-stories { padding: 20px 16px; border-radius: 20px; }
+  .button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .story-card { transition: none; } .story-card:hover { transform: none; } }
+
+/* Hero: selalu gelap dan elegan di kedua tema, teks tetap terang */
+.hero {
+  background: radial-gradient(ellipse at 85% 0%, rgba(227, 210, 180, .16), transparent 24rem), linear-gradient(122deg, #1c1420 0%, #33192a 52%, #8f2d0d 128%);
+  border: 1px solid rgba(227, 210, 180, .22);
+  box-shadow: 0 28px 60px -30px rgba(28, 20, 32, .6);
+  color: #fff;
+}
+.hero h1 { font-weight: 500; letter-spacing: -.03em; color: #fff; }
+.hero h1 em { color: #f0d9b0; font-style: italic; }
+.hero-copy > p { color: rgba(255, 255, 255, .8); }
+.hero .eyebrow, .hero-proof { color: rgba(255, 255, 255, .78); }
+.hero .eyebrow::before { background: #e3d2b4; }
+.hero .button-dark { background: #fff; color: #1c1420; box-shadow: none; }
+.hero .button-dark:hover { background: #f4ecf1; }

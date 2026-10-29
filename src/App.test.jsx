@@ -444,7 +444,7 @@ describe('membuat postingan', () => {
     await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     await user.type(screen.getByLabelText('Isi obrolan'), 'Halo');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
-    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.objectContaining({ path: expect.stringContaining('posts/') }), expect.objectContaining({ authorName: 'Anggota' })));
+    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.objectContaining({ path: 'posts/new-post' }), expect.objectContaining({ authorName: 'Anggota' })));
     const postedData = fs.setDoc.mock.calls.find(([ref, data]) => ref?.path?.startsWith('posts/'))?.[1];
     expect(postedData.authorName).toBe('Anggota');
     expect(JSON.stringify(postedData)).not.toContain('rahasia');

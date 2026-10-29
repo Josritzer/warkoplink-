@@ -136,7 +136,7 @@ export default function ChatPostCard({
   const [editContact, setEditContact] = useState(post.contact || '');
 
   useEffect(() => {
-    if (!db || category !== 'Info & Acara') return undefined;
+    if (!db || displayTopic(post.topic) !== 'Info & Acara') return undefined;
     const attendeesQuery = query(collection(db, 'posts', post.id, 'eventRsvps'), where('status', '==', 'going'));
     const stopCount = onSnapshot(attendeesQuery, snapshot => setRsvpCount(snapshot.size), () => setRsvpCount(0));
     if (!user?.uid) {
@@ -147,7 +147,7 @@ export default function ChatPostCard({
       setRsvpStatus(snapshot.exists() ? snapshot.data().status || '' : '');
     }, () => setRsvpStatus(''));
     return () => { stopCount(); stopMine(); };
-  }, [post.id, category, user?.uid]);
+  }, [post.id, post.topic, user?.uid]);
 
   async function changeRsvp(nextStatus) {
     if (!user?.uid) {

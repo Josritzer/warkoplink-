@@ -28,7 +28,8 @@ export default function WarkopStories({ posts = [], status, onStart, onOpen }) {
     const next = (index + slideCount) % slideCount;
     const card = track.children[next];
     if (!card) return;
-    track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+    if (typeof track.scrollTo === 'function') track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+    else track.scrollLeft = card.offsetLeft - track.offsetLeft;
     setActiveIndex(next);
   };
 
@@ -39,7 +40,8 @@ export default function WarkopStories({ posts = [], status, onStart, onOpen }) {
       const next = (activeIndex + 1) % slideCount;
       const card = track.children[next];
       if (card) {
-        track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+        if (typeof track.scrollTo === 'function') track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+        else track.scrollLeft = card.offsetLeft - track.offsetLeft;
         setActiveIndex(next);
       }
     }, 4500);

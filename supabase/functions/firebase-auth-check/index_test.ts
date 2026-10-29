@@ -191,7 +191,7 @@ Deno.test("REST lookup accepts only a matching enabled, current account", async 
     async (input, init) => {
       assertEquals(String(input), "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=test-api-key");
       assertEquals(init?.method, "POST");
-      assertEquals(init?.headers instanceof Headers, true);
+      assertEquals(init?.headers, { "Content-Type": "application/json" });
       const body = JSON.parse(String(init?.body));
       assertEquals(body.idToken, "verified-token");
       return Response.json({

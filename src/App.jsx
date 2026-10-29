@@ -51,6 +51,9 @@ export default function App() {
   const [replyDraft, setReplyDraft] = useState('');
   const [replyCounts, setReplyCounts] = useState({});
   const [repliesByPost, setRepliesByPost] = useState({});
+  const [replyCursorByPost, setReplyCursorByPost] = useState({});
+  const [hasOlderRepliesByPost, setHasOlderRepliesByPost] = useState({});
+  const [loadingOlderReplies, setLoadingOlderReplies] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
   const [likedPosts, setLikedPosts] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
@@ -519,16 +522,18 @@ export default function App() {
     setReplyingPostId(post.id);
     setReplyDraft('');
     try {
-      // Muat daftar dan total komentar secara paralel agar panel lebih cepat terbuka.
+      // Ambil lima komentar terbaru, lalu tampilkan kronologis dari yang lama ke baru.
       const [snapshot, countSnapshot] = await Promise.all([
         getDocs(query(
           collection(db, 'posts', post.id, 'replies'),
-          orderBy('createdAt', 'asc'),
+          orderBy('createdAt', 'desc'),
           limit(5)
         )),
         getCountFromServer(collection(db, 'posts', post.id, 'replies'))
       ]);
-      const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const replies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).reverse();
+      setReplyCursorByPost(current => ({ ...current, [post.id]: snapshot.docs.at(-1) || null }));
+      setHasOlderRepliesByPost(current => ({ ...current, [post.id]: snapshot.docs.length === 5 }));
       setRepliesByPost(current => {
         const pendingReplies = (current[post.id] || []).filter(reply => reply.pending);
         const serverIds = new Set(replies.map(reply => reply.id));
@@ -545,6 +550,34 @@ export default function App() {
     } catch {
       setNotice('Komentar belum dapat dimuat. Coba lagi sebentar lagi.');
       return [];
+    }
+  }
+
+  async function loadOlderReplies(post) {
+    if (!db || !post?.id || !replyCursorByPost[post.id] || loadingOlderReplies || !hasOlderRepliesByPost[post.id]) return;
+    setLoadingOlderReplies(true);
+    try {
+      const snapshot = await getDocs(query(
+        collection(db, 'posts', post.id, 'replies'),
+        orderBy('createdAt', 'desc'),
+        startAfter(replyCursorByPost[post.id]),
+        limit(5)
+      ));
+      const olderReplies = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).reverse();
+      setRepliesByPost(current => {
+        const existing = current[post.id] || [];
+        const ids = new Set(existing.map(reply => reply.id));
+        const uniqueOlder = olderReplies.filter(reply => !ids.has(reply.id));
+        const pending = existing.filter(reply => reply.pending);
+        const serverReplies = existing.filter(reply => !reply.pending);
+        return { ...current, [post.id]: [...uniqueOlder, ...serverReplies, ...pending] };
+      });
+      setReplyCursorByPost(current => ({ ...current, [post.id]: snapshot.docs.at(-1) || current[post.id] }));
+      setHasOlderRepliesByPost(current => ({ ...current, [post.id]: snapshot.docs.length === 5 }));
+    } catch {
+      setNotice('Komentar yang lebih lama belum dapat dimuat. Coba lagi.');
+    } finally {
+      setLoadingOlderReplies(false);
     }
   }
 
@@ -748,6 +781,7 @@ export default function App() {
         </article> : <p>Obrolan tidak ditemukan. Kembali ke beranda untuk memilih obrolan.</p>}
         <div className="reply-thread-list" aria-label="Komentar dan balasan">
           <h3>{selectedReplyPost ? (replyCounts[selectedReplyPost.id] ?? selectedReplyPost.commentCount ?? 0) + ' komentar' : 'Komentar'}</h3>
+          {selectedReplyPost && hasOlderRepliesByPost[selectedReplyPost.id] && <button className="button button-quiet" type="button" onClick={() => loadOlderReplies(selectedReplyPost)} disabled={loadingOlderReplies} aria-busy={loadingOlderReplies}>{loadingOlderReplies ? 'Memuat komentar…' : 'Muat komentar lebih lama'}</button>}
           {replyPageLoading ? <div className="empty-state" role="status"><p>Memuat komentar…</p></div> :
             selectedReplyPost && (repliesByPost[selectedReplyPost.id] || []).length === 0
               ? <p className="reply-page-empty">Belum ada komentar. Jadilah yang pertama menanggapi.</p>

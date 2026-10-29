@@ -28,3 +28,5 @@ jobs:
         run: deno check supabase/functions/firebase-auth-check/index.ts supabase/functions/firebase-auth-check/index_test.ts
       - name: Run unit tests
         run: deno test supabase/functions/firebase-auth-check/index_test.ts
+      - name: Probe Firebase Admin SDK Deno compatibility (no credentials or network calls)
+        run: deno test supabase/functions/firebase-admin-compatibility/index_test.ts

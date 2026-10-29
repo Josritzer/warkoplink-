@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectFacilities, filterWarungs, normalizeSearchText } from './directoryFilters.js';
+import { collectActivities, collectFacilities, filterWarungs, isOpenNow, normalizeSearchText } from './directoryFilters.js';
 
 const items = [
   { id: '1', name: 'Warkop Pojok', address: 'Jl. Kembangbahu, Lamongan', facilities: ['Wi-Fi', 'parkir'], priceRange: 'hemat' },
@@ -37,5 +37,27 @@ describe('directoryFilters', () => {
   it('tahan terhadap data tanpa field fasilitas', () => {
     expect(filterWarungs([{ id: 'x', name: 'A', address: 'B' }], { facilities: ['wi-fi'] })).toEqual([]);
     expect(collectFacilities([{ id: 'x' }, null])).toEqual([]);
+  });
+
+  it('memfilter aktivitas berdasarkan field eksplisit dan menggabungkan filter', () => {
+    const withActivities = [
+      { id: 'a', name: 'Warkop Bola', activities: ['nobar', 'komunitas'] },
+      { id: 'b', name: 'Kopi Laptop', activities: ['kerja-laptop'], facilities: ['Wi-Fi'] },
+      { id: 'c', name: 'Warung Gim', activities: ['gim'] }
+    ];
+    expect(filterWarungs(withActivities, { activities: ['nobar'] }).map((item) => item.id)).toEqual(['a']);
+    expect(filterWarungs(withActivities, { activities: ['komunitas', 'nobar'] }).map((item) => item.id)).toEqual(['a']);
+    expect(filterWarungs(withActivities, { activities: ['nobar'], search: 'laptop' })).toEqual([]);
+    expect(collectActivities(withActivities).map((item) => item.key)).toEqual(['gim', 'komunitas', 'kerja-laptop', 'nobar']);
+  });
+
+  it('menentukan status buka dari jadwal WIB yang valid dan mendukung lintas tengah malam', () => {
+    const week = { mon: { closed: true }, tue: { closed: true }, wed: { closed: true }, thu: { closed: true }, fri: { open: '20:00', close: '02:00' }, sat: { closed: true }, sun: { closed: true } };
+    const scheduled = { openingHours: { schedule: week } };
+    expect(isOpenNow(scheduled, new Date('2026-10-30T18:00:00.000Z'))).toBe(true); // Sabtu 01.00 WIB, masih dari jadwal Jumat
+    expect(isOpenNow(scheduled, new Date('2026-10-30T16:00:00.000Z'))).toBe(true); // Jumat 23.00 WIB
+    expect(isOpenNow({ openingHours: { keterangan: 'Setiap hari 08.00–23.00' } }, new Date('2026-10-30T16:00:00.000Z'))).toBe(null);
+    expect(isOpenNow({ openingHours: { is24Hours: true } }, new Date('2026-10-30T16:00:00.000Z'))).toBe(true);
+    expect(isOpenNow({ openingHours: { schedule: { mon: { closed: true }, tue: { closed: true }, wed: { closed: true }, thu: { closed: true }, fri: { open: '08:00', close: '17:00' }, sat: { closed: true }, sun: { closed: true } } } }, new Date('2026-10-30T16:00:00.000Z'))).toBe(false);
   });
 });

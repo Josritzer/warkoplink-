@@ -99,9 +99,11 @@ export default function App() {
   useEffect(() => {
     if (!db) { setVerifiedWarungs([]); return undefined; }
     return onSnapshot(
-      query(collection(db, 'warungs'), where('verificationStatus', '==', 'verified'), orderBy('nameNormalized', 'asc'), limit(100)),
-      snapshot => setVerifiedWarungs(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))),
-      () => setVerifiedWarungs([])
+      query(collection(db, 'warungs'), where('verificationStatus', '==', 'verified'), limit(100)),
+      snapshot => setVerifiedWarungs(snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a, b) =>
+        String(a.nameNormalized || a.name || '').localeCompare(String(b.nameNormalized || b.name || ''), 'id') || a.id.localeCompare(b.id)
+      )),
+      () => { setVerifiedWarungs([]); setNotice('Daftar warkop terverifikasi belum dapat dimuat. Coba muat ulang halaman.'); }
     );
   }, []);
 

@@ -274,6 +274,30 @@ service cloud.firestore {
         && resource.data.get('deleting', false) == true;
     }
 
+    // RSVP acara: satu dokumen per pengguna, realtime count, status dibatasi.
+    match /posts/{postId}/eventRsvps/{userId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && exists(/databases/$(database)/documents/posts/$(postId))
+        && get(/databases/$(database)/documents/posts/$(postId)).data.topic == 'Info & Acara'
+        && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) != true
+        && request.resource.data.keys().hasAll(['uid', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status in ['going', 'maybe']
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && request.resource.data.uid == userId
+        && request.resource.data.status in ['going', 'maybe']
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
     match /posts/{postId}/likes/{userId} {
       allow read: if true;
       allow create: if signedIn()

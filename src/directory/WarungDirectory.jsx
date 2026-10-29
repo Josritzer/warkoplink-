@@ -135,7 +135,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     return <section className="content-section explore-section">
       <span className="eyebrow">DAFTAR GRATIS</span>
       <h2>Daftarkan warkop Anda.</h2>
-      <p>Isi data yang benar. Pendaftaran akan berstatus menunggu sampai proses verifikasi tersedia.</p>
+      <p>Isi data yang benar. Pendaftaran berstatus menunggu sampai admin memeriksanya; warkop baru tampil di direktori publik setelah disetujui.</p>
       {!user && <div className="directory-notice"><ShieldCheck size={18}/><span>Anda perlu masuk ke akun untuk mengirim pendaftaran.</span><button className="button button-dark" onClick={onRequestAuth}>Masuk / Daftar akun</button></div>}
       <form className="warung-form" onSubmit={handleRegister}>
         <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>

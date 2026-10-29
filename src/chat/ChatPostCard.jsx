@@ -14,11 +14,8 @@ const REACTION_FIELDS = {
 const EMPTY_REACTIONS = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
 const POST_CATEGORY_CLASS = { 'Ngopi Bareng': 'ngopi', 'Tanya Warkop': 'tanya', 'Info & Acara': 'info', 'Loker': 'loker', 'Jual Beli & Jasa Lokal': 'jual-beli' };
 
-function fallbackAvatarUrl(post) {
-  const seed = String(post?.authorId || post?.authorName || 'warkoplink')
-    .split('')
-    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return `https://i.pravatar.cc/150?img=${(seed % 70) + 1}`;
+function avatarInitial(post) {
+  return String(post?.authorName || 'A').trim().slice(0, 1).toUpperCase() || 'A';
 }
 
 function calendarDate(value) {
@@ -216,7 +213,7 @@ export default function ChatPostCard({
 
   return <>
   <article id={`post-${post.id}`} className={`post-card post-card-category post-category-${POST_CATEGORY_CLASS[category] || 'ngopi'}`} key={post.id}>
-    <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : <img src={fallbackAvatarUrl(post)} alt="" loading="lazy" referrerPolicy="no-referrer" />}</div>
+    <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : <span className="post-avatar-initial" aria-hidden="true">{avatarInitial(post)}</span>}</div>
     <div className="post-content">
       <div className="post-head">
         <div className="post-meta">

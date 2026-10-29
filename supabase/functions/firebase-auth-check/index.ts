@@ -5,6 +5,7 @@ const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
 const FIREBASE_JWKS_URL = new URL(
   "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com",
 );
+const CLOCK_TOLERANCE_SECONDS = 5;
 const allowedOrigins = new Set([
   "https://sl-community-platform.web.app",
   "https://sl-community-platform.firebaseapp.com",
@@ -13,9 +14,35 @@ const allowedOrigins = new Set([
 ]);
 const jwks = createRemoteJWKSet(FIREBASE_JWKS_URL);
 
+type FirebaseTimeClaims = {
+  exp?: unknown;
+  iat?: unknown;
+  auth_time?: unknown;
+};
+
+export function validateFirebaseTimeClaims(
+  claims: FirebaseTimeClaims,
+  nowSeconds: number,
+): boolean {
+  const { exp, iat, auth_time: authTime } = claims;
+  if (![exp, iat, authTime].every((value) =>
+    typeof value === "number" && Number.isSafeInteger(value)
+  )) return false;
+
+  const expiration = exp as number;
+  const issuedAt = iat as number;
+  const authenticatedAt = authTime as number;
+
+  return expiration > nowSeconds - CLOCK_TOLERANCE_SECONDS &&
+    issuedAt <= nowSeconds + CLOCK_TOLERANCE_SECONDS &&
+    authenticatedAt <= nowSeconds + CLOCK_TOLERANCE_SECONDS &&
+    expiration > issuedAt &&
+    authenticatedAt <= issuedAt + CLOCK_TOLERANCE_SECONDS;
+}
+
 export function extractBearerToken(header: string | null): string | null {
   if (!header) return null;
-  const match = /^Bearer\s+([^\s]+)$/i.exec(header.trim());
+  const match = /^Bearer\\s+([^\\s]+)$/i.exec(header.trim());
   return match?.[1] ?? null;
 }
 
@@ -56,12 +83,15 @@ export async function verifyFirebaseIdToken(token: string): Promise<{ uid: strin
     algorithms: ["RS256"],
     audience: FIREBASE_PROJECT_ID,
     issuer: FIREBASE_ISSUER,
-    clockTolerance: 5,
+    clockTolerance: CLOCK_TOLERANCE_SECONDS,
   });
 
-  if (protectedHeader.alg !== "RS256" || typeof payload.sub !== "string" ||
-    payload.sub.length === 0 || payload.sub.length > 128) {
-    throw new Error("Invalid Firebase subject");
+  if (protectedHeader.alg !== "RS256" ||
+    typeof payload.sub !== "string" ||
+    payload.sub.length === 0 ||
+    payload.sub.length > 128 ||
+    !validateFirebaseTimeClaims(payload, Math.floor(Date.now() / 1000))) {
+    throw new Error("Invalid Firebase ID token claims");
   }
 
   return { uid: payload.sub };

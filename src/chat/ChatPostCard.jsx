@@ -19,7 +19,52 @@ function fallbackAvatarUrl(post) {
   return `https://i.pravatar.cc/150?img=${(seed % 70) + 1}`;
 }
 
-function calendarDate(value) {\n  const date = new Date(value);\n  return Number.isNaN(date.getTime()) ? '' : date.toISOString().replace(/[-:]/g, '').replace(/\\.\\d{3}Z$/, 'Z');\n}\n\nfunction calendarLink(post) {\n  const start = calendarDate(post.eventStartAt);\n  if (!start) return '';\n  const end = calendarDate(post.eventEndAt) || calendarDate(new Date(new Date(post.eventStartAt).getTime() + 2 * 60 * 60 * 1000).toISOString());\n  const params = new URLSearchParams({ action: 'TEMPLATE', text: post.eventKind ? `${post.eventKind}: ${String(post.body || '').slice(0, 90)}` : String(post.body || 'Acara WarkopLink').slice(0, 100), dates: `${start}/${end}`, details: `${post.body || ''}\\n\\nAcara komunitas WarkopLink`, location: post.location || '' });\n  return `https://calendar.google.com/calendar/render?${params.toString()}`;\n}\n\nfunction downloadIcs(post) {\n  const start = calendarDate(post.eventStartAt);\n  if (!start) return false;\n  const end = calendarDate(post.eventEndAt) || calendarDate(new Date(new Date(post.eventStartAt).getTime() + 2 * 60 * 60 * 1000).toISOString());\n  const escapeIcs = value => String(value || '').replace(/\\\\/g, '\\\\\\\\').replace(/\\n/g, '\\\\n').replace(/,/g, '\\\\,').replace(/;/g, '\\\\;');\n  const uid = `${post.id}@warkoplink`;\n  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//WarkopLink//Agenda//ID','CALSCALE:GREGORIAN','BEGIN:VEVENT',`UID:${uid}`,`DTSTAMP:${calendarDate(new Date().toISOString())}`,`DTSTART:${start}`,`DTEND:${end}`,`SUMMARY:${escapeIcs(post.eventKind ? `${post.eventKind}: ${String(post.body || '').slice(0, 90)}` : String(post.body || 'Acara WarkopLink').slice(0, 100))}`,`DESCRIPTION:${escapeIcs(post.body || '')}`,`LOCATION:${escapeIcs(post.location || '')}`,'END:VEVENT','END:VCALENDAR'];\n  const blob = new Blob([lines.join('\\r\\n')], { type: 'text/calendar;charset=utf-8' });\n  const url = URL.createObjectURL(blob);\n  const link = document.createElement('a'); link.href = url; link.download = `warkoplink-acara-${post.id}.ics`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);\n  return true;\n}\n\nfunction normalizedWhatsAppNumber(value) {
+function calendarDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+}
+
+function calendarLink(post) {
+  const start = calendarDate(post.eventStartAt);
+  if (!start) return '';
+  const end = calendarDate(post.eventEndAt) || calendarDate(new Date(new Date(post.eventStartAt).getTime() + 2 * 60 * 60 * 1000).toISOString());
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: post.eventKind ? `${post.eventKind}: ${String(post.body || '').slice(0, 90)}` : String(post.body || 'Acara WarkopLink').slice(0, 100),
+    dates: `${start}/${end}`,
+    details: `${post.body || ''}\n\nAcara komunitas WarkopLink`,
+    location: post.location || ''
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function downloadIcs(post) {
+  const start = calendarDate(post.eventStartAt);
+  if (!start) return false;
+  const end = calendarDate(post.eventEndAt) || calendarDate(new Date(new Date(post.eventStartAt).getTime() + 2 * 60 * 60 * 1000).toISOString());
+  const escapeIcs = value => String(value || '').replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  const uid = `${post.id}@warkoplink`;
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WarkopLink//Agenda//ID', 'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT', `UID:${uid}`, `DTSTAMP:${calendarDate(new Date().toISOString())}`,
+    `DTSTART:${start}`, `DTEND:${end}`,
+    `SUMMARY:${escapeIcs(post.eventKind ? `${post.eventKind}: ${String(post.body || '').slice(0, 90)}` : String(post.body || 'Acara WarkopLink').slice(0, 100))}`,
+    `DESCRIPTION:${escapeIcs(post.body || '')}`, `LOCATION:${escapeIcs(post.location || '')}`,
+    'END:VEVENT', 'END:VCALENDAR'
+  ];
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `warkoplink-acara-${post.id}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+function normalizedWhatsAppNumber(value) {
   let digits = String(value || '').replace(/\D/g, '');
   if (digits.startsWith('0')) digits = `62${digits.slice(1)}`;
   if (digits.length < 9 || digits.length > 15) return '';

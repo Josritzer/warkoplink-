@@ -86,3 +86,96 @@ Deno.test("fails closed for malformed or missing revocation timestamps", () => {
     assertThrows(() => isFirebaseTokenRevoked(invalid, "1800000000"));
   }
 });
+
+
+import { validateFirebaseAccountLookupResponse } from "./account-lookup.ts";
+
+Deno.test("accepts one enabled account whose UID matches and token is current", () => {
+  assertEquals(
+    validateFirebaseAccountLookupResponse(
+      { users: [{ localId: "verified-uid", disabled: false, validSince: "1800000000" }] },
+      "verified-uid",
+      1_800_000_000,
+    ),
+    { uid: "verified-uid" },
+  );
+});
+
+Deno.test("rejects disabled accounts and unknown disabled status", () => {
+  for (const disabled of [true, undefined, null, "false", 0]) {
+    let thrown = false;
+    try {
+      validateFirebaseAccountLookupResponse(
+        { users: [{ localId: "verified-uid", disabled, validSince: "1800000000" }] },
+        "verified-uid",
+        1_800_000_000,
+      );
+    } catch {
+      thrown = true;
+    }
+    assertEquals(thrown, true);
+  }
+});
+
+Deno.test("rejects a mismatched UID and invalid account counts", () => {
+  const validUser = { localId: "other-uid", disabled: false, validSince: "1800000000" };
+  for (const payload of [
+    { users: [validUser] },
+    { users: [] },
+    { users: [validUser, validUser] },
+    {},
+    null,
+  ]) {
+    let thrown = false;
+    try {
+      validateFirebaseAccountLookupResponse(payload, "verified-uid", 1_800_000_000);
+    } catch {
+      thrown = true;
+    }
+    assertEquals(thrown, true);
+  }
+});
+
+Deno.test("rejects revoked tokens and malformed validSince values", () => {
+  let revoked = false;
+  try {
+    validateFirebaseAccountLookupResponse(
+      { users: [{ localId: "verified-uid", disabled: false, validSince: "1800000001" }] },
+      "verified-uid",
+      1_800_000_000,
+    );
+  } catch {
+    revoked = true;
+  }
+  assertEquals(revoked, true);
+
+  for (const validSince of [undefined, null, "", "not-a-time", "-1"]) {
+    let thrown = false;
+    try {
+      validateFirebaseAccountLookupResponse(
+        { users: [{ localId: "verified-uid", disabled: false, validSince }] },
+        "verified-uid",
+        1_800_000_000,
+      );
+    } catch {
+      thrown = true;
+    }
+    assertEquals(thrown, true);
+  }
+});
+
+Deno.test("fails closed for invalid verified UID or auth_time", () => {
+  for (const [uid, authTime] of [["", 1_800_000_000], ["verified-uid", -1], ["verified-uid", 1.5]] as const) {
+    let thrown = false;
+    try {
+      validateFirebaseAccountLookupResponse(
+        { users: [{ localId: "verified-uid", disabled: false, validSince: "1800000000" }] },
+        uid,
+        authTime,
+      );
+    } catch {
+      thrown = true;
+    }
+    assertEquals(thrown, true);
+  }
+});

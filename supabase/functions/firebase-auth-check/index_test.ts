@@ -179,3 +179,69 @@ Deno.test("fails closed for invalid verified UID or auth_time", () => {
     assertEquals(thrown, true);
   }
 });
+
+import { lookupFirebaseAccount } from "./firebase-auth-rest.ts";
+
+Deno.test("REST lookup accepts only a matching enabled, current account", async () => {
+  const result = await lookupFirebaseAccount(
+    "verified-token",
+    "verified-uid",
+    1_800_000_000,
+    "test-api-key",
+    async (input, init) => {
+      assertEquals(String(input), "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=test-api-key");
+      assertEquals(init?.method, "POST");
+      assertEquals(init?.headers instanceof Headers, true);
+      const body = JSON.parse(String(init?.body));
+      assertEquals(body.idToken, "verified-token");
+      return Response.json({
+        users: [{ localId: "verified-uid", disabled: false, validSince: "1800000000" }],
+      });
+    },
+  );
+  assertEquals(result, { uid: "verified-uid" });
+});
+
+Deno.test("REST lookup fails closed on HTTP errors and malformed JSON", async () => {
+  for (const fetchImpl of [
+    async () => new Response("denied", { status: 403 }),
+    async () => new Response("{not-json", { status: 200 }),
+    async () => { throw new Error("network unavailable"); },
+  ]) {
+    let rejected = false;
+    try {
+      await lookupFirebaseAccount(
+        "verified-token",
+        "verified-uid",
+        1_800_000_000,
+        "test-api-key",
+        fetchImpl,
+      );
+    } catch {
+      rejected = true;
+    }
+    assertEquals(rejected, true);
+  }
+});
+
+Deno.test("REST lookup fails closed for empty credentials and invalid account responses", async () => {
+  let called = false;
+  const fetchImpl = async () => {
+    called = true;
+    return Response.json({ users: [] });
+  };
+  for (const [token, uid, apiKey] of [
+    ["", "verified-uid", "test-api-key"],
+    ["verified-token", "", "test-api-key"],
+    ["verified-token", "verified-uid", ""],
+  ] as const) {
+    let rejected = false;
+    try {
+      await lookupFirebaseAccount(token, uid, 1_800_000_000, apiKey, fetchImpl);
+    } catch {
+      rejected = true;
+    }
+    assertEquals(rejected, true);
+  }
+  assertEquals(called, false);
+});

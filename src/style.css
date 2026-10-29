@@ -492,3 +492,34 @@
 .facility-filter-list{display:flex;flex-wrap:wrap;gap:6px}
 .facility-chip{font-size:12px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid #d5dbe8;background:#fff;color:#172554;cursor:pointer}
 .facility-chip.active{background:#172554;color:#fff;border-color:#172554}
+
+
+/* Verified warung profile — compact, mobile-first social surface */
+.warung-profile-page { max-width: 760px; margin-inline: auto; }
+.warung-profile-page .profile-back { margin-bottom: 14px; }
+.warung-profile-cover { min-height: 126px; display: flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(125deg, #253c8f, #6b4bc3 68%, #a14f96); border-radius: 14px 14px 0 0; }
+.warung-profile-heading { display: flex; align-items: center; gap: 12px; padding: 0 16px 16px; border-bottom: 1px solid #e7e9ec; }
+.warung-profile-avatar { width: 68px; height: 68px; flex: 0 0 68px; display: grid; place-items: center; margin-top: -28px; color: #273c89; background: #f0f2ff; border: 4px solid #fff; border-radius: 50%; }
+.warung-profile-title-group { min-width: 0; flex: 1; padding-top: 8px; }
+.warung-profile-title-group h1 { margin: 0 0 5px; font-size: clamp(20px, 4vw, 26px); line-height: 1.2; overflow-wrap: anywhere; }
+.warung-verified { display: inline-flex; align-items: center; gap: 5px; color: #354d9b; font-size: 12px; font-weight: 650; }
+.warung-follow-button { flex: 0 0 auto; min-height: 38px; padding-inline: 12px; }
+.warung-follow-button.following { color: #273c89; border-color: #c9d0ef; }
+.warung-profile-stats { display: flex; gap: 24px; padding: 16px; border-bottom: 1px solid #e7e9ec; }
+.warung-profile-stats > div { display: grid; grid-template-columns: 18px auto; align-items: center; gap: 0 7px; color: #566074; }
+.warung-profile-stats strong { color: #182033; font-size: 15px; }
+.warung-profile-stats span { grid-column: 2; font-size: 12px; }
+.warung-profile-details, .warung-profile-posts { padding: 18px 16px; border-bottom: 1px solid #e7e9ec; }
+.warung-profile-details h2, .warung-profile-posts h2 { margin: 0 0 12px; font-size: 17px; }
+.warung-profile-address { display: flex; align-items: flex-start; gap: 8px; }
+.warung-profile-address svg { flex: 0 0 auto; margin-top: 3px; }
+.warung-profile-details p, .warung-profile-posts p { color: #596174; line-height: 1.6; }
+.warung-profile-link { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; color: #263f98; background: transparent; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.warung-profile-link:hover { text-decoration: underline; }
+@media (max-width: 480px) {
+  .warung-profile-heading { flex-wrap: wrap; padding-inline: 12px; gap: 8px; }
+  .warung-profile-avatar { width: 56px; height: 56px; flex-basis: 56px; }
+  .warung-profile-title-group h1 { font-size: 19px; }
+  .warung-follow-button { margin-left: auto; }
+  .warung-profile-stats, .warung-profile-details, .warung-profile-posts { padding-inline: 12px; }
+}

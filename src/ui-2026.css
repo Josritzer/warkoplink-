@@ -555,3 +555,25 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+
+/* Accessible theme switch: user preference only; no backend/data changes. */
+.button-theme-toggle { width: 38px; min-width: 38px; padding: 0 !important; display: inline-grid; place-items: center; }
+.theme-toggle-icon { display: grid; place-items: center; }
+html[data-theme="dark"] { color-scheme: dark; --wl-ink: #e6eee8; --wl-muted: #a0afa5; --wl-cream: #101612; --wl-paper: #171f19; --wl-line: #2c3930; --wl-line-soft: #253128; }
+html[data-theme="dark"], html[data-theme="dark"] body { background: #101612; color: #e6eee8; }
+html[data-theme="dark"] body { background-image: radial-gradient(ellipse at 88% 0%, rgba(112, 196, 145, .07), transparent 32rem), linear-gradient(#101612, #101612); }
+html[data-theme="dark"] .app-header { background: rgba(16, 22, 18, .92); border-color: #2a362d; }
+html[data-theme="dark"] .app-header .brand strong { color: #edf5ef; }
+html[data-theme="dark"] .app-header .brand small { color: #a0afa5; }
+html[data-theme="dark"] .content-section, html[data-theme="dark"] .account-card, html[data-theme="dark"] .rail-panel, html[data-theme="dark"] .reply-original-post, html[data-theme="dark"] .reply-page-item, html[data-theme="dark"] .auth-modal, html[data-theme="dark"] .service-grid article, html[data-theme="dark"] .empty-state { background: #171f19; color: #e6eee8; border-color: #2c3930; box-shadow: none; }
+html[data-theme="dark"] .content-section h2, html[data-theme="dark"] .content-section h3, html[data-theme="dark"] .rail-panel-heading h2, html[data-theme="dark"] .rail-warung b, html[data-theme="dark"] .rail-topic b, html[data-theme="dark"] .rail-recent-post b, html[data-theme="dark"] .account-details b, html[data-theme="dark"] .reply-original-meta b, html[data-theme="dark"] .reply-bubble b { color: #edf5ef; }
+html[data-theme="dark"] .content-section p, html[data-theme="dark"] .rail-warung small, html[data-theme="dark"] .rail-topic small, html[data-theme="dark"] .rail-recent-post p, html[data-theme="dark"] .rail-empty, html[data-theme="dark"] .account-details p, html[data-theme="dark"] .reply-original-meta small { color: #a0afa5; }
+html[data-theme="dark"] input, html[data-theme="dark"] textarea, html[data-theme="dark"] select, html[data-theme="dark"] .reply-page-form textarea { background: #101612; color: #edf5ef; border-color: #344338; }
+html[data-theme="dark"] .bottom-nav { background: rgba(16, 22, 18, .96); border-color: #2a362d; }
+html[data-theme="dark"] .bottom-nav-item { color: #a0afa5; }
+html[data-theme="dark"] .bottom-nav-item.active { color: #a8e8c8; }
+html[data-theme="dark"] .rail-warung:hover, html[data-theme="dark"] .rail-topic:hover, html[data-theme="dark"] .rail-recent-post:hover { background: #202b23; }
+html[data-theme="dark"] .modal-backdrop { background: rgba(0, 0, 0, .72); }
+html[data-theme="dark"] .button-quiet { color: #e6eee8; border-color: #344338; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

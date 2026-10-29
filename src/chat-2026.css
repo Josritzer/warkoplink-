@@ -4,7 +4,7 @@
    Prinsip: satu warna aksen, hierarki nama > waktu, aksi seperlunya, pemisah tipis, target sentuh 40px+.
    Hanya visual: tidak mengubah data, auth, atau moderasi. */
 :root {
-  --chat-ink: var(--wl-ink, var(--wl-ink));
+  --chat-ink: var(--wl-ink);
   --chat-muted: #6b7587;
   --chat-line: #e8ebf0;
   --chat-soft: #f2f4f8;

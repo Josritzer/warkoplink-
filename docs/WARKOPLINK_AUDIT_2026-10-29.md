@@ -33,7 +33,8 @@ The public Firestore REST read returned these records. The records had no explic
 1. Owner reviews each document ID and confirms whether it is QA or a genuine community post.
 2. For confirmed QA only, add an explicit marker (e.g. `isTest: true`) using a reviewed, auditable owner action; preserve the original body, author, timestamp, and document ID.
 3. For a confirmed duplicate, prefer a reviewed `visibility: "hidden"`/soft-hide marker and keep an audit note; do not delete or rewrite content automatically.
-4. Longer-term, define a canonical server-side publication field and backfill only after schema and legacy-document behavior are agreed. Do not add a Firestore `where(isPublic == true)` query until existing legitimate records have the field, because legacy documents without it would disappear from results.
+4. Current `firestore.rules` uses a strict `hasOnly` field allowlist for post creation and does not permit these QA markers through ordinary client writes; post updates are also restricted. Therefore, only a privileged, reviewed owner/admin workflow can mark existing records under current rules. Any future client-managed publication flag requires a separately reviewed schema/rules change.
+5. Longer-term, define a canonical server-side publication field and backfill only after schema and legacy-document behavior are agreed. Do not add a Firestore `where(isPublic == true)` query until existing legitimate records have the field, because legacy documents without it would disappear from results.
 
 ## Backend wiring observed
 

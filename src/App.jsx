@@ -150,10 +150,12 @@ export default function App() {
     try {
       const ref = doc(db, 'profiles', currentUser.uid);
       const existing = await getDoc(ref);
-      const profile = existing.exists() ? existing.data() : {
+      const storedProfile = existing.exists() ? (existing.data() || {}) : {};
+      const profile = {
         displayName: authorNameFor(currentUser),
         email: currentUser.email || '',
-        photoURL: currentUser.photoURL || ''
+        photoURL: currentUser.photoURL || '',
+        ...storedProfile
       };
       if (!existing.exists()) {
         await setDoc(ref, {

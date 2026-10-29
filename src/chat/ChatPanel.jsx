@@ -17,7 +17,7 @@ export default function ChatPanel(props) {
   const [workType, setWorkType] = useState('');
   const [contact, setContact] = useState('');
   const [nudgeDismissed, setNudgeDismissed] = useState(() => { try { return window.localStorage.getItem('warkoplink:composer-nudge-dismissed:v1') === '1'; } catch { return false; } });
-  const startStory = () => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi cerita.'); return; } setComposerTopic('Ngopi Bareng'); setTopic('Semua'); setComposerOpen(true); setNotice('Ceritakan suasana warkop hari ini di obrolan komunitas.'); };
+  const startStory = () => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi cerita.'); return; } setComposerTopic('Ngopi Bareng'); setPostType(POST_SUBTYPES['Ngopi Bareng']?.[0] || ''); setTopic('Semua'); if (onOpenDiscussion) onOpenDiscussion(); else setComposerOpen(true); setNotice('Ceritakan suasana warkop hari ini di obrolan komunitas.'); };
   const dismissNudge = () => { setNudgeDismissed(true); try { window.localStorage.setItem('warkoplink:composer-nudge-dismissed:v1', '1'); } catch {} };
   const mentionMatch = draft.match(/(?:^|\s)@([^@]*)$/);
   const mentionQuery = mentionMatch?.[1]?.trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID') || '';
@@ -32,11 +32,11 @@ export default function ChatPanel(props) {
 
   return <section className="content-section" id="community-feed">
     <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className={user ? 'status-pill status-authenticated' : 'status-pill status-public'} role="status" aria-live="polite">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
-    {!readOnly && <div className="community-story-strip" aria-label="Cerita komunitas">
+    {<div className="community-story-strip" aria-label="Cerita komunitas">
       <button type="button" className="story-add" onClick={startStory} aria-label="Tambah cerita atau mulai obrolan"><span className="story-add-avatar"><span>{user?.photoURL ? <img src={user.photoURL} alt="" /> : <Plus size={24}/>}</span></span><span>{user ? "Tambah cerita" : "Mulai cerita"}</span></button>
       <button type="button" className="story-add story-prompt" onClick={startStory}><span className="story-add-avatar"><span><Sparkles size={22}/></span></span><span>Suasana warkop</span></button>
       <button type="button" className="story-add story-prompt" onClick={() => { setTopic("Ngopi Bareng"); setSearch(""); setNotice("Menampilkan obrolan ngopi bareng."); }}><span className="story-add-avatar"><span>☕</span></span><span>Ngopi bareng</span></button>
-    </div>}
+    </div>
     {!readOnly && user && !nudgeDismissed && postsStatus === "ready" && !visiblePosts.some(post => post.authorId === user.uid || post.userId === user.uid) && <div className="composer-nudge"><span><b>Psst, coba sapa warga dulu yuk?</b><br/>Satu sapaan kecil bisa membuka obrolan seru.</span><div><button type="button" onClick={() => { setComposerOpen(true); dismissNudge(); }}>Mulai ngobrol</button><button type="button" className="nudge-dismiss" aria-label="Tutup saran" onClick={dismissNudge}>Nanti</button></div></div>}
     {!firebaseConfigured && <p className="config-warning" role="status">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
     <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}…`} aria-label={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}`}/></label></div>

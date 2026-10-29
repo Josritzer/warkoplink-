@@ -2,8 +2,8 @@
    Functional feedback, readable status hierarchy, touch targets and reduced motion.
    No data, Firebase, authorization, routing, or schema changes. */
 :root {
-  --wl-state-info: #2456b8;
-  --wl-state-info-bg: #edf4ff;
+  --wl-state-info: var(--wl-primary);
+  --wl-state-info-bg: var(--wl-line-soft);
   --wl-state-success: #17664b;
   --wl-state-success-bg: #e7f6ee;
   --wl-state-warning: #82540b;
@@ -44,7 +44,7 @@ textarea:focus-visible, select:focus-visible {
   max-width: min(48%, 290px);
   overflow-wrap: anywhere;
   line-height: 1.35;
-  border: 1px solid rgba(23, 37, 61, .08);
+  border: 1px solid rgba(var(--wl-primary-rgb),.08);
 }
 #community-feed .feed-readonly-note {
   border-radius: 12px;
@@ -58,7 +58,7 @@ textarea:focus-visible, select:focus-visible {
 #community-feed .empty-state {
   margin: 12px 0;
   padding: 28px 16px;
-  border: 1px dashed #dfe4eb;
+  border: 1px dashed var(--wl-line);
   border-radius: 18px;
   background: rgba(255,254,250,.72);
 }
@@ -74,12 +74,12 @@ textarea:focus-visible, select:focus-visible {
 
 /* Post card hierarchy: author/status, readable text, metrics, then actions. */
 #community-feed .post-card {
-  border-bottom: 1px solid #e5e9ef;
+  border-bottom: 1px solid var(--wl-line-soft);
   border-radius: 12px;
   transition: background-color .16s ease, border-color .16s ease;
 }
 #community-feed .post-card:focus-within {
-  border-bottom-color: #c8d8f6;
+  border-bottom-color: var(--wl-line);
 }
 #community-feed .post-meta {
   align-items: center;
@@ -91,11 +91,11 @@ textarea:focus-visible, select:focus-visible {
   border-radius: 999px;
   padding: 3px 7px;
   background: var(--wl-primary-tint);
-  color: #3158a7;
+  color: var(--wl-primary);
   font-size: 11px;
 }
 #community-feed .post-meta span::before { content: none; }
-#community-feed .post-meta small { color: #788394; }
+#community-feed .post-meta small { color: var(--wl-muted); }
 #community-feed .post-content > p {
   margin-top: 7px;
   margin-bottom: 8px;
@@ -108,7 +108,7 @@ textarea:focus-visible, select:focus-visible {
   padding-top: 4px;
 }
 #community-feed .engagement-reaction-count {
-  color: #52627a;
+  color: var(--wl-primary);
   font-variant-numeric: tabular-nums;
 }
 #community-feed .engagement-comment-count {
@@ -116,7 +116,7 @@ textarea:focus-visible, select:focus-visible {
   text-decoration: none;
 }
 #community-feed .engagement-comment-count:hover {
-  background: #edf3ff;
+  background: var(--wl-line-soft);
   text-decoration: none;
 }
 #community-feed .post-actions { border-top: 0; }
@@ -125,10 +125,10 @@ textarea:focus-visible, select:focus-visible {
   border: 1px solid transparent;
   border-radius: 10px;
 }
-#community-feed .post-action:active { background: #eaf1ff; }
+#community-feed .post-action:active { background: var(--wl-line-soft); }
 #community-feed .post-action.liked {
-  background: #eaf1ff;
-  color: #174fb7;
+  background: var(--wl-line-soft);
+  color: var(--wl-primary);
 }
 #community-feed .post-reaction-count {
   font-variant-numeric: tabular-nums;
@@ -148,13 +148,13 @@ textarea:focus-visible, select:focus-visible {
 .reply-original-post {
   border-radius: 18px;
   background: var(--wl-paper);
-  box-shadow: 0 4px 16px rgba(23,37,61,.035);
+  box-shadow: 0 4px 16px rgba(var(--wl-primary-rgb),.035);
 }
 .reply-original-meta span {
   border-radius: 999px;
   padding: 4px 8px;
   background: var(--wl-primary-tint);
-  color: #3158a7;
+  color: var(--wl-primary);
 }
 .reply-thread-list h3 {
   display: flex;
@@ -167,11 +167,11 @@ textarea:focus-visible, select:focus-visible {
 }
 .reply-page-item p { line-height: 1.6; }
 .reply-page-form {
-  border-color: #dfe6f1;
-  box-shadow: 0 8px 28px rgba(23,37,61,.09);
+  border-color: var(--wl-line-soft);
+  box-shadow: 0 8px 28px rgba(var(--wl-primary-rgb),.09);
 }
 .reply-page-form textarea:focus-visible {
-  border-color: #8db1ff;
+  border-color: var(--wl-primary-tint-2);
   outline: 3px solid var(--wl-interaction-ring);
   outline-offset: 1px;
 }
@@ -183,7 +183,7 @@ textarea:focus-visible, select:focus-visible {
   border-radius: 14px;
   padding: 5px 8px;
 }
-#community-feed .composer-trigger:active { background: #f0f4fb; }
+#community-feed .composer-trigger:active { background: var(--wl-line-soft); }
 #community-feed .composer-expanded textarea { line-height: 1.6; }
 #community-feed .composer-bottom .button { min-height: 40px; }
 .auth-modal input:focus-visible,
@@ -194,7 +194,7 @@ textarea:focus-visible, select:focus-visible {
   outline-offset: 1px;
 }
 .form-error { border-left: 3px solid #c43c49; }
-.post-menu-portal button:active { background: #edf3ff; color: #174fb7; }
+.post-menu-portal button:active { background: var(--wl-line-soft); color: var(--wl-primary); }
 
 @media (max-width: 620px) {
   #community-feed .status-pill { max-width: 48%; }

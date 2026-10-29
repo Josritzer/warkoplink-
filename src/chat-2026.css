@@ -1,13 +1,13 @@
 /* Obrolan WarkopLink — penyatuan gaya 2026.
    Dimuat paling akhir untuk menggantikan aturan yang bertabrakan di style.css, chat-compact.css,
-   ui-2026.css, dan interaction-states-2026.css (sebelumnya aksen ungu dan biru bercampur).
+   ui-2026.css, dan interaction-states-2026.css (sebelumnya aksen biru dan campuran lain).
    Prinsip: satu warna aksen, hierarki nama > waktu, aksi seperlunya, pemisah tipis, target sentuh 40px+.
    Hanya visual: tidak mengubah data, auth, atau moderasi. */
 :root {
   --chat-ink: var(--wl-ink, var(--wl-ink));
-  --chat-muted: #6b7587;
-  --chat-line: #e8ebf0;
-  --chat-soft: #f2f4f8;
+  --chat-muted: var(--wl-muted);
+  --chat-line: var(--wl-line-soft);
+  --chat-soft: var(--wl-line-soft);
   --chat-accent: var(--wl-blue, var(--wl-primary));
   --chat-accent-deep: var(--wl-blue-deep, var(--wl-primary-deep));
   --chat-ring: rgba(var(--wl-primary-rgb), .28);
@@ -78,7 +78,7 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: 2px; width: max-content; max-width: min(340px, calc(100vw - 40px));
   max-height: none; overflow: visible; margin: 0; padding: 6px;
   border: 1px solid var(--chat-line); border-radius: 999px; background: #fff;
-  box-shadow: 0 8px 24px rgba(23, 37, 61, .12);
+  box-shadow: 0 8px 24px rgba(var(--wl-primary-rgb),.12);
 }
 #community-feed .status-reaction {
   width: 40px; height: 40px; flex: 0 0 40px; padding: 0; border: 0; border-radius: 50%;
@@ -86,7 +86,7 @@
   transition: transform .12s ease, background-color .12s ease;
 }
 #community-feed .status-reaction:hover { background: var(--chat-soft); transform: scale(1.12); }
-#community-feed .status-reaction.selected { background: #e8f0ff; box-shadow: inset 0 0 0 1.5px var(--chat-accent); }
+#community-feed .status-reaction.selected { background: var(--wl-line-soft); box-shadow: inset 0 0 0 1.5px var(--chat-accent); }
 #community-feed .status-reaction-more { color: var(--chat-muted); font-size: 20px; }
 #community-feed .status-reactions-extra {
   display: grid; grid-template-columns: repeat(6, 40px); gap: 2px; flex: 1 0 100%;
@@ -116,7 +116,7 @@
 }
 .reply-original-avatar, .reply-page-avatar {
   display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; overflow: hidden;
-  border-radius: 50%; background: #e8f0ff; color: var(--chat-accent-deep); font-weight: 650;
+  border-radius: 50%; background: var(--wl-line-soft); color: var(--chat-accent-deep); font-weight: 650;
 }
 .reply-original-avatar img, .reply-page-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .reply-original-body { min-width: 0; flex: 1; }
@@ -144,7 +144,7 @@
   position: sticky; bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   display: flex; align-items: flex-end; gap: 8px; margin-top: 16px; padding: 8px 8px 8px 14px;
   border: 1px solid var(--chat-line); border-radius: 26px; background: #fff;
-  box-shadow: 0 6px 22px rgba(23, 37, 61, .1);
+  box-shadow: 0 6px 22px rgba(var(--wl-primary-rgb),.1);
 }
 .reply-page-form textarea {
   flex: 1; min-width: 0; min-height: 40px; max-height: 140px; margin: 0; padding: 9px 0;
@@ -152,7 +152,7 @@
   color: var(--chat-ink); font-size: 15px; line-height: 1.4; field-sizing: content;
 }
 .reply-page-form textarea:focus, .reply-page-form textarea:focus-visible { outline: 0 !important; box-shadow: none; background: transparent; }
-.reply-page-form:focus-within { border-color: var(--chat-accent); box-shadow: 0 0 0 3px var(--chat-ring), 0 6px 22px rgba(23, 37, 61, .1); }
+.reply-page-form:focus-within { border-color: var(--chat-accent); box-shadow: 0 0 0 3px var(--chat-ring), 0 6px 22px rgba(var(--wl-primary-rgb),.1); }
 .reply-send {
   display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border: 0; border-radius: 50%;
   background: var(--chat-accent); color: #fff; cursor: pointer; transition: background-color .15s ease, opacity .15s ease;
@@ -204,7 +204,7 @@
   width: 18px;
   height: 2px;
   border-radius: 4px;
-  background: #9879dc;
+  background: var(--wl-primary-bright);
 }
 #community-feed .section-heading h2 {
   margin: 0;
@@ -227,13 +227,13 @@
   border: 1px solid var(--wl-line);
   border-radius: 999px;
   background: rgba(255,253,249,.8);
-  color: #6b6477;
+  color: var(--wl-muted);
   font-size: 10px;
   line-height: 1.3;
 }
 #community-feed .status-pill.status-authenticated {
-  border-color: #d9cbed;
-  background: #f3eefb;
+  border-color: var(--wl-line);
+  background: var(--wl-line-soft);
   color: var(--wl-primary-deep);
 }
 #community-feed .feed-tools { margin: 0 0 9px; }
@@ -245,7 +245,7 @@
   border: 1px solid var(--wl-line);
   border-radius: 13px;
   background: rgba(255,253,249,.9);
-  color: #837b91;
+  color: var(--wl-muted);
 }
 #community-feed .search span { font-size: 21px; }
 #community-feed .search input {
@@ -254,7 +254,7 @@
   color: var(--wl-ink);
   font-size: 13px;
 }
-#community-feed .search input::placeholder { color: #9891a2; }
+#community-feed .search input::placeholder { color: var(--wl-line); }
 #community-feed .topic-scroll-wrap { margin: 0 0 8px; }
 #community-feed .topic-list {
   display: flex;
@@ -272,7 +272,7 @@
   border: 1px solid var(--wl-line);
   border-radius: 999px;
   background: rgba(255,253,249,.72);
-  color: #655d70;
+  color: var(--wl-muted);
   font-size: 12px;
   font-weight: 650;
 }
@@ -310,7 +310,7 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #8a8296;
+  color: var(--wl-muted);
   font-size: 14px;
 }
 #community-feed .composer-trigger:hover { background: transparent; color: var(--wl-primary-deep); }
@@ -329,7 +329,7 @@
   border: 1px solid var(--wl-primary-tint);
   border-radius: 18px;
   background: var(--wl-paper);
-  box-shadow: 0 8px 24px rgba(49,32,74,.045);
+  box-shadow: 0 8px 24px rgba(var(--wl-primary-rgb),.045);
 }
 #community-feed .composer-context { margin-bottom: 13px; }
 #community-feed .composer-expanded textarea {
@@ -345,7 +345,7 @@
   padding-top: 12px;
   border-top: 1px solid var(--wl-line-soft);
 }
-#community-feed .composer-bottom .char-count { margin-right: auto; color: #91899d; font-size: 11px; }
+#community-feed .composer-bottom .char-count { margin-right: auto; color: var(--wl-muted); font-size: 11px; }
 #community-feed .composer-bottom .button { min-height: 38px; padding: 9px 14px; font-size: 12px; }
 #community-feed .post-list { margin-top: 3px; }
 #community-feed .post-card {
@@ -362,7 +362,7 @@
   width: 38px;
   height: 38px;
   min-width: 38px;
-  border: 1px solid rgba(49,32,74,.06);
+  border: 1px solid rgba(var(--wl-primary-rgb),.06);
   background: var(--wl-primary-tint);
   color: var(--wl-primary-deep);
 }
@@ -370,10 +370,10 @@
 #community-feed .post-meta { gap: 2px 7px; }
 #community-feed .post-meta b { color: var(--wl-ink); font-size: 13px; font-weight: 760; }
 #community-feed .post-meta span { color: var(--wl-primary); font-size: 11px; font-weight: 650; }
-#community-feed .post-meta small { color: #938b9e; font-size: 11px; }
+#community-feed .post-meta small { color: var(--wl-line); font-size: 11px; }
 #community-feed .post-content > p {
   margin: 5px 0 9px;
-  color: #342d40;
+  color: var(--wl-ink);
   font-size: 14px;
   line-height: 1.62;
   overflow-wrap: anywhere;
@@ -385,7 +385,7 @@
   padding: 4px 8px;
   border-radius: 6px;
   background: var(--wl-primary-tint);
-  color: #5c4c70;
+  color: var(--wl-primary);
   font-size: 10px;
   font-weight: 750;
 }
@@ -405,18 +405,18 @@
 #community-feed .post-action:hover,
 #community-feed .post-action.liked { color: var(--wl-primary-deep); background: var(--wl-primary-tint); }
 #community-feed .post-action-wrap .status-reactions { border-color: var(--wl-primary-tint); background: var(--wl-paper); }
-#community-feed .post-menu-trigger { color: #8b8395; }
+#community-feed .post-menu-trigger { color: var(--wl-muted); }
 #community-feed .post-menu-trigger:hover { color: var(--wl-primary-deep); background: var(--wl-primary-tint); }
 #community-feed .empty-state {
   margin: 18px 0 0;
   padding: 34px 18px;
-  border: 1px dashed #e2d9ed;
+  border: 1px dashed var(--wl-line);
   border-radius: 18px;
   background: rgba(255,253,249,.7);
   text-align: center;
 }
-#community-feed .empty-state h3 { color: #342d40; font-size: 16px; }
-#community-feed .empty-state p { color: #81798e; font-size: 13px; line-height: 1.6; }
+#community-feed .empty-state h3 { color: var(--wl-ink); font-size: 16px; }
+#community-feed .empty-state p { color: var(--wl-muted); font-size: 13px; line-height: 1.6; }
 #community-feed .feed-pagination { display: flex; justify-content: center; padding: 18px 0 8px; }
 #community-feed .feed-pagination .button { min-height: 40px; border: 1px solid var(--wl-primary-tint); font-size: 12px; }
 @media (max-width: 620px) {

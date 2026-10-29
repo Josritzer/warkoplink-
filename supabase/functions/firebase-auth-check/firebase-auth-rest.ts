@@ -37,6 +37,7 @@ export async function lookupFirebaseAccount(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ idToken }),
+    signal: AbortSignal.timeout(8_000),
   });
 
   if (!response.ok) {

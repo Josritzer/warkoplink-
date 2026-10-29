@@ -114,6 +114,18 @@ describe('laporan obrolan', () => {
   });
 });
 
+describe('preferensi tampilan', () => {
+  it('mengaktifkan mode gelap dan menyimpan pilihan pengguna', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const toggle = screen.getByRole('button', { name: 'Aktifkan mode gelap' });
+    await user.click(toggle);
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(window.localStorage.getItem('warkoplink:theme')).toBe('dark');
+    expect(screen.getByRole('button', { name: 'Aktifkan mode terang' })).toBeTruthy();
+  });
+});
+
 describe('halaman publik', () => {
   it('pengunjung membuka halaman komunitas; ada state loading lalu state kosong', async () => {
     render(<App />);

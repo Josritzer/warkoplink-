@@ -223,3 +223,14 @@ input, textarea, select { font-size: 15px; border-radius: 14px; }
 .hero .eyebrow::before { background: #e3d2b4; }
 .hero .button-dark { background: #fff; color: #1c1420; box-shadow: none; }
 .hero .button-dark:hover { background: #f4ecf1; }
+
+
+/* Kontrol carousel suasana warkop */
+.warkop-stories-controls { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.warkop-stories-status { margin-right: auto; color: var(--wl-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.story-control { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--wl-hairline); border-radius: 50%; background: var(--wl-paper); color: var(--wl-ink); cursor: pointer; transition: background .18s ease, border-color .18s ease, transform .18s ease; }
+.story-control:hover { background: var(--wl-primary-tint); border-color: var(--wl-primary); }
+.story-control:active { transform: scale(.94); }
+.story-control:focus-visible { outline: 2px solid var(--wl-primary); outline-offset: 3px; }
+.warkop-stories-track { scroll-behavior: smooth; overscroll-behavior-x: contain; }
+@media (prefers-reduced-motion: reduce) { .warkop-stories-track { scroll-behavior: auto; } .story-control { transition: none; } }

@@ -73,7 +73,7 @@ jobs:
           changed_files="$(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA" -- firestore.rules firestore.indexes.json)"
           if [ -n "$changed_files" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            printf 'Firestore sources changed:\\n%s\\n' "$changed_files"
+            printf 'Firestore sources changed:\n%s\n' "$changed_files"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No Firestore rule/index source changes; production rules will not be republished."

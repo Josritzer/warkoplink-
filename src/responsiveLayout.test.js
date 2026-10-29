@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const styles = readFileSync(new URL('./ui-2026.css', import.meta.url), 'utf8');
+const styles = readFileSync('src/ui-2026.css', 'utf8');
 
 describe('responsive navigation contract', () => {
   it('hides the compact bottom navigation at desktop widths', () => {

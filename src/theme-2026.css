@@ -10,7 +10,7 @@
   color-scheme: light;
 
   /* Permukaan */
-  --wl-cream: #faf6f0;
+  --wl-cream: #f7f5f1;
   --wl-paper: #fffdf9;
   --wl-line: #e9e0da;
   --wl-line-soft: #f1eae4;
@@ -20,12 +20,12 @@
   --wl-muted: #6b5f66;
 
   /* Aksen utama: Persimmon */
-  --wl-primary: #c9401b;        /* tombol utama, putih di atasnya 4.96:1 */
-  --wl-primary-deep: #a8330f;
-  --wl-primary-bright: #e8552b; /* hanya dekoratif: garis, ikon besar, glow */
-  --wl-primary-tint: #fde9e1;
-  --wl-primary-tint-2: #fbd9cb;
-  --wl-primary-rgb: 201, 64, 27;
+  --wl-primary: #4b5fc7;        /* tombol utama, putih di atasnya 4.96:1 */
+  --wl-primary-deep: #3546a5;
+  --wl-primary-bright: #6577e8; /* hanya dekoratif: garis, ikon besar, glow */
+  --wl-primary-tint: #e9edff;
+  --wl-primary-tint-2: #d9e0ff;
+  --wl-primary-rgb: 75, 95, 199;
   --wl-on-primary: #ffffff;
 
   /* Pendukung */
@@ -65,12 +65,12 @@ html[data-theme="dark"] {
   --wl-ink: #f4ecf1;
   --wl-muted: #b3a6b0;
 
-  --wl-primary: #ff7a4d;        /* teks gelap di atasnya 7.3:1 */
-  --wl-primary-deep: #ff9470;
-  --wl-primary-bright: #ff7a4d;
-  --wl-primary-tint: #3a2220;
-  --wl-primary-tint-2: #4a2a24;
-  --wl-primary-rgb: 255, 122, 77;
+  --wl-primary: #9aa8ff;        /* teks gelap di atasnya 7.3:1 */
+  --wl-primary-deep: #b5beff;
+  --wl-primary-bright: #9aa8ff;
+  --wl-primary-tint: #242b4d;
+  --wl-primary-tint-2: #30395f;
+  --wl-primary-rgb: 154, 168, 255;
   --wl-on-primary: #1a0f08;
 
   --wl-jade: #4fd6b2;

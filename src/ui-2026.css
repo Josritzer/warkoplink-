@@ -635,9 +635,9 @@ body {
   box-shadow: 0 8px 20px rgba(var(--wl-primary-rgb),.34);
 }
 .bottom-nav-create span { display: none; }
-.bottom-nav:has(.bottom-nav-create) { grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: center; }
+
 @media (min-width: 900px) {
-  .bottom-nav:has(.bottom-nav-create) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
 }
 @media (max-width: 620px) {
   .bottom-nav { gap: 0; padding-inline: 4px; }
@@ -737,7 +737,7 @@ html[data-theme="dark"] .button-quiet { color: var(--wl-ink); border-color: var(
   .desktop-sidebar, .desktop-right-rail { display: none !important; }
   .bottom-nav {
     display: grid !important; position: fixed; z-index: 50; inset-inline: 0; bottom: 0; width: 100%; transform: none;
-    grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)); border-radius: 16px 16px 0 0;
+    grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)); border-radius: 16px 16px 0 0;
   }
   .app-shell { min-width: 0; padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
   .desktop-layout, .desktop-layout > main, .content-section, #community-feed { min-width: 0; max-width: 100%; }

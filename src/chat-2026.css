@@ -470,3 +470,61 @@
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* Mobile correction: equal five-tab navigation and unclipped feed content. */
+@media (max-width: 760px) {
+  .app-shell, .desktop-layout, .desktop-layout > main, #community-feed,
+  #community-feed .section-heading, #community-feed .feed-tools,
+  #community-feed .search, #community-feed .post-card,
+  #community-feed .topic-list, #community-feed .composer-nudge {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: none;
+  }
+  .app-shell { padding-inline: 0; }
+  .desktop-layout { width: 100%; padding-inline: 14px; padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .desktop-layout > main { width: 100%; }
+  #community-feed.content-section, #community-feed {
+    width: 100%; margin-inline: 0; padding-inline: 0;
+  }
+  #community-feed .feed-tools, #community-feed .search { width: 100%; }
+  #community-feed .post-card { width: 100%; margin-inline: 0; overflow-wrap: anywhere; }
+  #community-feed .section-heading {
+    display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  }
+  #community-feed .section-heading > div { width: 100%; }
+  #community-feed .section-heading h2 {
+    max-width: 100%; height: auto; overflow: visible; white-space: normal;
+    overflow-wrap: anywhere; text-overflow: clip; line-height: 1.2;
+  }
+  #community-feed .section-heading .status-pill {
+    display: none;
+  }
+  #community-feed .topic-list {
+    display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: visible;
+    max-width: 100%; padding: 12px 2px 14px; scroll-padding-inline: 12px;
+    overscroll-behavior-x: contain; scrollbar-width: thin;
+  }
+  #community-feed .topic-list > * { flex: 0 0 auto; max-width: none; white-space: nowrap; }
+  .bottom-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 0; padding-inline: 4px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .bottom-nav-item {
+    width: 100%; min-width: 0; max-width: 100%; white-space: normal;
+    overflow: visible; text-overflow: clip; line-height: 1.25;
+    font-size: clamp(9px, 2.6vw, 11px); gap: 3px;
+  }
+  .bottom-nav-item span {
+    display: block; max-width: 100%; white-space: normal;
+    overflow: visible; text-overflow: clip; overflow-wrap: normal;
+  }
+  .bottom-nav-item svg { flex: 0 0 auto; }
+  #community-feed input, #community-feed textarea { scroll-margin-bottom: 180px; }
+  #community-feed .composer:focus-within { scroll-margin-bottom: 180px; }
+}
+@media (max-width: 360px) {
+  .desktop-layout { padding-inline: 12px; }
+  .bottom-nav-item { font-size: 9px; }
+}

@@ -189,7 +189,7 @@ html[data-theme="dark"] .warung-form select {
 }
 .post-action:hover { color: var(--wl-reference-violet); background: #f1ebff; }
 .bottom-nav {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   border-color: var(--wl-reference-line);
   box-shadow: 0 -5px 24px rgba(35, 24, 54, .06);
 }

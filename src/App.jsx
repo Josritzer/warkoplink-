@@ -15,7 +15,7 @@ import { relativePostTime } from './chat/postTime.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
-import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Plus, Moon, Sun } from 'lucide-react';
+import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts, isPublicPost,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
@@ -959,7 +959,6 @@ export default function App() {
       <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
       <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>
       <button className={section === "Obrolan" ? "bottom-nav-item active" : "bottom-nav-item"} onClick={() => { setSection("Obrolan"); document.getElementById("community-feed")?.scrollIntoView({behavior:"smooth"}); }} aria-current={section === "Obrolan" ? "page" : undefined}><MessageCircle size={20}/><span>Obrolan</span></button>
-      <button className="bottom-nav-item bottom-nav-create" aria-label="Buat obrolan baru" onClick={() => { if (!user) { openAuth(false); setNotice("Masuk untuk mulai berbagi obrolan."); return; } setSection("Obrolan"); setComposerOpen(true); setTimeout(() => document.getElementById("community-feed")?.scrollIntoView({behavior:"smooth"}), 0); }}><Plus size={24}/><span>Buat</span></button>
       <button className={section === 'Daftarkan Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Daftarkan Warkop')} aria-current={section === 'Daftarkan Warkop' ? 'page' : undefined}><Store size={20}/><span>Daftar</span></button>
       <button className={section === 'Akun' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Akun')} aria-current={section === 'Akun' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
     </nav>

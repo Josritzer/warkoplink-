@@ -9,7 +9,7 @@ describe('responsivitas navigasi WarkopLink', () => {
   });
   it('memakai navigasi bawah dan menyembunyikan sidebar di HP', () => {
     expect(styles).toMatch(/@media \(max-width: 760px\)\s*\{[\s\S]*?\.desktop-sidebar, \.desktop-right-rail \{ display: none !important; \}/);
-    expect(styles).toContain('grid-template-columns: repeat(6, minmax(0, 1fr))');
+    expect(styles).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
     expect(styles).toContain('env(safe-area-inset-bottom, 0px)');
   });
   it('menangani layar sangat sempit dan preferensi reduced motion', () => {

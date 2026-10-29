@@ -83,22 +83,18 @@ export function isOpenNow(warung, now = new Date()) {
 
   const dayIndex = WEEKDAYS.indexOf(local.weekday);
   const today = schedule[local.weekday];
-  if (today?.closed === true) {
-    const previousDay = schedule[WEEKDAYS[(dayIndex + 6) % 7]];
-    if (previousDay?.closed === true) return false;
-    const previousOpen = parseClock(previousDay?.open);
-    const previousClose = parseClock(previousDay?.close);
-    return previousOpen !== null && previousClose !== null && previousClose < previousOpen
-      ? local.minuteOfDay < previousClose
-      : false;
-  }
+  const previousDay = schedule[WEEKDAYS[(dayIndex + 6) % 7]];
+  const previousOpen = parseClock(previousDay?.open);
+  const previousClose = parseClock(previousDay?.close);
+  if (previousDay?.closed !== true && previousOpen !== null && previousClose !== null
+    && previousClose < previousOpen && local.minuteOfDay < previousClose) return true;
+  if (today?.closed === true) return false;
 
   const open = parseClock(today.open);
   const close = parseClock(today.close);
   if (open === null || close === null || open === close) return null;
   if (close > open) return local.minuteOfDay >= open && local.minuteOfDay < close;
-  if (local.minuteOfDay >= open) return true;
-  return local.minuteOfDay < close;
+  return local.minuteOfDay >= open || local.minuteOfDay < close;
 }
 
 export function filterWarungs(items, { search = '', facilities = [], activities = [], operational = 'semua', now = new Date() } = {}) {

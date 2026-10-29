@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
-import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, Users, Gamepad2, Laptop, CalendarDays, Tv } from 'lucide-react';
-import { ACTIVITY_OPTIONS, collectActivities, collectFacilities, filterWarungs } from './directoryFilters.js';
+import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock } from 'lucide-react';
+import { ACTIVITY_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
 
 export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
   const [warungs, setWarungs] = useState([]);
@@ -77,6 +77,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         address: cleanAddress,
         regionCode: 'lamongan-kab',
         facilities: facilityList,
+        activities: [],
         priceRange,
         openingHours: hours.trim() ? { keterangan: hours.trim().slice(0, 120) } : {},
         photos: [],

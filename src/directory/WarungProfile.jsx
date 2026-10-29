@@ -125,8 +125,8 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
     if (!isOwner || !db || !user || sharingEvent) return;
     const title = eventTitle.trim();
     const description = eventDescription.trim();
-    const start = new Date(eventStart);
-    const end = eventEnd ? new Date(eventEnd) : new Date(start.getTime() + 2 * 60 * 60 * 1000);
+    const start = new Date(`${eventStart}:00+07:00`);
+    const end = eventEnd ? new Date(`${eventEnd}:00+07:00`) : new Date(start.getTime() + 2 * 60 * 60 * 1000);
     if (title.length < 3 || title.length > 100 || description.length < 5 || !eventStart || Number.isNaN(start.getTime()) || start <= new Date() || Number.isNaN(end.getTime()) || end <= start) {
       onNotice('Isi judul dan deskripsi acara, pilih waktu mendatang, dan pastikan waktu selesai setelah waktu mulai.');
       return;
@@ -145,7 +145,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
         topic: 'Info & Acara',
         postType: 'Acara Warkop',
         location: `${warung.name} — ${warung.address}`.slice(0, 160),
-        eventDate: start.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }),
+        eventDate: eventStart.slice(0, 10),
         eventStartAt: start.toISOString(),
         eventEndAt: end.toISOString(),
         eventKind,

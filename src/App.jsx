@@ -17,7 +17,7 @@ import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
-  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
+  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
 } from './lib.js';
 
@@ -791,7 +791,7 @@ export default function App() {
 
   const visiblePosts = filterPosts(allPosts, topic, search);
   const activeCategory = composerTopic;
-  const popularTopics = POST_TOPICS.map(name => ({ name, count: allPosts.filter(post => (post.topic || 'Ngopi Bareng') === name).length }))
+  const popularTopics = POST_TOPICS.map(name => ({ name, count: allPosts.filter(post => canonicalTopic(post.topic) === name).length }))
     .filter(item => item.count > 0).sort((left, right) => right.count - left.count).slice(0, 4);
   const recentSidebarPosts = allPosts.slice(0, 3);
 

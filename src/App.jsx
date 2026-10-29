@@ -41,6 +41,17 @@ function readCachedPosts() {
 
 
 
+function versionedPhotoURL(value) {
+  if (!value) return '';
+  try {
+    const url = new URL(value);
+    url.searchParams.set('wl_avatar_v', String(Date.now()));
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
 export default function App() {
   const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('warkoplink:theme') === 'dark');
   const [section, setSection] = useState(() => new URLSearchParams(window.location.search).get('warung') ? 'Profil Warkop' : 'Beranda');
@@ -95,6 +106,7 @@ export default function App() {
   const [reportReason, setReportReason] = useState('Spam atau promosi berulang');
   const [reporting, setReporting] = useState(false);
   const registering = useRef(false);
+  const reactionLocks = useRef(new Set());
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
@@ -138,14 +150,27 @@ export default function App() {
     try {
       const ref = doc(db, 'profiles', currentUser.uid);
       const existing = await getDoc(ref);
-      if (existing.exists()) return true;
-      await setDoc(ref, {
+      const storedProfile = existing.exists() ? (existing.data() || {}) : {};
+      const profile = {
         displayName: authorNameFor(currentUser),
-        email: currentUser.email,
+        email: currentUser.email || '',
         photoURL: currentUser.photoURL || '',
-        createdAt: serverTimestamp(),
+        ...storedProfile
+      };
+      if (!existing.exists()) {
+        await setDoc(ref, {
+          ...profile,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      // Profil publik terpisah: tidak pernah menyalin email atau field privat.
+      await setDoc(doc(db, 'publicProfiles', currentUser.uid), {
+        uid: currentUser.uid,
+        displayName: profile.displayName || authorNameFor(currentUser),
+        photoURL: versionedPhotoURL(currentUser.photoURL || profile.photoURL || ''),
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
       return true;
     } catch (error) {
       console.warn('Profil belum dapat disimpan:', error?.code || 'unknown');
@@ -340,6 +365,12 @@ export default function App() {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
+          await setDoc(doc(db, 'publicProfiles', result.user.uid), {
+            uid: result.user.uid,
+            displayName: nameCheck.value,
+            photoURL: versionedPhotoURL(result.user.photoURL || ''),
+            updatedAt: serverTimestamp()
+          });
         } catch (profileError) {
           // Akun sudah terbuat dan pengguna sudah masuk; profil akan dicoba lagi otomatis.
           profileSaved = false;
@@ -486,6 +517,8 @@ export default function App() {
     if (!db || !post?.id || !reactionFieldForEmoji(emoji)) return;
 
     const postId = post.id;
+    if (reactionLocks.current.has(postId)) return;
+    reactionLocks.current.add(postId);
     const field = reactionFieldForEmoji(emoji);
     const previous = {
       count: likeCounts[postId] ?? post.totalReactions ?? 0,
@@ -572,13 +605,50 @@ export default function App() {
       setLikedPosts(current => ({ ...current, [postId]: previous.liked }));
       setPostReactions(current => ({ ...current, [postId]: previous.emoji }));
       setNotice(error?.code === 'permission-denied'
-        ? 'Reaksi ditolak oleh aturan keamanan.'
-        : 'Reaksi belum tersimpan. Coba lagi.');
+        ? 'Suka ditolak oleh aturan keamanan.'
+        : 'Suka belum tersimpan. Coba lagi.');
+    } finally {
+      reactionLocks.current.delete(postId);
     }
   }
 
   async function handleLikePost(post) {
-    return handleReactPost(post, '❤️');
+    if (!user) { openAuth(false); setNotice('Masuk terlebih dahulu untuk menyukai postingan.'); return; }
+    if (!db || !post?.id || reactionLocks.current.has(post.id)) return;
+    // Reaksi lama tanpa emoji tetap bisa dibatalkan, tanpa menghapus data pengguna lain.
+    if (likedPosts[post.id] && !postReactions[post.id]) {
+      const postId = post.id;
+      reactionLocks.current.add(postId);
+      const previousCount = likeCounts[postId] ?? post.totalReactions ?? 0;
+      const previousSummary = reactionSummaries[postId] || { reactions: { ...(post.reactions || EMPTY_REACTIONS) }, totalReactions: previousCount };
+      setLikedPosts(current => ({ ...current, [postId]: false }));
+      setLikeCounts(current => ({ ...current, [postId]: Math.max(0, previousCount - 1) }));
+      setReactionSummaries(current => ({ ...current, [postId]: { ...previousSummary, totalReactions: Math.max(0, previousSummary.totalReactions - 1), reactions: { ...previousSummary.reactions, like: Math.max(0, (previousSummary.reactions.like || 0) - 1) } } }));
+      try {
+        await runTransaction(db, async transaction => {
+          const reactionRef = doc(db, 'posts', postId, 'likes', user.uid);
+          const postRef = doc(db, 'posts', postId);
+          const [reactionSnapshot, postSnapshot] = await Promise.all([transaction.get(reactionRef), transaction.get(postRef)]);
+          if (!reactionSnapshot.exists()) return;
+          const data = reactionSnapshot.data();
+          if (typeof data.emoji === 'string' && data.emoji) throw new Error('reaction-changed');
+          transaction.delete(reactionRef);
+          const postData = postSnapshot.exists() ? postSnapshot.data() : {};
+          if (postData.reactions && typeof postData.totalReactions === 'number') {
+            transaction.update(postRef, { 'reactions.like': increment(-1), totalReactions: increment(-1) });
+          }
+        });
+      } catch {
+        setLikedPosts(current => ({ ...current, [postId]: true }));
+        setLikeCounts(current => ({ ...current, [postId]: previousCount }));
+        setReactionSummaries(current => ({ ...current, [postId]: previousSummary }));
+        setNotice('Suka lama belum dapat dibatalkan. Coba lagi.');
+      } finally {
+        reactionLocks.current.delete(postId);
+      }
+      return;
+    }
+    return handleReactPost(post, likedPosts[post.id] && postReactions[post.id] ? postReactions[post.id] : '❤️');
   }
 
   async function openReplies(post) {
@@ -770,6 +840,9 @@ export default function App() {
       const photoURL = await getDownloadURL(photoRef);
       await updateProfile(user, { photoURL });
       await updateDoc(doc(db, 'profiles', user.uid), { photoURL, updatedAt: serverTimestamp() });
+      await setDoc(doc(db, 'publicProfiles', user.uid), {
+        uid: user.uid, displayName: user.displayName || authorNameFor(user), photoURL: versionedPhotoURL(photoURL), updatedAt: serverTimestamp()
+      }, { merge: true });
       setUser({ ...auth.currentUser });
       setNotice('Foto profil berhasil diperbarui.');
     } catch (error) {
@@ -791,6 +864,9 @@ export default function App() {
       });
       await updateProfile(user, { photoURL: null });
       await updateDoc(doc(db, 'profiles', user.uid), { photoURL: '', updatedAt: serverTimestamp() });
+      await setDoc(doc(db, 'publicProfiles', user.uid), {
+        uid: user.uid, displayName: user.displayName || authorNameFor(user), photoURL: '', updatedAt: serverTimestamp()
+      }, { merge: true });
       setUser({ ...auth.currentUser });
       setNotice('Foto profil dihapus.');
     } catch (error) {

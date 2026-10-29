@@ -226,6 +226,33 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    // Hanya field profil publik minimum yang dapat dibaca daftar penyuka; email tetap privat.
+    match /publicProfiles/{userId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['uid', 'displayName', 'photoURL', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'updatedAt'])
+        && request.resource.data.uid == userId
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 60
+        && request.resource.data.photoURL is string
+        && request.resource.data.photoURL.size() <= 2048
+        && request.resource.data.updatedAt == request.time;
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt'])
+        && request.resource.data.uid == userId
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 60
+        && request.resource.data.photoURL is string
+        && request.resource.data.photoURL.size() <= 2048
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+
     match /profiles/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create: if signedIn()

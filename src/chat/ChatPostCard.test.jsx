@@ -64,35 +64,30 @@ describe('ChatPostCard', () => {
     expect(screen.queryByLabelText('Ringkasan reaksi')).toBeNull();
   });
 
-  it('shows only nonzero emoji counts and the total above action buttons', () => {
+  it('shows a single like action and the actual like count without emoji summary', () => {
     const values = props({
       reactionSummaries: { 'post-1': {
         reactions: { like: 1, love: 2, haha: 0, wow: 0, sad: 1, angry: 0 },
         totalReactions: 4
-      } }
+      } },
+      likedPosts: { 'post-1': false }
     });
     render(<ChatPostCard {...values} />);
-    const summary = screen.getByLabelText('Ringkasan reaksi');
-    expect(summary.textContent).toContain('👍1');
-    expect(summary.textContent).toContain('❤️2');
-    expect(summary.textContent).toContain('😢1');
-    expect(summary.textContent).toContain('4');
-    expect(summary.textContent).not.toContain('😂');
-    expect(summary.compareDocumentPosition(screen.getByRole('button', { name: 'Reaksi' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
+    expect(screen.queryByLabelText('Ringkasan reaksi')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
+    expect(screen.getByText('4 suka')).toBeTruthy();
   });
 
-  it('keeps the six emoji hidden until the reaction picker is opened', () => {
-    const values = props({ postReactions: { 'post-1': '😂' } });
+  it('shows Suka / Disukai and delegates the action to the like handler', () => {
+    const values = props({ likedPosts: { 'post-1': true } });
     render(<ChatPostCard {...values} />);
-    expect(screen.queryByRole('button', { name: 'Beri reaksi 😂' })).toBeNull();
-    const trigger = screen.getByRole('button', { name: 'Reaksi' });
-    expect(trigger.textContent).toContain('😂');
-    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    const trigger = screen.getByRole('button', { name: 'Batalkan suka pada postingan' });
+    expect(trigger.textContent).toContain('Disukai');
+    expect(trigger.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(trigger);
-    expect(screen.getByRole('button', { name: 'Beri reaksi 😂' }).getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(screen.getByRole('button', { name: 'Beri reaksi ❤️' }));
-    expect(values.handleReactPost).toHaveBeenCalledWith(values.post, '❤️');
-    expect(screen.queryByRole('button', { name: 'Beri reaksi ❤️' })).toBeNull();
+    expect(values.handleLikePost).toHaveBeenCalledWith(values.post);
+    expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
   });
 
   it('opens the dedicated reply page when tapping the comment count', () => {
@@ -169,25 +164,10 @@ describe('ChatPostCard', () => {
 });
 
 describe('ChatPostCard — tampilan 2026', () => {
-  it('menampilkan enam reaksi utama dan menyembunyikan emoji lain di balik tombol tambahan', () => {
+  it('does not expose the old emoji reaction picker after the Suka redesign', () => {
     render(<ChatPostCard {...props()} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Reaksi' }));
-    for (const emoji of ['👍', '❤️', '😂', '😮', '😢', '😡']) {
-      expect(screen.getByRole('button', { name: `Beri reaksi ${emoji}` })).toBeTruthy();
-    }
-    expect(screen.queryByRole('button', { name: 'Beri reaksi 🥳' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan reaksi lainnya' }));
-    expect(screen.getByRole('button', { name: 'Beri reaksi 🥳' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Sembunyikan reaksi lainnya' }).getAttribute('aria-expanded')).toBe('true');
-  });
-
-  it('memilih emoji tambahan tetap mengirim reaksi dan menutup pemilih', () => {
-    const values = props();
-    render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Reaksi' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan reaksi lainnya' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Beri reaksi 🥳' }));
-    expect(values.handleReactPost).toHaveBeenCalledWith(values.post, '🥳');
+    expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
     expect(screen.queryByRole('group', { name: 'Pilih reaksi' })).toBeNull();
   });
 

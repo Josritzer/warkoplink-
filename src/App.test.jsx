@@ -65,7 +65,7 @@ const POSTS = [
 beforeEach(() => {
   window.localStorage.clear();
   vi.clearAllMocks();
-  fs.getDoc.mockResolvedValue({ exists: () => true });
+  fs.getDoc.mockResolvedValue({ exists: () => true, data: () => ({}) });
   fs.getDocs.mockResolvedValue({ docs: [], empty: true });
   fs.getCountFromServer.mockResolvedValue({ data: () => ({ count: 0 }) });
   fs.updateDoc.mockResolvedValue(undefined);
@@ -388,11 +388,10 @@ describe('membuat postingan', () => {
     await user.type(screen.getByLabelText('Isi obrolan'), '  Halo komunitas  ');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
 
-    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledTimes(1));
-    expect(fs.setDoc).toHaveBeenCalledWith({ path: 'posts/new-post' }, {
+    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith({ path: 'posts/new-post' }, expect.objectContaining({
       authorId: 'u1', authorName: 'Sari', authorPhotoURL: null, body: 'Halo komunitas', topic: 'Info & Acara', postType: 'Info lokal', eventKind: 'Nobar', createdAt: '__SERVER_TS__',
       reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0,
-    });
+    })));
     expect(await screen.findByText(/Obrolan berhasil dipublikasikan/)).toBeTruthy();
     expect(screen.getByLabelText('Isi obrolan').value).toBe('');
     expect(screen.getByRole('button', { name: 'Kirim' }).disabled).toBe(true);
@@ -445,8 +444,8 @@ describe('membuat postingan', () => {
     await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     await user.type(screen.getByLabelText('Isi obrolan'), 'Halo');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
-    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledTimes(1));
-    const postedData = fs.setDoc.mock.calls[0][1];
+    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.objectContaining({ path: 'posts/new-post' }), expect.objectContaining({ authorName: 'Anggota' })));
+    const postedData = fs.setDoc.mock.calls.find(([ref, data]) => ref?.path?.startsWith('posts/'))?.[1];
     expect(postedData.authorName).toBe('Anggota');
     expect(JSON.stringify(postedData)).not.toContain('rahasia');
   });
@@ -461,7 +460,7 @@ describe('membuat postingan', () => {
     await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     await user.type(screen.getByLabelText('Isi obrolan'), 'Halo');
     await user.click(screen.getByRole('button', { name: 'Kirim' }));
-    expect(await screen.findByText(/ditolak oleh aturan keamanan/)).toBeTruthy();
+    expect(await screen.findByText(/Profil Anda belum tersimpan sehingga pesan belum dapat dikirim/)).toBeTruthy();
   });
 });
 

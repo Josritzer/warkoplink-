@@ -6,6 +6,7 @@ import './chat-compact.css';
 import './ui-2026.css';
 import './interaction-states-2026.css';
 import './chat-2026.css';
+import './theme-2026.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>

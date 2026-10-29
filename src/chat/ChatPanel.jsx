@@ -32,7 +32,7 @@ export default function ChatPanel(props) {
 
   return <section className="content-section" id="community-feed">
     <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className={user ? 'status-pill status-authenticated' : 'status-pill status-public'} role="status" aria-live="polite">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
-    {<div className="community-story-strip" aria-label="Cerita komunitas">
+    <div className="community-story-strip" aria-label="Cerita komunitas">
       <button type="button" className="story-add" onClick={startStory} aria-label="Tambah cerita atau mulai obrolan"><span className="story-add-avatar"><span>{user?.photoURL ? <img src={user.photoURL} alt="" /> : <Plus size={24}/>}</span></span><span>{user ? "Tambah cerita" : "Mulai cerita"}</span></button>
       <button type="button" className="story-add story-prompt" onClick={startStory}><span className="story-add-avatar"><span><Sparkles size={22}/></span></span><span>Suasana warkop</span></button>
       <button type="button" className="story-add story-prompt" onClick={() => { setTopic("Ngopi Bareng"); setSearch(""); setNotice("Menampilkan obrolan ngopi bareng."); }}><span className="story-add-avatar"><span>☕</span></span><span>Ngopi bareng</span></button>

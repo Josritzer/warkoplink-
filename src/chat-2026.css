@@ -171,3 +171,267 @@
   #community-feed .status-reaction, .reply-send { transition: none; }
   #community-feed .status-reaction:hover { transform: none; }
 }
+
+
+/* Social feed hierarchy pass — Oct 2026.
+   Keep the existing React/Firebase engine; tune only layout, hierarchy and touch states. */
+#community-feed.content-section {
+  width: min(100%, 900px);
+  margin-inline: auto;
+  padding: clamp(20px, 3vw, 32px) clamp(14px, 2vw, 22px) 42px;
+  scroll-margin-top: 72px;
+}
+#community-feed .section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 20px;
+}
+#community-feed .section-heading > div { min-width: 0; }
+#community-feed .section-heading .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+  color: #7652c8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+#community-feed .section-heading .eyebrow::before {
+  content: "";
+  width: 18px;
+  height: 2px;
+  border-radius: 4px;
+  background: #9879dc;
+}
+#community-feed .section-heading h2 {
+  margin: 0;
+  color: #282237;
+  font-size: clamp(23px, 3vw, 30px);
+  font-weight: 780;
+  letter-spacing: -.045em;
+  line-height: 1.13;
+}
+#community-feed .section-heading p {
+  margin: 7px 0 0;
+  color: #777184;
+  font-size: 13px;
+  line-height: 1.55;
+}
+#community-feed .status-pill {
+  flex: 0 1 auto;
+  max-width: 46%;
+  padding: 7px 10px;
+  border: 1px solid #e9e3ec;
+  border-radius: 999px;
+  background: rgba(255,253,249,.8);
+  color: #6b6477;
+  font-size: 10px;
+  line-height: 1.3;
+}
+#community-feed .status-pill.status-authenticated {
+  border-color: #d9cbed;
+  background: #f3eefb;
+  color: #5c3aab;
+}
+#community-feed .feed-tools { margin: 0 0 9px; }
+#community-feed .search {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 14px;
+  border: 1px solid #e9e3ec;
+  border-radius: 13px;
+  background: rgba(255,253,249,.9);
+  color: #837b91;
+}
+#community-feed .search span { font-size: 21px; }
+#community-feed .search input {
+  min-width: 0;
+  padding: 11px 8px;
+  color: #282237;
+  font-size: 13px;
+}
+#community-feed .search input::placeholder { color: #9891a2; }
+#community-feed .topic-scroll-wrap { margin: 0 0 8px; }
+#community-feed .topic-list {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 5px 0 11px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+#community-feed .topic-list::-webkit-scrollbar { display: none; }
+#community-feed .topic {
+  flex: 0 0 auto;
+  min-height: 35px;
+  padding: 8px 13px;
+  border: 1px solid #e9e3ec;
+  border-radius: 999px;
+  background: rgba(255,253,249,.72);
+  color: #655d70;
+  font-size: 12px;
+  font-weight: 650;
+}
+#community-feed .topic.selected {
+  border-color: #7652c8;
+  background: #7652c8;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(118,82,200,.14);
+}
+#community-feed .feed-readonly-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2px 0 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e9e3ec;
+  color: #777184;
+  font-size: 11px;
+}
+#community-feed .feed-readonly-note .button { flex: 0 0 auto; min-height: 35px; padding: 8px 12px; font-size: 11px; }
+#community-feed .composer-collapsed {
+  margin: 0;
+  padding: 11px 0 14px;
+  border: 0;
+  border-bottom: 1px solid #e9e3ec;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#community-feed .composer-trigger {
+  min-height: 44px;
+  gap: 11px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #8a8296;
+  font-size: 14px;
+}
+#community-feed .composer-trigger:hover { background: transparent; color: #5c3aab; }
+#community-feed .composer-avatar {
+  width: 38px;
+  height: 38px;
+  flex-basis: 38px;
+  border: 1px solid #e6dcf4;
+  background: #f0e9fc;
+  color: #5c3aab;
+  font-size: 13px;
+}
+#community-feed .composer-expanded {
+  margin: 8px 0 0;
+  padding: clamp(12px, 2vw, 18px);
+  border: 1px solid #e6dcf4;
+  border-radius: 18px;
+  background: #fffdf9;
+  box-shadow: 0 8px 24px rgba(49,32,74,.045);
+}
+#community-feed .composer-context { margin-bottom: 13px; }
+#community-feed .composer-expanded textarea {
+  min-height: 104px;
+  padding: 8px 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+#community-feed .composer-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f0ebf2;
+}
+#community-feed .composer-bottom .char-count { margin-right: auto; color: #91899d; font-size: 11px; }
+#community-feed .composer-bottom .button { min-height: 38px; padding: 9px 14px; font-size: 12px; }
+#community-feed .post-list { margin-top: 3px; }
+#community-feed .post-card {
+  grid-template-columns: 38px minmax(0, 1fr);
+  column-gap: 11px;
+  padding: 17px 3px 8px;
+  border: 0;
+  border-bottom: 1px solid #e9e3ec;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#community-feed .post-avatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border: 1px solid rgba(49,32,74,.06);
+  background: #f0e9fc;
+  color: #5c3aab;
+}
+#community-feed .post-head { gap: 8px; margin-bottom: 5px; }
+#community-feed .post-meta { gap: 2px 7px; }
+#community-feed .post-meta b { color: #282237; font-size: 13px; font-weight: 760; }
+#community-feed .post-meta span { color: #7652c8; font-size: 11px; font-weight: 650; }
+#community-feed .post-meta small { color: #938b9e; font-size: 11px; }
+#community-feed .post-content > p {
+  margin: 5px 0 9px;
+  color: #342d40;
+  font-size: 14px;
+  line-height: 1.62;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+#community-feed .post-category-label {
+  display: inline-flex;
+  margin: 1px 0 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f2edf8;
+  color: #5c4c70;
+  font-size: 10px;
+  font-weight: 750;
+}
+#community-feed .post-detail-row { margin: 7px 0 6px; color: #777184; }
+#community-feed .post-stats { margin-top: 5px; }
+#community-feed .post-actions {
+  margin: 0 -5px;
+  padding-top: 2px;
+  border-top: 0;
+}
+#community-feed .post-action {
+  min-height: 40px;
+  padding-inline: 10px;
+  color: #777184;
+  font-size: 12px;
+}
+#community-feed .post-action:hover,
+#community-feed .post-action.liked { color: #5c3aab; background: #f2edf8; }
+#community-feed .post-action-wrap .status-reactions { border-color: #e6dcf4; background: #fffdf9; }
+#community-feed .post-menu-trigger { color: #8b8395; }
+#community-feed .post-menu-trigger:hover { color: #5c3aab; background: #f2edf8; }
+#community-feed .empty-state {
+  margin: 18px 0 0;
+  padding: 34px 18px;
+  border: 1px dashed #e2d9ed;
+  border-radius: 18px;
+  background: rgba(255,253,249,.7);
+  text-align: center;
+}
+#community-feed .empty-state h3 { color: #342d40; font-size: 16px; }
+#community-feed .empty-state p { color: #81798e; font-size: 13px; line-height: 1.6; }
+#community-feed .feed-pagination { display: flex; justify-content: center; padding: 18px 0 8px; }
+#community-feed .feed-pagination .button { min-height: 40px; border: 1px solid #e6dcf4; font-size: 12px; }
+@media (max-width: 620px) {
+  #community-feed.content-section { padding: 18px 0 34px; }
+  #community-feed .section-heading { align-items: flex-start; gap: 9px; margin-bottom: 15px; }
+  #community-feed .section-heading h2 { font-size: 23px; }
+  #community-feed .section-heading p { max-width: 240px; font-size: 12px; }
+  #community-feed .status-pill { max-width: 42%; padding: 6px 8px; font-size: 9px; }
+  #community-feed .topic-list { margin-inline: 0; }
+  #community-feed .post-card { grid-template-columns: 34px minmax(0, 1fr); column-gap: 9px; padding-top: 14px; }
+  #community-feed .post-avatar { width: 34px; height: 34px; min-width: 34px; }
+  #community-feed .post-content > p { font-size: 14px; }
+  #community-feed .post-action { min-height: 40px; padding-inline: 7px; gap: 5px; font-size: 11px; }
+  #community-feed .feed-readonly-note { align-items: flex-start; flex-direction: column; gap: 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #community-feed .topic, #community-feed .post-action { transition: none; }
+}

@@ -435,3 +435,38 @@
 @media (prefers-reduced-motion: reduce) {
   #community-feed .topic, #community-feed .post-action { transition: none; }
 }
+
+
+/* Refine border weight: clean, borderless comment composer and calmer homepage feed. */
+#community-feed .composer-collapsed {
+  border: 0 !important;
+}
+#community-feed .composer-expanded {
+  border: 0 !important;
+  border-radius: 12px;
+  box-shadow: none !important;
+  background: transparent;
+  padding-inline: 0;
+}
+#community-feed .composer-bottom {
+  border-top: 0 !important;
+}
+#community-feed .post-card {
+  border-bottom-color: color-mix(in srgb, var(--wl-line) 42%, transparent) !important;
+}
+.reply-page-form {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding-inline: 0 !important;
+}
+.reply-page-form:focus-within {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.reply-page-form textarea {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}

@@ -523,3 +523,15 @@
   .warung-follow-button { margin-left: auto; }
   .warung-profile-stats, .warung-profile-details, .warung-profile-posts { padding-inline: 12px; }
 }
+
+
+/* Verified entity mentions: compact and distinguishable from ordinary post text. */
+.warung-mention { color: #4f46e5; font-weight: 650; text-decoration: none; text-underline-offset: 3px; }
+.warung-mention:hover, .warung-mention:focus-visible { text-decoration: underline; }
+.mention-suggestions { display: grid; gap: 4px; padding: 8px; border: 1px solid #e7e9ec; border-radius: 12px; background: var(--surface, #fff); }
+.mention-suggestions > small { padding: 2px 6px; color: #64748b; font-size: 12px; }
+.mention-suggestions > button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; border-radius: 8px; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.mention-suggestions > button:hover, .mention-suggestions > button:focus-visible { background: #f5f3ff; }
+.mention-suggestions > button > span:last-child { display: grid; gap: 2px; min-width: 0; }
+.mention-suggestions > button small { overflow: hidden; color: #64748b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.mention-suggestion-mark { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #eef2ff; color: #4f46e5; font-weight: 700; }

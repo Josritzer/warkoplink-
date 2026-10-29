@@ -16,10 +16,10 @@ export default function ChatPanel(props) {
   const [price, setPrice] = useState('');
   const [workType, setWorkType] = useState('');
   const [contact, setContact] = useState('');
-  const mentionMatch = draft.match(/@([^\s@]*)$/);
-  const mentionQuery = mentionMatch?.[1]?.toLocaleLowerCase('id-ID') || '';
+  const mentionMatch = draft.match(/(?:^|\s)@([^@]*)$/);
+  const mentionQuery = mentionMatch?.[1]?.trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID') || '';
   const mentionSuggestions = mentionMatch
-    ? verifiedWarungs.filter(warung => String(warung.nameNormalized || warung.name || '').toLocaleLowerCase('id-ID').startsWith(mentionQuery)).slice(0, 5)
+    ? verifiedWarungs.filter(warung => String(warung.name || warung.nameNormalized || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID').startsWith(mentionQuery)).slice(0, 5)
     : [];
   const category = composerTopic || POST_TOPICS[0];
   const showDate = category === 'Info & Acara' || category === 'Ngopi Bareng';
@@ -49,7 +49,7 @@ export default function ChatPanel(props) {
         <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={event => setDraft(event.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ceritakan hal yang ingin dibagikan… Gunakan @ untuk menyebut warkop" rows={3} aria-describedby="composer-character-count"/>
         {mentionSuggestions.length > 0 && <div className="mention-suggestions" role="listbox" aria-label="Warkop terverifikasi">
           <small>Sebut warkop terverifikasi</small>
-          {mentionSuggestions.map(warung => <button key={warung.id} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/@([^\s@]*)$/, `@${warung.name} `))}>
+          {mentionSuggestions.map(warung => <button key={warung.id} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/@([^@]*)$/, `@${warung.name} `))}>
             <span className="mention-suggestion-mark">@</span><span><b>{warung.name}</b><small>{warung.address || 'Profil warkop terverifikasi'}</small></span>
           </button>)}
         </div>}

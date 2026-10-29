@@ -13,6 +13,10 @@ export default function ChatPanel(props) {
   const [postType, setPostType] = useState(POST_SUBTYPES[composerTopic]?.[0] || '');
   const [location, setLocation] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [eventStartAt, setEventStartAt] = useState('');
+  const [eventEndAt, setEventEndAt] = useState('');
+  const [eventKind, setEventKind] = useState('Nobar');
+  const [eventCapacity, setEventCapacity] = useState('');
   const [price, setPrice] = useState('');
   const [workType, setWorkType] = useState('');
   const [contact, setContact] = useState('');
@@ -42,7 +46,7 @@ export default function ChatPanel(props) {
     <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}…`} aria-label={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}`}/></label></div>
     <div className="topic-scroll-wrap"><div className="topic-list" aria-label="Kategori obrolan">{FILTER_TOPICS.map(name => <button key={name} type="button" onClick={() => setTopic(name)} aria-pressed={topic === name} className={topic === name ? 'topic selected' : 'topic'}>{name}</button>)}</div><span className="topic-scroll-hint" aria-hidden="true">›</span></div>
     {readOnly ? <div className="feed-readonly-note"><span>Beranda · mode baca</span><button className="button button-quiet" type="button" onClick={onOpenDiscussion}>Mulai obrolan di menu Obrolan <Send size={14}/></button></div> :
-    <form className={composerOpen ? "composer composer-expanded" : "composer composer-collapsed"} onSubmit={event => handlePost(event, { postType, location, eventDate, price, workType, contact })} aria-busy={posting}>
+    <form className={composerOpen ? "composer composer-expanded" : "composer composer-collapsed"} onSubmit={event => handlePost(event, { postType, location, eventDate, eventStartAt, eventEndAt, eventKind, eventCapacity, price, workType, contact })} aria-busy={posting}>
       {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice("Masuk untuk mulai berbagi obrolan."); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><span>{user ? "Ayo ngobrol…" : "Masuk untuk mulai ngobrol…"}</span></button> : <>
         <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || "Anggota komunitas"}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
         <label className="composer-field">Kategori utama
@@ -63,11 +67,22 @@ export default function ChatPanel(props) {
           </button>)}
         </div>}
         {['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal'].includes(category) && <label className="composer-field">Area / lokasi (opsional)<input value={location} onChange={event => setLocation(event.target.value)} maxLength={160} placeholder="Desa, kecamatan, atau nama warkop"/></label>}
-        {showDate && <label className="composer-field">Waktu / tanggal (opsional)<input value={eventDate} onChange={event => setEventDate(event.target.value)} maxLength={40} placeholder="Contoh: Sabtu, 19.00 WIB"/></label>}
+        {showDate && category === 'Info & Acara' && <div className="event-detail-fields" aria-label="Detail acara">
+          <label className="composer-field">Jenis acara
+            <select aria-label="Jenis acara" value={eventKind} onChange={event => setEventKind(event.target.value)}>
+              <option>Nobar</option><option>Musik</option><option>Turnamen</option><option>Komunitas</option><option>Promo warkop</option><option>Lainnya</option>
+            </select>
+          </label>
+          <label className="composer-field">Mulai acara <input aria-label="Waktu mulai acara" type="datetime-local" value={eventStartAt} onChange={event => { setEventStartAt(event.target.value); if (!eventDate) setEventDate(event.target.value); }} /></label>
+          <label className="composer-field">Selesai acara <input aria-label="Waktu selesai acara" type="datetime-local" min={eventStartAt || undefined} value={eventEndAt} onChange={event => setEventEndAt(event.target.value)} /></label>
+          <label className="composer-field">Kapasitas peserta (opsional) <input aria-label="Kapasitas peserta" type="number" min="1" max="10000" value={eventCapacity} onChange={event => setEventCapacity(event.target.value)} placeholder="Contoh: 40" /></label>
+          <p className="composer-help">Isi tanggal dan jam agar peserta bisa menambahkan acara ke kalender HP.</p>
+        </div>}
+        {showDate && category !== 'Info & Acara' && <label className="composer-field">Waktu / tanggal (opsional)<input value={eventDate} onChange={event => setEventDate(event.target.value)} maxLength={40} placeholder="Contoh: Sabtu, 19.00 WIB"/></label>}
         {showPrice && <label className="composer-field">Harga (opsional)<input value={price} onChange={event => setPrice(event.target.value)} maxLength={60} placeholder="Contoh: Rp50.000, bisa nego"/></label>}
         {showWorkType && <label className="composer-field">Tipe kerja (opsional)<input value={workType} onChange={event => setWorkType(event.target.value)} maxLength={60} placeholder="Penuh waktu, paruh waktu, shift"/></label>}
         {showContact && <label className="composer-field">Kontak aman (opsional)<input value={contact} onChange={event => setContact(event.target.value)} maxLength={240} placeholder="https://… atau @akun"/></label>}
-        <div className="composer-bottom"><small id="composer-character-count" className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(""); setLocation(''); setEventDate(''); setPrice(''); setWorkType(''); setContact(''); }} disabled={posting}>Batal</button><button className="button button-dark" type="submit" disabled={posting || !draft.trim()} aria-busy={posting}>{posting ? "Mengirim…" : "Kirim"} <Send size={16}/></button></div>
+        <div className="composer-bottom"><small id="composer-character-count" className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(""); setLocation(''); setEventDate(''); setEventStartAt(''); setEventEndAt(''); setEventKind('Nobar'); setEventCapacity(''); setPrice(''); setWorkType(''); setContact(''); }} disabled={posting}>Batal</button><button className="button button-dark" type="submit" disabled={posting || !draft.trim()} aria-busy={posting}>{posting ? "Mengirim…" : "Kirim"} <Send size={16}/></button></div>
       </>}
     </form>}
     <div className="post-list" aria-live="polite" aria-busy={postsStatus === 'loading'}>

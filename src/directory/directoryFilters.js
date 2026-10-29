@@ -42,3 +42,26 @@ export function filterWarungs(items, { search = '', price = 'semua', facilities 
     return haystack.includes(needle);
   });
 }
+
+// Kunci nama untuk kolom `nameNormalized`. Sengaja hanya huruf kecil + spasi rapi (tanpa menghapus
+// aksen) agar tetap cocok dengan data lama yang disimpan dengan toLowerCase().
+export function normalizeNameKey(value) {
+  return String(value ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// Rentang kueri prefix Firestore pada `nameNormalized`; null bila kata kunci terlalu pendek.
+export function namePrefixRange(term) {
+  const start = normalizeNameKey(term);
+  if (start.length < 2) return null;
+  return { start, end: start + '\uf8ff' };
+}
+
+// Gabungkan beberapa daftar warkop tanpa duplikat, urut berdasarkan nama lalu id.
+export function mergeWarungs(...lists) {
+  const merged = new Map();
+  for (const list of lists) for (const item of list || []) if (item?.id && !merged.has(item.id)) merged.set(item.id, item);
+  return [...merged.values()].sort((a, b) =>
+    String(a.nameNormalized || a.name || '').localeCompare(String(b.nameNormalized || b.name || ''), 'id')
+    || String(a.id).localeCompare(String(b.id))
+  );
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectFacilities, filterWarungs, normalizeSearchText } from './directoryFilters.js';
+import { collectFacilities, filterWarungs, mergeWarungs, namePrefixRange, normalizeNameKey, normalizeSearchText } from './directoryFilters.js';
 
 const items = [
   { id: '1', name: 'Warkop Pojok', address: 'Jl. Kembangbahu, Lamongan', facilities: ['Wi-Fi', 'parkir'], priceRange: 'hemat' },
@@ -37,5 +37,26 @@ describe('directoryFilters', () => {
   it('tahan terhadap data tanpa field fasilitas', () => {
     expect(filterWarungs([{ id: 'x', name: 'A', address: 'B' }], { facilities: ['wi-fi'] })).toEqual([]);
     expect(collectFacilities([{ id: 'x' }, null])).toEqual([]);
+  });
+});
+
+describe('pencarian nama server-side', () => {
+  it('kunci nama konsisten dengan nilai nameNormalized yang tersimpan (huruf kecil)', () => {
+    expect(normalizeNameKey('  Warkop   POJOK ')).toBe('warkop pojok');
+    expect(normalizeNameKey('Kopí Sudut')).toBe('kopí sudut');
+  });
+
+  it('rentang prefix hanya dibuat untuk kata kunci minimal 2 karakter', () => {
+    expect(namePrefixRange('')).toBeNull();
+    expect(namePrefixRange(' a ')).toBeNull();
+    expect(namePrefixRange(' Warkop  Poj ')).toEqual({ start: 'warkop poj', end: 'warkop poj\uf8ff' });
+  });
+
+  it('menggabungkan hasil tanpa duplikat dan terurut berdasarkan nama', () => {
+    const merged = mergeWarungs(
+      [{ id: 'b', name: 'Bakso', nameNormalized: 'bakso' }, { id: 'c', name: 'Cafe', nameNormalized: 'cafe' }],
+      [{ id: 'a', name: 'Angkringan', nameNormalized: 'angkringan' }, { id: 'b', name: 'Bakso', nameNormalized: 'bakso' }]
+    );
+    expect(merged.map((item) => item.id)).toEqual(['a', 'b', 'c']);
   });
 });

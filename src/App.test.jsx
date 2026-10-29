@@ -38,6 +38,8 @@ vi.mock('firebase/firestore', () => ({
   query: vi.fn((...args) => ({ args })),
   runTransaction: vi.fn(async (db, callback) => callback({ get: vi.fn(), set: vi.fn(), update: vi.fn(), delete: vi.fn() })),
   startAfter: vi.fn((cursor) => ({ startAfter: cursor })),
+  startAt: vi.fn((value) => ({ startAt: value })),
+  endAt: vi.fn((value) => ({ endAt: value })),
   where: vi.fn((...args) => ({ where: args })),
   updateDoc: vi.fn().mockResolvedValue(undefined),
   writeBatch: vi.fn(() => ({ set: vi.fn(), delete: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) })),

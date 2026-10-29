@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
+import { addDoc, collection, endAt, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, startAt, where } from 'firebase/firestore';
 import { MapPin, Store, ShieldCheck, ArrowUpRight } from 'lucide-react';
-import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
+import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs, mergeWarungs, namePrefixRange, normalizeNameKey } from './directoryFilters.js';
 
 export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
   const [warungs, setWarungs] = useState([]);
@@ -12,6 +12,9 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [serverResults, setServerResults] = useState([]);
+  const [searchState, setSearchState] = useState('idle');
+  const [searchRetry, setSearchRetry] = useState(0);
   const [priceFilter, setPriceFilter] = useState('semua');
   const [facilityFilter, setFacilityFilter] = useState([]);
   const [name, setName] = useState('');
@@ -45,6 +48,39 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     }, () => setStatus('error'));
   }, [mode, db, directoryRetry]);
 
+  // Pencarian nama ke seluruh direktori terverifikasi (prefix), bukan hanya 30 data yang sudah dimuat.
+  // Memakai indeks verificationStatus + nameNormalized yang sudah ada; tidak mengubah data.
+  useEffect(() => {
+    const range = namePrefixRange(searchTerm);
+    if (mode !== 'directory' || !db || !range) {
+      setServerResults([]);
+      setSearchState('idle');
+      return undefined;
+    }
+    let cancelled = false;
+    setSearchState('loading');
+    const timer = setTimeout(async () => {
+      try {
+        const snapshot = await getDocs(query(
+          collection(db, 'warungs'),
+          where('verificationStatus', '==', 'verified'),
+          orderBy('nameNormalized', 'asc'),
+          startAt(range.start),
+          endAt(range.end),
+          limit(30)
+        ));
+        if (cancelled) return;
+        setServerResults(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+        setSearchState('done');
+      } catch {
+        if (cancelled) return;
+        setServerResults([]);
+        setSearchState('error');
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [mode, db, searchTerm, searchRetry]);
+
   async function handleRegister(event) {
     event.preventDefault();
     if (!user) {
@@ -70,7 +106,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     try {
       await addDoc(collection(db, 'warungs'), {
         name: cleanName,
-        nameNormalized: cleanName.toLowerCase(),
+        nameNormalized: normalizeNameKey(cleanName),
         ownerUid: user.uid,
         coordinates: { lat: latitude, lng: longitude },
         address: cleanAddress,
@@ -154,7 +190,12 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   }
 
   const facilityOptions = collectFacilities(warungs);
-  const visibleWarungs = filterWarungs(warungs, { search: searchTerm, price: priceFilter, facilities: facilityFilter });
+  const visibleWarungs = mergeWarungs(
+    filterWarungs(warungs, { search: searchTerm, price: priceFilter, facilities: facilityFilter }),
+    filterWarungs(serverResults, { price: priceFilter, facilities: facilityFilter })
+  );
+  const searching = searchState === 'loading';
+  const searchFailed = searchState === 'error';
   const hasActiveFilter = Boolean(searchTerm.trim()) || priceFilter !== 'semua' || facilityFilter.length > 0;
   function toggleFacility(key) {
     setFacilityFilter((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
@@ -162,7 +203,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>
     <h2>Cari warkop di Lamongan.</h2>
-    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Hasil diurutkan berdasarkan nama. Pencarian dan filter berlaku pada data yang sudah dimuat; muat halaman berikutnya untuk memperluas hasil.</p>
+    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Hasil diurutkan berdasarkan nama. Pencarian awalan nama mencari ke seluruh direktori; pencarian alamat dan fasilitas berlaku pada data yang sudah dimuat.</p>
     <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, fasilitas…" aria-label="Cari warkop"/></label>
     <div className="directory-filters" role="group" aria-label="Filter warkop">
       <label>Kisaran harga<select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)}>{PRICE_FILTER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
@@ -171,8 +212,10 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     </div>
     {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
     {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi.</p><button className="button button-quiet" type="button" onClick={() => setDirectoryRetry((attempt) => attempt + 1)}>Coba lagi</button></div>}
-    {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
-    {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
+    {searching && <p className="directory-result-count" role="status">Mencari warkop…</p>}
+    {searchFailed && <div className="empty-state" role="alert"><h3>Pencarian belum dapat dimuat</h3><p>Periksa koneksi, lalu coba lagi. Hasil dari data yang sudah dimuat tetap ditampilkan.</p><button className="button button-quiet" type="button" onClick={() => setSearchRetry((attempt) => attempt + 1)}>Coba cari lagi</button></div>}
+    {status === 'ready' && !searching && !searchFailed && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
+    {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} warkop{hasActiveFilter ? '' : ` dari ${warungs.length} yang sudah dimuat${hasMore ? ' · masih ada halaman berikutnya' : ''}`}.</p>}
     <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
       <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3><button className="warung-profile-link" type="button" onClick={() => onOpenWarung?.(item.id)}>{item.name} <ArrowUpRight size={14}/></button></h3><p><MapPin size={14}/>{item.address}</p>
       <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}</div>

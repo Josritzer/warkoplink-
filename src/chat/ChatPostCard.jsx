@@ -2,6 +2,8 @@ import { MessageSquare, MoreHorizontal, Send, Share2, SmilePlus, Trash2 } from '
 import { useEffect, useRef, useState } from 'react';
 import { displayTopic, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
 import { createPortal } from 'react-dom';
+import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { db } from '../firebase.js';
 
 const EMOJIS = ["👍","👏","🙌","💪","🤝","💯","❤️","🥰","😍","😘","💖","💕","😂","🤣","😆","😹","😅","🤪","😮","😲","🤯","🤩","🥳","✨","😢","😭","🥺","😔","💔","🫂","😡","🤬","😤","🙄","😠","👎"];
 const PRIMARY_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
@@ -120,10 +122,9 @@ export default function ChatPostCard({
   const [menuPosition, setMenuPosition] = useState(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const [moreEmojisOpen, setMoreEmojisOpen] = useState(false);
-  const [rsvped, setRsvped] = useState(() => {
-    try { return JSON.parse(window.localStorage.getItem('warkoplink:event-rsvp:v1') || '[]').includes(post.id); }
-    catch { return false; }
-  });
+  const [rsvpStatus, setRsvpStatus] = useState('');
+  const [rsvpCount, setRsvpCount] = useState(0);
+  const [rsvpLoading, setRsvpLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(post.body || '');
   const [editTopic, setEditTopic] = useState(displayTopic(post.topic));
@@ -133,6 +134,48 @@ export default function ChatPostCard({
   const [editPrice, setEditPrice] = useState(post.price || '');
   const [editWorkType, setEditWorkType] = useState(post.workType || '');
   const [editContact, setEditContact] = useState(post.contact || '');
+
+  useEffect(() => {
+    if (!db || category !== 'Info & Acara') return undefined;
+    const attendeesQuery = query(collection(db, 'posts', post.id, 'eventRsvps'), where('status', '==', 'going'));
+    const stopCount = onSnapshot(attendeesQuery, snapshot => setRsvpCount(snapshot.size), () => setRsvpCount(0));
+    if (!user?.uid) {
+      setRsvpStatus('');
+      return () => stopCount();
+    }
+    const stopMine = onSnapshot(doc(db, 'posts', post.id, 'eventRsvps', user.uid), snapshot => {
+      setRsvpStatus(snapshot.exists() ? snapshot.data().status || '' : '');
+    }, () => setRsvpStatus(''));
+    return () => { stopCount(); stopMine(); };
+  }, [post.id, category, user?.uid]);
+
+  async function changeRsvp(nextStatus) {
+    if (!user?.uid) {
+      openAuth(false);
+      setNotice('Masuk untuk menyatakan kehadiran acara.');
+      return;
+    }
+    if (!db || rsvpLoading) return;
+    setRsvpLoading(true);
+    const rsvpRef = doc(db, 'posts', post.id, 'eventRsvps', user.uid);
+    try {
+      if (rsvpStatus === nextStatus) {
+        await deleteDoc(rsvpRef);
+        setNotice('Status kehadiran acara dibatalkan.');
+      } else {
+        const payload = { uid: user.uid, status: nextStatus, updatedAt: serverTimestamp() };
+        if (!rsvpStatus) payload.createdAt = serverTimestamp();
+        await setDoc(rsvpRef, payload, { merge: true });
+        setNotice(nextStatus === 'going' ? 'Kehadiran tersimpan dan tersinkron.' : 'Status Mungkin tersimpan dan tersinkron.');
+      }
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied'
+        ? 'RSVP ditolak oleh aturan keamanan.'
+        : 'Status kehadiran belum tersimpan. Coba lagi.');
+    } finally {
+      setRsvpLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (openPostMenuId !== post.id || !menuTriggerRef.current) return undefined;
@@ -257,17 +300,9 @@ export default function ChatPostCard({
         {post.eventStartAt && <span className="event-time-label">{new Date(post.eventStartAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}{post.eventEndAt ? ` – ${new Date(post.eventEndAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : ''}</span>}
         {Number.isFinite(post.eventCapacity) && post.eventCapacity > 0 && <span className="event-capacity-label">Maks. {post.eventCapacity} orang</span>}
         {post.eventStartAt && <><a className="button button-quiet" href={calendarLink(post)} target="_blank" rel="noopener noreferrer">Google Calendar</a><button className="button button-quiet" type="button" onClick={() => setNotice(downloadIcs(post) ? 'File kalender acara berhasil disiapkan.' : 'Tanggal acara belum valid.')}>Unduh .ics</button></>}
-        <button className="button button-quiet" type="button" aria-pressed={rsvped} onClick={() => {
-          const next = !rsvped;
-          setRsvped(next);
-          try {
-            const saved = JSON.parse(window.localStorage.getItem('warkoplink:event-rsvp:v1') || '[]');
-            const ids = new Set(Array.isArray(saved) ? saved : []);
-            if (next) ids.add(post.id); else ids.delete(post.id);
-            window.localStorage.setItem('warkoplink:event-rsvp:v1', JSON.stringify([...ids]));
-          } catch {}
-          setNotice(next ? 'Kehadiran acara disimpan di perangkat ini.' : 'Kehadiran acara dibatalkan.');
-        }}>{rsvped ? '✓ Saya ikut' : 'Ikut acara'}</button>
+        <span className="event-rsvp-count" aria-live="polite">{rsvpCount} ikut</span>
+        <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'going'} disabled={rsvpLoading} onClick={() => changeRsvp('going')}>{rsvpStatus === 'going' ? '✓ Ikut' : 'Ikut acara'}</button>
+        <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'maybe'} disabled={rsvpLoading} onClick={() => changeRsvp('maybe')}>{rsvpStatus === 'maybe' ? '✓ Mungkin' : 'Mungkin'}</button>
       </div>}
       {category === 'Jual Beli & Jasa Lokal' && normalizedWhatsAppNumber(post.contact) && <div className="event-action-row">
         <a className="button button-dark" href={`https://wa.me/${normalizedWhatsAppNumber(post.contact)}`} target="_blank" rel="noopener noreferrer" aria-label="Hubungi penjual melalui WhatsApp">Chat WhatsApp</a>

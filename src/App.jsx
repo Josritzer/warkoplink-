@@ -42,8 +42,8 @@ function readCachedPosts() {
 
 
 export default function App() {
-  const [section, setSection] = useState('Beranda');
-  const [selectedWarungId, setSelectedWarungId] = useState('');
+  const [section, setSection] = useState(() => new URLSearchParams(window.location.search).get('warung') ? 'Profil Warkop' : 'Beranda');
+  const [selectedWarungId, setSelectedWarungId] = useState(() => new URLSearchParams(window.location.search).get('warung') || '');
   const [topic, setTopic] = useState('Semua');
   const [composerTopic, setComposerTopic] = useState('Ngopi Bareng');
   const [composerOpen, setComposerOpen] = useState(false);
@@ -93,6 +93,25 @@ export default function App() {
   const [reportReason, setReportReason] = useState('Spam atau promosi berulang');
   const [reporting, setReporting] = useState(false);
   const registering = useRef(false);
+
+  // Profil warkop memiliki URL yang bisa dibagikan dan tetap terbuka setelah refresh.
+  useEffect(() => {
+    const syncWarungRoute = () => {
+      const warungId = new URLSearchParams(window.location.search).get('warung') || '';
+      setSelectedWarungId(warungId);
+      setSection(warungId ? 'Profil Warkop' : 'Beranda');
+    };
+    window.addEventListener('popstate', syncWarungRoute);
+    return () => window.removeEventListener('popstate', syncWarungRoute);
+  }, []);
+
+  useEffect(() => {
+    if (section === 'Profil Warkop') return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('warung')) return;
+    url.searchParams.delete('warung');
+    window.history.replaceState(window.history.state, '', url);
+  }, [section]);
 
   // Membuat dokumen profil jika akun Auth sudah ada tetapi profil belum tersimpan
   // (misalnya pembuatan profil gagal saat registrasi). Aman dipanggil berulang.
@@ -809,7 +828,7 @@ export default function App() {
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
       section === 'Profil Warkop' ? <WarungProfile warungId={selectedWarungId} db={db} user={user} onBack={() => setSection('Cari Warkop')} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
-      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={(warungId) => { setSelectedWarungId(warungId); setSection('Profil Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
+      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={(warungId) => { setSelectedWarungId(warungId); const url = new URL(window.location.href); url.searchParams.set('warung', warungId); window.history.pushState({ warungId }, '', url); setSection('Profil Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Cari warkop</button></section> :
       <ChatPanel
         readOnly={section === 'Beranda'} onOpenDiscussion={() => { setSection('Obrolan'); setComposerOpen(true); }}

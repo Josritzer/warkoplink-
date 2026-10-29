@@ -65,7 +65,7 @@ const POSTS = [
 beforeEach(() => {
   window.localStorage.clear();
   vi.clearAllMocks();
-  fs.getDoc.mockResolvedValue({ exists: () => true });
+  fs.getDoc.mockResolvedValue({ exists: () => true, data: () => ({}) });
   fs.getDocs.mockResolvedValue({ docs: [], empty: true });
   fs.getCountFromServer.mockResolvedValue({ data: () => ({ count: 0 }) });
   fs.updateDoc.mockResolvedValue(undefined);

@@ -106,7 +106,7 @@ function renderWarungMentions(body, warungs = [], onOpenWarung) {
 export default function ChatPostCard({
   post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs = [], onOpenWarung,
   reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, postReactions,
-  reactionSummaries, handleReactPost, likeCounts, replyCounts, likedPosts, handleLikePost, openAuth, setNotice,
+  reactionSummaries, handleReactPost, likeCounts, replyCounts, likedPosts, handleLikePost,
   openReplyPage,
   handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId, deletingPostId,
   handleDeletePost, onEditPost

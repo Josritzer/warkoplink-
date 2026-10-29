@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
+import { addDoc, collection, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
 import { MapPin, Store, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
 
@@ -33,7 +33,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     const verifiedQuery = query(
       collection(db, 'warungs'),
       where('verificationStatus', '==', 'verified'),
-      orderBy('nameNormalized', 'asc'),
       limit(30)
     );
     return onSnapshot(verifiedQuery, (snapshot) => {
@@ -107,7 +106,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       const nextQuery = query(
         collection(db, 'warungs'),
         where('verificationStatus', '==', 'verified'),
-        orderBy('nameNormalized', 'asc'),
         startAfter(lastDocument),
         limit(30)
       );

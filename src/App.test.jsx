@@ -169,6 +169,21 @@ describe('halaman publik', () => {
     expect(postFeedSubscriptions()).toBe(2);
   });
 
+  it('navigasi dashboard menyaring feed ke kategori yang dipilih', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    emitPosts(POSTS);
+    await screen.findByText('Halo semuanya');
+
+    await user.click(screen.getByRole('button', { name: 'Desktop: Jual beli & jasa' }));
+    expect(screen.getByRole('button', { name: 'Jual Beli & Jasa Lokal' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByText('Halo semuanya')).toBeNull();
+    expect(screen.queryByText('Berapa harga layanan?')).toBeNull();
+    expect(screen.queryByText('Usul fitur baru')).toBeNull();
+    expect(screen.getByText('Belum ada obrolan di topik ini')).toBeTruthy();
+  });
+
   it('kategori aktif menentukan kategori posting tanpa dropdown kedua', async () => {
     const user = userEvent.setup();
     render(<App />);

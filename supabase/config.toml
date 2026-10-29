@@ -1,0 +1,6 @@
+project_id = "klikvxuronunonymmiqv"
+
+[functions.firebase-auth-check]
+# Firebase ID tokens are not Supabase JWTs. The function performs its own
+# signature, issuer, audience, expiry, and algorithm verification.
+verify_jwt = false

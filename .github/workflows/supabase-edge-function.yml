@@ -1,0 +1,30 @@
+name: Supabase Edge Function CI
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/supabase-edge-function.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/supabase-edge-function.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  firebase-auth-gateway:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check function and tests
+        run: deno check supabase/functions/firebase-auth-check/index.ts supabase/functions/firebase-auth-check/index_test.ts
+      - name: Run unit tests
+        run: deno test supabase/functions/firebase-auth-check/index_test.ts

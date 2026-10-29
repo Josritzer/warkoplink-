@@ -84,6 +84,31 @@ describe('postReports', () => {
   });
 });
 
+describe('event RSVPs', () => {
+  it('mengizinkan anggota menyimpan RSVP untuk acara dan mengubah statusnya sendiri', async () => {
+    const db = asUser('alice');
+    const post = await createPost(db, validPost({ topic: 'Info & Acara', eventKind: 'Nobar' }));
+    const rsvp = doc(db, 'posts', post.id, 'eventRsvps', 'alice');
+    await assertSucceeds(setDoc(rsvp, {
+      uid: 'alice', status: 'going', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    }));
+    await assertSucceeds(updateDoc(rsvp, { status: 'maybe', updatedAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(rsvp));
+  });
+
+  it('menolak RSVP untuk pengguna lain, status ilegal, atau posting non-acara', async () => {
+    const aliceDb = asUser('alice');
+    const regularPost = await createPost(aliceDb, validPost({ topic: 'Ngopi Bareng' }));
+    await assertFails(setDoc(doc(aliceDb, 'posts', regularPost.id, 'eventRsvps', 'bob'), {
+      uid: 'bob', status: 'going', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    }));
+    const eventPost = await createPost(aliceDb, validPost({ topic: 'Info & Acara' }));
+    await assertFails(setDoc(doc(asUser('bob'), 'posts', eventPost.id, 'eventRsvps', 'bob'), {
+      uid: 'bob', status: 'maybe-later', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    }));
+  });
+});
+
 describe('posts', () => {
   it('menerima penghitung reaksi hanya bersama dokumen reaksi pengguna', async () => {
     const db = asUser('alice');

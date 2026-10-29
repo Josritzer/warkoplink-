@@ -176,7 +176,7 @@ describe('halaman publik', () => {
     emitPosts(POSTS);
     await screen.findByText('Halo semuanya');
 
-    await user.click(screen.getByRole('button', { name: 'Jual beli & jasa' }));
+    await user.click(screen.getByRole('button', { name: 'Desktop: Jual beli & jasa' }));
     expect(screen.getByRole('button', { name: 'Jual beli & jasa' })).toBeTruthy();
     expect(screen.queryByText('Halo semuanya')).toBeNull();
     expect(screen.queryByText('Berapa harga layanan?')).toBeNull();

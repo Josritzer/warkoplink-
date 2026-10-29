@@ -195,12 +195,8 @@ html[data-theme="dark"] .warung-form select {
 }
 .bottom-nav-item { font-size: 9.5px; }
 .bottom-nav-item.active { color: var(--wl-reference-violet-deep); background: #f1ebff; }
-.bottom-nav-create { color: var(--wl-reference-violet); }
-.bottom-nav-create svg {
-  padding: 3px;
-  border-radius: 9px;
-  background: #f1ebff;
-}
+
+
 footer { color: #888293; }
 .button:focus-visible,
 .bottom-nav-item:focus-visible,
@@ -227,8 +223,8 @@ footer { color: #888293; }
   .bottom-nav { gap: 0; padding-left: 4px; padding-right: 4px; }
   .bottom-nav-item { font-size: 9px; gap: 3px; }
   .bottom-nav-item svg { width: 18px; height: 18px; }
-  .bottom-nav-create svg { width: 23px; height: 23px; }
-  .app-shell { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+
+.app-shell { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .post-card, .topic, .sidebar-nav-item, .button { transition: none !important; }

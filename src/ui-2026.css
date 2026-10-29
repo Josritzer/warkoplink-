@@ -620,21 +620,7 @@ body {
 #community-feed .empty-illustration { display: block; width: 92px; height: 76px; margin: 0 auto 8px; color: var(--wl-primary-bright); }
 #community-feed .event-action-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 #community-feed .event-action-row .button { min-height: 36px; padding: 8px 12px; font-size: 12px; }
-.bottom-nav-create {
-  position: relative;
-  top: -12px;
-  width: 48px;
-  min-width: 48px;
-  height: 48px;
-  min-height: 48px !important;
-  margin-inline: 2px;
-  border: 0;
-  border-radius: 17px !important;
-  background: linear-gradient(145deg, var(--wl-primary-bright), var(--wl-primary-bright)) !important;
-  color: white !important;
-  box-shadow: 0 8px 20px rgba(var(--wl-primary-rgb),.34);
-}
-.bottom-nav-create span { display: none; }
+
 
 @media (min-width: 900px) {
 
@@ -642,12 +628,12 @@ body {
 @media (max-width: 620px) {
   .bottom-nav { gap: 0; padding-inline: 4px; }
   .bottom-nav-item { min-width: 0; font-size: 10px; }
-  .bottom-nav-create { width: 44px; min-width: 44px; height: 44px; min-height: 44px !important; top: -9px; border-radius: 15px !important; }
-  #community-feed .post-card { padding: 16px; }
+
+#community-feed .post-card { padding: 16px; }
   #community-feed .composer-nudge { align-items: flex-start; flex-direction: column; }
 }
 @media (prefers-reduced-motion: reduce) {
-  #community-feed .post-card, .bottom-nav-create { transition: none !important; }
+  #community-feed .post-card { transition: none !important; }
 }
 
 
@@ -700,10 +686,6 @@ body {
   outline: 3px solid rgba(var(--wl-primary-rgb),.55);
   outline-offset: 3px;
 }
-.bottom-nav-create:active {
-  transform: scale(.94);
-}
-
 
 /* Accessible persistent light/dark theme, rebased on current main. */
 .button-theme-toggle { width: 38px; min-width: 38px; padding: 0 !important; display: inline-grid; place-items: center; }
@@ -753,8 +735,8 @@ html[data-theme="dark"] .button-quiet { color: var(--wl-ink); border-color: var(
   .app-header .header-actions { gap: 4px; }
   .app-header .header-actions .button { padding-inline: 8px; font-size: 10px; }
   .bottom-nav-item { min-width: 0; font-size: 9px; }
-  .bottom-nav-create { width: 38px; min-width: 38px; }
-  .hero { min-width: 0; }
+
+.hero { min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -769,5 +751,5 @@ html[data-theme="dark"] .button-quiet { color: var(--wl-ink); border-color: var(
   height: 100%;
   font-weight: 700;
   color: var(--ink, #172554);
-  background: color-mix(in srgb, var(--accent, #c9401b) 16%, transparent);
+  background: color-mix(in srgb, var(--wl-primary) 16%, transparent);
 }

@@ -132,7 +132,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visib
 /* Navigasi bawah (mobile) */
 .bottom-nav { background: color-mix(in srgb, var(--wl-paper) 94%, transparent); border-color: var(--wl-line); }
 .bottom-nav-item.active { color: var(--wl-primary-deep); }
-.bottom-nav-create { background: var(--wl-primary); color: var(--wl-on-primary); }
 
 /* Status */
 .badge-open, .status-open, .warung-open { background: var(--wl-jade-tint); color: var(--wl-jade); }

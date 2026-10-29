@@ -246,7 +246,7 @@ input, textarea, select { accent-color: var(--wl-brand); }
 .bottom-nav { background: var(--wl-surface); border-color: var(--wl-border); box-shadow: 0 -2px 10px rgb(36 26 42 / 5%); }
 .bottom-nav-item { color: var(--wl-text-muted); }
 .bottom-nav-item.active { color: var(--wl-brand); background: var(--wl-brand-soft); }
-.bottom-nav-create { background: var(--wl-brand); color: #fff; }
+
 footer { color: var(--wl-text-muted); }
 @media (min-width: 1200px) {
   .desktop-sidebar, .desktop-right-rail { position: sticky; top: 84px; align-self: start; }

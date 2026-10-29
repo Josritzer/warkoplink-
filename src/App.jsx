@@ -791,6 +791,9 @@ export default function App() {
 
   const visiblePosts = filterPosts(allPosts, topic, search);
   const activeCategory = composerTopic;
+  const popularTopics = POST_TOPICS.map(name => ({ name, count: allPosts.filter(post => (post.topic || 'Ngopi Bareng') === name).length }))
+    .filter(item => item.count > 0).sort((left, right) => right.count - left.count).slice(0, 4);
+  const recentSidebarPosts = allPosts.slice(0, 3);
 
   return <div className="app-shell">
     <header className="topbar app-header">
@@ -806,7 +809,27 @@ export default function App() {
       </div>
     </header>
 
-    <main>
+    <div className="desktop-layout">
+      <aside className="desktop-sidebar" aria-label="Navigasi desktop">
+        <div className="sidebar-brand"><span className="sidebar-brand-mark"><Sparkles size={18}/></span><span><b>WarkopLink</b><small>Ruang komunitas lokal</small></span></div>
+        <p className="sidebar-label">MENU UTAMA</p>
+        <nav className="sidebar-nav" aria-label="Navigasi utama">
+          <button type="button" className={section === 'Beranda' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setSection('Beranda'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Home size={18}/><span>Beranda</span></button>
+          <button type="button" className={section === 'Cari Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setSection('Cari Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Compass size={18}/><span>Cari Warkop</span></button>
+          <button type="button" className={section === 'Obrolan' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={18}/><span>Obrolan</span></button>
+          <button type="button" className={section === 'Agenda' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={18}/><span>Agenda & acara</span></button>
+          <button type="button" className={section === 'Jual Beli' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setSection('Obrolan'); setTopic('Jual Beli & Jasa Lokal'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={18}/><span>Jual beli & jasa</span></button>
+          <button type="button" className={section === 'Daftarkan Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setSection('Daftarkan Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><ArrowUpRight size={18}/><span>Daftarkan warkop</span></button>
+          <button type="button" className="sidebar-nav-item" onClick={() => setNotice('Menu Tersimpan belum tersedia. Tidak ada daftar tersimpan yang dibuat-buat.') }><Heart size={18}/><span>Tersimpan</span><span className="sidebar-soon">Segera</span></button>
+        </nav>
+        <div className="sidebar-community-note"><span className="sidebar-note-icon"><MapPin size={16}/></span><div><b>Mulai dari Lamongan</b><p>Temukan warkop dan percakapan di sekitar komunitas lokal.</p></div></div>
+        <button type="button" className="sidebar-profile" onClick={() => setSection('Akun')}>
+          <span className="sidebar-profile-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'W').slice(0,1).toUpperCase()}</span>
+          <span className="sidebar-profile-copy"><b>{user?.displayName || (user ? 'Anggota WarkopLink' : 'Pengunjung')}</b><small>{user ? 'Akun komunitas' : 'Masuk untuk berinteraksi'}</small></span>
+          <MoreHorizontal size={18}/>
+        </button>
+      </aside>
+      <main>
       {section === 'Panel Admin' && isAdmin ? <AdminPanel db={db} user={user} onNotice={setNotice}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => setSection('Beranda')}>Kembali</button></section> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
@@ -882,7 +905,23 @@ export default function App() {
         <button className="switch-auth" onClick={() => { setRegisterMode(!registerMode); setAuthError(''); }}>{registerMode ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Daftar'}</button>
       </section></div>}
       {notice && <span className="visually-hidden" role="status">{notice}</span>}
-    </main>
+      </main>
+      {(section === 'Beranda' || section === 'Obrolan') && <aside className="desktop-right-rail" aria-label="Ringkasan komunitas">
+        <section className="rail-panel">
+          <div className="rail-panel-heading"><h2>Warkop terverifikasi</h2><span>{verifiedWarungs.length}</span></div>
+          {verifiedWarungs.length ? <div className="rail-warung-list">{verifiedWarungs.slice(0, 4).map(warung => <button type="button" key={warung.id} className="rail-warung" onClick={() => openWarungProfile(warung.id)}><span className="rail-warung-avatar"><Store size={15}/></span><span><b>{warung.name || 'Warkop lokal'}</b><small>{warung.address || 'Profil warkop terverifikasi'}</small></span><ArrowUpRight size={14}/></button>)}</div> : <p className="rail-empty">Belum ada warkop terverifikasi untuk ditampilkan.</p>}
+          <button type="button" className="rail-text-link" onClick={() => setSection('Cari Warkop')}>Jelajahi direktori <ArrowUpRight size={14}/></button>
+        </section>
+        <section className="rail-panel">
+          <div className="rail-panel-heading"><h2>Kategori aktif</h2><span>DATA</span></div>
+          {popularTopics.length ? <div className="rail-topic-list">{popularTopics.map(item => <button type="button" className="rail-topic" key={item.name} onClick={() => { setSection('Obrolan'); setTopic(item.name); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><span><b>{item.name}</b><small>{item.count} obrolan</small></span><ArrowUpRight size={14}/></button>)}</div> : <p className="rail-empty">Kategori akan muncul setelah ada obrolan komunitas.</p>}
+        </section>
+        <section className="rail-panel rail-recent-panel">
+          <div className="rail-panel-heading"><h2>Obrolan terbaru</h2><span>{allPosts.length}</span></div>
+          {recentSidebarPosts.length ? recentSidebarPosts.map(post => <button type="button" className="rail-recent-post" key={post.id} onClick={() => { setSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><b>{post.authorName || 'Anggota komunitas'}</b><p>{String(post.body || '').slice(0, 92)}{String(post.body || '').length > 92 ? '…' : ''}</p><small>{post.topic || 'Ngopi Bareng'}</small></button>) : <p className="rail-empty">Belum ada obrolan terbaru.</p>}
+        </section>
+      </aside>}
+    </div>
     <nav className="bottom-nav" aria-label="Navigasi aplikasi">
       <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
       <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>

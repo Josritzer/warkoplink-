@@ -141,7 +141,7 @@ service cloud.firestore {
 
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
-        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
+        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
         && data.reactions is map
         && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
@@ -249,7 +249,7 @@ service cloud.firestore {
         && resource.data.get('authorId', '') == request.auth.uid
         && (
           (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'location', 'postType'])
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'location', 'postType'])
             && request.resource.data.get('body', '') is string
             && request.resource.data.get('body', '').size() >= 1
             && request.resource.data.get('body', '').size() <= 2000
@@ -257,6 +257,7 @@ service cloud.firestore {
             && (!request.resource.data.keys().hasAny(['eventEndAt']) || (request.resource.data.eventEndAt is string && request.resource.data.eventEndAt.size() <= 40))
             && (!request.resource.data.keys().hasAny(['eventKind']) || (request.resource.data.eventKind is string && request.resource.data.eventKind.size() <= 40))
             && (!request.resource.data.keys().hasAny(['eventCapacity']) || (request.resource.data.eventCapacity is number && request.resource.data.eventCapacity >= 1 && request.resource.data.eventCapacity <= 10000))
+            && (!request.resource.data.keys().hasAny(['eventStatus']) || request.resource.data.eventStatus in ['scheduled', 'cancelled'])
             && (
               request.resource.data.get('topic', '') in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']
               || (request.resource.data.get('topic', '') == resource.data.get('topic', '')
@@ -282,6 +283,7 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/posts/$(postId))
         && get(/databases/$(database)/documents/posts/$(postId)).data.topic == 'Info & Acara'
         && get(/databases/$(database)/documents/posts/$(postId)).data.get('deleting', false) != true
+        && get(/databases/$(database)/documents/posts/$(postId)).data.get('eventStatus', 'scheduled') != 'cancelled'
         && request.resource.data.keys().hasAll(['uid', 'status', 'createdAt', 'updatedAt'])
         && request.resource.data.keys().hasOnly(['uid', 'status', 'createdAt', 'updatedAt'])
         && request.resource.data.uid == request.auth.uid

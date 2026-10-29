@@ -135,6 +135,7 @@ export default function ChatPostCard({
   const [editEventEndAt, setEditEventEndAt] = useState(post.eventEndAt || '');
   const [editEventKind, setEditEventKind] = useState(post.eventKind || 'Nobar');
   const [editEventCapacity, setEditEventCapacity] = useState(post.eventCapacity ? String(post.eventCapacity) : '');
+  const [editEventStatus, setEditEventStatus] = useState(post.eventStatus === 'cancelled' ? 'cancelled' : 'scheduled');
   const [editPrice, setEditPrice] = useState(post.price || '');
   const [editWorkType, setEditWorkType] = useState(post.workType || '');
   const [editContact, setEditContact] = useState(post.contact || '');
@@ -242,7 +243,7 @@ export default function ChatPostCard({
         </div>
       </div>
       {editing ? <form className="post-edit-form" onSubmit={async event => {
-        const saved = await onEditPost(event, post, { body: editBody, topic: editTopic, postType: editType, location: editLocation, eventDate: editDate, eventStartAt: editEventStartAt, eventEndAt: editEventEndAt, eventKind: editEventKind, eventCapacity: editEventCapacity, price: editPrice, workType: editWorkType, contact: editContact });
+        const saved = await onEditPost(event, post, { body: editBody, topic: editTopic, postType: editType, location: editLocation, eventDate: editDate, eventStartAt: editEventStartAt, eventEndAt: editEventEndAt, eventKind: editEventKind, eventCapacity: editEventCapacity, eventStatus: editEventStatus, price: editPrice, workType: editWorkType, contact: editContact });
         if (saved) setEditing(false);
       }}>
         <label>Isi posting<textarea aria-label="Edit isi posting" value={editBody} onChange={event => setEditBody(event.target.value)} maxLength={2000} rows={4} required /></label>
@@ -255,6 +256,7 @@ export default function ChatPostCard({
           <label>Mulai acara<input aria-label="Edit waktu mulai acara" type="datetime-local" value={editEventStartAt} onChange={event => setEditEventStartAt(event.target.value)} /></label>
           <label>Selesai acara<input aria-label="Edit waktu selesai acara" type="datetime-local" value={editEventEndAt} min={editEventStartAt || undefined} onChange={event => setEditEventEndAt(event.target.value)} /></label>
           <label>Kapasitas peserta<input aria-label="Edit kapasitas peserta" type="number" min="1" max="10000" step="1" value={editEventCapacity} onChange={event => setEditEventCapacity(event.target.value)} placeholder="Tanpa batas khusus" /></label>
+          <label>Status acara<select aria-label="Edit status acara" value={editEventStatus} onChange={event => setEditEventStatus(event.target.value)}><option value="scheduled">Terjadwal</option><option value="cancelled">Dibatalkan</option></select></label>
         </>}
         <label>Harga<input aria-label="Edit harga" value={editPrice} onChange={event => setEditPrice(event.target.value)} maxLength={60}/></label>
         <label>Tipe kerja<input aria-label="Edit tipe kerja" value={editWorkType} onChange={event => setEditWorkType(event.target.value)} maxLength={60}/></label>
@@ -305,14 +307,17 @@ export default function ChatPostCard({
           <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
         </div>
       </div>
-      {category === 'Info & Acara' && <div className="event-action-row event-card-actions">
+      {category === 'Info & Acara' && <div className={`event-action-row event-card-actions${post.eventStatus === 'cancelled' ? ' event-cancelled' : ''}`}>
+        {post.eventStatus === 'cancelled' && <strong className="event-cancelled-label" role="status">Acara dibatalkan</strong>}
         {post.eventKind && <span className="event-kind-pill">{post.eventKind}</span>}
         {post.eventStartAt && <span className="event-time-label">{new Date(post.eventStartAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}{post.eventEndAt ? ` – ${new Date(post.eventEndAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : ''}</span>}
         {Number.isFinite(post.eventCapacity) && post.eventCapacity > 0 && <span className="event-capacity-label">Maks. {post.eventCapacity} orang</span>}
-        {post.eventStartAt && <><a className="button button-quiet" href={calendarLink(post)} target="_blank" rel="noopener noreferrer">Google Calendar</a><button className="button button-quiet" type="button" onClick={() => setNotice(downloadIcs(post) ? 'File kalender acara berhasil disiapkan.' : 'Tanggal acara belum valid.')}>Unduh .ics</button></>}
-        <span className="event-rsvp-count" aria-live="polite">{rsvpCount} ikut</span>
-        <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'going'} disabled={rsvpLoading} onClick={() => changeRsvp('going')}>{rsvpStatus === 'going' ? '✓ Ikut' : 'Ikut acara'}</button>
-        <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'maybe'} disabled={rsvpLoading} onClick={() => changeRsvp('maybe')}>{rsvpStatus === 'maybe' ? '✓ Mungkin' : 'Mungkin'}</button>
+        {post.eventStartAt && post.eventStatus !== 'cancelled' && <><a className="button button-quiet" href={calendarLink(post)} target="_blank" rel="noopener noreferrer">Google Calendar</a><button className="button button-quiet" type="button" onClick={() => setNotice(downloadIcs(post) ? 'File kalender acara berhasil disiapkan.' : 'Tanggal acara belum valid.')}>Unduh .ics</button></>}
+        {post.eventStatus !== 'cancelled' && <>
+          <span className="event-rsvp-count" aria-live="polite">{rsvpCount} ikut</span>
+          <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'going'} disabled={rsvpLoading} onClick={() => changeRsvp('going')}>{rsvpStatus === 'going' ? '✓ Ikut' : 'Ikut acara'}</button>
+          <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'maybe'} disabled={rsvpLoading} onClick={() => changeRsvp('maybe')}>{rsvpStatus === 'maybe' ? '✓ Mungkin' : 'Mungkin'}</button>
+        </>}
       </div>}
       {category === 'Jual Beli & Jasa Lokal' && normalizedWhatsAppNumber(post.contact) && <div className="event-action-row">
         <a className="button button-dark" href={`https://wa.me/${normalizedWhatsAppNumber(post.contact)}`} target="_blank" rel="noopener noreferrer" aria-label="Hubungi penjual melalui WhatsApp">Chat WhatsApp</a>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { collection, getDocs, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } from 'firebase/firestore';
 import { Heart, X } from 'lucide-react';
 import { db } from '../firebase.js';
 
@@ -25,6 +25,7 @@ async function fetchPublicProfiles(uids) {
 
 export default function LikeSummary({ post, user, liked, count, onToggleLike, openAuth, setNotice }) {
   const [preview, setPreview] = useState([]);
+  const [previewUids, setPreviewUids] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [likers, setLikers] = useState([]);
   const [cursor, setCursor] = useState(null);
@@ -40,17 +41,27 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
     const stop = onSnapshot(
       query(collection(db, 'posts', post.id, 'likes'), orderBy('createdAt', 'desc'), limit(3)),
       async snapshot => {
-        try {
-          const profiles = await fetchPublicProfiles(snapshot.docs.map(item => item.id));
-          if (active) setPreview(profiles.slice(0, 3));
-        } catch {
-          if (active) setPreview([]);
-        }
+        if (active) setPreviewUids(snapshot.docs.map(item => item.id).slice(0, 3));
       },
       () => { if (active) setPreview([]); }
     );
     return () => { active = false; stop(); };
   }, [post?.id, count]);
+
+  useEffect(() => {
+    if (!db || !previewUids.length) { setPreview([]); return undefined; }
+    let active = true;
+    const stop = onSnapshot(
+      query(collection(db, 'publicProfiles'), where('uid', 'in', previewUids)),
+      snapshot => {
+        if (!active) return;
+        const byUid = new Map(snapshot.docs.map(item => [item.id, { uid: item.id, ...item.data() }]));
+        setPreview(previewUids.map(uid => byUid.get(uid)).filter(profile => profile && profile.displayName));
+      },
+      () => { if (active) setPreview([]); }
+    );
+    return () => { active = false; stop(); };
+  }, [previewUids]);
 
   useEffect(() => {
     if (!dialogOpen) return undefined;
@@ -75,10 +86,10 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
     setListError('');
     try {
       const base = collection(db, 'posts', post.id, 'likes');
-      const pageQuery = query(base, orderBy('createdAt', 'desc'), ...(reset || !cursor ? [] : [/* cursor is applied below */]), limit(10));
       // Cursor pagination is explicit so no page reads more than ten like documents.
-      const { startAfter } = await import('firebase/firestore');
-      const snapshot = await getDocs(reset || !cursor ? pageQuery : query(base, orderBy('createdAt', 'desc'), startAfter(cursor), limit(10)));
+      const snapshot = await getDocs(reset || !cursor
+        ? query(base, orderBy('createdAt', 'desc'), limit(10))
+        : query(base, orderBy('createdAt', 'desc'), startAfter(cursor), limit(10)));
       const profiles = await fetchPublicProfiles(snapshot.docs.map(item => item.id));
       setLikers(current => {
         const next = reset ? profiles : [...current, ...profiles.filter(profile => !current.some(old => old.uid === profile.uid))];

@@ -283,3 +283,102 @@ footer { color: var(--wl-text-muted); }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Mobile polish: never clip headings, topic chips, or bottom-nav labels. */
+@media (max-width: 767px) {
+  .app-shell {
+    padding-inline: clamp(8px, 3vw, 12px) !important;
+  }
+
+  .app-header .brand {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .app-header .brand strong {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .app-header .header-actions {
+    flex: 0 0 auto;
+  }
+
+  .desktop-layout,
+  .desktop-layout > main,
+  .content-section,
+  #community-feed {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #community-feed .section-heading,
+  #community-feed .section-heading > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #community-feed .section-heading h2,
+  .content-section h2 {
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    text-overflow: clip;
+  }
+
+  #community-feed .status-pill {
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100% !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+
+  #community-feed .topic-list {
+    min-width: 0;
+    width: 100%;
+    overflow-x: auto;
+    padding-inline: 0 12px;
+  }
+
+  #community-feed .topic {
+    flex: 0 0 auto;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  #community-feed .post-card {
+    width: 100%;
+    min-width: 0;
+    padding-inline: clamp(10px, 3vw, 14px);
+  }
+
+  .bottom-nav-item {
+    min-width: 0;
+    overflow: visible;
+    text-align: center;
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 1.15;
+    font-size: clamp(8px, 2.45vw, 10px);
+  }
+
+  .bottom-nav-item span {
+    display: block;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  #community-feed .composer-nudge,
+  #community-feed .empty-state-community {
+    color: var(--wl-text);
+    background: var(--wl-surface-soft);
+    border-color: var(--wl-border);
+  }
+}

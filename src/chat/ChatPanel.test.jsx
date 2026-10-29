@@ -83,3 +83,43 @@ describe('ChatPanel homepage layout', () => {
     expect(screen.getByText('Beranda · mode baca')).toBeTruthy();
   });
 });
+
+
+describe('ChatPanel visual cleanup', () => {
+  it('uses the WarkopLink brand accent instead of orange and avoids a plus affordance', () => {
+    const { container } = render(<ChatPanel
+      user={null}
+      firebaseConfigured
+      search=""
+      setSearch={vi.fn()}
+      topic="Semua"
+      setTopic={vi.fn()}
+      composerTopic="Ngopi Bareng"
+      setComposerTopic={vi.fn()}
+      composerOpen={false}
+      setComposerOpen={vi.fn()}
+      openAuth={vi.fn()}
+      setNotice={vi.fn()}
+      draft=""
+      setDraft={vi.fn()}
+      activeCategory="Ngopi Bareng"
+      handlePost={vi.fn()}
+      posting={false}
+      postsStatus="ready"
+      setPostsRetry={vi.fn()}
+      visiblePosts={[]}
+      cardProps={{}}
+      hasMorePosts={false}
+      loadingMorePosts={false}
+      loadMoreError=""
+      onLoadMorePosts={vi.fn()}
+      verifiedWarungs={[]}
+    />);
+
+    const illustration = container.querySelector('.empty-illustration');
+    expect(illustration.querySelector('path:last-child').getAttribute('fill')).toBe('var(--wl-primary)');
+    const startButton = container.querySelector('.empty-state-community .event-action-row .button-dark');
+    expect(startButton.textContent).toContain('Mulai obrolan');
+    expect(startButton.querySelector('svg')?.classList.contains('lucide-message-circle')).toBe(true);
+  });
+});

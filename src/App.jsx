@@ -18,7 +18,7 @@ import WarungProfile from './directory/WarungProfile.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts,
-  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
+  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails, isPublicPost
 } from './lib.js';
 
 const POSTS_LIMIT = 10;
@@ -28,7 +28,7 @@ function readCachedPosts() {
   try {
     const cached = JSON.parse(window.localStorage.getItem(FEED_CACHE_KEY) || '[]');
     if (!Array.isArray(cached)) return [];
-    return cached.slice(0, POSTS_LIMIT).map((post) => ({
+    return cached.filter(isPublicPost).slice(0, POSTS_LIMIT).map((post) => ({
       ...post,
       createdAt: post.createdAt?.seconds != null
         ? Timestamp.fromMillis(post.createdAt.seconds * 1000 + (post.createdAt.nanoseconds || 0) / 1e6)
@@ -45,6 +45,7 @@ export default function App() {
   const [section, setSection] = useState(() => new URLSearchParams(window.location.search).get('warung') ? 'Profil Warkop' : 'Beranda');
   const [selectedWarungId, setSelectedWarungId] = useState(() => new URLSearchParams(window.location.search).get('warung') || '');
   const [verifiedWarungs, setVerifiedWarungs] = useState([]);
+  const [verifiedWarungsStatus, setVerifiedWarungsStatus] = useState(db ? 'loading' : 'error');
   const [topic, setTopic] = useState('Semua');
   const [composerTopic, setComposerTopic] = useState('Ngopi Bareng');
   const [composerOpen, setComposerOpen] = useState(false);
@@ -97,11 +98,15 @@ export default function App() {
 
   // Daftar mention hanya memuat warkop terverifikasi; posting lama tidak perlu dimigrasi.
   useEffect(() => {
-    if (!db) { setVerifiedWarungs([]); return undefined; }
+    if (!db) { setVerifiedWarungs([]); setVerifiedWarungsStatus('error'); return undefined; }
+    setVerifiedWarungsStatus('loading');
     return onSnapshot(
       query(collection(db, 'warungs'), where('verificationStatus', '==', 'verified'), orderBy('nameNormalized', 'asc'), limit(100)),
-      snapshot => setVerifiedWarungs(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))),
-      () => setVerifiedWarungs([])
+      snapshot => {
+        setVerifiedWarungs(snapshot.docs.map(item => ({ id: item.id, ...item.data() })));
+        setVerifiedWarungsStatus('ready');
+      },
+      () => { setVerifiedWarungs([]); setVerifiedWarungsStatus('error'); }
     );
   }, []);
 
@@ -208,7 +213,7 @@ export default function App() {
     setLoadMoreError('');
     const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(POSTS_LIMIT));
     return onSnapshot(postsQuery, (snapshot) => {
-      const nextPosts = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const nextPosts = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter(isPublicPost);
       setPosts(nextPosts);
       setLastPostDoc(snapshot.docs.at(-1) || null);
       setHasMorePosts(snapshot.docs.length === POSTS_LIMIT);
@@ -234,7 +239,7 @@ export default function App() {
     try {
       const nextQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(lastPostDoc), limit(POSTS_LIMIT));
       const snapshot = await getDocs(nextQuery);
-      const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter(isPublicPost);
       setOlderPosts((current) => {
         const seen = new Set([...posts, ...current].map((post) => post.id));
         return [...current, ...nextRows.filter((post) => !seen.has(post.id))];
@@ -802,7 +807,7 @@ export default function App() {
         <span><strong>WARKOPLINK</strong><small>Ruang obrolan Indonesia</small></span>
       </a>
       <div className="header-actions">
-        <button className="button button-install" type="button" onClick={handleInstallPwa} aria-label="Pasang aplikasi" title="Pasang aplikasi"><Download size={16}/></button>
+        {(installPrompt || (/iphone|ipad|ipod/i.test(navigator.userAgent) && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent))) && <button className="button button-install" type="button" onClick={handleInstallPwa} aria-label="Pasang aplikasi" title="Pasang aplikasi"><Download size={16}/></button>}
         {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
           user ? <button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button> :
           <><button className="button button-quiet" onClick={() => openAuth(false)}>Masuk</button><button className="button button-dark" onClick={() => openAuth(true)}>Gabung komunitas</button></>}
@@ -811,7 +816,7 @@ export default function App() {
 
     <div className="desktop-layout">
       <aside className="desktop-sidebar" aria-label="Navigasi desktop">
-        <div className="sidebar-brand"><span className="sidebar-brand-mark"><Sparkles size={18}/></span><span><b>WarkopLink</b><small>Ruang komunitas lokal</small></span></div>
+        <div className="sidebar-brand" aria-label="WarkopLink"><span className="sidebar-brand-mark"><Sparkles size={18}/></span></div>
         <p className="sidebar-label">MENU UTAMA</p>
         <nav className="sidebar-nav" aria-label="Navigasi utama">
           <button type="button" aria-label="Desktop: Beranda" className={section === 'Beranda' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setSection('Beranda'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Home size={18}/><span>Beranda</span></button>
@@ -872,7 +877,7 @@ export default function App() {
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
       section === 'Profil Warkop' ? <WarungProfile warungId={selectedWarungId} db={db} user={user} onBack={() => setSection('Cari Warkop')} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
-      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={openWarungProfile}/> :
+      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={openWarungProfile} onRegister={() => setSection('Daftarkan Warkop')}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Cari warkop</button></section> :
       <ChatPanel
         readOnly={section === 'Beranda'} onOpenDiscussion={() => { setSection('Obrolan'); setComposerOpen(true); }}
@@ -908,12 +913,15 @@ export default function App() {
       </main>
       {(section === 'Beranda' || section === 'Obrolan') && <aside className="desktop-right-rail" aria-label="Ringkasan komunitas">
         <section className="rail-panel">
-          <div className="rail-panel-heading"><h2>Warkop terverifikasi</h2><span>{verifiedWarungs.length}</span></div>
-          {verifiedWarungs.length ? <div className="rail-warung-list">{verifiedWarungs.slice(0, 4).map(warung => <button type="button" key={warung.id} className="rail-warung" onClick={() => openWarungProfile(warung.id)}><span className="rail-warung-avatar"><Store size={15}/></span><span><b>{warung.name || 'Warkop lokal'}</b><small>{warung.address || 'Profil warkop terverifikasi'}</small></span><ArrowUpRight size={14}/></button>)}</div> : <p className="rail-empty">Belum ada warkop terverifikasi untuk ditampilkan.</p>}
+          <div className="rail-panel-heading"><h2>Warkop terverifikasi</h2><span aria-label={verifiedWarungsStatus === 'ready' ? `${verifiedWarungs.length} warkop terverifikasi` : 'Jumlah belum tersedia'}>{verifiedWarungsStatus === 'ready' ? verifiedWarungs.length : '—'}</span></div>
+          <p className="rail-panel-description">Warkop yang datanya telah diperiksa pengelola.</p>
+          {verifiedWarungsStatus === 'loading' ? <p className="rail-empty" role="status">Memuat daftar warkop…</p> :
+            verifiedWarungsStatus === 'error' ? <div className="rail-empty"><p>Daftar warkop belum dapat dimuat.</p><button type="button" className="rail-text-link" onClick={() => setSection('Cari Warkop')}>Buka direktori</button></div> :
+              verifiedWarungs.length ? <div className="rail-warung-list">{verifiedWarungs.slice(0, 4).map(warung => <button type="button" key={warung.id} className="rail-warung" onClick={() => openWarungProfile(warung.id)}><span className="rail-warung-avatar"><Store size={15}/></span><span><b>{warung.name || 'Warkop lokal'}</b><small>{warung.address || 'Profil warkop terverifikasi'}</small></span><ArrowUpRight size={14}/></button>)}</div> : <div className="rail-empty"><p>Belum ada warkop yang terverifikasi. Warkop baru akan tampil setelah datanya diperiksa.</p><button type="button" className="rail-text-link" onClick={() => setSection('Daftarkan Warkop')}>Daftarkan warkop <ArrowUpRight size={14}/></button></div>}
           <button type="button" className="rail-text-link" onClick={() => setSection('Cari Warkop')}>Jelajahi direktori <ArrowUpRight size={14}/></button>
         </section>
         <section className="rail-panel">
-          <div className="rail-panel-heading"><h2>Kategori aktif</h2><span>DATA</span></div>
+          <div className="rail-panel-heading"><h2>Kategori ramai</h2><span>Berdasarkan obrolan</span></div>
           {popularTopics.length ? <div className="rail-topic-list">{popularTopics.map(item => <button type="button" className="rail-topic" key={item.name} onClick={() => { setSection('Obrolan'); setTopic(item.name); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><span><b>{item.name}</b><small>{item.count} obrolan</small></span><ArrowUpRight size={14}/></button>)}</div> : <p className="rail-empty">Kategori akan muncul setelah ada obrolan komunitas.</p>}
         </section>
         <section className="rail-panel rail-recent-panel">
@@ -929,6 +937,6 @@ export default function App() {
       <button className={section === 'Daftarkan Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Daftarkan Warkop')} aria-current={section === 'Daftarkan Warkop' ? 'page' : undefined}><Store size={20}/><span>Daftar</span></button>
       <button className={section === 'Akun' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Akun')} aria-current={section === 'Akun' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
     </nav>
-    <footer><span className="footer-brand"><Sparkles size={16}/> WARKOPLINK</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} WarkopLink Platform</small></footer>
+    <footer><span className="footer-brand"><Sparkles size={16}/> Komunitas lokal Lamongan</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} WarkopLink</small></footer>
   </div>;
 }

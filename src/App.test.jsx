@@ -136,6 +136,31 @@ describe('halaman publik', () => {
     expect(screen.getByText('Usul fitur baru')).toBeTruthy();
   });
 
+  it('menyaring dokumen yang ditandai QA tetapi tidak menebak dari isi teks', async () => {
+    render(<App />);
+    emitAuth(null);
+    emitPosts([
+      { id: 'qa-post', authorName: 'Demo', body: 'konten internal', topic: 'Ngopi Bareng', isTest: true },
+      { id: 'real-post', authorName: 'Warga', body: 'tes percobaan', topic: 'Ngopi Bareng' },
+    ]);
+    expect(await screen.findByText('tes percobaan')).toBeTruthy();
+    expect(screen.queryByText('konten internal')).toBeNull();
+  });
+
+  it('tombol instal tidak ditampilkan jika browser tidak menyediakan alur instal', () => {
+    render(<App />);
+    expect(screen.queryByRole('button', { name: 'Pasang aplikasi' })).toBeNull();
+  });
+
+  it('CTA direktori membuka alur pendaftaran yang sebenarnya', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Desktop: Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Daftarkan warkop' }));
+    expect(await screen.findByRole('heading', { name: 'Daftarkan warkop Anda.' })).toBeTruthy();
+  });
+
   it('filter topik dan pencarian bekerja', async () => {
     const user = userEvent.setup();
     render(<App />);

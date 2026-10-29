@@ -128,3 +128,15 @@ export function postErrorMessage(error) {
   }
   return 'Pesan belum terkirim. Silakan coba lagi.';
 }
+
+
+// Production feed guard: exclude only records explicitly marked as non-public.
+// Do not infer test data from post text; questionable live records require owner review.
+export function isPublicPost(post) {
+  if (!post || typeof post !== 'object') return false;
+  if (post.isTest === true || post.isDemo === true || post.isFixture === true || post.qa === true) return false;
+  const visibility = String(post.visibility ?? post.publicationStatus ?? '').trim().toLowerCase();
+  if (['draft', 'hidden', 'private', 'test', 'demo', 'staging', 'qa', 'fixture'].includes(visibility)) return false;
+  const environment = String(post.environment ?? post.sourceEnvironment ?? '').trim().toLowerCase();
+  return !['test', 'demo', 'staging', 'qa', 'fixture'].includes(environment);
+}

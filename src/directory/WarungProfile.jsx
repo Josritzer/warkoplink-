@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
+import { storage } from '../firebase.js';
+import { validateImageFile } from '../media/imagePolicy.js';
 import { ArrowLeft, MapPin, ShieldCheck, Store, Users, UserPlus, UserRoundCheck, Clock, CalendarDays, Share2 } from 'lucide-react';
 import { ACTIVITY_OPTIONS } from './directoryFilters.js';
 
@@ -18,6 +21,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
   const [eventKind, setEventKind] = useState('Nobar');
   const [eventStart, setEventStart] = useState('');
   const [eventEnd, setEventEnd] = useState('');
+  const [eventPhoto, setEventPhoto] = useState(null);
   const [sharingEvent, setSharingEvent] = useState(false);
 
   const refreshFollowState = useCallback(async () => {
@@ -137,6 +141,16 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       if (!profileSnapshot.exists() || typeof profileSnapshot.data()?.displayName !== 'string') throw new Error('profile-missing');
       const profile = profileSnapshot.data();
       const body = `${title}\n\n${description}`.slice(0, 2000);
+      let eventPhotoURL = '';
+      if (eventPhoto) {
+        const photoError = validateImageFile(eventPhoto);
+        if (photoError) { onNotice(photoError); return; }
+        if (!storage) { onNotice('Penyimpanan foto belum aktif. Acara dapat dibagikan tanpa poster.'); return; }
+        const extension = eventPhoto.type === 'image/png' ? 'png' : eventPhoto.type === 'image/webp' ? 'webp' : 'jpg';
+        const photoRef = storageRef(storage, `eventPhotos/${warungId}/${Date.now()}.${extension}`);
+        await uploadBytes(photoRef, eventPhoto, { contentType: eventPhoto.type });
+        eventPhotoURL = await getDownloadURL(photoRef);
+      }
       await addDoc(collection(db, 'posts'), {
         authorId: user.uid,
         authorName: profile.displayName,
@@ -144,6 +158,8 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
         body,
         topic: 'Info & Acara',
         postType: 'Acara Warkop',
+        warungId,
+        ...(eventPhotoURL ? { eventPhotoURL } : {}),
         location: `${warung.name} — ${warung.address}`.slice(0, 160),
         eventDate: eventStart.slice(0, 10),
         eventStartAt: start.toISOString(),
@@ -154,7 +170,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
         reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
         totalReactions: 0
       });
-      setEventTitle(''); setEventDescription(''); setEventStart(''); setEventEnd('');
+      setEventTitle(''); setEventDescription(''); setEventStart(''); setEventEnd(''); setEventPhoto(null);
       onNotice('Acara berhasil dibagikan ke Beranda WarkopLink.');
     } catch (error) {
       onNotice(error?.code === 'permission-denied' ? 'Acara ditolak aturan keamanan. Pastikan profil akun tersedia dan aturan Firestore terbaru sudah terpasang.' : 'Acara belum berhasil dibagikan. Periksa koneksi dan profil akun.');
@@ -166,7 +182,8 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
 
   return <section className="content-section warung-profile-page" aria-labelledby="warung-profile-title">
     <button className="button button-quiet profile-back" type="button" onClick={onBack}><ArrowLeft size={16}/> Kembali ke direktori</button>
-    <div className="warung-profile-cover" aria-hidden="true"><Store size={38}/></div>
+    <div className="warung-profile-cover" aria-hidden="true">{warung.photos?.[0] ? <img src={warung.photos[0]} alt={`Foto ${warung.name}`} /> : <Store size={38}/>}</div>
+    {Array.isArray(warung.photos) && warung.photos.length > 0 && <div className="warung-photo-gallery" aria-label="Foto warkop">{warung.photos.slice(0, 5).map((photo, index) => <img key={`${photo}-${index}`} src={photo} alt={`Foto ${warung.name} ${index + 1}`} loading="lazy" />)}</div>}
     <div className="warung-profile-heading">
       <div className="warung-profile-avatar"><Store size={30}/></div>
       <div className="warung-profile-title-group">
@@ -209,6 +226,8 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
           <label>Deskripsi acara<textarea value={eventDescription} onChange={(event) => setEventDescription(event.target.value)} maxLength={1800} minLength={5} required rows={3} placeholder="Informasi acara, aturan, atau detail untuk pengunjung"/></label>
           <label>Waktu mulai<input type="datetime-local" value={eventStart} onChange={(event) => setEventStart(event.target.value)} required/></label>
           <label>Waktu selesai (opsional)<input type="datetime-local" value={eventEnd} onChange={(event) => setEventEnd(event.target.value)}/></label>
+          <label>Poster acara (opsional, JPG/PNG/WebP, maksimal 2 MB)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0] || null; const error = file ? validateImageFile(file) : ''; if (error) { onNotice(error); setEventPhoto(null); event.target.value = ''; return; } setEventPhoto(file); }} /></label>
+          {eventPhoto && <small>Poster dipilih: {eventPhoto.name}</small>}
           <button className="button button-dark" type="submit" disabled={sharingEvent}><Share2 size={16}/>{sharingEvent ? 'Membagikan acara…' : 'Bagikan ke Beranda'}</button>
         </form>
       </div>

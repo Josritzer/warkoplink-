@@ -443,6 +443,7 @@ export default function App() {
           }
           updates.eventCapacity = capacity;
         }
+        updates.eventStatus = values.eventStatus === 'cancelled' ? 'cancelled' : 'scheduled';
       }
       await updateDoc(doc(db, 'posts', post.id), updates);
       setNotice('Posting berhasil diperbarui.');

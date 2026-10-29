@@ -440,6 +440,25 @@ describe('membuat postingan', () => {
 
 
 describe('direktori dan pendaftaran warkop', () => {
+  it('CTA Daftarkan warkop dari direktori membuka halaman pendaftaran', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await screen.findByText('Memuat direktori…');
+    await user.click(await screen.findByRole('button', { name: 'Daftarkan warkop' }));
+    expect(await screen.findByRole('heading', { name: 'Daftarkan warkop Anda.' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Kirim pendaftaran' })).toBeTruthy();
+  });
+
+  it('direktori dan mention tidak bergantung pada composite index nama warkop', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    expect(fs.orderBy).not.toHaveBeenCalledWith('nameNormalized', 'asc');
+  });
+
   it('direktori hanya meminta warkop verified dan membatasi hasil', async () => {
     const user = userEvent.setup();
     render(<App />);

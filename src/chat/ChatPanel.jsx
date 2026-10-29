@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Compass, MessageCircle, Plus, Send, Sparkles } from 'lucide-react';
+import { Compass, MessageCircle, Plus, Send } from 'lucide-react';
 import { FILTER_TOPICS, MAX_POST_LENGTH, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
 import ChatPostCard from './ChatPostCard.jsx';
-import WarkopStories from './WarkopStories.jsx';
 
 // Komposisi UI panel; sumber data dan aksi tetap dari App agar alur reaksi/komentar tidak berubah.
 export default function ChatPanel(props) {
@@ -37,12 +36,6 @@ export default function ChatPanel(props) {
 
   return <section className="content-section" id="community-feed">
     <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className={user ? 'status-pill status-authenticated' : 'status-pill status-public'} role="status" aria-live="polite">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
-    <div className="community-story-strip" aria-label="Cerita komunitas">
-      <button type="button" className="story-add" onClick={startStory} aria-label="Tambah cerita atau mulai obrolan"><span className="story-add-avatar"><span>{user?.photoURL ? <img src={user.photoURL} alt="" /> : <Plus size={24}/>}</span></span><span>{user ? "Tambah cerita" : "Mulai cerita"}</span></button>
-      <button type="button" className="story-add story-prompt" onClick={startStory}><span className="story-add-avatar"><span><Sparkles size={22}/></span></span><span>Suasana warkop</span></button>
-      <button type="button" className="story-add story-prompt" onClick={() => { setTopic("Ngopi Bareng"); setSearch(""); setNotice("Menampilkan obrolan ngopi bareng."); }}><span className="story-add-avatar"><span>☕</span></span><span>Ngopi bareng</span></button>
-    </div>
-    <WarkopStories posts={visiblePosts} status={postsStatus} onStart={startStory} onOpen={() => { if (onOpenDiscussion) onOpenDiscussion(); else document.getElementById('community-feed')?.scrollIntoView({ behavior: 'smooth' }); }}/>
     {!readOnly && user && !nudgeDismissed && postsStatus === "ready" && !visiblePosts.some(post => post.authorId === user.uid || post.userId === user.uid) && <div className="composer-nudge"><span><b>Psst, coba sapa warga dulu yuk?</b><br/>Satu sapaan kecil bisa membuka obrolan seru.</span><div><button type="button" onClick={() => { setComposerOpen(true); dismissNudge(); }}>Mulai ngobrol</button><button type="button" className="nudge-dismiss" aria-label="Tutup saran" onClick={dismissNudge}>Nanti</button></div></div>}
     {!firebaseConfigured && <p className="config-warning" role="status">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
     <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}…`} aria-label={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}`}/></label></div>

@@ -26,6 +26,9 @@ For any write-capable media gateway, the required identity contract is:
 6. Firebase Admin Node SDK source confirms the exact revocation comparison: convert `auth_time` seconds to milliseconds, convert `tokensValidAfterTime` to milliseconds, and reject only when `auth_time_ms < validSince_ms`. Equality is accepted. The SDK checks disabled status before the revocation comparison.
 7. A pure helper and Deno unit tests now cover this boundary. They do not yet prove the REST response handling, API-key restrictions, live disabled-account behavior, or behavior during Firebase outages. This remains proof-of-concept groundwork, not an approved production verifier.
 
+
+A pure response validator has now been added in `account-lookup.ts`. It accepts only an object containing exactly one user, requires `localId` to match the already-verified JWT UID, requires `disabled === false`, and applies the strict `auth_time < validSince` revocation check. It returns only the verified UID and throws on unknown or malformed status. Deno tests cover enabled/disabled/unknown status, UID mismatch, zero or multiple users, malformed timestamps, revoked tokens, and invalid input. These are mocked payload tests only; no HTTP request or live Firebase account lookup is performed.
+
 ## Runtime options to evaluate
 
 ### Option A — Deno + Firebase Auth REST lookup (preferred isolated POC)

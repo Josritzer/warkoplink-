@@ -81,6 +81,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     if (facilityList.length > 20) return setFormError('Maksimal 20 fasilitas.');
     setSaving(true);
     setFormError('');
+    const photoCount = selectedPhotos.length;
+    let registrationCreated = false;
     try {
       const warungRef = await addDoc(collection(db, 'warungs'), {
         name: cleanName,
@@ -98,7 +100,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-      if (selectedPhotos.length) {
+      registrationCreated = true;
+      if (photoCount) {
         const photoUrls = await Promise.all(selectedPhotos.map(async (file, index) => {
           const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
           const photoRef = storageRef(storage, `warungPhotos/${warungRef.id}/${Date.now()}-${index}.${extension}`);
@@ -115,11 +118,13 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setFacilities('');
       setPriceRange('belum-diisi');
       setHours('');
-      onNotice(selectedPhotos.length ? 'Pendaftaran dan foto warkop terkirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi dan belum tampil di direktori publik.');
+      onNotice(photoCount ? 'Pendaftaran dan foto warkop terkirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi dan belum tampil di direktori publik.');
     } catch (error) {
-      setFormError(error?.code === 'permission-denied'
-        ? 'Pendaftaran ditolak oleh aturan keamanan. Pastikan Anda sudah masuk dan coba lagi.'
-        : 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
+      setFormError(registrationCreated
+        ? 'Data pendaftaran sudah tersimpan, tetapi unggah foto belum selesai. Hubungi admin agar foto dapat dilengkapi.'
+        : error?.code === 'permission-denied'
+          ? 'Pendaftaran ditolak oleh aturan keamanan. Pastikan Anda sudah masuk dan coba lagi.'
+          : 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
     } finally {
       setSaving(false);
     }

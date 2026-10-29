@@ -1,0 +1,76 @@
+# Supabase Storage gateway — implementation plan
+
+## Scope and non-goals
+
+This plan prepares image storage without changing the live WarkopLink app. Firebase Authentication remains the identity provider. Firebase Auth, Firestore profiles/posts/chat, existing Firebase Storage objects, and current public hosting remain untouched.
+
+This document does not create a bucket, deploy a function, change database policies, migrate files, or enable uploads.
+
+## Proposed first release
+
+Support only:
+- Profile avatar: one image per user.
+- Warkop gallery: up to five images per registered warkop.
+- Event poster: one poster, with an optional supporting image if product requirements confirm it.
+
+Allowed formats: JPEG, PNG, WebP. Maximum upload size: 2 MiB per image. No SVG, HTML, animated formats, or video. Images should be decoded and re-encoded server-side (or by a trusted image-processing service) to an approved raster format, with EXIF metadata stripped.
+
+Firestore should retain only the resulting public URL/object path and minimal image metadata. Do not store base64/data URLs in Firestore.
+
+## Storage layout
+
+Use one bucket initially, with logical prefixes:
+- `profiles/{firebaseUid}/{objectId}.webp`
+- `warkops/{warkopId}/{objectId}.webp`
+- `events/{eventId}/{objectId}.webp`
+
+Object IDs must be server-generated UUIDs; never accept a client-chosen object path as authority.
+
+A warkop or event upload must verify the caller's actual role/ownership against trusted application data. Matching a UID embedded in a path is not sufficient authorization.
+
+## Access model
+
+- Public read is acceptable only for images intentionally published as public profile, warkop, or event content. Anyone with the public URL can view them.
+- Browser clients must not receive the Supabase service-role key.
+- Do not enable direct browser writes using the current token-probe function.
+- Upload, replace, and delete must go through a server-side gateway that validates the Firebase identity and authorizes the specific resource action.
+- Keep private or sensitive media out of this public bucket; use a separate private design and signed access if that requirement appears.
+
+## Mandatory security gates before any write endpoint
+
+The existing `firebase-auth-check` function verifies Firebase JWT signature, issuer, audience, algorithm, and time claims. It does **not** check refresh-token revocation or disabled-account status. It is an identity probe, not a complete authorization layer.
+
+Before using Firebase tokens to authorize Storage mutations:
+1. Add revocation-aware Firebase Admin verification, including disabled-account handling, through a trusted server-side mechanism. Do not accept client-supplied UID/role claims as proof.
+2. Define and verify roles for profile ownership, warkop administrators, and event organizers using trusted records.
+3. Validate request size before buffering; enforce 2 MiB server-side.
+4. Allowlist MIME types and inspect file signatures/decoded content; do not trust the request Content-Type or filename.
+5. Re-encode images, strip EXIF, generate server-controlled object names, and reject malformed/decompression-bomb inputs.
+6. Add per-user/resource rate limits and quotas, safe replacement semantics, and cleanup for abandoned uploads.
+7. Ensure CORS is restricted to the actual production origin plus explicitly needed development origins.
+8. Add tests for unauthorized users, cross-resource access, disabled/revoked accounts, oversized files, MIME spoofing, malformed images, and delete/replace ownership.
+
+If any gate is missing, keep writes disabled.
+
+## Migration and compatibility
+
+- Existing Firebase Storage image URLs remain valid and continue rendering.
+- Do not bulk-copy or delete existing files automatically.
+- New UI should tolerate both legacy Firebase URLs and new Supabase public URLs during a separately approved transition.
+- Migrate only after backup, inventory, ownership mapping, and an explicit owner approval.
+
+## Rollout sequence
+
+1. Review and approve this design.
+2. Implement revocation-aware identity and resource authorization.
+3. Implement a narrow upload/delete gateway with the validation above.
+4. Run automated tests and a real test-account integration test.
+5. Create the bucket and apply the reviewed access configuration.
+6. Enable one image category behind a feature flag and verify it in staging.
+7. Obtain explicit approval before production rollout or migration.
+
+## Cost and production guardrails
+
+Use the existing Supabase Free project only while its current quotas are sufficient. Do not enable Firebase Blaze, paid Supabase features, billing, or other paid services without explicit approval. Monitor storage size, bandwidth, and function invocations before expanding usage.
+
+No production change is authorized by this plan.

@@ -12,6 +12,20 @@ const REACTION_FIELDS = {
 const EMPTY_REACTIONS = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
 const POST_CATEGORY_CLASS = { 'Ngopi Bareng': 'ngopi', 'Tanya Warkop': 'tanya', 'Info & Acara': 'info', 'Loker': 'loker', 'Jual Beli & Jasa Lokal': 'jual-beli' };
 
+function fallbackAvatarUrl(post) {
+  const seed = String(post?.authorId || post?.authorName || 'warkoplink')
+    .split('')
+    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return `https://i.pravatar.cc/150?img=${(seed % 70) + 1}`;
+}
+
+function normalizedWhatsAppNumber(value) {
+  let digits = String(value || '').replace(/\D/g, '');
+  if (digits.startsWith('0')) digits = `62${digits.slice(1)}`;
+  if (digits.length < 9 || digits.length > 15) return '';
+  return digits;
+}
+
 function renderWarungMentions(body, warungs = [], onOpenWarung) {
   const text = String(body || '');
   const lower = text.toLocaleLowerCase('id-ID');
@@ -61,6 +75,10 @@ export default function ChatPostCard({
   const [menuPosition, setMenuPosition] = useState(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const [moreEmojisOpen, setMoreEmojisOpen] = useState(false);
+  const [rsvped, setRsvped] = useState(() => {
+    try { return JSON.parse(window.localStorage.getItem('warkoplink:event-rsvp:v1') || '[]').includes(post.id); }
+    catch { return false; }
+  });
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(post.body || '');
   const [editTopic, setEditTopic] = useState(displayTopic(post.topic));
@@ -105,7 +123,7 @@ export default function ChatPostCard({
 
   return <>
   <article id={`post-${post.id}`} className={`post-card post-card-category post-category-${POST_CATEGORY_CLASS[category] || 'ngopi'}`} key={post.id}>
-    <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : String(post.authorName || 'A').slice(0, 1).toUpperCase()}</div>
+    <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : <img src={fallbackAvatarUrl(post)} alt="" loading="lazy" referrerPolicy="no-referrer" />}</div>
     <div className="post-content">
       <div className="post-head">
         <div className="post-meta">
@@ -189,6 +207,22 @@ export default function ChatPostCard({
           <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
         </div>
       </div>
+      {category === 'Info & Acara' && <div className="event-action-row">
+        <button className="button button-quiet" type="button" aria-pressed={rsvped} onClick={() => {
+          const next = !rsvped;
+          setRsvped(next);
+          try {
+            const saved = JSON.parse(window.localStorage.getItem('warkoplink:event-rsvp:v1') || '[]');
+            const ids = new Set(Array.isArray(saved) ? saved : []);
+            if (next) ids.add(post.id); else ids.delete(post.id);
+            window.localStorage.setItem('warkoplink:event-rsvp:v1', JSON.stringify([...ids]));
+          } catch {}
+          setNotice(next ? 'Kehadiran acara disimpan di perangkat ini.' : 'Kehadiran acara dibatalkan.');
+        }}>{rsvped ? '✓ Saya ikut' : 'Ikut acara'}</button>
+      </div>}
+      {category === 'Jual Beli & Jasa Lokal' && normalizedWhatsAppNumber(post.contact) && <div className="event-action-row">
+        <a className="button button-dark" href={`https://wa.me/${normalizedWhatsAppNumber(post.contact)}`} target="_blank" rel="noopener noreferrer" aria-label="Hubungi penjual melalui WhatsApp">Chat WhatsApp</a>
+      </div>}
       {reportingPostId === post.id && <form className="report-form" onSubmit={event => handleReportPost(event, post)}><label>Alasan laporan<select aria-label="Alasan laporan" value={reportReason} onChange={event => setReportReason(event.target.value)}><option>Spam atau promosi berulang</option><option>Pelecehan atau ujaran kebencian</option><option>Informasi berbahaya atau menyesatkan</option><option>Lainnya</option></select></label><div className="report-form-actions"><button className="button button-dark" type="submit" disabled={reporting}>{reporting ? 'Mengirim laporan…' : 'Kirim laporan'}</button><button className="button button-quiet" type="button" onClick={() => setReportingPostId('')} disabled={reporting}>Batal</button></div></form>}
       {deleteConfirmId === post.id && <div className="delete-confirm" role="group" aria-label="Konfirmasi hapus obrolan"><p>Hapus obrolan ini secara permanen?</p><div className="report-form-actions"><button className="button button-reject" type="button" onClick={() => handleDeletePost(post)} disabled={deletingPostId === post.id}>{deletingPostId === post.id ? 'Menghapus…' : 'Ya, hapus'}</button><button className="button button-quiet" type="button" onClick={() => setDeleteConfirmId('')} disabled={deletingPostId === post.id}>Batal</button></div></div>}
     </div>

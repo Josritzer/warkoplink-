@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { MessageCircle, Send } from 'lucide-react';
+import { Compass, MessageCircle, Plus, Send, Sparkles } from 'lucide-react';
 import { FILTER_TOPICS, MAX_POST_LENGTH, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
 import ChatPostCard from './ChatPostCard.jsx';
 
 // Komposisi UI panel; sumber data dan aksi tetap dari App agar alur reaksi/komentar tidak berubah.
 export default function ChatPanel(props) {
   const {
-    user, firebaseConfigured, search, setSearch, topic, setTopic, composerTopic, setComposerTopic, composerOpen, setComposerOpen, readOnly = false, onOpenDiscussion,
+    user, firebaseConfigured, search, setSearch, topic, setTopic, composerTopic, setComposerTopic, composerOpen, setComposerOpen, readOnly = false, onOpenDiscussion, onOpenDirectory,
     openAuth, setNotice, draft, setDraft, activeCategory, handlePost, posting,
     postsStatus, setPostsRetry, visiblePosts, cardProps, hasMorePosts, loadingMorePosts, loadMoreError, onLoadMorePosts, verifiedWarungs = []
   } = props;
@@ -16,6 +16,9 @@ export default function ChatPanel(props) {
   const [price, setPrice] = useState('');
   const [workType, setWorkType] = useState('');
   const [contact, setContact] = useState('');
+  const [nudgeDismissed, setNudgeDismissed] = useState(() => { try { return window.localStorage.getItem('warkoplink:composer-nudge-dismissed:v1') === '1'; } catch { return false; } });
+  const startStory = () => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi cerita.'); return; } setComposerTopic('Ngopi Bareng'); setPostType(POST_SUBTYPES['Ngopi Bareng']?.[0] || ''); setTopic('Semua'); if (onOpenDiscussion) onOpenDiscussion(); else setComposerOpen(true); setNotice('Ceritakan suasana warkop hari ini di obrolan komunitas.'); };
+  const dismissNudge = () => { setNudgeDismissed(true); try { window.localStorage.setItem('warkoplink:composer-nudge-dismissed:v1', '1'); } catch {} };
   const mentionMatch = draft.match(/(?:^|\s)@([^@]*)$/);
   const mentionQuery = mentionMatch?.[1]?.trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID') || '';
   const mentionSuggestions = mentionMatch
@@ -29,6 +32,12 @@ export default function ChatPanel(props) {
 
   return <section className="content-section" id="community-feed">
     <div className="section-heading"><div><span className="eyebrow">RUANG BERSAMA</span><h2>Obrolan komunitas</h2><p>Satu percakapan bisa jadi awal dari hal baik.</p></div><span className={user ? 'status-pill status-authenticated' : 'status-pill status-public'} role="status" aria-live="polite">{user ? 'Masuk sebagai ' + (user.displayName || user.email) : 'Baca obrolan publik'}</span></div>
+    <div className="community-story-strip" aria-label="Cerita komunitas">
+      <button type="button" className="story-add" onClick={startStory} aria-label="Tambah cerita atau mulai obrolan"><span className="story-add-avatar"><span>{user?.photoURL ? <img src={user.photoURL} alt="" /> : <Plus size={24}/>}</span></span><span>{user ? "Tambah cerita" : "Mulai cerita"}</span></button>
+      <button type="button" className="story-add story-prompt" onClick={startStory}><span className="story-add-avatar"><span><Sparkles size={22}/></span></span><span>Suasana warkop</span></button>
+      <button type="button" className="story-add story-prompt" onClick={() => { setTopic("Ngopi Bareng"); setSearch(""); setNotice("Menampilkan obrolan ngopi bareng."); }}><span className="story-add-avatar"><span>☕</span></span><span>Ngopi bareng</span></button>
+    </div>
+    {!readOnly && user && !nudgeDismissed && postsStatus === "ready" && !visiblePosts.some(post => post.authorId === user.uid || post.userId === user.uid) && <div className="composer-nudge"><span><b>Psst, coba sapa warga dulu yuk?</b><br/>Satu sapaan kecil bisa membuka obrolan seru.</span><div><button type="button" onClick={() => { setComposerOpen(true); dismissNudge(); }}>Mulai ngobrol</button><button type="button" className="nudge-dismiss" aria-label="Tutup saran" onClick={dismissNudge}>Nanti</button></div></div>}
     {!firebaseConfigured && <p className="config-warning" role="status">Firebase belum tersambung. Kode integrasi siap; konfigurasi proyek diperlukan untuk mengaktifkan akun dan database.</p>}
     <div className="feed-tools"><label className="search"><span>⌕</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}…`} aria-label={`Cari di ${topic === 'Semua' ? 'semua obrolan' : topic}`}/></label></div>
     <div className="topic-scroll-wrap"><div className="topic-list" aria-label="Kategori obrolan">{FILTER_TOPICS.map(name => <button key={name} type="button" onClick={() => setTopic(name)} aria-pressed={topic === name} className={topic === name ? 'topic selected' : 'topic'}>{name}</button>)}</div><span className="topic-scroll-hint" aria-hidden="true">›</span></div>
@@ -65,7 +74,7 @@ export default function ChatPanel(props) {
       {postsStatus === 'loading' && <div className="empty-state" role="status"><h3>Memuat obrolan…</h3><p>Mohon tunggu sebentar.</p></div>}
       {postsStatus === 'error' && <div className="empty-state" role="alert"><h3>Obrolan belum dapat dimuat</h3><p>Periksa koneksi internet Anda lalu coba lagi.</p><button className="button button-dark" type="button" onClick={() => setPostsRetry(n => n + 1)}>Coba lagi</button></div>}
       {postsStatus === 'ready' && visiblePosts.map(post => <ChatPostCard key={post.id} post={post} {...cardProps}/>)}
-      {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state" role="status"><span><MessageCircle size={24}/></span><h3>{search ? 'Belum ada hasil pencarian' : topic !== 'Semua' ? 'Belum ada obrolan di topik ini' : 'Belum ada obrolan'}</h3><p>{search ? 'Coba kata kunci yang berbeda.' : 'Jadilah yang pertama memulai obrolan komunitas.'}</p></div>}
+      {postsStatus === 'ready' && visiblePosts.length === 0 && <div className="empty-state empty-state-community" role="status"><svg className="empty-illustration" viewBox="0 0 120 96" role="img" aria-label="Ilustrasi cangkir kopi dan percakapan"><path d="M24 34h57v34a15 15 0 0 1-15 15H39a15 15 0 0 1-15-15z" fill="currentColor" opacity=".16"/><path d="M81 42h8a12 12 0 0 1 0 24h-8" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round"/><path d="M35 24c-7-8 5-10 0-18M53 24c-7-8 5-10 0-18M70 24c-7-8 5-10 0-18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/><path d="M14 84h85" stroke="currentColor" strokeWidth="4" strokeLinecap="round" opacity=".4"/><path d="M76 10h25a9 9 0 0 1 9 9v8a9 9 0 0 1-9 9H88l-9 8v-8h-3" fill="#f3a33b" opacity=".85"/></svg><h3>{search ? "Belum ada hasil pencarian" : topic !== "Semua" ? "Belum ada obrolan di topik ini" : "Belum ada obrolan"}</h3><p>{search ? "Coba kata kunci yang berbeda." : "Warkop masih sepi, yuk mulai duluan. Temukan tempat ngopi atau sapa warga sekitar untuk memulai percakapan."}</p><div className="event-action-row"><button type="button" className="button button-dark" onClick={startStory}><Plus size={16}/> Mulai obrolan</button><button type="button" className="button button-quiet" onClick={() => onOpenDirectory?.()}><Compass size={16}/> Cari warkop</button></div></div>}
     </div>
     {postsStatus === 'ready' && hasMorePosts && <div className="feed-pagination">
       {loadMoreError && <p className="form-error" role="alert">{loadMoreError}</p>}

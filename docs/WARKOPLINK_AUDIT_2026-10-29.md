@@ -45,6 +45,12 @@ The public Firestore REST read returned these records. The records had no explic
 - PWA: `public/manifest.webmanifest` and `public/sw.js` exist. The install prompt and installation UI still require browser/device verification.
 - No production record was modified during this audit.
 
+## SEO / discoverability
+
+- The live page exposes a descriptive title, description, language, viewport, theme color, and basic Open Graph site/title/description metadata.
+- `index.html` has no canonical URL, Open Graph image, `robots.txt`, or sitemap at this audit point.
+- Warung profiles are currently encoded as a query parameter (`?warung=...`) inside the SPA, while the HTML head is static. Do not add a single static canonical URL that would incorrectly canonicalize every profile to the home page. Route-specific metadata and crawlable profile URLs need a separately designed SEO implementation (ideally server-rendered/prerendered profile pages or equivalent), plus a real sitemap generated from verified public records. No fake profile URLs or sitemap entries were added.
+
 ## Verification limits
 
 The repository CI is the source for automated tests/build. This environment could read the public rendered page and public Firestore REST records, but its metered interactive browser runner did not start because the TinyFish wallet balance is below zero. Therefore, screenshots/computed layout at each requested viewport, keyboard/contrast checks, console/network checks, and Lighthouse/Core Web Vitals measurements are still pending an actual browser session. No performance numbers are inferred.

@@ -261,6 +261,7 @@ export default function ChatPostCard({
         <label>Kontak (HTTPS atau @akun)<input aria-label="Edit kontak" value={editContact} onChange={event => setEditContact(event.target.value)} maxLength={240}/></label>
         <div className="report-form-actions"><button className="button button-dark" type="submit">Simpan perubahan</button><button className="button button-quiet" type="button" onClick={() => setEditing(false)}>Batal</button></div>
       </form> : <p>{renderWarungMentions(post.body, verifiedWarungs, onOpenWarung)}</p>}
+      {!editing && post.eventPhotoURL && <div className="event-post-image"><img src={post.eventPhotoURL} alt={`Poster acara ${post.eventKind || 'warkop'}`} loading="lazy" /></div>}
       {!editing && metaItems.length > 0 && <div className="post-detail-row" aria-label="Detail posting">
         {metaItems.map(item => <span key={item.label}><span aria-hidden="true">{item.icon}</span>{item.label}</span>)}
       </div>}

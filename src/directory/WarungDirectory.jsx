@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, updateDoc, where } from 'firebase/firestore';
+import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
+import { storage } from '../firebase.js';
+import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock } from 'lucide-react';
 import { ACTIVITY_OPTIONS, collectFacilities, filterWarungs, isOpenNow } from './directoryFilters.js';
 
@@ -23,6 +26,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [facilities, setFacilities] = useState('');
   const [priceRange, setPriceRange] = useState('belum-diisi');
   const [hours, setHours] = useState('');
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -70,12 +74,15 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
       return setFormError('Masukkan koordinat lintang (-90 sampai 90) dan bujur (-180 sampai 180) yang valid.');
     }
+    const photoError = validateImageFiles(selectedPhotos, { maxFiles: MAX_WARUNG_PHOTOS });
+    if (photoError) return setFormError(photoError);
+    if (selectedPhotos.length && !storage) return setFormError('Penyimpanan foto belum aktif. Pendaftaran tanpa foto masih dapat dilakukan.');
     const facilityList = [...new Set(facilities.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))];
     if (facilityList.length > 20) return setFormError('Maksimal 20 fasilitas.');
     setSaving(true);
     setFormError('');
     try {
-      await addDoc(collection(db, 'warungs'), {
+      const warungRef = await addDoc(collection(db, 'warungs'), {
         name: cleanName,
         nameNormalized: cleanName.toLowerCase(),
         ownerUid: user.uid,
@@ -91,6 +98,16 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+      if (selectedPhotos.length) {
+        const photoUrls = await Promise.all(selectedPhotos.map(async (file, index) => {
+          const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+          const photoRef = storageRef(storage, `warungPhotos/${warungRef.id}/${Date.now()}-${index}.${extension}`);
+          await uploadBytes(photoRef, file, { contentType: file.type });
+          return getDownloadURL(photoRef);
+        }));
+        await updateDoc(doc(db, 'warungs', warungRef.id), { photos: photoUrls, updatedAt: serverTimestamp() });
+      }
+      setSelectedPhotos([]);
       setName('');
       setAddress('');
       setLat('');
@@ -98,7 +115,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setFacilities('');
       setPriceRange('belum-diisi');
       setHours('');
-      onNotice('Pendaftaran terkirim. Warkop menunggu verifikasi dan belum tampil di direktori publik.');
+      onNotice(selectedPhotos.length ? 'Pendaftaran dan foto warkop terkirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi dan belum tampil di direktori publik.');
     } catch (error) {
       setFormError(error?.code === 'permission-denied'
         ? 'Pendaftaran ditolak oleh aturan keamanan. Pastikan Anda sudah masuk dan coba lagi.'
@@ -152,6 +169,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
           <label>Lintang (latitude)<input inputMode="decimal" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="-7.0001"/></label>
           <label>Bujur (longitude)<input inputMode="decimal" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="112.2810"/></label>
         </div>
+        <label>Foto warkop (maksimal 5, JPG/PNG/WebP, 2 MB per foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files, { maxFiles: MAX_WARUNG_PHOTOS }); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
+        {selectedPhotos.length > 0 && <p className="form-hint">{selectedPhotos.length} foto dipilih: {selectedPhotos.map((file) => file.name).join(', ')}</p>}
         <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
         <label>Kisaran harga<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Belum diisi</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select></label>
         <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>

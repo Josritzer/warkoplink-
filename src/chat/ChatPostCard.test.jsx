@@ -7,7 +7,7 @@ afterEach(() => cleanup());
 function props(overrides = {}) {
   const post = { id: 'post-1', authorId: 'user-1', authorName: 'Anggota', body: 'Tes obrolan', topic: 'Obrolan Umum', createdAt: null };
   return {
-    post, user: { uid: 'user-1' }, relativePostTime: () => 'baru saja',
+    post, user: { uid: 'user-1' }, relativePostTime: () => 'baru saja', verifiedWarungs: [], onOpenWarung: vi.fn(),
     openPostMenuId: '', setOpenPostMenuId: vi.fn(), openAuth: vi.fn(), setNotice: vi.fn(),
     reportingPostId: '', setReportingPostId: vi.fn(), reportReason: 'Spam atau promosi berulang',
     setReportReason: vi.fn(), sharePost: vi.fn(), postReactions: {}, handleReactPost: vi.fn(),
@@ -19,6 +19,18 @@ function props(overrides = {}) {
 }
 
 describe('ChatPostCard', () => {
+  it('links only exact mentions of verified warkops to their permanent profile route', () => {
+    const values = props({
+      post: { ...props().post, body: 'Ngopi yuk @Warkop Pojok! Bukan @Warkop Lain.' },
+      verifiedWarungs: [{ id: 'pojok-123', name: 'Warkop Pojok', nameNormalized: 'warkop pojok' }]
+    });
+    render(<ChatPostCard {...values} />);
+    const mention = screen.getByRole('link', { name: '@Warkop Pojok' });
+    expect(mention.getAttribute('href')).toBe('?warung=pojok-123');
+    expect(screen.queryByRole('link', { name: '@Warkop Lain' })).toBeNull();
+    fireEvent.click(mention);
+    expect(values.onOpenWarung).toHaveBeenCalledWith('pojok-123');
+  });
   it('renders category labels and structured posting details', () => {
     const values = props({ post: { ...props().post, topic: 'Loker', postType: 'Paruh waktu / shift', location: 'Maduran', workType: 'Shift malam', price: 'Rp50.000' } });
     const { container } = render(<ChatPostCard {...values} />);

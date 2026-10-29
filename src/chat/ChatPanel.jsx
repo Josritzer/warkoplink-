@@ -8,7 +8,7 @@ export default function ChatPanel(props) {
   const {
     user, firebaseConfigured, search, setSearch, topic, setTopic, composerTopic, setComposerTopic, composerOpen, setComposerOpen, readOnly = false, onOpenDiscussion,
     openAuth, setNotice, draft, setDraft, activeCategory, handlePost, posting,
-    postsStatus, setPostsRetry, visiblePosts, cardProps, hasMorePosts, loadingMorePosts, loadMoreError, onLoadMorePosts
+    postsStatus, setPostsRetry, visiblePosts, cardProps, hasMorePosts, loadingMorePosts, loadMoreError, onLoadMorePosts, verifiedWarungs = []
   } = props;
   const [postType, setPostType] = useState(POST_SUBTYPES[composerTopic]?.[0] || '');
   const [location, setLocation] = useState('');
@@ -16,6 +16,11 @@ export default function ChatPanel(props) {
   const [price, setPrice] = useState('');
   const [workType, setWorkType] = useState('');
   const [contact, setContact] = useState('');
+  const mentionMatch = draft.match(/@([^\s@]*)$/);
+  const mentionQuery = mentionMatch?.[1]?.toLocaleLowerCase('id-ID') || '';
+  const mentionSuggestions = mentionMatch
+    ? verifiedWarungs.filter(warung => String(warung.nameNormalized || warung.name || '').toLocaleLowerCase('id-ID').startsWith(mentionQuery)).slice(0, 5)
+    : [];
   const category = composerTopic || POST_TOPICS[0];
   const showDate = category === 'Info & Acara' || category === 'Ngopi Bareng';
   const showPrice = category === 'Jual Beli & Jasa Lokal';
@@ -41,7 +46,13 @@ export default function ChatPanel(props) {
             {(POST_SUBTYPES[category] || []).map(item => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
-        <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={event => setDraft(event.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ceritakan hal yang ingin dibagikan…" rows={3} aria-describedby="composer-character-count"/>
+        <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={event => setDraft(event.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ceritakan hal yang ingin dibagikan… Gunakan @ untuk menyebut warkop" rows={3} aria-describedby="composer-character-count"/>
+        {mentionSuggestions.length > 0 && <div className="mention-suggestions" role="listbox" aria-label="Warkop terverifikasi">
+          <small>Sebut warkop terverifikasi</small>
+          {mentionSuggestions.map(warung => <button key={warung.id} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/@([^\s@]*)$/, `@${warung.name} `))}>
+            <span className="mention-suggestion-mark">@</span><span><b>{warung.name}</b><small>{warung.address || 'Profil warkop terverifikasi'}</small></span>
+          </button>)}
+        </div>}
         {['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal'].includes(category) && <label className="composer-field">Area / lokasi (opsional)<input value={location} onChange={event => setLocation(event.target.value)} maxLength={160} placeholder="Desa, kecamatan, atau nama warkop"/></label>}
         {showDate && <label className="composer-field">Waktu / tanggal (opsional)<input value={eventDate} onChange={event => setEventDate(event.target.value)} maxLength={40} placeholder="Contoh: Sabtu, 19.00 WIB"/></label>}
         {showPrice && <label className="composer-field">Harga (opsional)<input value={price} onChange={event => setPrice(event.target.value)} maxLength={60} placeholder="Contoh: Rp50.000, bisa nego"/></label>}

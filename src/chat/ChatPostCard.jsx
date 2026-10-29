@@ -11,9 +11,41 @@ const REACTION_FIELDS = {
 };
 const EMPTY_REACTIONS = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
 const POST_CATEGORY_CLASS = { 'Ngopi Bareng': 'ngopi', 'Tanya Warkop': 'tanya', 'Info & Acara': 'info', 'Loker': 'loker', 'Jual Beli & Jasa Lokal': 'jual-beli' };
+
+function renderWarungMentions(body, warungs = [], onOpenWarung) {
+  const text = String(body || '');
+  const lower = text.toLocaleLowerCase('id-ID');
+  const candidates = [];
+  for (const warung of warungs) {
+    if (!warung?.id || !warung?.name) continue;
+    const token = `@${warung.name}`;
+    const needle = token.toLocaleLowerCase('id-ID');
+    let from = 0;
+    while (from < lower.length) {
+      const start = lower.indexOf(needle, from);
+      if (start < 0) break;
+      const end = start + token.length;
+      const before = start === 0 ? '' : text[start - 1];
+      const after = end >= text.length ? '' : text[end];
+      if ((!before || !/[A-Za-z0-9_]/.test(before)) && (!after || !/[A-Za-z0-9_]/.test(after))) candidates.push({ start, end, warung });
+      from = start + token.length;
+    }
+  }
+  candidates.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+  const parts = [];
+  let cursor = 0;
+  for (const match of candidates) {
+    if (match.start < cursor) continue;
+    if (match.start > cursor) parts.push(text.slice(cursor, match.start));
+    parts.push(<a key={`warung-${match.warung.id}-${match.start}`} className="warung-mention" href={`?warung=${encodeURIComponent(match.warung.id)}`} onClick={event => { if (onOpenWarung) { event.preventDefault(); onOpenWarung(match.warung.id); } }}>@{text.slice(match.start + 1, match.end)}</a>);
+    cursor = match.end;
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return parts.length ? parts : text;
+}
 // Tampilan satu status; state dan operasi tetap dimiliki App agar data tersinkron antarpengguna.
 export default function ChatPostCard({
-  post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
+  post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs = [], onOpenWarung,
   reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, postReactions,
   reactionSummaries, handleReactPost, likeCounts, replyCounts, likedPosts,
   openReplyPage,
@@ -112,7 +144,7 @@ export default function ChatPostCard({
         <label>Tipe kerja<input aria-label="Edit tipe kerja" value={editWorkType} onChange={event => setEditWorkType(event.target.value)} maxLength={60}/></label>
         <label>Kontak (HTTPS atau @akun)<input aria-label="Edit kontak" value={editContact} onChange={event => setEditContact(event.target.value)} maxLength={240}/></label>
         <div className="report-form-actions"><button className="button button-dark" type="submit">Simpan perubahan</button><button className="button button-quiet" type="button" onClick={() => setEditing(false)}>Batal</button></div>
-      </form> : <p>{post.body}</p>}
+      </form> : <p>{renderWarungMentions(post.body, verifiedWarungs, onOpenWarung)}</p>}
       {!editing && metaItems.length > 0 && <div className="post-detail-row" aria-label="Detail posting">
         {metaItems.map(item => <span key={item.label}><span aria-hidden="true">{item.icon}</span>{item.label}</span>)}
       </div>}

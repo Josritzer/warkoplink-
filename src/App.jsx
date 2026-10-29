@@ -44,6 +44,7 @@ function readCachedPosts() {
 export default function App() {
   const [section, setSection] = useState(() => new URLSearchParams(window.location.search).get('warung') ? 'Profil Warkop' : 'Beranda');
   const [selectedWarungId, setSelectedWarungId] = useState(() => new URLSearchParams(window.location.search).get('warung') || '');
+  const [verifiedWarungs, setVerifiedWarungs] = useState([]);
   const [topic, setTopic] = useState('Semua');
   const [composerTopic, setComposerTopic] = useState('Ngopi Bareng');
   const [composerOpen, setComposerOpen] = useState(false);
@@ -93,6 +94,16 @@ export default function App() {
   const [reportReason, setReportReason] = useState('Spam atau promosi berulang');
   const [reporting, setReporting] = useState(false);
   const registering = useRef(false);
+
+  // Daftar mention hanya memuat warkop terverifikasi; posting lama tidak perlu dimigrasi.
+  useEffect(() => {
+    if (!db) { setVerifiedWarungs([]); return undefined; }
+    return onSnapshot(
+      query(collection(db, 'warungs'), where('verificationStatus', '==', 'verified'), orderBy('nameNormalized', 'asc'), limit(100)),
+      snapshot => setVerifiedWarungs(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))),
+      () => setVerifiedWarungs([])
+    );
+  }, []);
 
   // Profil warkop memiliki URL yang bisa dibagikan dan tetap terbuka setelah refresh.
   useEffect(() => {
@@ -768,6 +779,16 @@ export default function App() {
     }
   }
 
+  function openWarungProfile(warungId) {
+    if (!warungId) return;
+    setSelectedWarungId(warungId);
+    const url = new URL(window.location.href);
+    url.searchParams.set('warung', warungId);
+    window.history.pushState({ warungId }, '', url);
+    setSection('Profil Warkop');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
   const visiblePosts = filterPosts(allPosts, topic, search);
   const activeCategory = composerTopic;
 
@@ -828,19 +849,19 @@ export default function App() {
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
       section === 'Profil Warkop' ? <WarungProfile warungId={selectedWarungId} db={db} user={user} onBack={() => setSection('Cari Warkop')} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
-      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={(warungId) => { setSelectedWarungId(warungId); const url = new URL(window.location.href); url.searchParams.set('warung', warungId); window.history.pushState({ warungId }, '', url); setSection('Profil Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
+      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={openWarungProfile}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Cari warkop</button></section> :
       <ChatPanel
         readOnly={section === 'Beranda'} onOpenDiscussion={() => { setSection('Obrolan'); setComposerOpen(true); }}
         user={user} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
         topic={topic} setTopic={setTopic} composerTopic={composerTopic} setComposerTopic={setComposerTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
         openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
-        activeCategory={activeCategory} handlePost={handlePost} posting={posting}
+        activeCategory={activeCategory} handlePost={handlePost} posting={posting} verifiedWarungs={verifiedWarungs}
         postsStatus={postsStatus} setPostsRetry={setPostsRetry}
         visiblePosts={visiblePosts} hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts}
          loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
         cardProps={{
-          user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice,
+          user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs, onOpenWarung: openWarungProfile,
           reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost,
           postReactions, reactionSummaries, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
           handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,

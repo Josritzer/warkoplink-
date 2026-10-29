@@ -79,7 +79,7 @@ describe('ChatPanel homepage layout', () => {
 
     expect(container.querySelector('.community-story-strip')).toBeNull();
     expect(container.querySelector('.warkop-stories')).toBeNull();
-    expect(screen.getByLabelText('Kategori obrolan')).toBeTruthy();
+    expect(screen.getAllByLabelText('Kategori obrolan').length).toBeGreaterThan(0);
     expect(screen.getByText('Beranda · mode baca')).toBeTruthy();
   });
 });

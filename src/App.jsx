@@ -415,8 +415,13 @@ export default function App() {
     if (!bodyCheck.ok) { setNotice(bodyCheck.error); return false; }
     const detailsCheck = validatePostDetails(values.topic, values);
     if (!detailsCheck.ok) { setNotice(detailsCheck.error); return false; }
+    if (values.topic === 'Info & Acara' && values.eventStartAt && values.eventEndAt
+      && new Date(values.eventEndAt).getTime() <= new Date(values.eventStartAt).getTime()) {
+      setNotice('Waktu selesai harus setelah waktu mulai acara.');
+      return false;
+    }
     try {
-      await updateDoc(doc(db, 'posts', post.id), {
+      const updates = {
         body: bodyCheck.value,
         topic: values.topic,
         postType: String(values.postType || '').trim(),
@@ -425,7 +430,21 @@ export default function App() {
         price: String(values.price || '').trim(),
         workType: String(values.workType || '').trim(),
         contact: String(values.contact || '').trim()
-      });
+      };
+      if (values.topic === 'Info & Acara') {
+        updates.eventStartAt = String(values.eventStartAt || '').trim();
+        updates.eventEndAt = String(values.eventEndAt || '').trim();
+        updates.eventKind = String(values.eventKind || 'Nobar').trim().slice(0, 40);
+        if (String(values.eventCapacity || '').trim()) {
+          const capacity = Number(values.eventCapacity);
+          if (!Number.isInteger(capacity) || capacity < 1 || capacity > 10000) {
+            setNotice('Kapasitas acara harus 1–10.000 orang.');
+            return false;
+          }
+          updates.eventCapacity = capacity;
+        }
+      }
+      await updateDoc(doc(db, 'posts', post.id), updates);
       setNotice('Posting berhasil diperbarui.');
       return true;
     } catch (error) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { addDoc, collection, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
+import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
 import { MapPin, Store, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
 
@@ -33,6 +33,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     const verifiedQuery = query(
       collection(db, 'warungs'),
       where('verificationStatus', '==', 'verified'),
+      orderBy('nameNormalized', 'asc'),
       limit(30)
     );
     return onSnapshot(verifiedQuery, (snapshot) => {
@@ -106,14 +107,19 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       const nextQuery = query(
         collection(db, 'warungs'),
         where('verificationStatus', '==', 'verified'),
+        orderBy('nameNormalized', 'asc'),
         startAfter(lastDocument),
         limit(30)
       );
       const snapshot = await getDocs(nextQuery);
       const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
       setWarungs((current) => {
-        const seen = new Set(current.map((item) => item.id));
-        return [...current, ...nextRows.filter((item) => !seen.has(item.id))];
+        const merged = new Map(current.map((item) => [item.id, item]));
+        nextRows.forEach((item) => { if (!merged.has(item.id)) merged.set(item.id, item); });
+        return [...merged.values()].sort((a, b) =>
+          String(a.nameNormalized || a.name || '').localeCompare(String(b.nameNormalized || b.name || ''), 'id')
+          || a.id.localeCompare(b.id)
+        );
       });
       setLastDocument(snapshot.docs.at(-1) || lastDocument);
       setHasMore(snapshot.docs.length === 30);
@@ -155,7 +161,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>
     <h2>Cari warkop di Lamongan.</h2>
-    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Pencarian memfilter data yang sudah dimuat; muat halaman berikutnya untuk menelusuri lebih banyak hasil.</p>
+    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Hasil diurutkan berdasarkan nama. Pencarian dan filter berlaku pada data yang sudah dimuat; muat halaman berikutnya untuk memperluas hasil.</p>
     <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, fasilitas…" aria-label="Cari warkop"/></label>
     <div className="directory-filters" role="group" aria-label="Filter warkop">
       <label>Kisaran harga<select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)}>{PRICE_FILTER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
@@ -165,6 +171,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
     {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi nanti.</p></div>}
     {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
+    {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
     <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
       <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3>{item.name}</h3><p><MapPin size={14}/>{item.address}</p>
       <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}</div>

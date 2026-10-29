@@ -128,3 +128,15 @@ export function postErrorMessage(error) {
   }
   return 'Pesan belum terkirim. Silakan coba lagi.';
 }
+
+
+// Feed publik hanya menyembunyikan dokumen yang secara eksplisit ditandai non-publik.
+// Isi teks tidak pernah dipakai untuk menebak apakah posting adalah tes.
+export function isPublicPost(post) {
+  if (!post || typeof post !== 'object' || Array.isArray(post)) return false;
+  if (post.isTest === true || post.isDemo === true || post.isFixture === true || post.qa === true) return false;
+  const visibility = String(post.visibility ?? post.publicationStatus ?? '').trim().toLowerCase();
+  if (['draft', 'hidden', 'private', 'test', 'demo', 'staging', 'qa', 'fixture'].includes(visibility)) return false;
+  const environment = String(post.environment ?? post.sourceEnvironment ?? '').trim().toLowerCase();
+  return !['test', 'demo', 'staging', 'qa', 'fixture'].includes(environment);
+}

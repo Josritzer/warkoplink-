@@ -17,7 +17,7 @@ import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Plus, Moon, Sun } from 'lucide-react';
 import {
-  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts,
+  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts, isPublicPost,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
 } from './lib.js';
 
@@ -28,7 +28,7 @@ function readCachedPosts() {
   try {
     const cached = JSON.parse(window.localStorage.getItem(FEED_CACHE_KEY) || '[]');
     if (!Array.isArray(cached)) return [];
-    return cached.slice(0, POSTS_LIMIT).map((post) => ({
+    return cached.filter(isPublicPost).slice(0, POSTS_LIMIT).map((post) => ({
       ...post,
       createdAt: post.createdAt?.seconds != null
         ? Timestamp.fromMillis(post.createdAt.seconds * 1000 + (post.createdAt.nanoseconds || 0) / 1e6)
@@ -216,12 +216,13 @@ export default function App() {
     const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(POSTS_LIMIT));
     return onSnapshot(postsQuery, (snapshot) => {
       const nextPosts = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
-      setPosts(nextPosts);
+      const publicPosts = nextPosts.filter(isPublicPost);
+      setPosts(publicPosts);
       setLastPostDoc(snapshot.docs.at(-1) || null);
       setHasMorePosts(snapshot.docs.length === POSTS_LIMIT);
       setPostsStatus('ready');
       try {
-        window.localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(nextPosts.slice(0, POSTS_LIMIT)));
+        window.localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(publicPosts.slice(0, POSTS_LIMIT)));
       } catch {
         // Cache opsional; feed tetap berjalan jika penyimpanan penuh/nonaktif.
       }
@@ -241,7 +242,7 @@ export default function App() {
     try {
       const nextQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(lastPostDoc), limit(POSTS_LIMIT));
       const snapshot = await getDocs(nextQuery);
-      const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter(isPublicPost);
       setOlderPosts((current) => {
         const seen = new Set([...posts, ...current].map((post) => post.id));
         return [...current, ...nextRows.filter((post) => !seen.has(post.id))];
@@ -834,7 +835,7 @@ export default function App() {
       </a>
       <div className="header-actions">
         <button className="button button-theme-toggle" type="button" onClick={() => setDarkMode(value => !value)} aria-label={darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'} title={darkMode ? 'Mode terang' : 'Mode gelap'}><span className="theme-toggle-icon" aria-hidden="true">{darkMode ? <Sun size={16}/> : <Moon size={16}/>}</span></button>
-        <button className="button button-install" type="button" onClick={handleInstallPwa} aria-label="Pasang aplikasi" title="Pasang aplikasi"><Download size={16}/></button>
+        {(installPrompt || (/iphone|ipad|ipod/i.test(navigator.userAgent) && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios|opios/i.test(navigator.userAgent))) && <button className="button button-install" type="button" onClick={handleInstallPwa} aria-label="Pasang aplikasi" title="Pasang aplikasi"><Download size={16}/></button>}
         {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
           user ? <button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button> :
           <><button className="button button-quiet" onClick={() => openAuth(false)}>Masuk</button><button className="button button-dark" onClick={() => openAuth(true)}>Gabung komunitas</button></>}
@@ -945,7 +946,7 @@ export default function App() {
           <button type="button" className="rail-text-link" onClick={() => setSection('Cari Warkop')}>Jelajahi direktori <ArrowUpRight size={14}/></button>
         </section>
         <section className="rail-panel">
-          <div className="rail-panel-heading"><h2>Kategori aktif</h2><span>DATA</span></div>
+          <div className="rail-panel-heading"><h2>Kategori aktif</h2><span>TOPIK LOKAL</span></div>
           {popularTopics.length ? <div className="rail-topic-list">{popularTopics.map(item => <button type="button" className="rail-topic" key={item.name} onClick={() => { setSection('Obrolan'); setTopic(item.name); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><span><b>{item.name}</b><small>{item.count} obrolan</small></span><ArrowUpRight size={14}/></button>)}</div> : <p className="rail-empty">Kategori akan muncul setelah ada obrolan komunitas.</p>}
         </section>
         <section className="rail-panel rail-recent-panel">

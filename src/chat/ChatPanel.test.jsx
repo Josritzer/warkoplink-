@@ -118,7 +118,8 @@ describe('ChatPanel visual cleanup', () => {
 
     const illustration = container.querySelector('.empty-illustration');
     expect(illustration.querySelector('path:last-child').getAttribute('fill')).toBe('var(--wl-primary)');
-    const startButton = screen.getByRole('button', { name: 'Mulai obrolan' });
+    const startButton = container.querySelector('.empty-state-community .event-action-row .button-dark');
+    expect(startButton.textContent).toContain('Mulai obrolan');
     expect(startButton.querySelector('svg')?.classList.contains('lucide-message-circle')).toBe(true);
   });
 });

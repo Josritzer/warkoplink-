@@ -14,6 +14,7 @@ import ChatPanel from './chat/ChatPanel.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
+import WarungProfile from './directory/WarungProfile.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2 } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, filterPosts,
@@ -42,6 +43,7 @@ function readCachedPosts() {
 
 export default function App() {
   const [section, setSection] = useState('Beranda');
+  const [selectedWarungId, setSelectedWarungId] = useState('');
   const [topic, setTopic] = useState('Semua');
   const [composerTopic, setComposerTopic] = useState('Ngopi Bareng');
   const [composerOpen, setComposerOpen] = useState(false);
@@ -806,7 +808,8 @@ export default function App() {
           <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :
-      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
+      section === 'Profil Warkop' ? <WarungProfile warungId={selectedWarungId} db={db} user={user} onBack={() => setSection('Cari Warkop')} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
+      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={(warungId) => { setSelectedWarungId(warungId); setSection('Profil Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => setSection('Cari Warkop')}>Cari warkop</button></section> :
       <ChatPanel
         readOnly={section === 'Beranda'} onOpenDiscussion={() => { setSection('Obrolan'); setComposerOpen(true); }}

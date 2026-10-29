@@ -9,6 +9,7 @@ import './chat-2026.css';
 import './theme-2026.css';
 import './warkoplink-reference-blend.css';
 import './feed-border-reset.css';
+import './global-menu-divider-reset.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>

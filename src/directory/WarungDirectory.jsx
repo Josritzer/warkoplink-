@@ -36,7 +36,9 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       limit(30)
     );
     return onSnapshot(verifiedQuery, (snapshot) => {
-      setWarungs(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      setWarungs(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).sort((a, b) =>
+        String(a.nameNormalized || a.name || '').localeCompare(String(b.nameNormalized || b.name || ''), 'id') || a.id.localeCompare(b.id)
+      ));
       setLastDocument(snapshot.docs.at(-1) || null);
       setHasMore(snapshot.docs.length === 30);
       setStatus('ready');

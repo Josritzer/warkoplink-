@@ -21,7 +21,9 @@ For any write-capable media gateway, the required identity contract is:
 1. Firebase documents `verifyIdToken(idToken, true)` as the Admin SDK method that checks both disabled-user status and ID-token revocation. The revocation check requires an additional request to Firebase Auth.
 2. Supabase Edge Functions run on a Deno-compatible TypeScript runtime.
 3. The current repository includes `firebase-admin` as a development dependency, but that does not establish that the Admin SDK is supported or operational in Supabase Edge Runtime.
-4. The current CI proves Deno type-checking and unit tests for the JWKS-only probe. It does not prove Firebase Admin SDK compatibility, real token revocation behavior, or disabled-account handling.
+4. The Deno type-check and JWKS-only unit tests pass.
+5. An isolated import/initialization probe for `firebase-admin@13.5.0` failed in GitHub Actions because transitive Node compatibility modules attempted to enumerate/read process environment variables. Allowing one named variable merely exposed a second unrestricted environment access. The probe was removed rather than granting broad environment access to a dependency. This is evidence of friction in the Deno test runtime, not a definitive proof that every Firebase Admin SDK operation is impossible in Supabase Edge Runtime.
+6. No test has established real token revocation behavior or disabled-account handling in Supabase Edge Runtime.
 
 ## Runtime options to evaluate
 
@@ -36,7 +38,7 @@ Keep this option experimental until a minimal isolated proof demonstrates all of
 - Network failures and credential failures fail closed.
 - No private key, ID token, or sensitive claims are logged or returned.
 
-Do not assume Node package compatibility from Deno npm import support alone. If this proof fails or relies on unsupported shims, stop this path.
+Do not assume Node package compatibility from Deno npm import support alone. Do not grant broad environment access just to make a CI import probe pass. If this proof fails or relies on unsupported shims, stop this path.
 
 ### Option B — trusted Node.js runtime
 
@@ -65,12 +67,11 @@ Use a dedicated non-production Firebase test account. Do not revoke or disable a
 
 ## Next implementation sequence
 
-1. Create an isolated compatibility test branch or test harness; do not alter the current read-only probe.
-2. Test Option A in a local Supabase Edge Runtime first, using temporary test credentials that are never committed.
-3. If Option A is unsupported or fails any matrix case, stop and document the failure rather than adding workarounds.
-4. Evaluate Option B's runtime/free-tier and operational cost before implementation.
-5. Only after a proven verifier exists, design resource ownership checks and image validation.
-6. Only after all gates pass, propose a separate avatar-only upload implementation and staging test.
+1. Do not use a plain Deno npm import probe as a substitute for testing the actual Supabase Edge Runtime.
+2. Evaluate Option B's runtime/free-tier and operational cost before implementation; compare against a genuine isolated Option A proof only if it can be run safely without broad permission workarounds.
+3. Keep the current JWKS function read-only while revocation-aware verification is unproven.
+4. Only after a proven verifier exists, design resource ownership checks and image validation.
+5. Only after all gates pass, propose a separate avatar-only upload implementation and staging test.
 
 ## Security and change-control boundaries
 

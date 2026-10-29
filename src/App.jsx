@@ -41,6 +41,17 @@ function readCachedPosts() {
 
 
 
+function versionedPhotoURL(value) {
+  if (!value) return '';
+  try {
+    const url = new URL(value);
+    url.searchParams.set('wl_avatar_v', String(Date.now()));
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
 export default function App() {
   const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('warkoplink:theme') === 'dark');
   const [section, setSection] = useState(() => new URLSearchParams(window.location.search).get('warung') ? 'Profil Warkop' : 'Beranda');
@@ -155,7 +166,7 @@ export default function App() {
       await setDoc(doc(db, 'publicProfiles', currentUser.uid), {
         uid: currentUser.uid,
         displayName: profile.displayName || authorNameFor(currentUser),
-        photoURL: currentUser.photoURL || profile.photoURL || '',
+        photoURL: versionedPhotoURL(currentUser.photoURL || profile.photoURL || ''),
         updatedAt: serverTimestamp()
       }, { merge: true });
       return true;
@@ -355,7 +366,7 @@ export default function App() {
           await setDoc(doc(db, 'publicProfiles', result.user.uid), {
             uid: result.user.uid,
             displayName: nameCheck.value,
-            photoURL: result.user.photoURL || '',
+            photoURL: versionedPhotoURL(result.user.photoURL || ''),
             updatedAt: serverTimestamp()
           });
         } catch (profileError) {
@@ -828,7 +839,7 @@ export default function App() {
       await updateProfile(user, { photoURL });
       await updateDoc(doc(db, 'profiles', user.uid), { photoURL, updatedAt: serverTimestamp() });
       await setDoc(doc(db, 'publicProfiles', user.uid), {
-        uid: user.uid, displayName: user.displayName || authorNameFor(user), photoURL, updatedAt: serverTimestamp()
+        uid: user.uid, displayName: user.displayName || authorNameFor(user), photoURL: versionedPhotoURL(photoURL), updatedAt: serverTimestamp()
       }, { merge: true });
       setUser({ ...auth.currentUser });
       setNotice('Foto profil berhasil diperbarui.');

@@ -163,9 +163,10 @@ describe('halaman publik', () => {
     emitAuth(null);
     act(() => { state.snapshotError(new Error('offline')); });
     expect(await screen.findByText('Obrolan belum dapat dimuat')).toBeTruthy();
-    expect(fs.onSnapshot).toHaveBeenCalledTimes(1);
+    const postFeedSubscriptions = () => fs.onSnapshot.mock.calls.filter(([q]) => (q?.args?.[0]?.path ?? q?.path) === 'posts').length;
+    expect(postFeedSubscriptions()).toBe(1);
     await user.click(screen.getByRole('button', { name: 'Coba lagi' }));
-    expect(fs.onSnapshot).toHaveBeenCalledTimes(2);
+    expect(postFeedSubscriptions()).toBe(2);
   });
 
   it('kategori aktif menentukan kategori posting tanpa dropdown kedua', async () => {

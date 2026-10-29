@@ -76,7 +76,7 @@ describe('ChatPostCard', () => {
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
     expect(screen.queryByLabelText('Ringkasan reaksi')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
-    expect(screen.queryByText('4 suka')).toBeNull();
+    expect(screen.getByText('4 suka')).toBeTruthy();
   });
 
   it('shows Suka / Disukai and delegates the action to the like handler', () => {

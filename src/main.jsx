@@ -8,6 +8,7 @@ import './interaction-states-2026.css';
 import './chat-2026.css';
 import './theme-2026.css';
 import './warkoplink-reference-blend.css';
+import './feed-border-reset.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>

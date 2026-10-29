@@ -19,6 +19,17 @@ function props(overrides = {}) {
 }
 
 describe('ChatPostCard', () => {
+  it('memakai inisial, bukan gambar acak eksternal, saat penulis tidak punya foto', () => {
+    const { container } = render(<ChatPostCard {...props({ post: { ...props().post, authorName: 'budi' } })} />);
+    const avatar = container.querySelector('.post-avatar');
+    expect(avatar.querySelector('img')).toBeNull();
+    expect(avatar.textContent).toBe('B');
+    expect(container.innerHTML).not.toContain('pravatar');
+  });
+  it('tetap menampilkan foto profil milik penulis bila ada', () => {
+    const { container } = render(<ChatPostCard {...props({ post: { ...props().post, authorPhotoURL: 'https://example.com/a.jpg' } })} />);
+    expect(container.querySelector('.post-avatar img').getAttribute('src')).toBe('https://example.com/a.jpg');
+  });
   it('links only exact mentions of verified warkops to their permanent profile route', () => {
     const values = props({
       post: { ...props().post, body: 'Ngopi yuk @Warkop Pojok! Bukan @Warkop Lain.' },

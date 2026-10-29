@@ -760,3 +760,14 @@ html[data-theme="dark"] .button-quiet { color: var(--wl-ink); border-color: var(
   html { scroll-behavior: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* Fallback avatar berupa inisial (tanpa layanan gambar eksternal). */
+#community-feed .post-avatar .post-avatar-initial {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-weight: 700;
+  color: var(--ink, #172554);
+  background: color-mix(in srgb, var(--accent, #c9401b) 16%, transparent);
+}

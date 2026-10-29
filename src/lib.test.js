@@ -100,3 +100,9 @@ describe('pesan error', () => {
     expect(postErrorMessage({ message: 'RAHASIA' })).not.toContain('RAHASIA');
   });
 });
+
+describe('postErrorMessage', () => {
+  it('tidak menjanjikan jeda 10 detik yang tidak ada di aturan keamanan', () => {
+    expect(postErrorMessage({ code: 'permission-denied' })).not.toContain('10 detik');
+  });
+});

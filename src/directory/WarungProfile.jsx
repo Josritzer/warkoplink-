@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { collection, deleteDoc, doc, getCountFromServer, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, MapPin, ShieldCheck, Store, Users, UserPlus, UserRoundCheck } from 'lucide-react';
+import { addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { ArrowLeft, MapPin, ShieldCheck, Store, Users, UserPlus, UserRoundCheck, Clock, CalendarDays, Share2 } from 'lucide-react';
+import { ACTIVITY_OPTIONS } from './directoryFilters.js';
 
 export default function WarungProfile({ warungId, db, user, onBack, onRequestAuth, onNotice }) {
   const [warung, setWarung] = useState(null);
@@ -8,6 +9,16 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
   const [following, setFollowing] = useState(false);
   const [followers, setFollowers] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [hoursDraft, setHoursDraft] = useState({});
+  const [open24Hours, setOpen24Hours] = useState(false);
+  const [activityDraft, setActivityDraft] = useState([]);
+  const [savingDetails, setSavingDetails] = useState(false);
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventDescription, setEventDescription] = useState('');
+  const [eventKind, setEventKind] = useState('Nobar');
+  const [eventStart, setEventStart] = useState('');
+  const [eventEnd, setEventEnd] = useState('');
+  const [sharingEvent, setSharingEvent] = useState(false);
 
   const refreshFollowState = useCallback(async () => {
     if (!db || !warungId) return;
@@ -38,7 +49,16 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
         setStatus('not-found');
         return;
       }
-      setWarung({ id: snapshot.id, ...snapshot.data() });
+      const data = { id: snapshot.id, ...snapshot.data() };
+      setWarung(data);
+      setOpen24Hours(data.openingHours?.is24Hours === true);
+      setActivityDraft(Array.isArray(data.activities) ? data.activities : []);
+      const schedule = data.openingHours?.schedule || {};
+      setHoursDraft(Object.fromEntries(['mon','tue','wed','thu','fri','sat','sun'].map((day) => [day, {
+        closed: schedule[day]?.closed === true,
+        open: schedule[day]?.open || '08:00',
+        close: schedule[day]?.close || '23:00'
+      }])));
       setStatus('ready');
     }, () => setStatus('error'));
   }, [db, warungId]);
@@ -74,6 +94,71 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
     } finally {
       setBusy(false);
     }
+  }
+
+  const isOwner = Boolean(user?.uid && warung?.ownerUid === user.uid);
+  const weekdays = [{ key: 'mon', label: 'Senin' }, { key: 'tue', label: 'Selasa' }, { key: 'wed', label: 'Rabu' }, { key: 'thu', label: 'Kamis' }, { key: 'fri', label: 'Jumat' }, { key: 'sat', label: 'Sabtu' }, { key: 'sun', label: 'Minggu' }];
+
+  async function saveWarungDetails(event) {
+    event.preventDefault();
+    if (!isOwner || !db || savingDetails) return;
+    if (!open24Hours && weekdays.some(({ key }) => !hoursDraft[key]?.closed && (!hoursDraft[key]?.open || !hoursDraft[key]?.close || hoursDraft[key]?.open === hoursDraft[key]?.close))) {
+      onNotice('Periksa jam buka dan tutup setiap hari. Jam yang sama tidak dianggap jadwal valid.');
+      return;
+    }
+    setSavingDetails(true);
+    try {
+      const openingHours = open24Hours ? { is24Hours: true } : {
+        is24Hours: false,
+        schedule: Object.fromEntries(weekdays.map(({ key }) => [key, hoursDraft[key]?.closed ? { closed: true } : { open: hoursDraft[key].open, close: hoursDraft[key].close }])),
+        keterangan: 'Jadwal mingguan tersedia di profil'
+      };
+      await updateDoc(doc(db, 'warungs', warungId), { openingHours, activities: activityDraft, updatedAt: serverTimestamp() });
+      onNotice('Jam operasional dan aktivitas warkop berhasil disimpan.');
+    } catch (error) {
+      onNotice(error?.code === 'permission-denied' ? 'Penyimpanan ditolak aturan keamanan. Periksa aturan Firestore yang sudah terpasang.' : 'Perubahan belum tersimpan. Periksa koneksi lalu coba lagi.');
+    } finally { setSavingDetails(false); }
+  }
+
+  async function shareEventToHome(event) {
+    event.preventDefault();
+    if (!isOwner || !db || !user || sharingEvent) return;
+    const title = eventTitle.trim();
+    const description = eventDescription.trim();
+    const start = new Date(eventStart);
+    const end = eventEnd ? new Date(eventEnd) : new Date(start.getTime() + 2 * 60 * 60 * 1000);
+    if (title.length < 3 || title.length > 100 || description.length < 5 || !eventStart || Number.isNaN(start.getTime()) || start <= new Date() || Number.isNaN(end.getTime()) || end <= start) {
+      onNotice('Isi judul dan deskripsi acara, pilih waktu mendatang, dan pastikan waktu selesai setelah waktu mulai.');
+      return;
+    }
+    setSharingEvent(true);
+    try {
+      const profileSnapshot = await getDoc(doc(db, 'profiles', user.uid));
+      if (!profileSnapshot.exists() || typeof profileSnapshot.data()?.displayName !== 'string') throw new Error('profile-missing');
+      const profile = profileSnapshot.data();
+      const body = `${title}\n\n${description}`.slice(0, 2000);
+      await addDoc(collection(db, 'posts'), {
+        authorId: user.uid,
+        authorName: profile.displayName,
+        ...(profile.photoURL ? { authorPhotoURL: profile.photoURL } : {}),
+        body,
+        topic: 'Info & Acara',
+        postType: 'Acara Warkop',
+        location: `${warung.name} — ${warung.address}`.slice(0, 160),
+        eventDate: start.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }),
+        eventStartAt: start.toISOString(),
+        eventEndAt: end.toISOString(),
+        eventKind,
+        eventStatus: 'scheduled',
+        createdAt: serverTimestamp(),
+        reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
+        totalReactions: 0
+      });
+      setEventTitle(''); setEventDescription(''); setEventStart(''); setEventEnd('');
+      onNotice('Acara berhasil dibagikan ke Beranda WarkopLink.');
+    } catch (error) {
+      onNotice(error?.code === 'permission-denied' ? 'Acara ditolak aturan keamanan. Pastikan profil akun tersedia dan aturan Firestore terbaru sudah terpasang.' : 'Acara belum berhasil dibagikan. Periksa koneksi dan profil akun.');
+    } finally { setSharingEvent(false); }
   }
 
   if (status === 'loading') return <section className="content-section warung-profile-page"><button className="button button-quiet" onClick={onBack}><ArrowLeft size={16}/> Kembali</button><div className="empty-state" role="status"><h2>Memuat profil warkop…</h2></div></section>;

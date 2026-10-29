@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
-import { MapPin, Store, ShieldCheck, ArrowUpRight } from 'lucide-react';
-import { PRICE_FILTER_OPTIONS, collectFacilities, filterWarungs } from './directoryFilters.js';
+import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, Users, Gamepad2, Laptop, CalendarDays, Tv } from 'lucide-react';
+import { ACTIVITY_OPTIONS, collectActivities, collectFacilities, filterWarungs } from './directoryFilters.js';
 
 export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
   const [warungs, setWarungs] = useState([]);
@@ -12,8 +12,9 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [priceFilter, setPriceFilter] = useState('semua');
   const [facilityFilter, setFacilityFilter] = useState([]);
+  const [activityFilter, setActivityFilter] = useState([]);
+  const [operationalFilter, setOperationalFilter] = useState('semua');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState('');
@@ -154,10 +155,13 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   }
 
   const facilityOptions = collectFacilities(warungs);
-  const visibleWarungs = filterWarungs(warungs, { search: searchTerm, price: priceFilter, facilities: facilityFilter });
-  const hasActiveFilter = Boolean(searchTerm.trim()) || priceFilter !== 'semua' || facilityFilter.length > 0;
+  const visibleWarungs = filterWarungs(warungs, { search: searchTerm, facilities: facilityFilter, activities: activityFilter, operational: operationalFilter });
+  const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua';
   function toggleFacility(key) {
     setFacilityFilter((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
+  }
+  function toggleActivity(key) {
+    setActivityFilter((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   }
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>
@@ -165,9 +169,10 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Hasil diurutkan berdasarkan nama. Pencarian dan filter berlaku pada data yang sudah dimuat; muat halaman berikutnya untuk memperluas hasil.</p>
     <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, fasilitas…" aria-label="Cari warkop"/></label>
     <div className="directory-filters" role="group" aria-label="Filter warkop">
-      <label>Kisaran harga<select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)}>{PRICE_FILTER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-      {facilityOptions.length > 0 && <div className="facility-filter-list">{facilityOptions.map((facility) => <button type="button" key={facility.key} className={facilityFilter.includes(facility.key) ? 'facility-chip active' : 'facility-chip'} aria-pressed={facilityFilter.includes(facility.key)} onClick={() => toggleFacility(facility.key)}>{facility.label}</button>)}</div>}
-      {hasActiveFilter && <button type="button" className="button button-quiet" onClick={() => { setSearchTerm(''); setPriceFilter('semua'); setFacilityFilter([]); }}>Hapus filter</button>}
+      <label>Operasional<select aria-label="Filter operasional" value={operationalFilter} onChange={(e) => setOperationalFilter(e.target.value)}><option value="semua">Semua status</option><option value="buka-sekarang">Buka sekarang</option><option value="buka-24-jam">Buka 24 jam</option></select></label>
+      <div className="directory-filter-group"><strong>Aktivitas</strong><div className="facility-filter-list">{ACTIVITY_OPTIONS.map((activity) => <button type="button" key={activity.value} className={activityFilter.includes(activity.value) ? 'facility-chip active' : 'facility-chip'} aria-pressed={activityFilter.includes(activity.value)} onClick={() => toggleActivity(activity.value)}>{activity.label}</button>)}</div></div>
+      {facilityOptions.length > 0 && <div className="directory-filter-group"><strong>Fasilitas</strong><div className="facility-filter-list">{facilityOptions.map((facility) => <button type="button" key={facility.key} className={facilityFilter.includes(facility.key) ? 'facility-chip active' : 'facility-chip'} aria-pressed={facilityFilter.includes(facility.key)} onClick={() => toggleFacility(facility.key)}>{facility.label}</button>)}</div></div>}
+      {hasActiveFilter && <button type="button" className="button button-quiet" onClick={() => { setSearchTerm(''); setFacilityFilter([]); setActivityFilter([]); setOperationalFilter('semua'); }}>Hapus filter</button>}
     </div>
     {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
     {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi.</p><button className="button button-quiet" type="button" onClick={() => setDirectoryRetry((attempt) => attempt + 1)}>Coba lagi</button></div>}
@@ -175,9 +180,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
     <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
       <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3><button className="warung-profile-link" type="button" onClick={() => onOpenWarung?.(item.id)}>{item.name} <ArrowUpRight size={14}/></button></h3><p><MapPin size={14}/>{item.address}</p>
-      <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}</div>
-      <small>{item.priceRange === 'belum-diisi' ? 'Kisaran harga belum diisi' : 'Kisaran harga: ' + item.priceRange}</small>
-      {item.openingHours?.keterangan && <small>Jam buka: {item.openingHours.keterangan}</small>}
+      <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}{(item.activities || []).map((activity) => <span key={activity}>{ACTIVITY_OPTIONS.find((option) => option.value === activity)?.label || activity}</span>)}</div>
+      {item.openingHours?.is24Hours === true ? <small><Clock size={13} aria-hidden="true"/> Buka 24 jam</small> : item.openingHours?.keterangan ? <small><Clock size={13} aria-hidden="true"/> Jam buka: {item.openingHours.keterangan}</small> : null}
       {Number.isFinite(item.coordinates?.lat) && Number.isFinite(item.coordinates?.lng) && <a className="warung-map-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.coordinates.lat},${item.coordinates.lng}`)}`} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta <ArrowUpRight size={13}/></a>}
       </div>
     </article>)}</div>

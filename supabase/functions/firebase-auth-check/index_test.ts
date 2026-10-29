@@ -1,9 +1,10 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
   extractBearerToken,
   isAllowedOrigin,
   validateFirebaseTimeClaims,
 } from "./index.ts";
+import { isFirebaseTokenRevoked } from "./revocation.ts";
 
 Deno.test("extracts a Bearer token case-insensitively", () => {
   assertEquals(extractBearerToken("Bearer abc.def.ghi"), "abc.def.ghi");
@@ -63,4 +64,25 @@ Deno.test("rejects expired, future-issued, and inconsistent time claims", () => 
     ),
     true,
   );
+});
+
+Deno.test("matches Firebase Admin SDK revocation boundary semantics", () => {
+  const validSince = "1800000000";
+  assertEquals(isFirebaseTokenRevoked(1_799_999_999, validSince), true);
+  assertEquals(isFirebaseTokenRevoked(1_800_000_000, validSince), false);
+  assertEquals(isFirebaseTokenRevoked(1_800_000_001, validSince), false);
+});
+
+Deno.test("supports fractional validSince seconds without rounding", () => {
+  assertEquals(isFirebaseTokenRevoked(1_800_000_000, "1800000000.5"), true);
+  assertEquals(isFirebaseTokenRevoked(1_800_000_001, "1800000000.5"), false);
+});
+
+Deno.test("fails closed for malformed or missing revocation timestamps", () => {
+  for (const invalid of [undefined, null, "", " ", "NaN", "-1", "1e9", "Infinity"]) {
+    assertThrows(() => isFirebaseTokenRevoked(1_800_000_000, invalid));
+  }
+  for (const invalid of [undefined, null, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assertThrows(() => isFirebaseTokenRevoked(invalid, "1800000000"));
+  }
 });

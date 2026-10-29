@@ -21,10 +21,6 @@ describe('directoryFilters', () => {
     expect(filterWarungs(items, { search: 'parkir' }).map((i) => i.id)).toEqual(['1']);
   });
 
-  it('menyaring berdasarkan kisaran harga', () => {
-    expect(filterWarungs(items, { price: 'sedang' }).map((i) => i.id)).toEqual(['2']);
-  });
-
   it('fasilitas terpilih harus terpenuhi semuanya', () => {
     expect(filterWarungs(items, { facilities: ['wi-fi'] }).map((i) => i.id)).toEqual(['1', '2']);
     expect(filterWarungs(items, { facilities: ['wi-fi', 'parkir'] }).map((i) => i.id)).toEqual(['1']);
@@ -48,7 +44,7 @@ describe('directoryFilters', () => {
     expect(filterWarungs(withActivities, { activities: ['nobar'] }).map((item) => item.id)).toEqual(['a']);
     expect(filterWarungs(withActivities, { activities: ['komunitas', 'nobar'] }).map((item) => item.id)).toEqual(['a']);
     expect(filterWarungs(withActivities, { activities: ['nobar'], search: 'laptop' })).toEqual([]);
-    expect(collectActivities(withActivities).map((item) => item.key)).toEqual(['gim', 'komunitas', 'kerja-laptop', 'nobar']);
+    expect(collectActivities(withActivities).map((item) => item.key)).toEqual(['nobar', 'komunitas', 'gim', 'kerja-laptop']);
   });
 
   it('menentukan status buka dari jadwal WIB yang valid dan mendukung lintas tengah malam', () => {

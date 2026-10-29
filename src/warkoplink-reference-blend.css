@@ -1,0 +1,235 @@
+/* WarkopLink reference blend — 2026
+   Combines the supplied social-media HTML's violet accents and compact social
+   interactions with the existing WarkopLink layout, Firebase flows and routes.
+   Presentation only: no auth, Firestore schema, profile or post data changes. */
+:root {
+  --wl-reference-violet: #7c3aed;
+  --wl-reference-violet-deep: #5b21b6;
+  --wl-reference-persimmon: #ef7655;
+  --wl-reference-paper: #fff;
+  --wl-reference-canvas: #f7f7fb;
+  --wl-reference-line: #e8e8ef;
+}
+html[data-theme="light"] {
+  --wl-primary: var(--wl-reference-violet);
+  --wl-primary-bright: #8b5cf6;
+  --wl-primary-tint: #f1ebff;
+  --wl-primary-rgb: 124, 58, 237;
+  --wl-blue: var(--wl-reference-violet);
+  --wl-blue-deep: var(--wl-reference-violet-deep);
+  --wl-cream: var(--wl-reference-canvas);
+  --wl-paper: #fff;
+  --wl-line: var(--wl-reference-line);
+  --wl-line-soft: #f0edfa;
+  --wl-ink: #211d2b;
+  --wl-plum: #282333;
+  --wl-muted: #777284;
+}
+html[data-theme="dark"] {
+  --wl-reference-paper: #17151d;
+  --wl-reference-canvas: #111016;
+  --wl-reference-line: #302b3a;
+}
+html[data-theme="dark"] body {
+  background: var(--wl-reference-canvas);
+  color: #f4f1fa;
+}
+html[data-theme="dark"] .app-header,
+html[data-theme="dark"] .desktop-sidebar,
+html[data-theme="dark"] .desktop-right-rail .rail-panel,
+html[data-theme="dark"] .post-card,
+html[data-theme="dark"] .composer,
+html[data-theme="dark"] .account-card,
+html[data-theme="dark"] .warung-card,
+html[data-theme="dark"] .warung-form,
+html[data-theme="dark"] .auth-modal {
+  color: #f4f1fa;
+  background: #191720;
+  border-color: #302b3a;
+}
+html[data-theme="dark"] .post-content p,
+html[data-theme="dark"] .rail-panel p,
+html[data-theme="dark"] .rail-recent-post p { color: #ded9e8; }
+html[data-theme="dark"] .bottom-nav {
+  background: rgba(25, 23, 32, .96);
+  border-color: #302b3a;
+}
+html[data-theme="dark"] .bottom-nav-item { color: #b6afc4; }
+html[data-theme="dark"] .bottom-nav-item.active {
+  color: #c4a8ff;
+  background: #302344;
+}
+html[data-theme="dark"] .search,
+html[data-theme="dark"] .topic,
+html[data-theme="dark"] .composer textarea,
+html[data-theme="dark"] .composer select,
+html[data-theme="dark"] .warung-form input,
+html[data-theme="dark"] .warung-form textarea,
+html[data-theme="dark"] .warung-form select {
+  color: #f4f1fa;
+  background: #211e29;
+  border-color: #393344;
+}
+.app-shell { max-width: 1440px; }
+.app-header {
+  min-height: 64px;
+  border-bottom-color: var(--wl-reference-line);
+  box-shadow: 0 1px 0 rgba(35, 24, 54, .02);
+}
+.app-header .brand-mark,
+.sidebar-brand-mark {
+  background: linear-gradient(135deg, var(--wl-reference-violet), #a78bfa);
+}
+.app-header .brand strong { letter-spacing: .045em; }
+.button-dark {
+  background: var(--wl-reference-violet);
+  box-shadow: 0 3px 9px rgba(124, 58, 237, .16);
+}
+.button-dark:hover { background: var(--wl-reference-violet-deep); }
+.button-quiet,
+.button-install { background: #f1ebff; color: #5b21b6; }
+.desktop-layout {
+  gap: 24px;
+  grid-template-columns: 224px minmax(0, 1fr) 286px;
+}
+.desktop-sidebar {
+  border-right: 1px solid var(--wl-reference-line);
+  background: transparent;
+}
+.sidebar-nav { gap: 4px; }
+.sidebar-nav-item {
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 13px;
+  transition: background-color .16s ease, color .16s ease;
+}
+.sidebar-nav-item.active {
+  color: var(--wl-reference-violet-deep);
+  background: #f1ebff;
+  font-weight: 750;
+}
+.sidebar-community-note {
+  border: 1px solid #e8ddff;
+  background: linear-gradient(145deg, #fbf9ff, #f5efff);
+  border-radius: 15px;
+}
+.desktop-right-rail .rail-panel {
+  border: 1px solid var(--wl-reference-line);
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(35, 24, 54, .025);
+}
+.content-section { min-width: 0; }
+.content-section h2,
+.section-heading h2 { letter-spacing: -.035em; }
+.topic-list { scrollbar-width: thin; }
+.topic {
+  border-color: #e6e2ed;
+  background: #fff;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+}
+.topic.selected {
+  color: var(--wl-reference-violet-deep);
+  background: #f1ebff;
+  border-color: #e2d4ff;
+}
+.composer {
+  border-color: var(--wl-reference-line);
+  border-radius: 17px;
+  box-shadow: 0 3px 14px rgba(35, 24, 54, .025);
+}
+.composer:focus-within {
+  border-color: #c4a8ff;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, .08);
+}
+.post-list { gap: 0; border-top: 1px solid var(--wl-reference-line); }
+.post-card {
+  align-items: flex-start;
+  border: 0;
+  border-bottom: 1px solid var(--wl-reference-line);
+  border-radius: 0;
+  padding: 18px 8px;
+  background: transparent;
+  box-shadow: none;
+  transition: background-color .15s ease;
+}
+.post-card:hover { background: rgba(124, 58, 237, .025); }
+.post-avatar {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  border-radius: 50%;
+  background: #eee6ff;
+  color: #6d28d9;
+  overflow: hidden;
+}
+.post-avatar img,
+.sidebar-profile-avatar img,
+.account-avatar img,
+.reply-original-avatar img,
+.reply-page-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.post-meta { gap: 7px; }
+.post-meta b { font-size: 13px; color: var(--wl-ink); }
+.post-meta span {
+  border-radius: 6px;
+  background: #f3effb;
+  color: #6d28d9;
+  padding: 4px 7px;
+  font-size: 10px;
+}
+.post-content p { font-size: 14px; line-height: 1.68; }
+.post-actions { margin-top: 13px; }
+.post-action {
+  min-height: 34px;
+  border-radius: 9px;
+  transition: color .15s ease, background-color .15s ease;
+}
+.post-action:hover { color: var(--wl-reference-violet); background: #f1ebff; }
+.bottom-nav {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  border-color: var(--wl-reference-line);
+  box-shadow: 0 -5px 24px rgba(35, 24, 54, .06);
+}
+.bottom-nav-item { font-size: 9.5px; }
+.bottom-nav-item.active { color: var(--wl-reference-violet-deep); background: #f1ebff; }
+.bottom-nav-create { color: var(--wl-reference-violet); }
+.bottom-nav-create svg {
+  padding: 3px;
+  border-radius: 9px;
+  background: #f1ebff;
+}
+footer { color: #888293; }
+.button:focus-visible,
+.bottom-nav-item:focus-visible,
+.sidebar-nav-item:focus-visible,
+.post-action:focus-visible {
+  outline: 3px solid rgba(124, 58, 237, .38);
+  outline-offset: 2px;
+}
+@media (min-width: 1100px) {
+  .desktop-sidebar { position: sticky; top: 82px; align-self: start; }
+  .desktop-right-rail { position: sticky; top: 82px; align-self: start; }
+}
+@media (max-width: 1099px) {
+  .desktop-layout { grid-template-columns: 205px minmax(0, 1fr); gap: 20px; }
+  .desktop-right-rail { display: none; }
+}
+@media (max-width: 760px) {
+  .desktop-layout { display: block; }
+  .desktop-sidebar { display: none; }
+  .post-list { margin-top: 12px; }
+  .post-card { padding: 16px 2px; gap: 10px; }
+  .post-avatar { width: 36px; height: 36px; flex-basis: 36px; }
+  .post-content p { font-size: 14px; }
+  .bottom-nav { gap: 0; padding-left: 4px; padding-right: 4px; }
+  .bottom-nav-item { font-size: 9px; gap: 3px; }
+  .bottom-nav-item svg { width: 18px; height: 18px; }
+  .bottom-nav-create svg { width: 23px; height: 23px; }
+  .app-shell { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .post-card, .topic, .sidebar-nav-item, .button { transition: none !important; }
+}

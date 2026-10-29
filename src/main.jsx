@@ -7,6 +7,7 @@ import './ui-2026.css';
 import './interaction-states-2026.css';
 import './chat-2026.css';
 import './theme-2026.css';
+import './warkoplink-reference-blend.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>

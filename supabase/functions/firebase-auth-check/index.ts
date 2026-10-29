@@ -42,7 +42,7 @@ export function validateFirebaseTimeClaims(
 
 export function extractBearerToken(header: string | null): string | null {
   if (!header) return null;
-  const match = /^Bearer\\s+([^\\s]+)$/i.exec(header.trim());
+  const match = /^Bearer\s+([^\s]+)$/i.exec(header.trim());
   return match?.[1] ?? null;
 }
 

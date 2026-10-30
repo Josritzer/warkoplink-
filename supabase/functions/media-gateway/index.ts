@@ -218,7 +218,7 @@ async function setMediaReference(
         }
         const publicProfile = await getResource(token, "publicProfiles", uid);
         if (publicProfile) {
-          await patchResource(token, publicProfile, { photoURL: url, updatedAt: new Date() }).catch(() => {
+          await patchResource(token, publicProfile, { photoURL: url }).catch(() => {
             // The private profile and Firebase Auth are authoritative; public projection can be repaired on next sign-in.
           });
         }
@@ -250,7 +250,7 @@ async function removeAvatar(token: string, uid: string) {
   }
   const publicProfile = await getResource(token, "publicProfiles", uid);
   if (publicProfile) {
-    await patchResource(token, publicProfile, { photoURL: "", updatedAt: new Date() }).catch(() => {});
+    await patchResource(token, publicProfile, { photoURL: "" }).catch(() => {});
   }
   const oldPath = isOwnMediaUrl(oldUrl);
   if (oldPath) await admin.storage.from(BUCKET_PUBLIC).remove([oldPath]);

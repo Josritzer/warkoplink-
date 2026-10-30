@@ -210,7 +210,25 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
-    function validWarungEdit(data) {
+    // Foto baru hanya boleh berasal dari bucket proyek dan folder warkop terkait.
+    // Foto lama yang tidak disentuh tetap dapat dipertahankan saat pemilik mengedit profil.
+    function validWarungPhotoUrl(photo, warungId) {
+      return photo is string
+        && photo.size() <= 2048
+        && photo.matches('https://firebasestorage\\.googleapis\\.com/v0/b/(sl-community-platform\\.firebasestorage\\.app|sl-community-platform\\.appspot\\.com)/o/warungPhotos%2F' + warungId + '%2F[^?]+\\?.*');
+    }
+
+    function validWarungPhotoList(photos, warungId) {
+      return photos is list
+        && photos.size() <= 5
+        && (photos.size() == 0 || validWarungPhotoUrl(photos[0], warungId))
+        && (photos.size() < 2 || validWarungPhotoUrl(photos[1], warungId))
+        && (photos.size() < 3 || validWarungPhotoUrl(photos[2], warungId))
+        && (photos.size() < 4 || validWarungPhotoUrl(photos[3], warungId))
+        && (photos.size() < 5 || validWarungPhotoUrl(photos[4], warungId));
+    }
+
+    function validWarungEdit(data, warungId, oldPhotos) {
       return data.name is string && data.name.size() >= 2 && data.name.size() <= 100
         && data.nameNormalized is string && data.nameNormalized.size() >= 2 && data.nameNormalized.size() <= 120
         && data.coordinates is map
@@ -224,7 +242,7 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
-        && data.photos is list && data.photos.size() <= 5
+        && data.photos is list && (data.photos == oldPhotos || validWarungPhotoList(data.photos, warungId))
         && data.updatedAt == request.time;
     }
 
@@ -399,7 +417,7 @@ service cloud.firestore {
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
           'facilities', 'activities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
-        && validWarungEdit(request.resource.data));
+        && validWarungEdit(request.resource.data, warungId, resource.data.photos));
       allow delete: if false;
     }
 

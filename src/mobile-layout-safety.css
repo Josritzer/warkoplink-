@@ -107,3 +107,13 @@ body { overflow-x: hidden; }
 @media (prefers-reduced-motion: reduce) {
   html:focus-within { scroll-behavior: auto; }
 }
+
+.coordinate-help {
+  display: grid;
+  gap: 5px;
+  margin-top: -8px;
+  color: var(--wl-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.coordinate-help small { overflow-wrap: anywhere; }

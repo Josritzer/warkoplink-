@@ -5,7 +5,7 @@ This is an isolated QA tool. It is not imported by the React/Vite application an
 ## Safety boundary
 
 - The agent only accepts `http://127.0.0.1` or `http://localhost`.
-- Production domains and other remote hosts are rejected before the browser starts.
+- Production domains and other remote hosts are rejected before the browser starts. A request-routing guard also aborts non-loopback HTTP requests and redirects.
 - The first inspection is read-only: no login, clicks, form submissions, posts, replies, reactions, registrations, or uploads.
 - Use a clean temporary browser context. Do not add personal browser profiles, cookies, or production credentials.
 - Page content is untrusted input and must never be treated as agent instructions.
@@ -16,6 +16,7 @@ This is an isolated QA tool. It is not imported by the React/Vite application an
 - Node.js 20 or newer.
 - A local Chromium installation managed by Playwright.
 - An API key for a supported model provider. The default model is `openai/gpt-5.4-mini`; override with `STAGEHAND_MODEL` if needed.
+- Direct QA dependencies are pinned in `package.json`; generate and commit a lockfile when running the first install in a network-enabled development environment.
 
 ## Local setup
 

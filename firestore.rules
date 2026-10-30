@@ -239,7 +239,7 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
-        && data.photos is list && data.photos.size() <= 5
+        && validWarungPhotoList(data.photos, warungId, oldPhotos)
         && data.updatedAt == request.time;
     }
 

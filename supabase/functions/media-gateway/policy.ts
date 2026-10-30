@@ -83,6 +83,7 @@ export function parseFirestoreDocument(document: any): Record<string, any> | nul
 
 export function encodeFirestoreValue(value: unknown): Record<string, unknown> {
   if (value === null) return { nullValue: null };
+  if (value instanceof Date && Number.isFinite(value.getTime())) return { timestampValue: value.toISOString() };
   if (typeof value === "string") return { stringValue: value };
   if (typeof value === "boolean") return { booleanValue: value };
   if (typeof value === "number" && Number.isSafeInteger(value)) return { integerValue: String(value) };
@@ -98,8 +99,8 @@ export function mediaObjectPath(uid: string, mediaType: string, resourceId: stri
     return fail("Invalid upload identity");
   }
   if (mediaType === "avatar") return `profiles/${uid}/${uploadId}.webp`;
-  if (mediaType === "warung") return `warungs/${resourceId}/${slot}/${uploadId}.webp`;
-  if (mediaType === "event") return `events/${resourceId}/${uploadId}.webp`;
+  if (mediaType === "warung" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `warungs/${resourceId}/${slot}/${uploadId}.webp`;
+  if (mediaType === "event" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `events/${resourceId}/${uploadId}.webp`;
   return fail("Unsupported media category");
 }
 

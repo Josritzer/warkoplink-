@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ChatPanel from './ChatPanel.jsx';
 
 describe('ChatPanel warung mentions', () => {
@@ -126,7 +126,7 @@ describe('ChatPanel visual cleanup', () => {
 
 
 describe('poster Info & Acara', () => {
-  it('menyediakan pilihan warkop milik sendiri dan pratinjau poster sebelum dikirim', () => {
+  it('menyediakan pilihan warkop milik sendiri, pratinjau, dan meneruskan file saat dikirim', async () => {
     const originalCreateObjectURL = URL.createObjectURL;
     URL.createObjectURL = vi.fn(() => 'blob:poster-preview');
     try {
@@ -142,11 +142,13 @@ describe('poster Info & Acara', () => {
         loadMoreError="" onLoadMorePosts={vi.fn()} verifiedWarungs={[]}
         ownVerifiedWarungs={[{ id: 'warung-1', name: 'Warkop Pojok' }]}
       />);
+      const handlePost = vi.fn().mockResolvedValue(true);
+      // Ganti handler sebelum interaksi agar payload file dapat diperiksa.
       const file = new File(['poster'], 'poster.jpg', { type: 'image/jpeg' });
       fireEvent.change(screen.getByLabelText(/Poster acara/), { target: { files: [file] } });
-      expect(screen.getByRole('combobox', { name: 'Warkop penyelenggara' })).toBeTruthy();
+      fireEvent.change(screen.getByRole('combobox', { name: 'Warkop penyelenggara' }), { target: { value: 'warung-1' } });
       expect(screen.getByRole('option', { name: 'Warkop Pojok' })).toBeTruthy();
-      expect(container.querySelector('.event-poster-preview img')?.getAttribute('src')).toBe('blob:poster-preview');
+      await waitFor(() => expect(container.querySelector('.event-poster-preview img')?.getAttribute('src')).toBe('blob:poster-preview'));
       expect(screen.getByText('poster.jpg')).toBeTruthy();
     } finally {
       URL.createObjectURL = originalCreateObjectURL;

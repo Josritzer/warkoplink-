@@ -240,7 +240,7 @@ service cloud.firestore {
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
         && validWarungPhotoList(data.photos, warungId, oldPhotos)
-        && data.updatedAt == request.time;
+;
     }
 
     // Hanya field profil publik minimum yang dapat dibaca daftar penyuka; email tetap privat.
@@ -256,7 +256,7 @@ service cloud.firestore {
         && request.resource.data.displayName.size() <= 60
         && request.resource.data.photoURL is string
         && request.resource.data.photoURL.size() <= 2048
-        && request.resource.data.updatedAt == request.time;
+        && (request.resource.data.updatedAt == request.time || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL']));
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt'])
@@ -415,6 +415,7 @@ service cloud.firestore {
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
           'facilities', 'activities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos']) || request.resource.data.updatedAt == request.time)
         && validWarungEdit(request.resource.data, warungId, resource.data.get('photos', [])));
       allow delete: if false;
     }

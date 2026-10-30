@@ -57,6 +57,7 @@ describe('ChatPanel homepage layout', () => {
       composerOpen={false}
       setComposerOpen={vi.fn()}
       readOnly
+      previewMode
       onOpenDiscussion={vi.fn()}
       onOpenDirectory={vi.fn()}
       openAuth={vi.fn()}
@@ -81,6 +82,7 @@ describe('ChatPanel homepage layout', () => {
     expect(container.querySelector('.warkop-stories')).toBeNull();
     expect(screen.queryByLabelText('Kategori obrolan')).toBeNull();
     expect(screen.getByText('Beranda · cuplikan 3 obrolan terbaru')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Suasana komunitas' })).toBeTruthy();
   });
 });
 

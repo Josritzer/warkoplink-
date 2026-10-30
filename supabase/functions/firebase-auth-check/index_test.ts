@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
+  createHandler,
   extractBearerToken,
   isAllowedOrigin,
   validateFirebaseTimeClaims,
@@ -244,4 +245,71 @@ Deno.test("REST lookup fails closed for empty credentials and invalid account re
     assertEquals(rejected, true);
   }
   assertEquals(called, false);
+});
+
+
+Deno.test("accepts a Firebase token only after account status and revocation lookup", async () => {
+  const handler = createHandler({
+    apiKey: "test-api-key",
+    verifyToken: async (token) => {
+      assertEquals(token, "firebase-id-token");
+      return { uid: "verified-uid", authTime: 1_800_000_000 };
+    },
+    lookupAccount: async (token, uid, authTime, apiKey) => {
+      assertEquals(token, "firebase-id-token");
+      assertEquals(uid, "verified-uid");
+      assertEquals(authTime, 1_800_000_000);
+      assertEquals(apiKey, "test-api-key");
+      return { uid };
+    },
+  });
+
+  const response = await handler(new Request("https://example.test", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer firebase-id-token",
+      Origin: "https://sl-community-platform.web.app",
+    },
+  }));
+
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), { authenticated: true, uid: "verified-uid" });
+});
+
+Deno.test("rejects the request when Firebase account status lookup fails", async () => {
+  const handler = createHandler({
+    apiKey: "test-api-key",
+    verifyToken: async () => ({ uid: "verified-uid", authTime: 1_800_000_000 }),
+    lookupAccount: async () => {
+      throw new Error("disabled or revoked account");
+    },
+  });
+
+  const response = await handler(new Request("https://example.test", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer firebase-id-token",
+      Origin: "https://sl-community-platform.web.app",
+    },
+  }));
+
+  assertEquals(response.status, 401);
+  assertEquals(await response.json(), { error: "Invalid or expired Firebase ID token" });
+});
+
+Deno.test("fails closed when the Firebase Web API key is not configured", async () => {
+  const handler = createHandler({
+    apiKey: "",
+    verifyToken: async () => ({ uid: "verified-uid", authTime: 1_800_000_000 }),
+  });
+
+  const response = await handler(new Request("https://example.test", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer firebase-id-token",
+      Origin: "https://sl-community-platform.web.app",
+    },
+  }));
+
+  assertEquals(response.status, 401);
 });

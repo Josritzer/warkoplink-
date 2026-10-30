@@ -24,7 +24,7 @@ Prinsip:
 6. `warungs/{id}` menyimpan `ownerUid` dan `photos[]` (maksimal lima menurut rules); profil warkop publik saat ini belum menampilkan galeri foto.
 7. Acara saat ini adalah dokumen `posts/{postId}` dengan `postType: 'Acara Warkop'`; schema/rules belum mengizinkan poster.
 8. `firebase-admin` sudah ada sebagai devDependency untuk pengujian/rules, tetapi itu tidak otomatis berarti SDK tersebut kompatibel untuk dijalankan di Supabase Edge Runtime (Deno).
-9. Audit Supabase 30 Oktober 2026: project `klikvxuronunonymmiqv` berstatus ACTIVE_HEALTHY pada region `eu-west-3`; schema `public` belum memiliki tabel aplikasi, belum ada bucket Storage, dan satu Edge Function `firebase-auth-check` aktif versi 2. Security/performance advisors tidak mengembalikan temuan. Tidak ada dasar untuk menganggap Storage sudah siap dipakai.
+9. Audit Supabase 30 Oktober 2026: project `klikvxuronunonymmiqv` berstatus ACTIVE_HEALTHY pada region `eu-west-3`; schema `public` belum memiliki tabel aplikasi; Edge Function `firebase-auth-check` aktif versi 2. Dua bucket awal kini telah dibuat: `warkoplink-quarantine` (private) dan `warkoplink-media` (public). PR #118 sedang menyiapkan `media-gateway`; function tersebut belum dideploy dan upload browser belum diaktifkan.
 
 ## Keputusan arsitektur
 
@@ -84,7 +84,7 @@ Untuk penghapusan, jangan hapus objek lama sebelum referensi baru/kosong berhasi
 - Gateway identitas sudah berjalan pada Supabase Edge Function; proof-of-compatibility untuk otorisasi resource dan upload masih harus dilakukan.
 - Tambahkan tes kontrak dan uji keamanan lintas UID.
 - Tetapkan budget/alert dan batas pemakaian.
-- Belum ada upload Supabase.
+- Bucket quarantine dan public media sudah dibuat; gateway masih di PR #118 draft, belum dideploy. Browser upload tetap belum aktif.
 
 ### Fase 1 — avatar
 - Satu avatar per UID.

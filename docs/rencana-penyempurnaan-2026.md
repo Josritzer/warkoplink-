@@ -2,6 +2,8 @@
 
 Dibuat 29 Okt 2026 dari audit baca-saja repo `sl-community-platform` (commit `b1724b2`). Tes dan build **belum dijalankan** karena registry npm tidak terjangkau saat audit; jalankan `npm test` dan `npm run build` sebelum merge.
 
+**Catatan pembaruan 31 Okt 2026 (commit `e0c290e`):** repo telah berkembang sejak audit ini — `firestore.rules` kini memvalidasi foto warkop (maks. 5, URL bucket `warkoplink-media`) dan poster acara, `src/media/uploadWarkopMedia.js` dan `supabase/functions/media-gateway/` sudah ada. Butir temuan 3 (field `photos` selalu kosong) dan butir tabel Tahap 4 "Foto warkop lewat Storage" perlu diaudit ulang terhadap kode terbaru. Tes dan build tetap belum dijalankan (registry npm tidak terjangkau dari lingkungan audit).
+
 ## Acuan 2026 yang dipakai
 
 - **Core Web Vitals** (ambang 2026 tidak berubah): LCP < 2,5 dtk, INP < 200 ms, CLS < 0,1, diukur pada persentil ke-75 pengguna nyata. INP menggantikan FID sejak Maret 2024; data lapangan (bukan hanya Lighthouse) yang menentukan.

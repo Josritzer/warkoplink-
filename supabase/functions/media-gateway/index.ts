@@ -189,13 +189,6 @@ async function setMediaReference(
     let oldUrl: string | null = null;
     if (request.mediaType === "avatar") {
       oldUrl = typeof resource.data.photoURL === "string" ? resource.data.photoURL : null;
-      const authUpdate = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${encodeURIComponent(firebaseApiKey)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken: token, photoUrl: url, returnSecureToken: false }),
-        signal: AbortSignal.timeout(8_000),
-      });
-      if (!authUpdate.ok) throw new Error("Firebase Auth photo update failed");
       fieldPatch = { photoURL: url };
     } else if (request.mediaType === "warung") {
       const photos = Array.isArray(resource.data.photos) ? [...resource.data.photos] : [];
@@ -210,6 +203,19 @@ async function setMediaReference(
     try {
       await patchResource(token, resource, fieldPatch);
       if (request.mediaType === "avatar") {
+        const authUpdate = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${encodeURIComponent(firebaseApiKey)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken: token, photoUrl: url, returnSecureToken: false }),
+          signal: AbortSignal.timeout(8_000),
+        });
+        if (!authUpdate.ok) {
+          const latest = await getResource(token, "profiles", uid);
+          if (latest?.data.photoURL === url) {
+            await patchResource(token, latest, { photoURL: oldUrl || "" }).catch(() => {});
+          }
+          throw new Error("Firebase Auth photo update failed");
+        }
         const publicProfile = await getResource(token, "publicProfiles", uid);
         if (publicProfile) {
           await patchResource(token, publicProfile, { photoURL: url, updatedAt: new Date() }).catch(() => {
@@ -312,11 +318,11 @@ async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return response({ error: "Method not allowed" }, 405, origin);
   const token = bearer(request);
   if (!token) return response({ error: "Missing Firebase bearer token" }, 401, origin);
-  const declaredLength = Number(request.headers.get("Content-Length") || 0);
-  if (declaredLength > MAX_BODY_BYTES) return response({ error: "Request body too large" }, 413, origin);
   try {
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) return response({ error: "Request body too large" }, 413, origin);
     const identity = await verifyIdentity(token);
-    const body = await request.json();
+    const body = JSON.parse(rawBody);
     if (!body || typeof body !== "object" || Array.isArray(body)) return response({ error: "Invalid request" }, 400, origin);
     const action = body.action;
     if (action === "init") return response({ upload: await initUpload(token, identity.uid, body) }, 200, origin);

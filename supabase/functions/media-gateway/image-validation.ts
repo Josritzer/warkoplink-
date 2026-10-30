@@ -85,8 +85,8 @@ export async function sanitizeImage(
   }
 
   // Decode and re-encode strips client metadata (including EXIF/GPS) and normalizes formats.
-  decoded.contain(2048, 2048);
-  const sanitized = await decoded.encodeWEBP(82);
+  const normalized = decoded.contain(2048, 2048);
+  const sanitized = await normalized.encodeWEBP(82);
   if (!(sanitized instanceof Uint8Array) || sanitized.length < 16 || sanitized.length > MAX_OUTPUT_BYTES) {
     throw new Error("Sanitized image exceeds the 2 MiB output limit");
   }
@@ -95,8 +95,8 @@ export async function sanitizeImage(
   }
   return {
     bytes: sanitized,
-    width: decoded.width,
-    height: decoded.height,
+    width: normalized.width,
+    height: normalized.height,
     contentType: "image/webp",
   };
 }

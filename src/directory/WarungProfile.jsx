@@ -190,7 +190,8 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
 
   return <section className="content-section warung-profile-page" aria-labelledby="warung-profile-title">
     <button className="button button-quiet profile-back" type="button" onClick={onBack}><ArrowLeft size={16}/> Kembali ke direktori</button>
-    <div className="warung-profile-cover" aria-hidden="true"><Store size={38}/></div>
+    <div className="warung-profile-cover">{warung.photos?.[0] ? <img src={warung.photos[0]} alt={`Foto utama ${warung.name}`} /> : <Store size={38}/>}</div>
+    {Array.isArray(warung.photos) && warung.photos.length > 0 && <div className="warung-photo-gallery" aria-label="Galeri foto warkop">{warung.photos.slice(0, 5).map((photo, index) => <img key={`${photo}-${index}`} src={photo} alt={`Foto ${warung.name} ${index + 1}`} loading="lazy" />)}</div>}
     <div className="warung-profile-heading">
       <div className="warung-profile-avatar"><Store size={30}/></div>
       <div className="warung-profile-title-group">

@@ -23,7 +23,7 @@ vi.mock('firebase/firestore', () => ({
   addDoc: vi.fn(),
   deleteDoc: vi.fn().mockResolvedValue(undefined),
   collection: vi.fn((db, ...segments) => ({ path: segments.join('/') })),
-  doc: vi.fn((db, col, id) => ({ path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` })),
+  doc: vi.fn((db, col, id) => { const reference = { path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` }; Object.defineProperty(reference, 'id', { value: id ?? (col === undefined && db?.path ? 'new-post' : undefined), enumerable: false }); return reference; }),
   getCountFromServer: vi.fn(() => Promise.resolve({ data: () => ({ count: 0 }) })),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
@@ -608,5 +608,38 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
     expect((await screen.findByRole('alert')).textContent).toContain('koordinat');
     expect(fs.addDoc).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('unggah poster Info & Acara', () => {
+  it('menerbitkan acara dan mengirim poster melalui gateway untuk warkop terverifikasi milik pengguna', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([]);
+    act(() => state.warungsSnapshots[0].next(snapshotOf([{
+      id: 'warung-1', ownerUid: 'u1', name: 'Warkop Pojok', verificationStatus: 'verified'
+    }])));
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
+    await user.click(await screen.findByRole('button', { name: /Ayo ngobrol/ }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Kategori posting' }), 'Info & Acara');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Warkop penyelenggara' }), 'warung-1');
+    await user.type(screen.getByRole('textbox', { name: 'Isi obrolan' }), 'Nobar final malam ini');
+    const poster = new File(['poster-bytes'], 'poster.jpg', { type: 'image/jpeg' });
+    await user.upload(screen.getByLabelText(/Poster acara/), poster);
+    await user.click(screen.getByRole('button', { name: 'Kirim' }));
+
+    await waitFor(() => expect(media.uploadWarkopMedia).toHaveBeenCalledWith(expect.objectContaining({
+      user: expect.objectContaining({ uid: 'u1' }),
+      mediaType: 'event',
+      resourceId: 'new-post',
+      file: poster
+    })));
+    expect(fs.setDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      topic: 'Info & Acara',
+      warungId: 'warung-1',
+      body: 'Nobar final malam ini'
+    }));
   });
 });

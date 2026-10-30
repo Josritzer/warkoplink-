@@ -15,6 +15,7 @@ const USER_FACING_UPLOAD_ERRORS = new Map([
   ["Firestore authorization lookup failed", "Izin akses data belum dapat diperiksa. Muat ulang halaman dan coba lagi."],
   ["Firebase Auth photo update failed", "Foto sudah diproses, tetapi profil belum berhasil diperbarui. Muat ulang halaman lalu coba lagi."],
   ["Firebase Auth photo removal failed", "Foto profil belum berhasil dihapus. Coba lagi beberapa saat."],
+  ["Pendaftaran tidak dapat dilanjutkan.", "Pendaftaran ini belum dapat dilanjutkan. Pastikan Anda masuk dengan akun pemilik warkop."],
   ["Profile not found", "Data profil belum siap. Muat ulang halaman dan masuk kembali sebelum mengunggah."],
   ["profile-not-ready", "Data profil belum siap. Muat ulang halaman dan masuk kembali sebelum mengunggah."],
   ["Warkop ownership or status check failed", "Akun ini tidak dikenali sebagai pemilik pendaftaran warkop."],

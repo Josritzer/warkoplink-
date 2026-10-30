@@ -271,7 +271,15 @@ async function finalizeUpload(token: string, uid: string, body: Record<string, u
   const request = normalizeUploadRequest(body);
   const uploadId = typeof body.uploadId === "string" && /^[0-9a-f-]{36}$/i.test(body.uploadId) ? body.uploadId : "";
   if (!uploadId) throw new Error("Invalid upload ID");
-  await authorizeResource(token, uid, request);
+  const authorized = await authorizeResource(token, uid, request);
+  const finalPath = mediaObjectPath(uid, request.mediaType, request.resourceId || uid, uploadId, request.slot);
+  const url = publicUrl(finalPath);
+  const existingReference = request.mediaType === "avatar" ? authorized.data.photoURL
+    : request.mediaType === "warung" ? (authorized.data.photos || [])[request.slot!]
+    : authorized.data.eventPhotoURL;
+  if (existingReference === url) {
+    return { url, path: finalPath, contentType: "image/webp", idempotent: true };
+  }
   const pendingPath = `pending/${uid}/${uploadId}`;
   const { data: blob, error: downloadError } = await admin.storage.from(BUCKET_PENDING).download(pendingPath);
   if (downloadError || !blob) throw new Error("Uploaded file not found; retry upload");
@@ -281,14 +289,12 @@ async function finalizeUpload(token: string, uid: string, body: Record<string, u
     throw new Error("Uploaded byte count does not match the declared size");
   }
   const sanitized = await sanitizeImage(actual, request.contentType);
-  const finalPath = mediaObjectPath(uid, request.mediaType, request.resourceId || uid, uploadId, request.slot);
   const { error: uploadError } = await admin.storage.from(BUCKET_PUBLIC).upload(finalPath, sanitized.bytes, {
     contentType: "image/webp",
     cacheControl: "31536000",
     upsert: true,
   });
   if (uploadError) throw new Error("Could not publish validated image");
-  const url = publicUrl(finalPath);
   try {
     const previousUrl = await setMediaReference(token, uid, request, url);
     await admin.storage.from(BUCKET_PENDING).remove([pendingPath]);

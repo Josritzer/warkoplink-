@@ -44,8 +44,13 @@ describe("unggah foto warkop", () => {
       .toBe("Sesi keamanan akun sudah tidak berlaku. Keluar dari akun, masuk kembali, lalu coba lagi.");
   });
 
-  it("never exposes unfamiliar backend diagnostics to app users", () => {
+  it("translates known Firestore authorization failures to safe Indonesian", () => {
     expect(photoUploadErrorMessage(new Error("Firestore authorization lookup failed")))
+      .toBe("Izin akses data belum dapat diperiksa. Muat ulang halaman dan coba lagi.");
+  });
+
+  it("never exposes unfamiliar backend diagnostics to app users", () => {
+    expect(photoUploadErrorMessage(new Error("Unexpected internal exception 0xdeadbeef")))
       .toBe("Foto belum berhasil diunggah. Periksa koneksi atau coba lagi beberapa saat.");
   });
 });

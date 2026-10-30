@@ -10,6 +10,8 @@ on:
     branches: [main]
     paths:
       - "supabase/functions/firebase-auth-check/**"
+      - "supabase/functions/media-gateway/**"
+      - "supabase/config.toml"
       - ".github/workflows/supabase-edge-function.yml"
 
 permissions:
@@ -30,7 +32,7 @@ jobs:
       - name: Run unit tests
         run: deno test supabase/functions/firebase-auth-check/index_test.ts supabase/functions/media-gateway/policy_test.ts supabase/functions/media-gateway/image-validation_test.ts
       - name: Type-check media gateway
-        run: deno check supabase/functions/media-gateway/index.ts supabase/functions/media-gateway/policy_test.ts
+        run: deno check supabase/functions/media-gateway/index.ts supabase/functions/media-gateway/policy_test.ts supabase/functions/media-gateway/image-validation_test.ts
 
   deploy-firebase-auth-gateway:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

@@ -144,7 +144,7 @@ describe('preferensi tampilan', () => {
 describe('halaman publik', () => {
   it('pengunjung membuka halaman komunitas; ada state loading lalu state kosong', async () => {
     render(<App />);
-    expect(screen.getByRole('heading', { name: 'Obrolan komunitas' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Suasana komunitas' })).toBeTruthy();
     expect(screen.getByText('Memuat obrolan…')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Memuat…' })).toBeTruthy();
     emitAuth(null);
@@ -161,6 +161,22 @@ describe('halaman publik', () => {
     expect(await screen.findByText('Halo semuanya')).toBeTruthy();
     expect(screen.getByText('Berapa harga layanan?')).toBeTruthy();
     expect(screen.getByText('Usul fitur baru')).toBeTruthy();
+  });
+
+  it('Beranda hanya menampilkan tiga cuplikan dan tautan membuka feed Obrolan lengkap', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    emitPosts([
+      ...POSTS,
+      { id: 'p4', authorName: 'Raka', body: 'Obrolan keempat', topic: 'Ngopi Bareng' }
+    ]);
+    expect(await screen.findByText('Halo semuanya')).toBeTruthy();
+    expect(screen.queryByText('Obrolan keempat')).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Lihat semua obrolan/ }));
+    expect(screen.getByText('Obrolan keempat')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Obrolan komunitas' })).toBeTruthy();
+    expect(screen.getByLabelText('Kategori obrolan')).toBeTruthy();
   });
 
   it('filter topik dan pencarian bekerja', async () => {

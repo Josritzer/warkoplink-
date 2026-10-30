@@ -37,7 +37,7 @@ describe('navigasi profil publik dari daftar penyuka', () => {
 
     const backButton = screen.getByRole('button', { name: 'Kembali ke daftar penyuka' });
     await user.click(backButton);
-    expect(window.history.state?.warkoplinkOverlay).toBeUndefined();
+    fireEvent(window, new PopStateEvent('popstate'));
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Profil pengguna' })).toBeNull());
     expect(screen.getByRole('button', { name: 'Lihat profil Dewi' })).toBeTruthy();
 

@@ -139,6 +139,29 @@ service cloud.firestore {
           + (beforeExists ? (afterExists ? 0 : -1) : 1);
     }
 
+    // URL foto hanya sah jika berasal dari bucket Storage proyek ini, di folder warung yang tepat.
+    // Bucket harus sama dengan VITE_FIREBASE_STORAGE_BUCKET; ubah di sini jika bucket berganti.
+    // Bentuk URL dari getDownloadURL: https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<folder>%2F<warungId>%2F<berkas>?alt=media&token=<token>
+    function isWarungPhotoUrl(url, folder, warungId) {
+      return url is string
+        && url.size() <= 2048
+        && warungId is string
+        && warungId.matches('[A-Za-z0-9_-]{1,128}')
+        && url.matches('https://firebasestorage\\.googleapis\\.com/v0/b/sl-community-platform\\.firebasestorage\\.app/o/'
+          + folder + '%2F' + warungId + '%2F[A-Za-z0-9._-]{1,80}\\?alt=media&token=[A-Za-z0-9-]{8,80}');
+    }
+
+    // Daftar foto warung: paling banyak 5 dan setiap isinya wajib URL sah dari folder warungPhotos warung itu.
+    function validWarungPhotoList(photos, warungId) {
+      return photos is list
+        && photos.size() <= 5
+        && (photos.size() < 1 || isWarungPhotoUrl(photos[0], 'warungPhotos', warungId))
+        && (photos.size() < 2 || isWarungPhotoUrl(photos[1], 'warungPhotos', warungId))
+        && (photos.size() < 3 || isWarungPhotoUrl(photos[2], 'warungPhotos', warungId))
+        && (photos.size() < 4 || isWarungPhotoUrl(photos[3], 'warungPhotos', warungId))
+        && (photos.size() < 5 || isWarungPhotoUrl(photos[4], 'warungPhotos', warungId));
+    }
+
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
         && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'eventPhotoURL', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
@@ -159,7 +182,7 @@ service cloud.firestore {
         && data.authorName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
         && (!data.keys().hasAny(['authorPhotoURL']) || data.authorPhotoURL == null || (data.authorPhotoURL is string && data.authorPhotoURL.size() <= 2048))
         && (!data.keys().hasAny(['warungId']) || (data.warungId is string && get(/databases/$(database)/documents/warungs/$(data.warungId)).data.ownerUid == request.auth.uid && get(/databases/$(database)/documents/warungs/$(data.warungId)).data.verificationStatus == 'verified'))
-        && (!data.keys().hasAny(['eventPhotoURL']) || (data.eventPhotoURL is string && data.eventPhotoURL.size() <= 2048 && data.keys().hasAny(['warungId'])))
+        && (!data.keys().hasAny(['eventPhotoURL']) || (data.keys().hasAny(['warungId']) && isWarungPhotoUrl(data.eventPhotoURL, 'eventPhotos', data.warungId)))
         && data.body is string
         && data.body.size() >= 1
         && data.body.size() <= 2000
@@ -203,14 +226,15 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
-        && data.photos is list && data.photos.size() <= 5
+        // Saat pendaftaran daftar foto wajib kosong; foto diisi pemilik sesudahnya lewat validWarungEdit.
+        && data.photos is list && data.photos.size() == 0
         && data.verificationStatus == 'pending'
         && !data.keys().hasAny(['verificationAuditId'])
         && data.createdAt == request.time
         && data.updatedAt == request.time;
     }
 
-    function validWarungEdit(data) {
+    function validWarungEdit(data, warungId) {
       return data.name is string && data.name.size() >= 2 && data.name.size() <= 100
         && data.nameNormalized is string && data.nameNormalized.size() >= 2 && data.nameNormalized.size() <= 120
         && data.coordinates is map
@@ -224,7 +248,7 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
-        && data.photos is list && data.photos.size() <= 5
+        && validWarungPhotoList(data.photos, warungId)
         && data.updatedAt == request.time;
     }
 
@@ -399,7 +423,7 @@ service cloud.firestore {
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
           'facilities', 'activities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
-        && validWarungEdit(request.resource.data));
+        && validWarungEdit(request.resource.data, warungId));
       allow delete: if false;
     }
 

@@ -376,6 +376,61 @@ describe('warungs — direktori aman tahap awal', () => {
 });
 
 
+describe('foto warkop — URL wajib dari Storage proyek ini', () => {
+  const BUCKET = 'sl-community-platform.firebasestorage.app';
+  const TOKEN = '1b2c3d4e-aaaa-bbbb-cccc-1234567890ab';
+  const photoUrl = (folder, warungId, file, bucket = BUCKET) =>
+    `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${folder}%2F${warungId}%2F${file}?alt=media&token=${TOKEN}`;
+  const slots = (warungId, count) => Array.from({ length: count }, (_, i) => photoUrl('warungPhotos', warungId, `photo-${i}`));
+
+  async function seedVerifiedWarung(id, ownerUid = 'alice') {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `warungs/${id}`), validWarung({
+        ownerUid, verificationStatus: 'verified', createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+      }));
+    });
+  }
+
+  it('pendaftaran baru tidak boleh langsung membawa foto', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-foto-awal'), validWarung({ photos: slots('warkop-foto-awal', 1) })));
+  });
+
+  it('pemilik dapat mengisi foto dengan URL sah dari folder warkopnya sendiri', async () => {
+    await setDoc(doc(asUser('alice'), 'warungs/warkop-foto'), validWarung());
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'warungs/warkop-foto'), {
+      photos: slots('warkop-foto', 5), updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it('URL foto dari situs lain, bucket lain, atau folder warkop lain ditolak', async () => {
+    await setDoc(doc(asUser('alice'), 'warungs/warkop-foto-url'), validWarung());
+    const ref = doc(asUser('alice'), 'warungs/warkop-foto-url');
+    await assertFails(updateDoc(ref, { photos: ['https://example.test/pelacak.jpg'], updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { photos: [photoUrl('warungPhotos', 'warkop-foto-url', 'photo-0', 'proyek-lain.firebasestorage.app')], updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { photos: [photoUrl('warungPhotos', 'warkop-orang-lain', 'photo-0')], updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { photos: [photoUrl('eventPhotos', 'warkop-foto-url', 'photo-0')], updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { photos: [123], updatedAt: serverTimestamp() }));
+  });
+
+  it('lebih dari 5 foto ditolak walau semua URL sah', async () => {
+    await setDoc(doc(asUser('alice'), 'warungs/warkop-foto-enam'), validWarung());
+    await assertFails(updateDoc(doc(asUser('alice'), 'warungs/warkop-foto-enam'), {
+      photos: slots('warkop-foto-enam', 6), updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it('poster acara hanya sah jika URL-nya dari folder eventPhotos warkop yang sama', async () => {
+    await seedVerifiedWarung('warkop-event');
+    const db = asUser('alice');
+    const base = { topic: 'Info & Acara', warungId: 'warkop-event' };
+    await assertSucceeds(createPost(db, validPost({ ...base, eventPhotoURL: photoUrl('eventPhotos', 'warkop-event', '1730000000000.jpg') })));
+    await assertFails(createPost(db, validPost({ ...base, eventPhotoURL: 'https://example.test/poster.jpg' })));
+    await assertFails(createPost(db, validPost({ ...base, eventPhotoURL: photoUrl('eventPhotos', 'warkop-lain', '1730000000000.jpg') })));
+    await assertFails(createPost(db, validPost({ ...base, eventPhotoURL: photoUrl('warungPhotos', 'warkop-event', 'photo-0') })));
+  });
+});
+
+
 describe('verifikasi admin dan audit otomatis', () => {
   async function seedPendingWarung() {
     await env.withSecurityRulesDisabled(async (ctx) => {

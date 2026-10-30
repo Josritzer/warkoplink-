@@ -103,8 +103,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       registrationCreated = true;
       if (photoCount) {
         const photoUrls = await Promise.all(selectedPhotos.map(async (file, index) => {
-          const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
-          const photoRef = storageRef(storage, `warungPhotos/${warungRef.id}/${Date.now()}-${index}.${extension}`);
+          const photoRef = storageRef(storage, `warungPhotos/${warungRef.id}/photo-${index}`);
           await uploadBytes(photoRef, file, { contentType: file.type });
           return getDownloadURL(photoRef);
         }));

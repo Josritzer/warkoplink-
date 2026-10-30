@@ -17,14 +17,20 @@ service firebase.storage {
       allow create, update: if signedIn() && request.auth.uid == userId && validImage();
       allow delete: if signedIn() && request.auth.uid == userId;
     }
+    // Foto warung memakai 5 slot tetap (photo-0 sampai photo-4, tanpa ekstensi; tipe ada di metadata),
+    // sehingga satu warung tidak bisa menyimpan lebih dari 5 berkas. Mengunggah ke slot yang sama menimpa foto lama.
     match /warungPhotos/{warungId}/{fileName} {
       allow read: if true;
-      allow create, update: if ownsWarung(warungId) && validImage();
+      allow create, update: if ownsWarung(warungId)
+        && fileName.matches('photo-[0-4]')
+        && validImage();
       allow delete: if ownsWarung(warungId);
     }
+    // Poster acara: satu berkas per acara, nama = waktu unggah (milidetik) + ekstensi. Jumlah acara memang tidak dibatasi.
     match /eventPhotos/{warungId}/{fileName} {
       allow read: if true;
       allow create, update: if ownsWarung(warungId)
+        && fileName.matches('[0-9]{10,16}\\.(jpg|png|webp)')
         && firestore.get(/databases/(default)/documents/warungs/$(warungId)).data.verificationStatus == 'verified'
         && validImage();
       allow delete: if ownsWarung(warungId);

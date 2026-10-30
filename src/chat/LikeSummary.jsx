@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { collection, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } from 'firebase/firestore';
+import { collection, documentId, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } from 'firebase/firestore';
 import { Heart, X } from 'lucide-react';
 import PublicUserProfile from './PublicUserProfile.jsx';
 import { db } from '../firebase.js';
@@ -41,7 +41,7 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
     if (!db || !post?.id || count < 1) { setPreview([]); return undefined; }
     let active = true;
     const stop = onSnapshot(
-      query(collection(db, 'posts', post.id, 'likes'), orderBy('createdAt', 'desc'), limit(3)),
+      query(collection(db, 'posts', post.id, 'likes'), orderBy(documentId(), 'asc'), limit(3)),
       async snapshot => {
         if (active) setPreviewUids(snapshot.docs.map(item => item.id).slice(0, 3));
       },

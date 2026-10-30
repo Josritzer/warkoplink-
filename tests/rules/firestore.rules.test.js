@@ -369,6 +369,26 @@ describe('warungs — direktori aman tahap awal', () => {
     }));
   });
 
+  it('pemilik hanya dapat menambahkan foto warkop dari bucket media dan slot miliknya', async () => {
+    const warungId = 'warkop-media-owner';
+    await setDoc(doc(asUser('alice'), `warungs/${warungId}`), validWarung());
+    const url = `https://klikvxuronunonymmiqv.supabase.co/storage/v1/object/public/warkoplink-media/warungs/${warungId}/0/a12b4567-89ab-4cde-8fab-1234567890ab.webp`;
+    await assertSucceeds(updateDoc(doc(asUser('alice'), `warungs/${warungId}`), {
+      photos: [url], updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(doc(asUser('alice'), `warungs/${warungId}`), {
+      photos: ['https://attacker.example/foreign.webp'], updatedAt: serverTimestamp()
+    }));
+  });
+
+  it('menolak acara yang mengklaim warkop pending sebagai pemilik', async () => {
+    const warungId = 'warkop-event-pending';
+    await assertSucceeds(setDoc(doc(asUser('alice'), `warungs/${warungId}`), validWarung()));
+    await assertFails(createPost(asUser('alice'), validPost({
+      topic: 'Info & Acara', postType: 'Acara Warkop', warungId
+    })));
+  });
+
   it('warkop tidak dapat dihapus melalui client', async () => {
     await setDoc(doc(asUser('alice'), 'warungs/warkop-no-delete'), validWarung());
     await assertFails(deleteDoc(doc(asUser('alice'), 'warungs/warkop-no-delete')));

@@ -589,3 +589,12 @@
 .liker-row:hover{background:var(--wl-line-soft)}
 .liker-row-open{margin-left:auto;color:var(--wl-muted);font-size:22px}
 @media(max-width:600px){.public-profile-backdrop{padding:0;align-items:end}.public-profile-dialog{width:100%;max-height:88vh;border-radius:20px 20px 0 0}.public-profile-identity{padding:18px 16px}.public-profile-posts{padding:14px 16px}.public-profile-privacy{padding-inline:16px}}
+
+
+/* Foto publik WarkopLink dari gateway Supabase */
+.warung-profile-cover img{display:block;width:100%;height:100%;object-fit:cover}
+.warung-photo-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px;margin:12px 0}
+.warung-photo-gallery img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px}
+.event-post-image{margin:12px 0;overflow:hidden;border-radius:12px}
+.event-post-image img{display:block;width:100%;max-height:420px;object-fit:cover}
+.form-hint{font-size:13px;color:var(--wl-muted)}

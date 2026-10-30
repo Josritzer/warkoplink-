@@ -25,10 +25,10 @@ export default function ChatPanel(props) {
   const [workType, setWorkType] = useState('');
   const [contact, setContact] = useState('');
   useEffect(() => {
-    if (!eventPosterFile) { setEventPosterPreview(''); return undefined; }
+    if (!eventPosterFile || typeof URL.createObjectURL !== 'function') { setEventPosterPreview(''); return undefined; }
     const preview = URL.createObjectURL(eventPosterFile);
     setEventPosterPreview(preview);
-    return () => URL.revokeObjectURL(preview);
+    return () => { if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(preview); };
   }, [eventPosterFile]);
   const [nudgeDismissed, setNudgeDismissed] = useState(() => { try { return window.localStorage.getItem('warkoplink:composer-nudge-dismissed:v1') === '1'; } catch { return false; } });
   const startStory = () => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi cerita.'); return; } setComposerTopic('Ngopi Bareng'); setPostType(POST_SUBTYPES['Ngopi Bareng']?.[0] || ''); setTopic('Semua'); if (onOpenDiscussion) onOpenDiscussion(); else setComposerOpen(true); setNotice('Ceritakan suasana warkop hari ini di obrolan komunitas.'); };
@@ -55,7 +55,7 @@ export default function ChatPanel(props) {
       {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice("Masuk untuk mulai berbagi obrolan."); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><span>{user ? "Ayo ngobrol…" : "Masuk untuk mulai ngobrol…"}</span></button> : <>
         <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || "Anggota komunitas"}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
         <label className="composer-field">Kategori utama
-          <select aria-label="Kategori posting" value={category} onChange={event => { setComposerTopic(event.target.value); setPostType(POST_SUBTYPES[event.target.value]?.[0] || ''); }}>
+          <select aria-label="Kategori posting" value={category} onChange={event => { setComposerTopic(event.target.value); setPostType(POST_SUBTYPES[event.target.value]?.[0] || ''); if (event.target.value !== 'Info & Acara') { setEventPosterFile(null); setEventWarungId(''); } }}>
             {POST_TOPICS.map(item => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>

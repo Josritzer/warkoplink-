@@ -64,12 +64,12 @@ export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, fil
 
   const initialized = await retry(() => gatewayRequest(user, { ...payload, action: "init" }));
   const upload = initialized.upload;
-  if (!upload?.path || !upload?.token || !upload?.bucket) throw new Error("Gateway tidak memberikan izin unggah yang valid.");
+  if (!upload?.path || !upload?.token || !upload?.bucket || !upload?.signedUrl) throw new Error("Gateway tidak memberikan izin unggah yang valid.");
 
   let uploaded = false;
   try {
     await retry(async () => {
-      const response = await fetch(signedUploadUrl(upload.bucket, upload.path, upload.token), {
+      const response = await fetch(new URL(upload.signedUrl, SUPABASE_URL).toString(), {
         method: "PUT",
         headers: {
           apikey: SUPABASE_PUBLISHABLE_KEY,

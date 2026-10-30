@@ -25,6 +25,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [facilities, setFacilities] = useState('');
   const [priceRange, setPriceRange] = useState('belum-diisi');
   const [hours, setHours] = useState('');
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const [incompleteWarungId, setIncompleteWarungId] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 

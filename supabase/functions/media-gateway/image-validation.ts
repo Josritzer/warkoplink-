@@ -78,7 +78,7 @@ export async function sanitizeImage(
     throw new Error("Image dimensions exceed the safe limit");
   }
 
-  const decoded = await decode(input, { maxPixels: MAX_PIXELS });
+  const decoded = await decode(input);
   if (!(decoded instanceof Image)) throw new Error("Animated images are not supported");
   if (decoded.width !== dimensions.width || decoded.height !== dimensions.height) {
     throw new Error("Image dimensions do not match the encoded header");

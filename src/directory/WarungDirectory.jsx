@@ -70,6 +70,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     if (photoError) return setFormError(photoError);
     setSaving(true);
     setFormError('');
+    let registrationId = incompleteWarungId;
     try {
       let warungId = incompleteWarungId;
       let uploadedCount = 0;
@@ -92,6 +93,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
           createdAt: serverTimestamp(), updatedAt: serverTimestamp()
         });
         warungId = warungRef.id;
+        registrationId = warungId;
         setIncompleteWarungId(warungId);
       } else {
         const existing = await getDoc(doc(db, 'warungs', warungId));
@@ -105,10 +107,10 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setSelectedPhotos([]);
       setName(''); setAddress(''); setLat(''); setLng(''); setFacilities('');
       setPriceRange('belum-diisi'); setHours('');
-      onNotice('Pendaftaran dan foto warkop berhasil dikirim. Menunggu verifikasi admin.');
+      onNotice(selectedPhotos.length ? 'Pendaftaran dan foto warkop berhasil dikirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi admin.');
     } catch (error) {
-      setFormError(incompleteWarungId
-        ? 'Pendaftaran sudah tersimpan. Tekan lanjutkan untuk mencoba unggah foto yang tersisa.'
+      setFormError(registrationId
+        ? `Pendaftaran ${registrationId} sudah tersimpan. Tekan lanjutkan untuk mencoba unggah foto yang tersisa.`
         : error?.message || 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
     } finally {
       setSaving(false);

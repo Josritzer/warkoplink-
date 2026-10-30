@@ -66,49 +66,50 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       return;
     }
     if (!db) return setFormError('Firebase belum dikonfigurasi.');
-    const cleanName = name.trim();
-    const cleanAddress = address.trim();
-    const latitude = Number(lat);
-    const longitude = Number(lng);
-    if (cleanName.length < 2 || cleanName.length > 100) return setFormError('Nama warkop harus 2–100 karakter.');
-    if (cleanAddress.length < 5 || cleanAddress.length > 300) return setFormError('Alamat harus 5–300 karakter.');
-    if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude)
-      || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-      return setFormError('Masukkan koordinat lintang (-90 sampai 90) dan bujur (-180 sampai 180) yang valid.');
-    }
-    const facilityList = [...new Set(facilities.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))];
-    if (facilityList.length > 20) return setFormError('Maksimal 20 fasilitas.');
+    const photoError = validateImageFiles(selectedPhotos, { maxFiles: MAX_WARUNG_PHOTOS });
+    if (photoError) return setFormError(photoError);
     setSaving(true);
     setFormError('');
     try {
-      await addDoc(collection(db, 'warungs'), {
-        name: cleanName,
-        nameNormalized: cleanName.toLowerCase(),
-        ownerUid: user.uid,
-        coordinates: { lat: latitude, lng: longitude },
-        address: cleanAddress,
-        regionCode: 'lamongan-kab',
-        facilities: facilityList,
-        activities: [],
-        priceRange,
-        openingHours: hours.trim() ? { keterangan: hours.trim().slice(0, 120) } : {},
-        photos: [],
-        verificationStatus: 'pending',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      setName('');
-      setAddress('');
-      setLat('');
-      setLng('');
-      setFacilities('');
-      setPriceRange('belum-diisi');
-      setHours('');
-      onNotice('Pendaftaran terkirim. Warkop menunggu verifikasi dan belum tampil di direktori publik.');
+      let warungId = incompleteWarungId;
+      let uploadedCount = 0;
+      if (!warungId) {
+        const cleanName = name.trim();
+        const cleanAddress = address.trim();
+        const latitude = Number(lat);
+        const longitude = Number(lng);
+        if (cleanName.length < 2 || cleanName.length > 100) throw new Error('Nama warkop harus 2–100 karakter.');
+        if (cleanAddress.length < 5 || cleanAddress.length > 300) throw new Error('Alamat harus 5–300 karakter.');
+        if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) throw new Error('Koordinat lintang atau bujur tidak valid.');
+        const facilityList = [...new Set(facilities.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))];
+        if (facilityList.length > 20) throw new Error('Maksimal 20 fasilitas.');
+        const warungRef = await addDoc(collection(db, 'warungs'), {
+          name: cleanName, nameNormalized: cleanName.toLowerCase(), ownerUid: user.uid,
+          coordinates: { lat: latitude, lng: longitude }, address: cleanAddress,
+          regionCode: 'lamongan-kab', facilities: facilityList, activities: [], priceRange,
+          openingHours: hours.trim() ? { keterangan: hours.trim().slice(0, 120) } : {},
+          photos: [], verificationStatus: 'pending',
+          createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+        });
+        warungId = warungRef.id;
+        setIncompleteWarungId(warungId);
+      } else {
+        const existing = await getDoc(doc(db, 'warungs', warungId));
+        if (!existing.exists() || existing.data().ownerUid !== user.uid) throw new Error('Pendaftaran tidak dapat dilanjutkan.');
+        uploadedCount = Array.isArray(existing.data().photos) ? existing.data().photos.length : 0;
+      }
+      for (let index = uploadedCount; index < selectedPhotos.length; index++) {
+        await uploadWarkopMedia({ user, mediaType: 'warung', resourceId: warungId, slot: index, file: selectedPhotos[index] });
+      }
+      setIncompleteWarungId('');
+      setSelectedPhotos([]);
+      setName(''); setAddress(''); setLat(''); setLng(''); setFacilities('');
+      setPriceRange('belum-diisi'); setHours('');
+      onNotice('Pendaftaran dan foto warkop berhasil dikirim. Menunggu verifikasi admin.');
     } catch (error) {
-      setFormError(error?.code === 'permission-denied'
-        ? 'Pendaftaran ditolak oleh aturan keamanan. Pastikan Anda sudah masuk dan coba lagi.'
-        : 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
+      setFormError(incompleteWarungId
+        ? 'Pendaftaran sudah tersimpan. Tekan lanjutkan untuk mencoba unggah foto yang tersisa.'
+        : error?.message || 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
     } finally {
       setSaving(false);
     }

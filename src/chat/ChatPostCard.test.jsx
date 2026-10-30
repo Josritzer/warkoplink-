@@ -161,6 +161,15 @@ describe('ChatPostCard', () => {
     expect(screen.queryByRole('menuitem', { name: /Hapus obrolan/ })).toBeNull();
     expect(await screen.findByRole('menuitem', { name: /Laporkan obrolan/ })).toBeTruthy();
   });
+
+  it('menampilkan poster acara yang sudah tersimpan pada postingan Info & Acara', () => {
+    const { container } = render(<ChatPostCard {...props({
+      post: { ...props().post, topic: 'Info & Acara', eventKind: 'Nobar', eventPhotoURL: 'https://media.example.test/events/post-1/poster.webp' }
+    })} />);
+    const poster = container.querySelector('.event-post-image img');
+    expect(poster?.getAttribute('src')).toBe('https://media.example.test/events/post-1/poster.webp');
+    expect(poster?.getAttribute('alt')).toBe('Poster acara Nobar');
+  });
 });
 
 describe('ChatPostCard — tampilan 2026', () => {

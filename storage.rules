@@ -1,33 +1,51 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    function signedIn() { return request.auth != null; }
+    function signedIn() {
+      return request.auth != null;
+    }
+
     function validImage() {
       return request.resource != null
         && request.resource.size > 0
         && request.resource.size <= 2 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
+
     function ownsWarung(warungId) {
       return signedIn()
         && firestore.get(/databases/(default)/documents/warungs/$(warungId)).data.ownerUid == request.auth.uid;
     }
+
+    function validWarungPhotoName(fileName) {
+      return fileName.matches('photo-[0-4]\\.(jpg|jpeg|png|webp)');
+    }
+
+    function validEventPosterName(fileName) {
+      return fileName.matches('[0-9]+\\.(jpg|jpeg|png|webp)');
+    }
+
     match /profilePhotos/{userId}/avatar {
       allow read: if true;
       allow create, update: if signedIn() && request.auth.uid == userId && validImage();
       allow delete: if signedIn() && request.auth.uid == userId;
     }
+
     match /warungPhotos/{warungId}/{fileName} {
       allow read: if true;
-      allow create, update: if ownsWarung(warungId) && validImage();
-      allow delete: if ownsWarung(warungId);
+      allow create, update: if ownsWarung(warungId)
+        && validWarungPhotoName(fileName)
+        && validImage();
+      allow delete: if ownsWarung(warungId) && validWarungPhotoName(fileName);
     }
+
     match /eventPhotos/{warungId}/{fileName} {
       allow read: if true;
       allow create, update: if ownsWarung(warungId)
+        && validEventPosterName(fileName)
         && firestore.get(/databases/(default)/documents/warungs/$(warungId)).data.verificationStatus == 'verified'
         && validImage();
-      allow delete: if ownsWarung(warungId);
+      allow delete: if ownsWarung(warungId) && validEventPosterName(fileName);
     }
   }
 }

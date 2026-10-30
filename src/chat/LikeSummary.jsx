@@ -106,6 +106,29 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
     }
   }
 
+  const profileHistoryKey = `warkoplink-public-profile-${post?.id || ''}`;
+
+  useEffect(() => {
+    if (!selectedProfile) return undefined;
+    // Tambahkan satu entri riwayat agar tombol Back Android/browser menutup profil,
+    // bukan meninggalkan halaman. Dialog penyuka tetap terpasang di bawahnya.
+    window.history.pushState(
+      { ...(window.history.state || {}), warkoplinkOverlay: profileHistoryKey },
+      ''
+    );
+    const handlePopState = () => setSelectedProfile(null);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [selectedProfile, profileHistoryKey]);
+
+  function backToLikers() {
+    if (window.history.state?.warkoplinkOverlay === profileHistoryKey) {
+      window.history.back();
+    } else {
+      setSelectedProfile(null);
+    }
+  }
+
   async function openLikerList() {
     setSelectedProfile(null);
     setDialogOpen(true);
@@ -138,6 +161,6 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
         {hasMore && <button className="button button-quiet liker-load-more" type="button" disabled={loading} onClick={() => loadLikers(false)}>{loading ? 'Memuat…' : 'Muat lebih banyak'}</button>}
       </section>
     </div>}
-    {selectedProfile && <PublicUserProfile profile={selectedProfile} db={db} onBack={() => setSelectedProfile(null)} />}
+    {selectedProfile && <PublicUserProfile profile={selectedProfile} db={db} onBack={backToLikers} />}
   </>;
 }

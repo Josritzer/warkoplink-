@@ -379,3 +379,143 @@ html, body, #root, .app-shell, .desktop-layout, .desktop-layout > main,
     padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Secondary mobile pages: use the screen width directly instead of nested cards. */
+@media (max-width: 767px) {
+  .app-shell.secondary-view {
+    width: 100%;
+    max-width: none;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-shell.secondary-view .desktop-layout {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+  }
+
+  .app-shell.secondary-view .desktop-layout > main {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .app-shell.secondary-view .content-section,
+  .app-shell.secondary-view .explore-section,
+  .app-shell.secondary-view .account-section,
+  .app-shell.secondary-view .reply-page {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* The form is content, not another white panel inside the page. */
+  .app-shell.secondary-view .warung-form {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 18px 0 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .app-shell.secondary-view .warung-form > *,
+  .app-shell.secondary-view .warung-form label,
+  .app-shell.secondary-view .account-card > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app-shell.secondary-view .account-card {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 18px 0 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .app-shell.secondary-view .account-card > div:nth-child(2) {
+    flex: 1 1 180px;
+  }
+
+  .app-shell.secondary-view .account-card .button {
+    margin-left: 58px;
+  }
+
+  /* Category buttons remain whole and can be swiped horizontally. */
+  .app-shell.secondary-view #community-feed .topic-scroll-wrap {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .app-shell.secondary-view #community-feed .topic-list {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    scroll-snap-type: x proximity;
+    padding: 12px 4px;
+  }
+
+  .app-shell.secondary-view #community-feed .topic {
+    flex: 0 0 auto;
+    max-width: none;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+
+  .app-shell.secondary-view #community-feed .topic-scroll-hint {
+    display: none;
+  }
+
+  .app-shell.secondary-view #community-feed .post-list {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+    scroll-margin-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-shell.secondary-view .feed-pagination {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-shell.secondary-view .content-section :where(input, textarea, select, button) {
+    max-width: 100%;
+  }
+}

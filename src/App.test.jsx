@@ -117,6 +117,7 @@ describe('laporan obrolan', () => {
     await user.click(screen.getByRole('button', { name: 'Kirim laporan' }));
     await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ targetPostId: 'post-1', targetAuthorId: 'author-1', reporterUid: 'u1', reason: 'Lainnya', createdAt: '__SERVER_TS__' })));
     expect(await screen.findByText('Laporan terkirim kepada admin untuk ditinjau.')).toBeTruthy();
+    expect(screen.getByText('Laporan terkirim kepada admin untuk ditinjau.').tagName).toBe('DIV');
   });
 });
 

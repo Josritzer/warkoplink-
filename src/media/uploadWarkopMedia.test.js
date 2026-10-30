@@ -34,8 +34,30 @@ describe("unggah foto warkop", () => {
       .toBe("Sesi masuk kedaluwarsa. Keluar dari akun, masuk kembali, lalu coba lagi.");
   });
 
-  it("keeps an unfamiliar diagnostic available without hiding the failure", () => {
+  it("translates the exact disabled-account status returned by the gateway", () => {
+    expect(photoUploadErrorMessage(new Error("Firebase account is disabled or status is unknown")))
+      .toBe("Sesi akun tidak dapat diverifikasi. Keluar dari akun, masuk kembali, lalu coba lagi. Jika masih gagal, hubungi admin.");
+  });
+
+  it("explains revoked Firebase sessions without exposing backend details", () => {
+    expect(photoUploadErrorMessage(new Error("Firebase ID token has been revoked")))
+      .toBe("Sesi keamanan akun sudah tidak berlaku. Keluar dari akun, masuk kembali, lalu coba lagi.");
+  });
+
+  it("translates known Firestore authorization failures to safe Indonesian", () => {
     expect(photoUploadErrorMessage(new Error("Firestore authorization lookup failed")))
-      .toBe("Foto belum berhasil diunggah. Detail: Firestore authorization lookup failed");
+      .toBe("Izin akses data belum dapat diperiksa. Muat ulang halaman dan coba lagi.");
+  });
+
+  it("never exposes unfamiliar backend diagnostics to app users", () => {
+    expect(photoUploadErrorMessage(new Error("Unexpected internal exception 0xdeadbeef")))
+      .toBe("Foto belum berhasil diunggah. Periksa koneksi atau coba lagi beberapa saat.");
+  });
+
+  it("uses the context-specific fallback when an error has no message", () => {
+    expect(photoUploadErrorMessage(
+      new Error(),
+      "Foto profil belum berhasil dihapus. Coba lagi beberapa saat."
+    )).toBe("Foto profil belum berhasil dihapus. Coba lagi beberapa saat.");
   });
 });

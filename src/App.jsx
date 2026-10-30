@@ -108,6 +108,13 @@ export default function App() {
   const registering = useRef(false);
   const reactionLocks = useRef(new Set());
 
+  // Notifikasi sementara tidak boleh terus menutupi konten atau navigasi.
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timeoutId = window.setTimeout(() => setNotice(''), 3000);
+    return () => window.clearTimeout(timeoutId);
+  }, [notice]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
     document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
@@ -849,7 +856,7 @@ export default function App() {
       setNotice('Foto profil berhasil diperbarui.');
     } catch (error) {
       console.warn('Unggah foto profil gagal:', error?.message || 'unknown');
-      setNotice(error?.message || 'Foto profil belum berhasil disimpan. Coba lagi.');
+      setNotice(photoUploadErrorMessage(error));
     } finally {
       setPhotoUploading(false);
     }
@@ -865,7 +872,7 @@ export default function App() {
       setNotice('Foto profil dihapus.');
     } catch (error) {
       console.warn('Hapus foto profil gagal:', error?.message || 'unknown');
-      setNotice(error?.message || 'Foto profil belum dapat dihapus. Coba lagi.');
+      setNotice(photoUploadErrorMessage(error, 'Foto profil belum berhasil dihapus. Coba lagi beberapa saat.'));
     } finally {
       setPhotoUploading(false);
     }

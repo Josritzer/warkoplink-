@@ -5,6 +5,13 @@ import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock } from 'lucide-react';
 import { ACTIVITY_OPTIONS, PRICE_OPTIONS, collectFacilities, filterWarungs, isOpenNow } from './directoryFilters.js';
 
+class WarungFormValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'WarungFormValidationError';
+  }
+}
+
 export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
   const [warungs, setWarungs] = useState([]);
   const [status, setStatus] = useState(db ? 'loading' : 'error');
@@ -80,11 +87,11 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         const cleanAddress = address.trim();
         const latitude = Number(lat);
         const longitude = Number(lng);
-        if (cleanName.length < 2 || cleanName.length > 100) throw new Error('Nama warkop harus 2–100 karakter.');
-        if (cleanAddress.length < 5 || cleanAddress.length > 300) throw new Error('Alamat harus 5–300 karakter.');
-        if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) throw new Error('Masukkan koordinat lintang atau bujur yang valid.');
+        if (cleanName.length < 2 || cleanName.length > 100) throw new WarungFormValidationError('Nama warkop harus 2–100 karakter.');
+        if (cleanAddress.length < 5 || cleanAddress.length > 300) throw new WarungFormValidationError('Alamat harus 5–300 karakter.');
+        if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) throw new WarungFormValidationError('Masukkan koordinat lintang atau bujur yang valid.');
         const facilityList = [...new Set(facilities.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))];
-        if (facilityList.length > 20) throw new Error('Maksimal 20 fasilitas.');
+        if (facilityList.length > 20) throw new WarungFormValidationError('Maksimal 20 fasilitas.');
         const warungRef = await addDoc(collection(db, 'warungs'), {
           name: cleanName, nameNormalized: cleanName.toLowerCase(), ownerUid: user.uid,
           coordinates: { lat: latitude, lng: longitude }, address: cleanAddress,
@@ -110,7 +117,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setPriceRange('belum-diisi'); setHours('');
       onNotice(selectedPhotos.length ? 'Pendaftaran dan foto warkop berhasil dikirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi admin.');
     } catch (error) {
-      const message = photoUploadErrorMessage(error);
+      const message = error instanceof WarungFormValidationError ? error.message : photoUploadErrorMessage(error);
       setFormError(registrationId
         ? `Pendaftaran ${registrationId} sudah tersimpan, tetapi foto belum berhasil diunggah. ${message} Tekan "Lanjutkan unggah foto" untuk mencoba lagi.`
         : message || 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
@@ -159,8 +166,17 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>
         <label>Alamat lengkap di Kabupaten Lamongan<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa, kecamatan"/></label>
         <div className="coordinate-fields">
-          <label>Lintang (latitude)<input inputMode="decimal" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="-7.0001"/></label>
-          <label>Bujur (longitude)<input inputMode="decimal" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="112.2810"/></label>
+          <label>Lintang (latitude)
+            <input type="text" inputMode="decimal" autoComplete="off" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="Contoh: -7.0001" aria-describedby="latitude-help"/>
+          </label>
+          <label>Bujur (longitude)
+            <input type="text" inputMode="decimal" autoComplete="off" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="Contoh: 112.2810" aria-describedby="longitude-help"/>
+          </label>
+        </div>
+        <div className="coordinate-help">
+          <small id="latitude-help">Lintang: angka utara/selatan, untuk Lamongan biasanya diawali -7.</small>
+          <small id="longitude-help">Bujur: angka timur/barat, untuk Lamongan biasanya diawali 112.</small>
+          <small>Contoh koordinat di atas hanya panduan. Pastikan titik sesuai alamat warkop.</small>
         </div>
         <label>Foto warkop (maksimal 5, JPG/PNG/WebP, 2 MiB per foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={Boolean(incompleteWarungId)} onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
         {selectedPhotos.length > 0 && <p className="form-hint">{selectedPhotos.length} foto dipilih. {incompleteWarungId ? 'Pilihan foto dikunci sampai unggahan selesai.' : ''}</p>}

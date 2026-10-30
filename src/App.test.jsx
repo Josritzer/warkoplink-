@@ -89,7 +89,10 @@ beforeEach(() => {
   fbAuth.createUserWithEmailAndPassword.mockResolvedValue({ user: { uid: 'u1', email: 'sari@example.test' } });
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 async function openRegister(user) {
   await user.click(screen.getByRole('button', { name: 'Gabung komunitas' }));
@@ -641,5 +644,60 @@ describe('unggah poster Info & Acara', () => {
       warungId: 'warung-1',
       body: 'Nobar final malam ini'
     }));
+  });
+});
+
+
+
+describe('notifikasi sementara dan unggah foto profil', () => {
+  it('tidak menampilkan error identitas Firebase mentah pada foto profil', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    emitAuth(fakeUser());
+    await user.click(screen.getByRole('button', { name: 'Akun' }));
+
+    media.uploadWarkopMedia.mockRejectedValueOnce(
+      new Error('Firebase account is disabled or status is unknown')
+    );
+    const input = container.querySelector('input[type="file"]');
+    expect(input).toBeTruthy();
+    fireEvent.change(input, {
+      target: { files: [new File(['avatar'], 'avatar.jpg', { type: 'image/jpeg' })] }
+    });
+
+    expect(await screen.findByText(
+      'Sesi akun tidak dapat diverifikasi. Keluar dari akun, masuk kembali, lalu coba lagi. Jika masih gagal, hubungi admin.'
+    )).toBeTruthy();
+    expect(screen.queryByText(/Firebase account is disabled/)).toBeNull();
+  });
+
+  it('menghilangkan notifikasi sementara setelah tiga detik', () => {
+    vi.useFakeTimers();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Tersimpan/ }));
+    const notice = 'Menu Tersimpan belum tersedia. Tidak ada daftar tersimpan yang dibuat-buat.';
+    expect(screen.getByText(notice)).toBeTruthy();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.queryByText(notice)).toBeNull();
+  });
+});
+
+
+describe('aksesibilitas form pendaftaran warkop', () => {
+  it('menjelaskan format lintang dan bujur pada layar Daftar', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+
+    const latitude = screen.getByPlaceholderText('Contoh: -7.0001');
+    const longitude = screen.getByPlaceholderText('Contoh: 112.2810');
+    expect(latitude.getAttribute('inputmode')).toBe('decimal');
+    expect(longitude.getAttribute('inputmode')).toBe('decimal');
+    expect(screen.getByText(/Lintang: angka utara\/selatan/)).toBeTruthy();
+    expect(screen.getByText(/Bujur: angka timur\/barat/)).toBeTruthy();
   });
 });

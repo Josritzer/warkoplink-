@@ -64,7 +64,7 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, onBack
         <div><h3>{name}</h3><p>Anggota komunitas WarkopLink</p></div>
       </div>
       <div className="public-profile-posts">
-        <div className="public-profile-section-title"><h3>Postingan</h3><span>{posts.length}{posts.length === 20 ? '+' : ''}</span></div>
+        <div className="public-profile-section-title"><h3>Postingan</h3><span>{posts.length}</span></div>
         {status === 'loading' && <p className="public-profile-state" role="status">Memuat profil dan postingan…</p>}
         {status === 'error' && <p className="public-profile-state" role="alert">Profil belum dapat dimuat. Periksa koneksi lalu coba lagi.</p>}
         {status === 'ready' && posts.length === 0 && <p className="public-profile-state">Belum ada postingan publik.</p>}

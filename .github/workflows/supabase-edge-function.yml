@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "supabase/functions/firebase-auth-check/**"
+      - "supabase/functions/media-gateway/**"
       - ".github/workflows/supabase-edge-function.yml"
   push:
     branches: [main]
@@ -27,7 +28,9 @@ jobs:
       - name: Type-check function and tests
         run: deno check supabase/functions/firebase-auth-check/index.ts supabase/functions/firebase-auth-check/index_test.ts
       - name: Run unit tests
-        run: deno test supabase/functions/firebase-auth-check/index_test.ts
+        run: deno test supabase/functions/firebase-auth-check/index_test.ts supabase/functions/media-gateway/policy_test.ts
+      - name: Type-check media gateway
+        run: deno check supabase/functions/media-gateway/index.ts supabase/functions/media-gateway/policy_test.ts
 
   deploy-firebase-auth-gateway:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -40,3 +43,5 @@ jobs:
         uses: actions/checkout@v4
       - name: Deploy WarkopLink Firebase auth gateway
         run: npx --yes supabase@latest functions deploy firebase-auth-check --project-ref klikvxuronunonymmiqv
+      - name: Deploy WarkopLink media gateway
+        run: npx --yes supabase@latest functions deploy media-gateway --project-ref klikvxuronunonymmiqv

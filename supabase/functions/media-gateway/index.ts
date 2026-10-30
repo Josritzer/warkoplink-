@@ -197,8 +197,8 @@ async function setMediaReference(
       photos[request.slot!] = url;
       fieldPatch = { photos };
     } else {
-      oldUrl = typeof resource.data.eventPosterURL === "string" ? resource.data.eventPosterURL : null;
-      fieldPatch = { eventPosterURL: url };
+      oldUrl = typeof resource.data.eventPhotoURL === "string" ? resource.data.eventPhotoURL : null;
+      fieldPatch = { eventPhotoURL: url };
     }
     try {
       await patchResource(token, resource, fieldPatch);
@@ -300,7 +300,7 @@ async function finalizeUpload(token: string, uid: string, body: Record<string, u
     const resource = await authorizeResource(token, uid, request).catch(() => null);
     const current = request.mediaType === "avatar" ? resource?.data.photoURL
       : request.mediaType === "warung" ? resource?.data.photos?.[request.slot!]
-      : resource?.data.eventPosterURL;
+      : resource?.data.eventPhotoURL;
     if (current !== url) await admin.storage.from(BUCKET_PUBLIC).remove([finalPath]);
     throw error;
   }

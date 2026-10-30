@@ -130,6 +130,7 @@ describe('poster Info & Acara', () => {
     const originalCreateObjectURL = URL.createObjectURL;
     URL.createObjectURL = vi.fn(() => 'blob:poster-preview');
     try {
+      const handlePost = vi.fn().mockResolvedValue(true);
       const { container } = render(<ChatPanel
         user={{ uid: 'owner-1', displayName: 'Pemilik' }}
         firebaseConfigured
@@ -137,19 +138,19 @@ describe('poster Info & Acara', () => {
         composerTopic="Info & Acara" setComposerTopic={vi.fn()} composerOpen
         setComposerOpen={vi.fn()} openAuth={vi.fn()} setNotice={vi.fn()}
         draft="Nobar final" setDraft={vi.fn()} activeCategory="Info & Acara"
-        handlePost={vi.fn()} posting={false} postsStatus="ready" setPostsRetry={vi.fn()}
+        handlePost={handlePost} posting={false} postsStatus="ready" setPostsRetry={vi.fn()}
         visiblePosts={[]} cardProps={{}} hasMorePosts={false} loadingMorePosts={false}
         loadMoreError="" onLoadMorePosts={vi.fn()} verifiedWarungs={[]}
         ownVerifiedWarungs={[{ id: 'warung-1', name: 'Warkop Pojok' }]}
       />);
-      const handlePost = vi.fn().mockResolvedValue(true);
-      // Ganti handler sebelum interaksi agar payload file dapat diperiksa.
       const file = new File(['poster'], 'poster.jpg', { type: 'image/jpeg' });
       fireEvent.change(screen.getByLabelText(/Poster acara/), { target: { files: [file] } });
       fireEvent.change(screen.getByRole('combobox', { name: 'Warkop penyelenggara' }), { target: { value: 'warung-1' } });
       expect(screen.getByRole('option', { name: 'Warkop Pojok' })).toBeTruthy();
       await waitFor(() => expect(container.querySelector('.event-poster-preview img')?.getAttribute('src')).toBe('blob:poster-preview'));
       expect(screen.getByText('poster.jpg')).toBeTruthy();
+      fireEvent.submit(container.querySelector('form'));
+      await waitFor(() => expect(handlePost).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ eventPosterFile: file, eventWarungId: 'warung-1' })));
     } finally {
       URL.createObjectURL = originalCreateObjectURL;
     }

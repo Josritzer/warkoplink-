@@ -32,7 +32,7 @@ const USER_FACING_UPLOAD_ERRORS = new Map([
 
 export function photoUploadErrorMessage(error, fallback = "Foto belum berhasil diunggah. Periksa koneksi atau coba lagi beberapa saat.") {
   const message = typeof error?.message === "string" ? error.message.trim() : "";
-  if (!message) return "Foto belum berhasil diunggah. Periksa koneksi lalu coba lagi.";
+  if (!message) return fallback;
   return USER_FACING_UPLOAD_ERRORS.get(message) || fallback;
 }
 

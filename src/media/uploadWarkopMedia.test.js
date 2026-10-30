@@ -53,4 +53,11 @@ describe("unggah foto warkop", () => {
     expect(photoUploadErrorMessage(new Error("Unexpected internal exception 0xdeadbeef")))
       .toBe("Foto belum berhasil diunggah. Periksa koneksi atau coba lagi beberapa saat.");
   });
+
+  it("uses the context-specific fallback when an error has no message", () => {
+    expect(photoUploadErrorMessage(
+      new Error(),
+      "Foto profil belum berhasil dihapus. Coba lagi beberapa saat."
+    )).toBe("Foto profil belum berhasil dihapus. Coba lagi beberapa saat.");
+  });
 });

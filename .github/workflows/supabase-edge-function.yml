@@ -28,7 +28,7 @@ jobs:
       - name: Type-check function and tests
         run: deno check supabase/functions/firebase-auth-check/index.ts supabase/functions/firebase-auth-check/index_test.ts
       - name: Run unit tests
-        run: deno test supabase/functions/firebase-auth-check/index_test.ts supabase/functions/media-gateway/policy_test.ts
+        run: deno test supabase/functions/firebase-auth-check/index_test.ts supabase/functions/media-gateway/policy_test.ts supabase/functions/media-gateway/image-validation_test.ts
       - name: Type-check media gateway
         run: deno check supabase/functions/media-gateway/index.ts supabase/functions/media-gateway/policy_test.ts
 

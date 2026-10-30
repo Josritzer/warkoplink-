@@ -114,13 +114,15 @@ export default function App() {
     try { window.localStorage.setItem('warkoplink:theme', darkMode ? 'dark' : 'light'); } catch { /* Preferensi tema opsional. */ }
   }, [darkMode]);
 
-  // Daftar mention hanya memuat warkop terverifikasi; posting lama tidak perlu dimigrasi.
+  // Daftar mention hanya memuat warkop terverifikasi; hindari ketergantungan composite index nama.
   useEffect(() => {
     if (!db) { setVerifiedWarungs([]); return undefined; }
     return onSnapshot(
-      query(collection(db, 'warungs'), where('verificationStatus', '==', 'verified'), orderBy('nameNormalized', 'asc'), limit(100)),
-      snapshot => setVerifiedWarungs(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))),
-      () => setVerifiedWarungs([])
+      query(collection(db, 'warungs'), where('verificationStatus', '==', 'verified'), limit(100)),
+      snapshot => setVerifiedWarungs(snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a, b) =>
+        String(a.nameNormalized || a.name || '').localeCompare(String(b.nameNormalized || b.name || ''), 'id') || a.id.localeCompare(b.id)
+      )),
+      () => { setVerifiedWarungs([]); setNotice('Daftar warkop terverifikasi belum dapat dimuat. Coba muat ulang halaman.'); }
     );
   }, []);
 

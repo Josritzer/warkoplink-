@@ -4,6 +4,28 @@ const MEDIA_GATEWAY_URL = `${SUPABASE_URL}/functions/v1/media-gateway`;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+const RETRYABLE_HTTP_STATUSES = new Set([408, 429, 502, 503, 504]);
+const USER_FACING_UPLOAD_ERRORS = new Map([
+  ["Invalid or expired Firebase ID token", "Sesi masuk kedaluwarsa. Keluar dari akun, masuk kembali, lalu coba lagi."],
+  ["Firebase account is disabled or token revoked", "Sesi keamanan akun perlu diperbarui. Keluar dari akun, masuk kembali, lalu coba lagi."],
+  ["Profile not found", "Data profil belum siap. Muat ulang halaman dan masuk kembali sebelum mengunggah."],
+  ["Warkop ownership or status check failed", "Akun ini tidak dikenali sebagai pemilik pendaftaran warkop."],
+  ["Warkop photo quota exceeded or slot is not sequential", "Maksimal lima foto. Lanjutkan unggahan yang tertunda sebelum memilih foto lain."],
+  ["Too many pending uploads; finish or retry an existing upload", "Masih ada unggahan foto yang tertunda. Tekan tombol lanjutkan unggah foto terlebih dahulu."],
+  ["Unsupported image type", "Format foto tidak didukung. Pilih JPG, PNG, atau WebP."],
+  ["Image size must be between 1 byte and 2 MiB", "Ukuran foto harus lebih dari 0 dan maksimal 2 MiB."],
+  ["Could not create signed upload", "Izin unggah foto belum bisa dibuat. Coba lagi sebentar."],
+  ["Uploaded file not found; retry upload", "Foto belum sampai ke server. Tekan tombol lanjutkan unggah foto untuk mencoba lagi."],
+  ["Could not publish validated image", "Server belum dapat memproses foto. Coba lagi sebentar."],
+]);
+
+export function photoUploadErrorMessage(error) {
+  const message = typeof error?.message === "string" ? error.message.trim() : "";
+  if (!message) return "Foto belum berhasil diunggah. Periksa koneksi lalu coba lagi.";
+  return USER_FACING_UPLOAD_ERRORS.get(message)
+    || `Foto belum berhasil diunggah. Detail: ${message}`;
+}
+
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -15,7 +37,8 @@ async function retry(operation, attempts = 3) {
       return await operation();
     } catch (error) {
       lastError = error;
-      if (attempt < attempts - 1) await wait(350 * (2 ** attempt));
+      if (error?.retryable === false || attempt === attempts - 1) throw error;
+      await wait(350 * (2 ** attempt));
     }
   }
   throw lastError;
@@ -33,7 +56,12 @@ async function gatewayRequest(user, payload) {
     body: JSON.stringify(payload),
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || "Layanan foto belum dapat dihubungi.");
+  if (!response.ok) {
+    const error = new Error(body.error || "Layanan foto belum dapat dihubungi.");
+    error.status = response.status;
+    error.retryable = RETRYABLE_HTTP_STATUSES.has(response.status) || response.status >= 500;
+    throw error;
+  }
   return body;
 }
 
@@ -83,13 +111,17 @@ export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, fil
         return;
       }
       const detail = await response.text().catch(() => "");
-      throw new Error(response.status === 413
+      const error = new Error(response.status === 413
         ? "Foto melebihi batas penyimpanan."
         : detail || "Unggahan terputus. Sistem akan mencoba kembali.");
+      error.status = response.status;
+      error.retryable = RETRYABLE_HTTP_STATUSES.has(response.status) || response.status >= 500;
+      throw error;
     });
   } catch (error) {
     // A timeout may happen after the server stored the file; finalize is the safe recovery check.
     if (!uploaded) {
+      if (error?.retryable === false) throw error;
       try {
         return (await gatewayRequest(user, { ...payload, action: "finalize" })).media;
       } catch {

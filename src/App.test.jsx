@@ -6,6 +6,10 @@ import userEvent from '@testing-library/user-event';
 const state = vi.hoisted(() => ({ authCallback: null, snapshotNext: null, snapshotError: null, warungsSnapshots: [] }));
 
 vi.mock('./firebase.js', () => ({ auth: { name: 'auth' }, db: { name: 'db' }, firebaseConfigured: true }));
+vi.mock('./media/uploadWarkopMedia.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, uploadWarkopMedia: vi.fn() };
+});
 
 vi.mock('firebase/auth', () => ({
   onAuthStateChanged: vi.fn((auth, callback) => { state.authCallback = callback; return vi.fn(); }),
@@ -52,6 +56,7 @@ vi.mock('firebase/firestore', () => ({
 
 import * as fbAuth from 'firebase/auth';
 import * as fs from 'firebase/firestore';
+import * as media from './media/uploadWarkopMedia.js';
 import App from './App.jsx';
 
 const fakeUser = (overrides = {}) => ({ uid: 'u1', email: 'sari@example.test', displayName: 'Sari', ...overrides });
@@ -555,6 +560,24 @@ describe('direktori dan pendaftaran warkop', () => {
       updatedAt: '__SERVER_TS__',
     })));
     expect(await screen.findByText(/Pendaftaran terkirim/)).toBeTruthy();
+  });
+
+  it('menunjukkan penyebab foto gagal dan cara melanjutkan pendaftaran tersimpan', async () => {
+    const user = userEvent.setup();
+    media.uploadWarkopMedia.mockRejectedValueOnce(new Error('Invalid or expired Firebase ID token'));
+    render(<App />);
+    emitAuth(fakeUser());
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+    await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
+    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
+    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.upload(screen.getByLabelText(/Foto warkop/), new File(['foto'], 'warkop.jpg', { type: 'image/jpeg' }));
+    await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+
+    expect(await screen.findByText(/Pendaftaran new sudah tersimpan, tetapi foto belum berhasil diunggah/)).toBeTruthy();
+    expect(screen.getByText(/Sesi masuk kedaluwarsa/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Lanjutkan unggah foto' })).toBeTruthy();
   });
 
 

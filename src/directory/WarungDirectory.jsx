@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
-import { uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
+import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock } from 'lucide-react';
 import { ACTIVITY_OPTIONS, PRICE_OPTIONS, collectFacilities, filterWarungs, isOpenNow } from './directoryFilters.js';
@@ -110,9 +110,10 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setPriceRange('belum-diisi'); setHours('');
       onNotice(selectedPhotos.length ? 'Pendaftaran dan foto warkop berhasil dikirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi admin.');
     } catch (error) {
+      const message = photoUploadErrorMessage(error);
       setFormError(registrationId
-        ? `Pendaftaran ${registrationId} sudah tersimpan. Tekan lanjutkan untuk mencoba unggah foto yang tersisa.`
-        : error?.message || 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
+        ? `Pendaftaran ${registrationId} sudah tersimpan, tetapi foto belum berhasil diunggah. ${message} Tekan "Lanjutkan unggah foto" untuk mencoba lagi.`
+        : message || 'Pendaftaran belum berhasil. Periksa koneksi lalu coba lagi.');
     } finally {
       setSaving(false);
     }

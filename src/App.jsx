@@ -993,7 +993,7 @@ export default function App() {
         </form>
         <button className="switch-auth" onClick={() => { setRegisterMode(!registerMode); setAuthError(''); }}>{registerMode ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Daftar'}</button>
       </section></div>}
-      {notice && <span className="visually-hidden" role="status">{notice}</span>}
+      {notice && <div className="app-notice" role="status" aria-live="polite">{notice}</div>}
       </main>
       {(section === 'Beranda' || section === 'Obrolan') && <aside className="desktop-right-rail" aria-label="Ringkasan komunitas">
         <section className="rail-panel">

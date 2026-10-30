@@ -118,7 +118,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       const nextQuery = query(
         collection(db, 'warungs'),
         where('verificationStatus', '==', 'verified'),
-        orderBy('nameNormalized', 'asc'),
         startAfter(lastDocument),
         limit(30)
       );

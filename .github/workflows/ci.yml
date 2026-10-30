@@ -1,151 +1,151 @@
-name: Community app CI
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main, 'warkoplink/**']
 
-permissions:
-  contents: read
 
-jobs:
-  build:
-    name: build
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package.json
-      - name: Install dependencies
-        run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm install --no-audit --no-fund
-      - name: Unit and component tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          mapfile -t test_files < <(find src -type f | grep -E '\\.test\\.(js|jsx)
-          if [ "${#test_files[@]}" -eq 0 ]; then
-            echo "::error::Tidak ditemukan file tes di src/"
-            exit 1
-          fi
-          # Jalankan SEMUA file (tiap file dibatasi 60 detik) agar satu file yang gagal/macet tidak
-          # menyembunyikan file lain; keluaran file yang gagal dilaporkan sebagai anotasi.
-          # Step tetap gagal jika ada satu file saja yang gagal.
-          failed=0
-          for test_file in "${test_files[@]}"; do
-            echo "::group::Tes file: ${test_file}"
-            if ! bash .github/scripts/run-reported.sh "Tes gagal: ${test_file}" \\
-              timeout 60s npx vitest run "${test_file}" --reporter=verbose; then
-              failed=1
-            fi
-            echo "::endgroup::"
-          done
-          exit "$failed"
-      - name: Build production bundle
-        run: bash .github/scripts/run-reported.sh "Build produksi" npm run build
 
-  rules:
-    name: firestore-rules
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package.json
-      - name: Set up Java (Firestore emulator)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - name: Install dependencies
-        run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm install --no-audit --no-fund
-      - name: Firestore Rules tests (emulator, demo project)
-        run: >
-          bash .github/scripts/run-reported.sh "Tes Firestore Rules"
-          npx --yes firebase-tools emulators:exec --only firestore
-          --project demo-sl-community-rules "npm run test:rules"
 
-  supabase-auth-gateway:
-    name: supabase-auth-gateway-tests
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-      - name: Run mocked Firebase identity and revocation tests
-        run: deno test --allow-net=identitytoolkit.googleapis.com,www.googleapis.com supabase/functions/firebase-auth-check/index_test.ts
- | sort)
-          if [ "${#test_files[@]}" -eq 0 ]; then
-            echo "::error::Tidak ditemukan file tes di src/"
-            exit 1
-          fi
-          # Jalankan SEMUA file (tiap file dibatasi 60 detik) agar satu file yang gagal/macet tidak
-          # menyembunyikan file lain; keluaran file yang gagal dilaporkan sebagai anotasi.
-          # Step tetap gagal jika ada satu file saja yang gagal.
-          failed=0
-          for test_file in "${test_files[@]}"; do
-            echo "::group::Tes file: ${test_file}"
-            if ! bash .github/scripts/run-reported.sh "Tes gagal: ${test_file}" \\
-              timeout 60s npx vitest run "${test_file}" --reporter=verbose; then
-              failed=1
-            fi
-            echo "::endgroup::"
-          done
-          exit "$failed"
-      - name: Build production bundle
-        run: bash .github/scripts/run-reported.sh "Build produksi" npm run build
 
-  rules:
-    name: firestore-rules
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package.json
-      - name: Set up Java (Firestore emulator)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - name: Install dependencies
-        run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm install --no-audit --no-fund
-      - name: Firestore Rules tests (emulator, demo project)
-        run: >
-          bash .github/scripts/run-reported.sh "Tes Firestore Rules"
-          npx --yes firebase-tools emulators:exec --only firestore
-          --project demo-sl-community-rules "npm run test:rules"
 
-  supabase-auth-gateway:
-    name: supabase-auth-gateway-tests
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-      - name: Run mocked Firebase identity and revocation tests
-        run: deno test --allow-net=identitytoolkit.googleapis.com,www.googleapis.com supabase/functions/firebase-auth-check/index_test.ts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          mapfile -t test_files < <(find src -type f -name '*.test.js' -print -o -name '*.test.jsx' -print | sort)
+
+
+
+
+
+
+
+
+
+
+            if ! bash .github/scripts/run-reported.sh "Tes gagal: ${test_file}" \
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            if ! bash .github/scripts/run-reported.sh "Tes gagal: ${test_file}" \
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,5 @@
+artifacts/
+.browser-data/
+.env
+.env.*
+!.env.example

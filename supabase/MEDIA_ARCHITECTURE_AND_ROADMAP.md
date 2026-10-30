@@ -24,7 +24,7 @@ Prinsip:
 6. `warungs/{id}` menyimpan `ownerUid` dan `photos[]` (maksimal lima menurut rules); profil warkop publik saat ini belum menampilkan galeri foto.
 7. Acara saat ini adalah dokumen `posts/{postId}` dengan `postType: 'Acara Warkop'`; schema/rules belum mengizinkan poster.
 8. `firebase-admin` sudah ada sebagai devDependency untuk pengujian/rules, tetapi itu tidak otomatis berarti SDK tersebut kompatibel untuk dijalankan di Supabase Edge Runtime (Deno).
-9. Supabase project sudah dibuat tetapi audit sebelumnya menemukan belum ada tabel publik dan belum ada bucket. Tidak ada dasar untuk menganggap Storage sudah siap dipakai.
+9. Audit Supabase 30 Oktober 2026: project `klikvxuronunonymmiqv` berstatus ACTIVE_HEALTHY pada region `eu-west-3`; schema `public` belum memiliki tabel aplikasi, belum ada bucket Storage, dan satu Edge Function `firebase-auth-check` aktif versi 2. Security/performance advisors tidak mengembalikan temuan. Tidak ada dasar untuk menganggap Storage sudah siap dipakai.
 
 ## Keputusan arsitektur
 
@@ -44,7 +44,7 @@ Gunakan satu bucket media publik hanya untuk gambar yang memang dimaksudkan tamp
 Jangan gunakan bucket ini untuk KTP, nomor telepon privat, bukti pembayaran, percakapan privat, atau lampiran sensitif. Media privat, jika kelak diperlukan, harus memakai bucket privat dan URL bertanda tangan dengan otorisasi terpisah.
 
 ### Jalur autentikasi dan upload
-Jangan menganggap CORS atau validasi JWT JWKS sebagai otorisasi lengkap. Source function `firebase-auth-check` sekarang melakukan verifikasi JWT dan lookup status akun Firebase (disabled/revoked), tetapi tetap hanya pemeriksa identitas read-only. Ia belum membuktikan integrasi live dan tidak boleh menerima perintah upload/delete atau dianggap sebagai pemeriksaan kepemilikan resource.
+Jangan menganggap CORS atau validasi JWT JWKS sebagai otorisasi lengkap. Function `firebase-auth-check` versi 2 sudah di-deploy dan ACTIVE; ia melakukan verifikasi JWT dan lookup status akun Firebase (disabled/revoked), tetapi tetap hanya pemeriksa identitas read-only. Tes CI masih memakai mock, sehingga perilaku terhadap akun disabled/revoked dan pembatasan API key belum terbukti live. Function tidak boleh menerima perintah upload/delete atau dianggap sebagai pemeriksaan kepemilikan resource.
 
 Sebelum memilih gateway, lakukan proof-of-compatibility yang membandingkan:
 A. Supabase Edge Function (Deno) dengan mekanisme Firebase server-side yang secara resmi/teruji memeriksa token revocation dan akun disabled.
@@ -81,7 +81,7 @@ Untuk penghapusan, jangan hapus objek lama sebelum referensi baru/kosong berhasi
 
 ### Fase 0 — fondasi dan gerbang
 - Konfirmasi inventory bucket Firebase yang sudah ada dan biaya/kuota aktual; jangan mengaktifkan billing.
-- Tentukan runtime gateway lewat proof-of-compatibility.
+- Gateway identitas sudah berjalan pada Supabase Edge Function; proof-of-compatibility untuk otorisasi resource dan upload masih harus dilakukan.
 - Tambahkan tes kontrak dan uji keamanan lintas UID.
 - Tetapkan budget/alert dan batas pemakaian.
 - Belum ada upload Supabase.

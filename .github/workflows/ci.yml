@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t test_files < <(find src -type f \( -name '*.test.js' -o -name '*.test.jsx' \) | sort)
+          mapfile -t test_files < <(find src -type f \\( -name '*.test.js' -o -name '*.test.jsx' \\) | sort)
           if [ "${#test_files[@]}" -eq 0 ]; then
             echo "::error::Tidak ditemukan file tes di src/"
             exit 1
@@ -40,7 +40,7 @@ jobs:
           failed=0
           for test_file in "${test_files[@]}"; do
             echo "::group::Tes file: ${test_file}"
-            if ! bash .github/scripts/run-reported.sh "Tes gagal: ${test_file}" \
+            if ! bash .github/scripts/run-reported.sh "Tes gagal: ${test_file}" \\
               timeout 60s npx vitest run "${test_file}" --reporter=verbose; then
               failed=1
             fi
@@ -75,3 +75,17 @@ jobs:
           bash .github/scripts/run-reported.sh "Tes Firestore Rules"
           npx --yes firebase-tools emulators:exec --only firestore
           --project demo-sl-community-rules "npm run test:rules"
+
+  supabase-auth-gateway:
+    name: supabase-auth-gateway-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Run mocked Firebase identity and revocation tests
+        run: deno test --allow-net=identitytoolkit.googleapis.com,www.googleapis.com supabase/functions/firebase-auth-check/index_test.ts

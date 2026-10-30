@@ -78,7 +78,7 @@ export async function sanitizeImage(
     throw new Error("Image dimensions exceed the safe limit");
   }
 
-  const decoded = await decode(input);
+  const decoded = await decode(input, { maxPixels: MAX_PIXELS });
   if (!(decoded instanceof Image)) throw new Error("Animated images are not supported");
   if (decoded.width !== dimensions.width || decoded.height !== dimensions.height) {
     throw new Error("Image dimensions do not match the encoded header");
@@ -86,7 +86,7 @@ export async function sanitizeImage(
 
   // Decode and re-encode strips client metadata (including EXIF/GPS) and normalizes formats.
   const normalized = decoded.contain(2048, 2048);
-  const sanitized = await normalized.encodeWEBP(82);
+  const sanitized = await normalized.encodeWebP();
   if (!(sanitized instanceof Uint8Array) || sanitized.length < 16 || sanitized.length > MAX_OUTPUT_BYTES) {
     throw new Error("Sanitized image exceeds the 2 MiB output limit");
   }

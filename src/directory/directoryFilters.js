@@ -9,6 +9,13 @@ export const ACTIVITY_OPTIONS = [
 
 export const ACTIVITY_LABELS = Object.fromEntries(ACTIVITY_OPTIONS.map(({ value, label }) => [value, label]));
 
+// Nilai harus sama dengan yang diizinkan firestore.rules (selain 'belum-diisi', yang tidak bisa dipilih sebagai filter).
+export const PRICE_OPTIONS = [
+  { value: 'hemat', label: 'Hemat' },
+  { value: 'sedang', label: 'Sedang' },
+  { value: 'premium', label: 'Premium' }
+];
+
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 export function normalizeSearchText(value) {
@@ -97,7 +104,8 @@ export function isOpenNow(warung, now = new Date()) {
   return local.minuteOfDay >= open || local.minuteOfDay < close;
 }
 
-export function filterWarungs(items, { search = '', facilities = [], activities = [], operational = 'semua', now = new Date() } = {}) {
+// priceRange: 'semua' (default) tidak menyaring; nilai lain hanya cocok dengan data yang mengisi kisaran harga persis itu.
+export function filterWarungs(items, { search = '', facilities = [], activities = [], operational = 'semua', priceRange = 'semua', now = new Date() } = {}) {
   const needle = normalizeSearchText(search);
   const wantedFacilities = facilities.map(normalizeSearchText).filter(Boolean);
   const wantedActivities = activities.map(normalizeSearchText).filter(Boolean);
@@ -106,6 +114,7 @@ export function filterWarungs(items, { search = '', facilities = [], activities 
     const itemActivities = (Array.isArray(item?.activities) ? item.activities : []).map(normalizeSearchText);
     if (!wantedFacilities.every((facility) => itemFacilities.includes(facility))) return false;
     if (!wantedActivities.every((activity) => itemActivities.includes(activity))) return false;
+    if (priceRange !== 'semua' && item?.priceRange !== priceRange) return false;
     if (operational === 'buka-24-jam' && item?.openingHours?.is24Hours !== true) return false;
     if (operational === 'buka-sekarang' && isOpenNow(item, now) !== true) return false;
     if (!needle) return true;

@@ -26,6 +26,19 @@ describe('directoryFilters', () => {
     expect(filterWarungs(items, { facilities: ['wi-fi', 'parkir'] }).map((i) => i.id)).toEqual(['1']);
   });
 
+  it('menyaring berdasarkan kisaran harga dan mengabaikan data yang belum mengisinya', () => {
+    expect(filterWarungs(items, { priceRange: 'semua' })).toHaveLength(3);
+    expect(filterWarungs(items, { priceRange: 'hemat' }).map((i) => i.id)).toEqual(['1']);
+    expect(filterWarungs(items, { priceRange: 'sedang' }).map((i) => i.id)).toEqual(['2']);
+    expect(filterWarungs(items, { priceRange: 'premium' })).toEqual([]);
+    expect(filterWarungs([{ id: 'x', name: 'Tanpa harga', address: 'B' }], { priceRange: 'hemat' })).toEqual([]);
+  });
+
+  it('menggabungkan filter harga dengan filter lain', () => {
+    expect(filterWarungs(items, { priceRange: 'hemat', facilities: ['parkir'] }).map((i) => i.id)).toEqual(['1']);
+    expect(filterWarungs(items, { priceRange: 'sedang', facilities: ['parkir'] })).toEqual([]);
+  });
+
   it('mengumpulkan fasilitas unik tanpa duplikat', () => {
     expect(collectFacilities(items).map((f) => f.key)).toEqual(['parkir', 'wi-fi']);
   });

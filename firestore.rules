@@ -202,7 +202,7 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
-        && validWarungPhotoList(data.photos, warungId, oldPhotos)
+        && data.photos is list && data.photos.size() == 0
         && data.verificationStatus == 'pending'
         && !data.keys().hasAny(['verificationAuditId'])
         && data.createdAt == request.time

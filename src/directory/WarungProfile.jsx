@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getCountFromServer, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { ArrowLeft, MapPin, ShieldCheck, Store, Users, UserPlus, UserRoundCheck, Clock, CalendarDays, Share2 } from 'lucide-react';
 import { ACTIVITY_OPTIONS } from './directoryFilters.js';
 import { uploadWarkopMedia } from '../media/uploadWarkopMedia.js';

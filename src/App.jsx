@@ -7,11 +7,11 @@ import {
 import {
   addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, increment, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where
 } from 'firebase/firestore';
-import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
-import { auth, db, storage, firebaseConfigured } from './firebase.js';
+import { auth, db, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
 import ChatPanel from './chat/ChatPanel.jsx';
 import { relativePostTime } from './chat/postTime.js';
+import { uploadWarkopMedia, removeWarkopAvatar } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
@@ -821,59 +821,37 @@ export default function App() {
   async function handleProfilePhotoChange(event) {
     const file = event.target.files?.[0];
     event.target.value = '';
-    if (!file || !user || !db || !storage) {
-      if (file) setNotice('Unggah foto belum tersedia. Pastikan Firebase Storage aktif.');
-      return;
-    }
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setNotice('Pilih foto JPG, PNG, atau WebP.');
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      setNotice('Ukuran foto maksimal 2 MB.');
+    if (!file || !user || !db) {
+      if (file) setNotice('Masuk terlebih dahulu untuk mengunggah foto profil.');
       return;
     }
     setPhotoUploading(true);
     try {
       const hasProfile = await ensureProfile(user);
       if (!hasProfile) throw new Error('profile-not-ready');
-      const photoRef = storageRef(storage, `profilePhotos/${user.uid}/avatar`);
-      await uploadBytes(photoRef, file, { contentType: file.type });
-      const photoURL = await getDownloadURL(photoRef);
-      await updateProfile(user, { photoURL });
-      await updateDoc(doc(db, 'profiles', user.uid), { photoURL, updatedAt: serverTimestamp() });
-      await setDoc(doc(db, 'publicProfiles', user.uid), {
-        uid: user.uid, displayName: user.displayName || authorNameFor(user), photoURL: versionedPhotoURL(photoURL), updatedAt: serverTimestamp()
-      }, { merge: true });
+      await uploadWarkopMedia({ user, mediaType: 'avatar', file });
+      await auth.currentUser?.reload();
       setUser({ ...auth.currentUser });
       setNotice('Foto profil berhasil diperbarui.');
     } catch (error) {
-      console.warn('Unggah foto profil gagal:', error?.code || 'unknown');
-      setNotice(error?.code === 'storage/unauthorized'
-        ? 'Unggah ditolak aturan keamanan Firebase Storage.'
-        : 'Foto profil belum berhasil disimpan. Pastikan Firebase Storage sudah diaktifkan.');
+      console.warn('Unggah foto profil gagal:', error?.message || 'unknown');
+      setNotice(error?.message || 'Foto profil belum berhasil disimpan. Coba lagi.');
     } finally {
       setPhotoUploading(false);
     }
   }
 
   async function handleRemoveProfilePhoto() {
-    if (!user || !db || !storage || !user.photoURL) return;
+    if (!user || !db || !user.photoURL) return;
     setPhotoUploading(true);
     try {
-      await deleteObject(storageRef(storage, `profilePhotos/${user.uid}/avatar`)).catch((error) => {
-        if (error?.code !== 'storage/object-not-found') throw error;
-      });
-      await updateProfile(user, { photoURL: null });
-      await updateDoc(doc(db, 'profiles', user.uid), { photoURL: '', updatedAt: serverTimestamp() });
-      await setDoc(doc(db, 'publicProfiles', user.uid), {
-        uid: user.uid, displayName: user.displayName || authorNameFor(user), photoURL: '', updatedAt: serverTimestamp()
-      }, { merge: true });
+      await removeWarkopAvatar(user);
+      await auth.currentUser?.reload();
       setUser({ ...auth.currentUser });
       setNotice('Foto profil dihapus.');
     } catch (error) {
-      console.warn('Hapus foto profil gagal:', error?.code || 'unknown');
-      setNotice('Foto profil belum dapat dihapus. Coba lagi.');
+      console.warn('Hapus foto profil gagal:', error?.message || 'unknown');
+      setNotice(error?.message || 'Foto profil belum dapat dihapus. Coba lagi.');
     } finally {
       setPhotoUploading(false);
     }

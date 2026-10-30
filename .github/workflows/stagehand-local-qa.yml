@@ -1,0 +1,69 @@
+name: Stagehand Local QA (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stagehand-local-qa
+  cancel-in-progress: true
+
+jobs:
+  read-only-local-inspection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install application dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build app (no deploy)
+        run: npm run build
+
+      - name: Install isolated Stagehand dependencies
+        working-directory: qa/stagehand
+        run: npm install --no-audit --no-fund
+
+      - name: Install local Chromium
+        working-directory: qa/stagehand
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local Vite Preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/warkoplink-preview.log 2>&1 &
+          echo $! > /tmp/warkoplink-preview.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              echo "Local preview is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/warkoplink-preview.log
+          exit 1
+
+      - name: Run Stagehand read-only inspection
+        working-directory: qa/stagehand
+        env:
+          STAGEHAND_API_KEY: ${{ secrets.STAGEHAND_API_KEY }}
+          STAGEHAND_BASE_URL: http://127.0.0.1:4173/
+        run: npm run qa:agent
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: warkoplink-stagehand-local-qa
+          path: qa/stagehand/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7

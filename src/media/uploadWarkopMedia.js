@@ -30,11 +30,10 @@ const USER_FACING_UPLOAD_ERRORS = new Map([
   ["Ukuran foto maksimal 2 MiB.", "Ukuran foto maksimal 2 MiB."],
 ]);
 
-export function photoUploadErrorMessage(error) {
+export function photoUploadErrorMessage(error, fallback = "Foto belum berhasil diunggah. Periksa koneksi atau coba lagi beberapa saat.") {
   const message = typeof error?.message === "string" ? error.message.trim() : "";
   if (!message) return "Foto belum berhasil diunggah. Periksa koneksi lalu coba lagi.";
-  return USER_FACING_UPLOAD_ERRORS.get(message)
-    || "Foto belum berhasil diunggah. Periksa koneksi atau coba lagi beberapa saat.";
+  return USER_FACING_UPLOAD_ERRORS.get(message) || fallback;
 }
 
 function wait(ms) {

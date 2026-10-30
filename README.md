@@ -12,9 +12,10 @@ WarkopLink adalah platform komunitas dan direktori warkop lokal. Pengembangan di
 - **Database aktif:** Cloud Firestore. Data profil, posting, balasan, reaksi, direktori warkop, dan moderasi tetap menggunakan sumber data yang sudah berjalan.
 - **CI:** GitHub Actions menjalankan unit/component tests, production build, Firestore Rules tests, dan tes terisolasi untuk Firebase identity gateway.
 - **Proyek Firebase:** `sl-community-platform`.
-- **Proyek Supabase:** `WarkopLink` (Free), disiapkan untuk tahap media berikutnya.
+- **Proyek Supabase:** `WarkopLink` (Free), region `eu-west-3` (Paris); dipakai untuk Edge Function identitas, belum untuk database aplikasi atau media.
+- **Supabase Edge Function:** `firebase-auth-check` aktif versi 2, `verify_jwt = false`; memverifikasi Firebase ID token dan melakukan `accounts:lookup` server-side untuk status akun/revocation.
 
-Jangan menganggap Supabase Storage sudah aktif. Pada audit terakhir, proyek Supabase belum memiliki tabel publik, bucket Storage, atau Edge Function ter-deploy. File `firebase-auth-check` di repository masih merupakan identity probe; belum boleh digunakan untuk mengotorisasi upload atau penghapusan media.
+Audit layanan 30 Oktober 2026: Supabase belum memiliki tabel aplikasi di schema `public` dan belum memiliki bucket Storage. Hanya fungsi `firebase-auth-check` yang aktif. Security dan performance advisors tidak mengembalikan temuan. Tes gateway CI memakai mock; pengujian terhadap akun Firebase live dan verifikasi pembatasan API key masih belum dilakukan. Fungsi ini hanya membuktikan identitas, bukan kepemilikan warkop atau izin upload/delete.
 
 ## Arsitektur yang dipertahankan
 
@@ -47,7 +48,7 @@ Rancangan awal membatasi gambar ke JPEG, PNG, atau WebP, maksimal 2 MiB per file
 4. Jalankan `npm run dev`.
 5. Jalankan `npm test` untuk unit/component tests dan `npm run build` untuk build produksi.
 
-Tes Firestore Rules menggunakan emulator melalui workflow CI. Tes Firebase identity gateway berjalan terpisah dengan Deno dan mock; tes tersebut bukan bukti bahwa function sudah di-deploy atau sudah diuji terhadap akun Firebase produksi.
+Tes Firestore Rules menggunakan emulator melalui workflow CI. Tes Firebase identity gateway berjalan terpisah dengan Deno dan mock. Function sudah ter-deploy, tetapi tes mock bukan bukti bahwa pemeriksaan akun disabled/revoked berhasil terhadap Firebase live.
 
 ## Deployment
 

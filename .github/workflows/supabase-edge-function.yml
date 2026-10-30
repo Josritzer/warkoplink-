@@ -3,12 +3,12 @@ name: Supabase Edge Function CI
 on:
   pull_request:
     paths:
-      - "supabase/**"
+      - "supabase/functions/firebase-auth-check/**"
       - ".github/workflows/supabase-edge-function.yml"
   push:
     branches: [main]
     paths:
-      - "supabase/**"
+      - "supabase/functions/firebase-auth-check/**"
       - ".github/workflows/supabase-edge-function.yml"
 
 permissions:

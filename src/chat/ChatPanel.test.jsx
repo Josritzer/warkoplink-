@@ -123,3 +123,33 @@ describe('ChatPanel visual cleanup', () => {
     expect(startButton.querySelector('svg')?.classList.contains('lucide-message-circle')).toBe(true);
   });
 });
+
+
+describe('poster Info & Acara', () => {
+  it('menyediakan pilihan warkop milik sendiri dan pratinjau poster sebelum dikirim', () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    URL.createObjectURL = vi.fn(() => 'blob:poster-preview');
+    try {
+      const { container } = render(<ChatPanel
+        user={{ uid: 'owner-1', displayName: 'Pemilik' }}
+        firebaseConfigured
+        search="" setSearch={vi.fn()} topic="Semua" setTopic={vi.fn()}
+        composerTopic="Info & Acara" setComposerTopic={vi.fn()} composerOpen
+        setComposerOpen={vi.fn()} openAuth={vi.fn()} setNotice={vi.fn()}
+        draft="Nobar final" setDraft={vi.fn()} activeCategory="Info & Acara"
+        handlePost={vi.fn()} posting={false} postsStatus="ready" setPostsRetry={vi.fn()}
+        visiblePosts={[]} cardProps={{}} hasMorePosts={false} loadingMorePosts={false}
+        loadMoreError="" onLoadMorePosts={vi.fn()} verifiedWarungs={[]}
+        ownVerifiedWarungs={[{ id: 'warung-1', name: 'Warkop Pojok' }]}
+      />);
+      const file = new File(['poster'], 'poster.jpg', { type: 'image/jpeg' });
+      fireEvent.change(screen.getByLabelText(/Poster acara/), { target: { files: [file] } });
+      expect(screen.getByRole('combobox', { name: 'Warkop penyelenggara' })).toBeTruthy();
+      expect(screen.getByRole('option', { name: 'Warkop Pojok' })).toBeTruthy();
+      expect(container.querySelector('.event-poster-preview img')?.getAttribute('src')).toBe('blob:poster-preview');
+      expect(screen.getByText('poster.jpg')).toBeTruthy();
+    } finally {
+      URL.createObjectURL = originalCreateObjectURL;
+    }
+  });
+});

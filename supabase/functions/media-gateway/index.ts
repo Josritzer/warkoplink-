@@ -384,19 +384,34 @@ async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return response({ error: "Method not allowed" }, 405, origin);
   const token = bearer(request);
   if (!token) return response({ error: "Missing Firebase bearer token" }, 401, origin);
+  let stage = "read-body";
+  let action = "unknown";
   try {
     const rawBody = await request.text();
     if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) return response({ error: "Request body too large" }, 413, origin);
+    stage = "verify-firebase-identity";
     const identity = await verifyIdentity(token);
+    stage = "parse-request";
     const body = JSON.parse(rawBody);
     if (!body || typeof body !== "object" || Array.isArray(body)) return response({ error: "Invalid request" }, 400, origin);
-    const action = body.action;
-    if (action === "init") return response({ upload: await initUpload(token, identity.uid, body) }, 200, origin);
-    if (action === "finalize") return response({ media: await finalizeUpload(token, identity.uid, body) }, 200, origin);
-    if (action === "removeAvatar") return response({ media: await removeAvatar(token, identity.uid) }, 200, origin);
+    action = typeof body.action === "string" ? body.action : "unknown";
+    if (action === "init") {
+      stage = "authorize-and-init-upload";
+      return response({ upload: await initUpload(token, identity.uid, body) }, 200, origin);
+    }
+    if (action === "finalize") {
+      stage = "validate-and-finalize-upload";
+      return response({ media: await finalizeUpload(token, identity.uid, body) }, 200, origin);
+    }
+    if (action === "removeAvatar") {
+      stage = "remove-avatar";
+      return response({ media: await removeAvatar(token, identity.uid) }, 200, origin);
+    }
     return response({ error: "Unsupported action" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Media operation failed";
+    // Safe diagnostics only: never log Firebase tokens, request bodies, email, or UID.
+    console.error("[media-gateway] request failed", JSON.stringify({ stage, action, message }));
     const status = /token|Firebase account|ownership|status check|not found|quota|slot|unsupported|invalid|size|signature|animated|dimensions|too many|not supported/i.test(message) ? 400 : 502;
     return response({ error: message }, status, origin);
   }

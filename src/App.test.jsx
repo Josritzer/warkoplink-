@@ -23,7 +23,7 @@ vi.mock('firebase/firestore', () => ({
   addDoc: vi.fn(),
   deleteDoc: vi.fn().mockResolvedValue(undefined),
   collection: vi.fn((db, ...segments) => ({ path: segments.join('/') })),
-  doc: vi.fn((db, col, id) => { const reference = { path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` }; Object.defineProperty(reference, 'id', { value: id ?? (col === undefined && db?.path ? 'new-post' : undefined), enumerable: false }); return reference; }),
+  doc: vi.fn((db, col, id) => { const reference = { path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` }; if (id === undefined && col === undefined && db?.path === 'posts') Object.defineProperty(reference, 'id', { value: 'new-post' }); return reference; }),
   getCountFromServer: vi.fn(() => Promise.resolve({ data: () => ({ count: 0 }) })),
   getDoc: vi.fn(),
   getDocs: vi.fn(),

@@ -117,3 +117,149 @@ body { overflow-x: hidden; }
   line-height: 1.5;
 }
 .coordinate-help small { overflow-wrap: anywhere; }
+
+
+/* Final text-fit guard: this file is imported after every other visual layer. */
+html, body, #root, .app-shell, .desktop-layout, .desktop-layout > main,
+.content-section, .explore-section, .account-section, .reply-page,
+.warung-form, .account-card, .post-card, .post-content,
+.warung-card, .warung-card-body, .rail-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.content-section :where(h1,h2,h3,h4,p,label,strong,b,small,span,a,button) {
+  max-width: 100%;
+  text-overflow: clip;
+}
+
+.content-section :where(h1,h2,h3,h4,p,label,strong,b,small,span,a) {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+}
+
+.content-section :where(button,a) {
+  min-width: 0;
+  white-space: normal;
+}
+
+.warung-form :where(label,input,textarea,select,button),
+.account-card :where(button,p,b,small),
+.reply-page :where(p,h2,h3,button) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.warung-form input, .warung-form textarea, .warung-form select {
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.4;
+  padding-inline: 14px;
+}
+
+.bottom-nav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 2px;
+  box-sizing: border-box;
+  min-height: 62px;
+  padding-top: 7px;
+  padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px));
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 48px;
+  height: auto;
+  padding: 4px 2px;
+  overflow: visible;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.bottom-nav-item > svg {
+  display: block;
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+}
+
+.bottom-nav-item > span {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-overflow: clip;
+  font-size: clamp(9px, 2.5vw, 11px);
+  line-height: 1.2;
+}
+
+.app-notice {
+  box-sizing: border-box;
+  width: min(calc(100vw - 32px), 560px);
+  max-width: calc(100vw - 32px);
+  white-space: normal;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+@media (max-width: 380px) {
+  .bottom-nav { gap: 0; padding-inline: 2px; }
+  .bottom-nav-item { padding-inline: 1px; gap: 3px; }
+  .bottom-nav-item > span { font-size: 9px; letter-spacing: 0; }
+  .app-header .brand { flex: 1 1 0; }
+  .app-header .brand > span:last-child { min-width: 0; }
+  .app-header .brand strong, .app-header .brand small {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .app-header .header-actions { min-width: 0; }
+  .app-header .header-actions .button {
+    min-width: 0;
+    max-width: 112px;
+    padding-inline: 8px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 767px) {
+  .content-section { padding-bottom: 28px; }
+  .content-section h2, .section-heading h2 {
+    font-size: clamp(23px, 6vw, 30px);
+    line-height: 1.25;
+    letter-spacing: -.02em;
+  }
+  .content-section > p, .section-heading p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .directory-filter-group, .directory-filters, .facility-filter-list {
+    width: 100%;
+    min-width: 0;
+  }
+  .facility-filter-list { display: flex; flex-wrap: wrap; }
+  .facility-chip {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.3;
+  }
+}

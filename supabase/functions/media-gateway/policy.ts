@@ -109,3 +109,22 @@ export function firestoreDocumentPath(collection: string, id: string): string {
       !id || id.length > 150 || id.includes("/")) return fail("Invalid Firestore document path");
   return `${collection}/${id}`;
 }
+
+export type StorageObjectInfo = { name: string; id?: string | null; created_at?: string | null; updated_at?: string | null };
+
+export function expiredOrphanPaths(
+  folder: string,
+  objects: StorageObjectInfo[],
+  referencedPaths: Set<string>,
+  now = Date.now(),
+  retentionMs = 24 * 60 * 60 * 1000,
+): string[] {
+  const cutoff = now - retentionMs;
+  return objects
+    .filter((item) => {
+      if (!item.id || !item.name) return false;
+      const createdAt = Date.parse(item.created_at || item.updated_at || "");
+      return Number.isFinite(createdAt) && createdAt < cutoff && !referencedPaths.has(`${folder}/${item.name}`);
+    })
+    .map((item) => `${folder}/${item.name}`);
+}

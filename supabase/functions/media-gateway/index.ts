@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from "npm:jose@5.9.6";
 import { createClient } from "npm:@supabase/supabase-js@2.55.0";
 import { sanitizeImage } from "./image-validation.ts";
+import { validateFirebaseAccountLookupResponse } from "../firebase-auth-check/account-lookup.ts";
 import {
   encodeFirestoreValue,
   expiredOrphanPaths,
@@ -79,15 +80,14 @@ async function verifyIdentity(token: string): Promise<Identity> {
   });
   if (!lookup.ok) throw new Error("Firebase account lookup failed");
   const account = await lookup.json();
-  const users = account?.users;
-  if (!Array.isArray(users) || users.length !== 1 ||
-      users[0]?.localId !== payload.sub || users[0]?.disabled !== false ||
-      typeof users[0]?.validSince !== "string" ||
-      !Number.isFinite(Number(users[0].validSince)) ||
-      (authTime as number) < Number(users[0].validSince)) {
-    throw new Error("Firebase account is disabled or token revoked");
-  }
-  return { uid: payload.sub, authTime: authTime as number };
+  // Share the exact tested account-status and revocation rules with firebase-auth-check.
+  // Errors are specific but contain no UID, token, email, or account profile data.
+  const verifiedAccount = validateFirebaseAccountLookupResponse(
+    account,
+    payload.sub,
+    authTime,
+  );
+  return { uid: verifiedAccount.uid, authTime: authTime as number };
 }
 
 function firestoreUrl(collection: string, id: string): string {

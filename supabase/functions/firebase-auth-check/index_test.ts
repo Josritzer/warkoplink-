@@ -313,3 +313,30 @@ Deno.test("fails closed when the Firebase Web API key is not configured", async 
 
   assertEquals(response.status, 401);
 });
+
+
+Deno.test("reports disabled Firebase accounts separately from revoked sessions", () => {
+  let disabledMessage = "";
+  try {
+    validateFirebaseAccountLookupResponse(
+      { users: [{ localId: "verified-uid", disabled: true, validSince: "1800000000" }] },
+      "verified-uid",
+      1_800_000_000,
+    );
+  } catch (error) {
+    disabledMessage = error instanceof Error ? error.message : "";
+  }
+  assertEquals(disabledMessage, "Firebase account is disabled or status is unknown");
+
+  let revokedMessage = "";
+  try {
+    validateFirebaseAccountLookupResponse(
+      { users: [{ localId: "verified-uid", disabled: false, validSince: "1800000001" }] },
+      "verified-uid",
+      1_800_000_000,
+    );
+  } catch (error) {
+    revokedMessage = error instanceof Error ? error.message : "";
+  }
+  assertEquals(revokedMessage, "Firebase ID token has been revoked");
+});

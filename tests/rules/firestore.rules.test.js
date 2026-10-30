@@ -419,6 +419,41 @@ describe('foto warkop — URL wajib dari Storage proyek ini', () => {
     }));
   });
 
+  describe('data foto lama', () => {
+    const LAMA = ['https://lama.example.test/foto-lama.jpg'];
+    beforeEach(async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), 'warungs/warkop-lama'), validWarung({
+          photos: LAMA, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+        }));
+      });
+    });
+
+    it('pemilik tetap dapat mengubah info lain selama daftar foto tidak berubah', async () => {
+      await assertSucceeds(updateDoc(doc(asUser('alice'), 'warungs/warkop-lama'), {
+        openingHours: { senin: '09:00-21:00' }, updatedAt: serverTimestamp(),
+      }));
+    });
+
+    it('mengganti daftar foto dengan URL asing lain tetap ditolak', async () => {
+      await assertFails(updateDoc(doc(asUser('alice'), 'warungs/warkop-lama'), {
+        photos: ['https://lain.example.test/baru.jpg'], updatedAt: serverTimestamp(),
+      }));
+    });
+
+    it('pemilik dapat mengosongkan foto lama atau menggantinya dengan URL sah', async () => {
+      const ref = doc(asUser('alice'), 'warungs/warkop-lama');
+      await assertSucceeds(updateDoc(ref, { photos: slots('warkop-lama', 2), updatedAt: serverTimestamp() }));
+      await assertSucceeds(updateDoc(ref, { photos: [], updatedAt: serverTimestamp() }));
+    });
+
+    it('pengguna lain tidak dapat mengubah foto warkop ini', async () => {
+      await assertFails(updateDoc(doc(asUser('bob'), 'warungs/warkop-lama'), {
+        photos: slots('warkop-lama', 1), updatedAt: serverTimestamp(),
+      }));
+    });
+  });
+
   it('poster acara hanya sah jika URL-nya dari folder eventPhotos warkop yang sama', async () => {
     await seedVerifiedWarung('warkop-event');
     const db = asUser('alice');

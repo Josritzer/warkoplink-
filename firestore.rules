@@ -234,7 +234,9 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
-    function validWarungEdit(data, warungId) {
+    // oldPhotos = daftar foto sebelum pembaruan. Jika daftar tidak berubah, isinya tidak diperiksa ulang
+    // (data lama tetap dapat disimpan saat pemilik mengubah jam buka dan sebagainya); jika berubah, aturan ketat berlaku.
+    function validWarungEdit(data, warungId, oldPhotos) {
       return data.name is string && data.name.size() >= 2 && data.name.size() <= 100
         && data.nameNormalized is string && data.nameNormalized.size() >= 2 && data.nameNormalized.size() <= 120
         && data.coordinates is map
@@ -248,7 +250,8 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
-        && validWarungPhotoList(data.photos, warungId)
+        && data.photos is list
+        && (data.photos == oldPhotos || validWarungPhotoList(data.photos, warungId))
         && data.updatedAt == request.time;
     }
 
@@ -423,7 +426,7 @@ service cloud.firestore {
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
           'facilities', 'activities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
-        && validWarungEdit(request.resource.data, warungId));
+        && validWarungEdit(request.resource.data, warungId, resource.data.get('photos', [])));
       allow delete: if false;
     }
 

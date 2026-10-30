@@ -23,7 +23,7 @@ jobs:
           cache: npm
           cache-dependency-path: package.json
       - name: Install dependencies
-        run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm ci --no-audit --no-fund
+        run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm install --no-audit --no-fund
       - name: Unit and component tests
         shell: bash
         run: |
@@ -64,7 +64,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Install dependencies
-        run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm ci --no-audit --no-fund
+        run: bash .github/scripts/run-reported.sh "Instalasi dependensi" npm install --no-audit --no-fund
       - name: Firestore Rules tests (emulator, demo project)
         run: >
           bash .github/scripts/run-reported.sh "Tes Firestore Rules"

@@ -150,7 +150,7 @@ async function authorizeResource(token: string, uid: string, request: ReturnType
     return warung;
   }
   const post = await getResource(token, "posts", request.resourceId!);
-  if (!post || post.data.authorId !== uid || post.data.postType !== "Acara Warkop" ||
+  if (!post || post.data.authorId !== uid || post.data.topic !== "Info & Acara" ||
       typeof post.data.warungId !== "string") {
     throw new Error("Event ownership check failed");
   }

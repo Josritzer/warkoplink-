@@ -141,7 +141,7 @@ service cloud.firestore {
 
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
-        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
+        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
         && data.reactions is map
         && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
@@ -158,6 +158,7 @@ service cloud.firestore {
         && data.authorName is string
         && data.authorName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
         && (!data.keys().hasAny(['authorPhotoURL']) || data.authorPhotoURL == null || (data.authorPhotoURL is string && data.authorPhotoURL.size() <= 2048))
+        && (!data.keys().hasAny(['warungId']) || (data.warungId is string && exists(/databases/$(database)/documents/warungs/$(data.warungId)) && get(/databases/$(database)/documents/warungs/$(data.warungId)).data.ownerUid == request.auth.uid && get(/databases/$(database)/documents/warungs/$(data.warungId)).data.verificationStatus == 'verified'))
         && data.body is string
         && data.body.size() >= 1
         && data.body.size() <= 2000
@@ -201,14 +202,30 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
-        && data.photos is list && data.photos.size() <= 5
+        && validWarungPhotoList(data.photos, warungId, oldPhotos)
         && data.verificationStatus == 'pending'
         && !data.keys().hasAny(['verificationAuditId'])
         && data.createdAt == request.time
         && data.updatedAt == request.time;
     }
 
-    function validWarungEdit(data) {
+    function validNewWarungPhotoUrl(photo, warungId) {
+      return photo is string
+        && photo.size() <= 2048
+        && photo.matches('https://klikvxuronunonymmiqv[.]supabase[.]co/storage/v1/object/public/warkoplink-media/warungs/' + warungId + '/[0-4]/[0-9a-f-]{36}[.]webp');
+    }
+
+    function validWarungPhotoList(photos, warungId, oldPhotos) {
+      return photos is list
+        && photos.size() <= 5
+        && (photos.size() == 0 || photos[0] in oldPhotos || validNewWarungPhotoUrl(photos[0], warungId))
+        && (photos.size() < 2 || photos[1] in oldPhotos || validNewWarungPhotoUrl(photos[1], warungId))
+        && (photos.size() < 3 || photos[2] in oldPhotos || validNewWarungPhotoUrl(photos[2], warungId))
+        && (photos.size() < 4 || photos[3] in oldPhotos || validNewWarungPhotoUrl(photos[3], warungId))
+        && (photos.size() < 5 || photos[4] in oldPhotos || validNewWarungPhotoUrl(photos[4], warungId));
+    }
+
+    function validWarungEdit(data, warungId, oldPhotos) {
       return data.name is string && data.name.size() >= 2 && data.name.size() <= 100
         && data.nameNormalized is string && data.nameNormalized.size() >= 2 && data.nameNormalized.size() <= 120
         && data.coordinates is map
@@ -278,7 +295,7 @@ service cloud.firestore {
         && resource.data.get('authorId', '') == request.auth.uid
         && (
           (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'location', 'postType'])
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'location', 'postType', 'eventPhotoURL'])
             && request.resource.data.get('body', '') is string
             && request.resource.data.get('body', '').size() >= 1
             && request.resource.data.get('body', '').size() <= 2000
@@ -287,6 +304,7 @@ service cloud.firestore {
             && (!request.resource.data.keys().hasAny(['eventKind']) || (request.resource.data.eventKind is string && request.resource.data.eventKind.size() <= 40))
             && (!request.resource.data.keys().hasAny(['eventCapacity']) || (request.resource.data.eventCapacity is number && request.resource.data.eventCapacity >= 1 && request.resource.data.eventCapacity <= 10000))
             && (!request.resource.data.keys().hasAny(['eventStatus']) || request.resource.data.eventStatus in ['scheduled', 'cancelled'])
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['eventPhotoURL']) || (request.resource.data.eventPhotoURL is string && request.resource.data.eventPhotoURL.size() <= 2048 && resource.data.get('warungId', '') is string && get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.ownerUid == request.auth.uid && get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.verificationStatus == 'verified' && request.resource.data.eventPhotoURL.matches('https://klikvxuronunonymmiqv[.]supabase[.]co/storage/v1/object/public/warkoplink-media/events/' + postId + '/[0-9a-f-]{36}[.]webp')))
             && (
               request.resource.data.get('topic', '') in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']
               || (request.resource.data.get('topic', '') == resource.data.get('topic', '')
@@ -397,7 +415,7 @@ service cloud.firestore {
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
           'facilities', 'activities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
-        && validWarungEdit(request.resource.data));
+        && validWarungEdit(request.resource.data, warungId, resource.data.get('photos', [])));
       allow delete: if false;
     }
 

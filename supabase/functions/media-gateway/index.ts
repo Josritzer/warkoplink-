@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.55.0";
 import { sanitizeImage } from "./image-validation.ts";
 import {
   encodeFirestoreValue,
+  expiredOrphanPaths,
   firestoreDocumentPath,
   mediaObjectPath,
   normalizeUploadRequest,
@@ -174,6 +175,37 @@ async function cleanExpiredPending(uid: string): Promise<void> {
   if (expired.length) await admin.storage.from(BUCKET_PENDING).remove(expired);
 }
 
+async function cleanOrphanedPublicMedia(
+  token: string,
+  uid: string,
+  request: ReturnType<typeof normalizeUploadRequest>,
+): Promise<void> {
+  const resource = await authorizeResource(token, uid, request);
+  let folder: string;
+  let referencedUrls: string[] = [];
+  if (request.mediaType === "avatar") {
+    folder = `profiles/${uid}`;
+    if (typeof resource.data.photoURL === "string") referencedUrls = [resource.data.photoURL];
+  } else if (request.mediaType === "warung") {
+    folder = `warungs/${request.resourceId}`;
+    referencedUrls = Array.isArray(resource.data.photos) ? resource.data.photos.filter((url: unknown): url is string => typeof url === "string") : [];
+  } else {
+    folder = `events/${request.resourceId}`;
+    if (typeof resource.data.eventPhotoURL === "string") referencedUrls = [resource.data.eventPhotoURL];
+  }
+  const referencedPaths = new Set(referencedUrls.map(isOwnMediaUrl).filter((path): path is string => Boolean(path)));
+  const { data, error } = await admin.storage.from(BUCKET_PUBLIC).list(folder, {
+    limit: 100,
+    sortBy: { column: "created_at", order: "asc" },
+  });
+  if (error || !data?.length) return;
+  const stalePaths = expiredOrphanPaths(folder, data, referencedPaths);
+  if (stalePaths.length) {
+    // Best-effort cleanup must never block an authorized upload.
+    await admin.storage.from(BUCKET_PUBLIC).remove(stalePaths).catch(() => ({ error: true }));
+  }
+}
+
 function publicUrl(path: string): string {
   return admin.storage.from(BUCKET_PUBLIC).getPublicUrl(path).data.publicUrl;
 }
@@ -274,6 +306,7 @@ async function initUpload(token: string, uid: string, body: Record<string, unkno
   const request = normalizeUploadRequest(body);
   await authorizeResource(token, uid, request);
   await cleanExpiredPending(uid);
+  await cleanOrphanedPublicMedia(token, uid, request);
   const { data: active, error: listError } = await admin.storage.from(BUCKET_PENDING).list(`pending/${uid}`, { limit: 100 });
   if (listError) throw new Error("Could not inspect pending uploads");
   if ((active || []).filter((item) => item.id).length >= 3) throw new Error("Too many pending uploads; finish or retry an existing upload");

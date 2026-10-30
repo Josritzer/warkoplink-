@@ -598,3 +598,8 @@
 .event-post-image{margin:12px 0;overflow:hidden;border-radius:12px}
 .event-post-image img{display:block;width:100%;max-height:420px;object-fit:cover}
 .form-hint{font-size:13px;color:var(--wl-muted)}
+
+
+/* Status feedback: keep upload and form results visible on mobile and desktop. */
+.app-notice{position:fixed;z-index:60;left:50%;bottom:24px;transform:translateX(-50%);width:min(520px,calc(100vw - 32px));padding:13px 16px;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:var(--wl-plum);color:#fff;box-shadow:0 12px 34px rgba(22,15,35,.24);font-size:13px;line-height:1.55;overflow-wrap:anywhere;}
+@media(max-width:620px){.app-notice{bottom:calc(82px + env(safe-area-inset-bottom));width:calc(100vw - 28px);padding:12px 14px;font-size:12px;}}

@@ -1,10 +1,19 @@
-# Supabase Storage gateway — implementation plan
+# Supabase Storage gateway — implementation plan and status
+
+## Live preparation status — 30 October 2026
+
+- Supabase project: `klikvxuronunonymmiqv` (WarkopLink only).
+- `warkoplink-quarantine`: private bucket; maximum 2 MiB; JPEG/PNG/WebP.
+- `warkoplink-media`: public-read bucket for approved public images; maximum 2 MiB; JPEG/PNG/WebP.
+- PR #118 contains the draft gateway and frontend integration. It is not merged and the Edge Function is not deployed.
+- Identity uses the existing server-side `FIREBASE_WEB_API_KEY`; Supabase admin operations use platform-injected server-only secret keys. No key value is committed to source.
+- Existing Firebase Storage files and URLs are not migrated or deleted. New uploads remain unavailable until the PR is approved, merged, and deployed.
 
 ## Scope and non-goals
 
 This plan prepares image storage without changing the live WarkopLink app. Firebase Authentication remains the identity provider. Firebase Auth, Firestore profiles/posts/chat, existing Firebase Storage objects, and current public hosting remain untouched.
 
-This document does not create a bucket, deploy a function, change database policies, migrate files, or enable uploads.
+The two initial buckets have now been created. This document does not deploy the gateway, migrate files, or enable browser uploads until PR #118 passes CI and receives release approval.
 
 ## Proposed first release
 

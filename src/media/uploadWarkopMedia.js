@@ -104,3 +104,9 @@ export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, fil
     return result.media;
   });
 }
+
+export async function removeWarkopAvatar(user) {
+  if (!user?.getIdToken) throw new Error("Silakan masuk terlebih dahulu.");
+  const result = await gatewayRequest(user, { action: "removeAvatar" });
+  return result.media;
+}

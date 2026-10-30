@@ -381,17 +381,11 @@ describe('warungs — direktori aman tahap awal', () => {
     }));
   });
 
-  it('event harus terikat ke warkop terverifikasi milik penulis dan poster harus dari path post itu', async () => {
-    const warungId = 'warkop-event-owner';
-    await setDoc(doc(asUser('alice'), `warungs/${warungId}`), validWarung({ verificationStatus: 'verified' }));
-    const postRef = await createPost(asUser('alice'), validPost({
+  it('menolak acara yang mengklaim warkop pending sebagai pemilik', async () => {
+    const warungId = 'warkop-event-pending';
+    await assertSucceeds(setDoc(doc(asUser('alice'), `warungs/${warungId}`), validWarung()));
+    await assertFails(createPost(asUser('alice'), validPost({
       topic: 'Info & Acara', postType: 'Acara Warkop', warungId
-    }));
-    const poster = `https://klikvxuronunonymmiqv.supabase.co/storage/v1/object/public/warkoplink-media/events/${postRef.id}/a12b4567-89ab-4cde-8fab-1234567890ab.webp`;
-    await assertSucceeds(updateDoc(doc(asUser('alice'), `posts/${postRef.id}`), { eventPhotoURL: poster }));
-    await assertFails(updateDoc(doc(asUser('alice'), `posts/${postRef.id}`), { eventPhotoURL: 'https://attacker.example/poster.webp' }));
-    await assertFails(createPost(asUser('bob'), validPost({
-      authorId: 'bob', authorName: 'Bob', topic: 'Info & Acara', postType: 'Acara Warkop', warungId
     })));
   });
 

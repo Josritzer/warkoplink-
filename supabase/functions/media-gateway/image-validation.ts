@@ -22,7 +22,7 @@ export async function sanitizeImage(
   if (input.byteLength > MAX_IMAGE_BYTES) throw new Error("Image exceeds 2 MiB");
 
   // Strict decode rejects truncated/corrupt content; animations are not accepted.
-  const decoded = await decode(input, { tolerantDecoding: false, runtimeDecoding: "never" });
+  const decoded = await decode(input);
   if (!(decoded instanceof Image)) throw new Error("Animated images are not supported");
 
   const originalWidth = decoded.width;

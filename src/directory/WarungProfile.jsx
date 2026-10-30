@@ -233,7 +233,10 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
           <label>Deskripsi acara<textarea value={eventDescription} onChange={(event) => setEventDescription(event.target.value)} maxLength={1800} minLength={5} required rows={3} placeholder="Informasi acara, aturan, atau detail untuk pengunjung"/></label>
           <label>Waktu mulai<input type="datetime-local" value={eventStart} onChange={(event) => setEventStart(event.target.value)} required/></label>
           <label>Waktu selesai (opsional)<input type="datetime-local" value={eventEnd} onChange={(event) => setEventEnd(event.target.value)}/></label>
-          <button className="button button-dark" type="submit" disabled={sharingEvent}><Share2 size={16}/>{sharingEvent ? 'Membagikan acara…' : 'Bagikan ke Beranda'}</button>
+          <label>Poster acara (opsional, JPG/PNG/WebP, maksimal 2 MiB)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={Boolean(pendingEventId)} onChange={(event) => { const file = event.target.files?.[0] || null; const error = file ? validateImageFile(file) : ''; if (error) { onNotice(error); setEventPhoto(null); event.target.value = ''; return; } setEventPhoto(file); }} /></label>
+          {eventPhoto && <small>Poster dipilih: {eventPhoto.name}</small>}
+          {pendingEventId && <p className="form-hint">Acara sudah tersimpan. Tekan lanjutkan untuk mengulang unggah poster.</p>}
+          <button className="button button-dark" type="submit" disabled={sharingEvent}><Share2 size={16}/>{sharingEvent ? 'Memproses acara…' : pendingEventId ? 'Lanjutkan unggah poster' : 'Bagikan ke Beranda'}</button>
         </form>
       </div>
     </section>}

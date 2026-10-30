@@ -81,7 +81,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         const longitude = Number(lng);
         if (cleanName.length < 2 || cleanName.length > 100) throw new Error('Nama warkop harus 2–100 karakter.');
         if (cleanAddress.length < 5 || cleanAddress.length > 300) throw new Error('Alamat harus 5–300 karakter.');
-        if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) throw new Error('Koordinat lintang atau bujur tidak valid.');
+        if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) throw new Error('Masukkan koordinat lintang atau bujur yang valid.');
         const facilityList = [...new Set(facilities.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))];
         if (facilityList.length > 20) throw new Error('Maksimal 20 fasilitas.');
         const warungRef = await addDoc(collection(db, 'warungs'), {

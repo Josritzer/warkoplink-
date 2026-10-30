@@ -8,7 +8,15 @@ const RETRYABLE_HTTP_STATUSES = new Set([408, 429, 502, 503, 504]);
 const USER_FACING_UPLOAD_ERRORS = new Map([
   ["Invalid or expired Firebase ID token", "Sesi masuk kedaluwarsa. Keluar dari akun, masuk kembali, lalu coba lagi."],
   ["Firebase account is disabled or token revoked", "Sesi keamanan akun perlu diperbarui. Keluar dari akun, masuk kembali, lalu coba lagi."],
+  ["Firebase account is disabled or status is unknown", "Sesi akun tidak dapat diverifikasi. Keluar dari akun, masuk kembali, lalu coba lagi. Jika masih gagal, hubungi admin."],
+  ["Firebase ID token has been revoked", "Sesi keamanan akun sudah tidak berlaku. Keluar dari akun, masuk kembali, lalu coba lagi."],
+  ["Firebase account lookup failed", "Status akun belum dapat diverifikasi. Periksa koneksi atau hubungi admin jika masalah berlanjut."],
+  ["Firebase gateway is not configured", "Layanan foto belum siap. Silakan coba lagi nanti."],
+  ["Firestore authorization lookup failed", "Izin akses data belum dapat diperiksa. Muat ulang halaman dan coba lagi."],
+  ["Firebase Auth photo update failed", "Foto sudah diproses, tetapi profil belum berhasil diperbarui. Muat ulang halaman lalu coba lagi."],
+  ["Firebase Auth photo removal failed", "Foto profil belum berhasil dihapus. Coba lagi beberapa saat."],
   ["Profile not found", "Data profil belum siap. Muat ulang halaman dan masuk kembali sebelum mengunggah."],
+  ["profile-not-ready", "Data profil belum siap. Muat ulang halaman dan masuk kembali sebelum mengunggah."],
   ["Warkop ownership or status check failed", "Akun ini tidak dikenali sebagai pemilik pendaftaran warkop."],
   ["Warkop photo quota exceeded or slot is not sequential", "Maksimal lima foto. Lanjutkan unggahan yang tertunda sebelum memilih foto lain."],
   ["Too many pending uploads; finish or retry an existing upload", "Masih ada unggahan foto yang tertunda. Tekan tombol lanjutkan unggah foto terlebih dahulu."],
@@ -17,13 +25,16 @@ const USER_FACING_UPLOAD_ERRORS = new Map([
   ["Could not create signed upload", "Izin unggah foto belum bisa dibuat. Coba lagi sebentar."],
   ["Uploaded file not found; retry upload", "Foto belum sampai ke server. Tekan tombol lanjutkan unggah foto untuk mencoba lagi."],
   ["Could not publish validated image", "Server belum dapat memproses foto. Coba lagi sebentar."],
+  ["Silakan masuk dan pilih foto terlebih dahulu.", "Silakan masuk dan pilih foto terlebih dahulu."],
+  ["Pilih foto JPG, PNG, atau WebP.", "Pilih foto JPG, PNG, atau WebP."],
+  ["Ukuran foto maksimal 2 MiB.", "Ukuran foto maksimal 2 MiB."],
 ]);
 
 export function photoUploadErrorMessage(error) {
   const message = typeof error?.message === "string" ? error.message.trim() : "";
   if (!message) return "Foto belum berhasil diunggah. Periksa koneksi lalu coba lagi.";
   return USER_FACING_UPLOAD_ERRORS.get(message)
-    || `Foto belum berhasil diunggah. Detail: ${message}`;
+    || "Foto belum berhasil diunggah. Periksa koneksi atau coba lagi beberapa saat.";
 }
 
 function wait(ms) {

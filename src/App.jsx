@@ -904,7 +904,7 @@ export default function App() {
     .filter(item => item.count > 0).sort((left, right) => right.count - left.count).slice(0, 4);
   const recentSidebarPosts = allPosts.slice(0, 3);
 
-  return <div className="app-shell">
+  return <div className={section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>
     <header className="topbar app-header">
       <a className="brand" href="#" onClick={e => { e.preventDefault(); setSection('Beranda'); }}>
         <span className="brand-mark"><Sparkles size={21}/></span>

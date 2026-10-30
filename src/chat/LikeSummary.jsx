@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { collection, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } from 'firebase/firestore';
+import { collection, documentId, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } from 'firebase/firestore';
 import { Heart, X } from 'lucide-react';
+import PublicUserProfile from './PublicUserProfile.jsx';
 import { db } from '../firebase.js';
 
 function initial(name) {
@@ -20,10 +21,11 @@ async function fetchPublicProfiles(uids) {
   const unique = [...new Set(uids)].slice(0, 10);
   const snapshot = await getDocs(query(collection(db, 'publicProfiles'), where('uid', 'in', unique)));
   const byUid = new Map(snapshot.docs.map(item => [item.id, { uid: item.id, ...item.data() }]));
-  return unique.map(uid => byUid.get(uid)).filter(profile => profile && profile.displayName);
+  return unique.map(uid => byUid.get(uid) || { uid, displayName: 'Anggota WarkopLink', photoURL: '' });
 }
 
 export default function LikeSummary({ post, user, liked, count, onToggleLike, openAuth, setNotice }) {
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const [preview, setPreview] = useState([]);
   const [previewUids, setPreviewUids] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -39,7 +41,7 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
     if (!db || !post?.id || count < 1) { setPreview([]); return undefined; }
     let active = true;
     const stop = onSnapshot(
-      query(collection(db, 'posts', post.id, 'likes'), orderBy('createdAt', 'desc'), limit(3)),
+      query(collection(db, 'posts', post.id, 'likes'), orderBy(documentId(), 'asc'), limit(3)),
       async snapshot => {
         if (active) setPreviewUids(snapshot.docs.map(item => item.id).slice(0, 3));
       },
@@ -105,11 +107,7 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
   }
 
   async function openLikerList() {
-    if (!user) {
-      openAuth(false);
-      setNotice('Masuk untuk melihat daftar pengguna yang menyukai postingan ini.');
-      return;
-    }
+    setSelectedProfile(null);
     setDialogOpen(true);
     setLikers([]);
     setCursor(null);
@@ -132,13 +130,14 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
       <section className="liker-dialog" role="dialog" aria-modal="true" aria-labelledby={`liker-title-${post.id}`} ref={dialogRef}>
         <header className="liker-dialog-header"><h2 id={`liker-title-${post.id}`}>Disukai oleh</h2><button ref={closeRef} className="liker-dialog-close" type="button" aria-label="Tutup daftar penyuka" onClick={() => setDialogOpen(false)}><X size={20}/></button></header>
         <div className="liker-dialog-list" aria-live="polite">
-          {likers.map(profile => <div className="liker-row" key={profile.uid}><Avatar profile={profile} size="large"/><span>{profile.displayName}</span></div>)}
+          {likers.map(profile => <button className="liker-row" key={profile.uid} type="button" onClick={() => setSelectedProfile(profile)} aria-label={`Lihat profil ${profile.displayName}`}><Avatar profile={profile} size="large"/><span>{profile.displayName}</span><span className="liker-row-open" aria-hidden="true">›</span></button>)}
           {loading && <p className="liker-state" role="status">Memuat penyuka…</p>}
-          {!loading && !likers.length && !listError && <p className="liker-state">Belum ada profil publik yang dapat ditampilkan.</p>}
+          {!loading && !likers.length && !listError && <p className="liker-state">Belum ada akun yang menyukai postingan ini.</p>}
           {listError && <div className="liker-state" role="alert"><p>{listError}</p><button className="button button-quiet" type="button" onClick={() => loadLikers(true)}>Coba lagi</button></div>}
         </div>
         {hasMore && <button className="button button-quiet liker-load-more" type="button" disabled={loading} onClick={() => loadLikers(false)}>{loading ? 'Memuat…' : 'Muat lebih banyak'}</button>}
       </section>
     </div>}
+    {selectedProfile && <PublicUserProfile profile={selectedProfile} db={db} onBack={() => setSelectedProfile(null)} />}
   </>;
 }

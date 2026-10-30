@@ -185,6 +185,7 @@ describe('halaman publik', () => {
     emitAuth(null);
     emitPosts(POSTS);
     await screen.findByText('Halo semuanya');
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
 
     await user.click(screen.getByRole('button', { name: 'Tanya Warkop' }));
     expect(screen.queryByText('Halo semuanya')).toBeNull();
@@ -232,6 +233,7 @@ describe('halaman publik', () => {
     render(<App />);
     emitAuth(null);
     emitPosts(POSTS);
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
     await user.click(screen.getByRole('button', { name: 'Info & Acara' }));
     expect(screen.getByRole('button', { name: 'Info & Acara' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByRole('combobox', { name: 'Kategori obrolan' })).toBeNull();
@@ -428,8 +430,10 @@ describe('membuat postingan', () => {
     expect(screen.getByRole('button', { name: 'Kirim' }).disabled).toBe(true);
   });
 
-  it('lima kategori final tersedia sebagai tab feed', () => {
+  it('lima kategori final tersedia sebagai tab feed', async () => {
+    const user = userEvent.setup();
     render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
     for (const category of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']) {
       expect(screen.getByRole('button', { name: category })).toBeTruthy();
     }

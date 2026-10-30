@@ -1,4 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from "npm:jose@5.9.6";
+import { lookupFirebaseAccount } from "./firebase-auth-rest.ts";
 
 const FIREBASE_PROJECT_ID = "sl-community-platform";
 const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
@@ -18,6 +19,25 @@ type FirebaseTimeClaims = {
   exp?: unknown;
   iat?: unknown;
   auth_time?: unknown;
+};
+
+type VerifiedFirebaseIdentity = {
+  uid: string;
+  authTime: number;
+};
+
+type VerifyToken = (token: string) => Promise<VerifiedFirebaseIdentity>;
+type LookupAccount = (
+  idToken: string,
+  verifiedUid: string,
+  authTimeSeconds: unknown,
+  apiKey: string,
+) => Promise<{ uid: string }>;
+
+type HandlerDependencies = {
+  apiKey: string;
+  verifyToken?: VerifyToken;
+  lookupAccount?: LookupAccount;
 };
 
 export function validateFirebaseTimeClaims(
@@ -42,7 +62,7 @@ export function validateFirebaseTimeClaims(
 
 export function extractBearerToken(header: string | null): string | null {
   if (!header) return null;
-  const match = /^Bearer\s+([^\s]+)$/i.exec(header.trim());
+  const match = /^Bearer\\s+([^\\s]+)$/i.exec(header.trim());
   return match?.[1] ?? null;
 }
 
@@ -78,7 +98,9 @@ function jsonResponse(
   });
 }
 
-export async function verifyFirebaseIdToken(token: string): Promise<{ uid: string }> {
+export async function verifyFirebaseIdToken(
+  token: string,
+): Promise<VerifiedFirebaseIdentity> {
   const { payload, protectedHeader } = await jwtVerify(token, jwks, {
     algorithms: ["RS256"],
     audience: FIREBASE_PROJECT_ID,
@@ -94,39 +116,61 @@ export async function verifyFirebaseIdToken(token: string): Promise<{ uid: strin
     throw new Error("Invalid Firebase ID token claims");
   }
 
-  return { uid: payload.sub };
+  return { uid: payload.sub, authTime: payload.auth_time as number };
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const origin = req.headers.get("Origin");
+/**
+ * Creates the read-only identity-check handler.
+ * A request is accepted only after both JWT verification and a live Firebase
+ * account lookup confirm the account is enabled and the token is not revoked.
+ */
+export function createHandler(dependencies: HandlerDependencies) {
+  const verifyToken = dependencies.verifyToken ?? verifyFirebaseIdToken;
+  const lookupAccount = dependencies.lookupAccount ?? lookupFirebaseAccount;
 
-  if (!isAllowedOrigin(origin)) {
-    return jsonResponse({ error: "Origin not allowed" }, 403, null);
-  }
+  return async function firebaseAuthHandler(req: Request): Promise<Response> {
+    const origin = req.headers.get("Origin");
 
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders(origin),
-    });
-  }
+    if (!isAllowedOrigin(origin)) {
+      return jsonResponse({ error: "Origin not allowed" }, 403, null);
+    }
 
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405, origin);
-  }
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders(origin),
+      });
+    }
 
-  const token = extractBearerToken(req.headers.get("Authorization"));
-  if (!token) {
-    return jsonResponse({ error: "Missing Firebase bearer token" }, 401, origin);
-  }
+    if (req.method !== "POST") {
+      return jsonResponse({ error: "Method not allowed" }, 405, origin);
+    }
 
-  try {
-    const identity = await verifyFirebaseIdToken(token);
-    return jsonResponse({ authenticated: true, uid: identity.uid }, 200, origin);
-  } catch {
-    // Never return verifier details, raw tokens, or claims to the caller.
-    return jsonResponse({ error: "Invalid or expired Firebase ID token" }, 401, origin);
-  }
+    const token = extractBearerToken(req.headers.get("Authorization"));
+    if (!token) {
+      return jsonResponse({ error: "Missing Firebase bearer token" }, 401, origin);
+    }
+
+    try {
+      const identity = await verifyToken(token);
+      const account = await lookupAccount(
+        token,
+        identity.uid,
+        identity.authTime,
+        dependencies.apiKey,
+      );
+      return jsonResponse({ authenticated: true, uid: account.uid }, 200, origin);
+    } catch {
+      // Never return verifier details, raw tokens, or claims to the caller.
+      return jsonResponse({ error: "Invalid or expired Firebase ID token" }, 401, origin);
+    }
+  };
+}
+
+export function handler(req: Request): Promise<Response> {
+  return createHandler({
+    apiKey: Deno.env.get("FIREBASE_WEB_API_KEY") ?? "",
+  })(req);
 }
 
 if (import.meta.main) {

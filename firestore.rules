@@ -239,8 +239,7 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
-        && validWarungPhotoList(data.photos, warungId, oldPhotos)
-;
+        && validWarungPhotoList(data.photos, warungId, oldPhotos);
     }
 
     // Hanya field profil publik minimum yang dapat dibaca daftar penyuka; email tetap privat.
@@ -256,7 +255,7 @@ service cloud.firestore {
         && request.resource.data.displayName.size() <= 60
         && request.resource.data.photoURL is string
         && request.resource.data.photoURL.size() <= 2048
-        && (request.resource.data.updatedAt == request.time || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL']));
+        && request.resource.data.updatedAt == request.time;
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt'])
@@ -266,7 +265,7 @@ service cloud.firestore {
         && request.resource.data.displayName.size() <= 60
         && request.resource.data.photoURL is string
         && request.resource.data.photoURL.size() <= 2048
-        && request.resource.data.updatedAt == request.time;
+        && (request.resource.data.updatedAt == request.time || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL']));
       allow delete: if false;
     }
 

@@ -12,10 +12,11 @@ WarkopLink adalah platform komunitas dan direktori warkop lokal. Pengembangan di
 - **Database aktif:** Cloud Firestore. Data profil, posting, balasan, reaksi, direktori warkop, dan moderasi tetap menggunakan sumber data yang sudah berjalan.
 - **CI:** GitHub Actions menjalankan unit/component tests, production build, Firestore Rules tests, dan tes terisolasi untuk Firebase identity gateway.
 - **Proyek Firebase:** `sl-community-platform`.
-- **Proyek Supabase:** `WarkopLink` (Free), region `eu-west-3` (Paris); dipakai untuk Edge Function identitas, belum untuk database aplikasi atau media.
+- **Proyek Supabase:** `WarkopLink` (Free), region `eu-west-3` (Paris); dipakai untuk Edge Function identitas dan gateway upload media (`media-gateway`), belum untuk database aplikasi.
+- **Kode media (status per commit `e0c290e`):** `src/media/uploadWarkopMedia.js` sudah dipakai di form acara; `firestore.rules` sudah memvalidasi URL foto warkop dan poster acara dari bucket publik `warkoplink-media`; `media-gateway` punya tes Deno dan job deploy di CI. **Status deploy dan bucket di Supabase live belum diverifikasi ulang sejak audit 30 Oktober 2026** — verifikasi lewat dashboard/CLI sebelum mengandalkannya.
 - **Supabase Edge Function:** `firebase-auth-check` aktif versi 2, `verify_jwt = false`; memverifikasi Firebase ID token dan melakukan `accounts:lookup` server-side untuk status akun/revocation.
 
-Audit layanan 30 Oktober 2026: Supabase belum memiliki tabel aplikasi di schema `public` dan belum memiliki bucket Storage. Hanya fungsi `firebase-auth-check` yang aktif. Security dan performance advisors tidak mengembalikan temuan. Tes gateway CI memakai mock; pengujian terhadap akun Firebase live dan verifikasi pembatasan API key masih belum dilakukan. Fungsi ini hanya membuktikan identitas, bukan kepemilikan warkop atau izin upload/delete.
+Audit layanan 30 Oktober 2026 (data historis; kode sudah berkembang sesudahnya, lihat butir "Kode media" di atas): Supabase belum memiliki tabel aplikasi di schema `public` dan belum memiliki bucket Storage. Hanya fungsi `firebase-auth-check` yang aktif. Security dan performance advisors tidak mengembalikan temuan. Tes gateway CI memakai mock; pengujian terhadap akun Firebase live dan verifikasi pembatasan API key masih belum dilakukan. Fungsi ini hanya membuktikan identitas, bukan kepemilikan warkop atau izin upload/delete.
 
 ## Arsitektur yang dipertahankan
 
@@ -38,7 +39,7 @@ Jenis media yang direncanakan hanya:
 - Foto pendaftaran/galeri warkop.
 - Poster acara warkop.
 
-Rancangan awal membatasi gambar ke JPEG, PNG, atau WebP, maksimal 2 MiB per file, dengan validasi server-side dan penghapusan metadata EXIF/GPS. **Rancangan ini belum berarti upload Supabase sudah tersedia.** Jangan menaruh kredensial Admin atau service-role key di frontend.
+Rancangan awal membatasi gambar ke JPEG, PNG, atau WebP, maksimal 2 MiB per file, dengan validasi server-side dan penghapusan metadata EXIF/GPS. **Kode upload sudah ada di repo, tetapi keberadaannya di kode bukan bukti bahwa gateway live berfungsi; uji end-to-end di lingkungan nyata masih diperlukan.** Jangan menaruh kredensial Admin atau service-role key di frontend.
 
 ## Menjalankan secara lokal
 

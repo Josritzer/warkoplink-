@@ -38,7 +38,7 @@ A warkop or event upload must verify the caller's actual role/ownership against 
 
 ## Mandatory security gates before any write endpoint
 
-The existing `firebase-auth-check` function verifies Firebase JWT signature, issuer, audience, algorithm, and time claims. It does **not** check refresh-token revocation or disabled-account status. It is an identity probe, not a complete authorization layer.
+The `firebase-auth-check` source now verifies Firebase JWT signature, issuer, audience, algorithm, and time claims, then performs a server-side Firebase Auth `accounts:lookup` to check UID match, disabled-account state, and token revocation. It remains a read-only identity verifier, not a resource-ownership authorization layer. CI tests use mocked Firebase responses; live account lookup and deployment are still pending.
 
 Before using Firebase tokens to authorize Storage mutations:
 1. Add revocation-aware Firebase Admin verification, including disabled-account handling, through a trusted server-side mechanism. Do not accept client-supplied UID/role claims as proof.

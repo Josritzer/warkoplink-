@@ -1,12 +1,12 @@
 # Firebase token revocation — runtime decision
 
-Status: isolated unit-test groundwork only. No live Auth calls, runtime secrets, bucket, billing, database, or deployment changes.
+Status: read-only verifier now wires Firebase `accounts:lookup` after local JWT verification. CI covers mocked REST responses and handler behavior; no live Auth call, runtime secret, bucket, billing, database, or deployment change has been made.
 
 ## Decision
 
 Do not extend `firebase-auth-check` into an upload authorization endpoint yet.
 
-The current function verifies a Firebase ID token's JWT signature, issuer, audience, and time claims. It does not verify whether the Firebase user is disabled or whether the refresh-token session was revoked.
+The function source now verifies a Firebase ID token's JWT signature, issuer, audience, and time claims, then calls Firebase Auth `accounts:lookup` server-side to verify UID match, disabled-account state, and the refresh-token revocation boundary. This remains a read-only identity check, not resource authorization or an upload gateway. Live Firebase behavior has not yet been tested.
 
 For any write-capable media gateway, the required identity contract is:
 
@@ -24,10 +24,10 @@ For any write-capable media gateway, the required identity contract is:
 4. An isolated import/initialization probe for `firebase-admin@13.5.0` failed in GitHub Actions because transitive Node compatibility modules attempted to enumerate/read process environment variables. Allowing one named variable merely exposed a second unrestricted environment access. The probe was removed rather than granting broad environment access. This is evidence of friction in the Deno test runtime, not definitive proof that every Admin SDK operation is impossible in Supabase Edge Runtime.
 5. Firebase's official Auth REST reference documents `POST https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=API_KEY`, accepting an ID token and returning the matching user's `localId`, `validSince` (Unix seconds as a string), and `disabled` fields.
 6. Firebase Admin Node SDK source confirms the exact revocation comparison: convert `auth_time` seconds to milliseconds, convert `tokensValidAfterTime` to milliseconds, and reject only when `auth_time_ms < validSince_ms`. Equality is accepted. The SDK checks disabled status before the revocation comparison.
-7. A pure helper and Deno unit tests now cover this boundary. They do not yet prove the REST response handling, API-key restrictions, live disabled-account behavior, or behavior during Firebase outages. This remains proof-of-concept groundwork, not an approved production verifier.
+7. The pure revocation helper, mocked REST response validation, and handler integration are covered by Deno tests. They do not prove live Firebase behavior, API-key restrictions, or behavior during Firebase outages. This remains a source-level proof of concept, not an approved production verifier.
 
 
-A pure response validator has now been added in `account-lookup.ts`. It accepts only an object containing exactly one user, requires `localId` to match the already-verified JWT UID, requires `disabled === false`, and applies the strict `auth_time < validSince` revocation check. It returns only the verified UID and throws on unknown or malformed status. Deno tests cover enabled/disabled/unknown status, UID mismatch, zero or multiple users, malformed timestamps, revoked tokens, and invalid input. These are mocked payload tests only; no HTTP request or live Firebase account lookup is performed.
+The response validator in `account-lookup.ts` accepts exactly one user, requires `localId` to match the already-verified JWT UID, requires `disabled === false`, and applies the strict `auth_time < validSince` revocation check. `firebase-auth-rest.ts` performs the HTTPS `accounts:lookup` request using the server-side `FIREBASE_WEB_API_KEY` environment variable and fails closed on missing configuration, HTTP errors, malformed JSON, or invalid account data. The handler now calls this lookup before returning an identity. Deno tests cover mocked HTTP responses and handler behavior; no live Firebase account lookup has been performed.
 
 ## Runtime options to evaluate
 
@@ -46,7 +46,7 @@ After the existing local JWT signature/issuer/audience/time validation:
 
 The Web API key is not a substitute for the user's token and must never be treated as authorization. Restrict it to the required Firebase API where compatible with the app's existing configuration. The request must remain server-side; do not add a new client call that exposes account lookup results.
 
-Unit tests now cover the pure time-boundary helper: before boundary rejected, exact equality accepted, after boundary accepted, fractional seconds, and malformed timestamps rejected. Still required for the full POC: mocked REST response validation (exactly one user, UID match, disabled true/false, malformed fields, HTTP errors, timeout) and a separately approved live test using a dedicated non-production Firebase account.
+Unit tests cover the time boundary, mocked REST responses (exactly one user, UID match, disabled status, malformed fields, HTTP errors, and network failures), and handler behavior. Still required for the full POC: a separately approved live test using dedicated non-production Firebase accounts for enabled, disabled, and revoked cases.
 
 ### Option B — Supabase Edge Function with Firebase Admin SDK
 
@@ -91,11 +91,11 @@ Use a dedicated non-production Firebase test account. Do not revoke or disable a
 
 ## Next implementation sequence
 
-1. Add mocked REST response-validation tests without making live Auth calls in CI.
+1. Mocked REST response-validation and handler tests are implemented and pass in CI.
 2. Review the REST request and response handling against Firebase's official contract.
-3. If mocked tests pass, run a separately approved POC with a dedicated non-production test account and a server-side key configuration.
-4. Keep the current JWKS function read-only until the revocation-aware verifier passes the proof matrix.
-5. Only after a proven verifier exists, design resource ownership checks and image validation.
+3. Run a separately approved POC with a dedicated non-production test account and a server-side key configuration.
+4. Keep the function read-only; do not add upload/delete operations until the live revocation-aware verifier passes the proof matrix.
+5. Only after a proven verifier exists, design resource ownership checks and server-side image validation.
 6. Only after all gates pass, propose a separate avatar-only upload implementation and staging test.
 
 ## Security and change-control boundaries

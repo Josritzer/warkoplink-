@@ -47,7 +47,7 @@ Hapus foto melakukan operasi kebalikan: menghapus objek Firebase Storage lalu me
 
 ## 4. Pilihan otorisasi — belum diputuskan untuk implementasi
 
-Function `firebase-auth-check` yang ada saat ini hanya memeriksa tanda tangan, issuer, audience, klaim waktu, dan UID. Function itu tidak memeriksa token yang dicabut atau akun yang dinonaktifkan. Karena itu function tersebut hanya cocok sebagai pemeriksaan identitas read-only dan **tidak boleh dijadikan otorisasi upload/hapus**.
+Source function `firebase-auth-check` sekarang memeriksa tanda tangan, issuer, audience, klaim waktu, lalu melakukan lookup status akun Firebase untuk memeriksa UID, akun dinonaktifkan, dan pencabutan token. Namun integrasi live belum diuji dan function tetap hanya pemeriksa identitas read-only; **belum boleh dijadikan otorisasi upload/hapus**.
 
 Sebelum gateway tulis dibuat, pilih dan uji runtime server-side yang dapat memvalidasi Firebase ID token dengan pemeriksaan revocation/disabled-account. Implementasi Firebase Admin SDK membutuhkan lingkungan Node yang kompatibel dan kredensial server yang disimpan sebagai secret; jangan mengasumsikan paket Admin SDK otomatis kompatibel dengan Deno Edge Runtime. Lakukan proof-of-compatibility terlebih dahulu.
 

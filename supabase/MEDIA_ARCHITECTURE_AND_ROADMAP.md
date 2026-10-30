@@ -44,7 +44,7 @@ Gunakan satu bucket media publik hanya untuk gambar yang memang dimaksudkan tamp
 Jangan gunakan bucket ini untuk KTP, nomor telepon privat, bukti pembayaran, percakapan privat, atau lampiran sensitif. Media privat, jika kelak diperlukan, harus memakai bucket privat dan URL bertanda tangan dengan otorisasi terpisah.
 
 ### Jalur autentikasi dan upload
-Jangan menganggap CORS atau validasi JWT JWKS sebagai otorisasi lengkap. Function `firebase-auth-check` yang sekarang hanya read-only identity probe; ia tidak memeriksa revocation/disabled-account state dan tidak boleh menerima perintah upload/delete.
+Jangan menganggap CORS atau validasi JWT JWKS sebagai otorisasi lengkap. Source function `firebase-auth-check` sekarang melakukan verifikasi JWT dan lookup status akun Firebase (disabled/revoked), tetapi tetap hanya pemeriksa identitas read-only. Ia belum membuktikan integrasi live dan tidak boleh menerima perintah upload/delete atau dianggap sebagai pemeriksaan kepemilikan resource.
 
 Sebelum memilih gateway, lakukan proof-of-compatibility yang membandingkan:
 A. Supabase Edge Function (Deno) dengan mekanisme Firebase server-side yang secara resmi/teruji memeriksa token revocation dan akun disabled.

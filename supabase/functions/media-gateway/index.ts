@@ -189,10 +189,18 @@ async function setMediaReference(
     let oldUrl: string | null = null;
     if (request.mediaType === "avatar") {
       oldUrl = typeof resource.data.photoURL === "string" ? resource.data.photoURL : null;
+      const authUpdate = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${encodeURIComponent(firebaseApiKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken: token, photoUrl: url, returnSecureToken: false }),
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (!authUpdate.ok) throw new Error("Firebase Auth photo update failed");
       fieldPatch = { photoURL: url };
     } else if (request.mediaType === "warung") {
       const photos = Array.isArray(resource.data.photos) ? [...resource.data.photos] : [];
       oldUrl = typeof photos[request.slot!] === "string" ? photos[request.slot!] : null;
+      if (request.slot! > photos.length) throw new Error("Warkop photo quota exceeded");
       photos[request.slot!] = url;
       fieldPatch = { photos };
     } else {
@@ -202,20 +210,11 @@ async function setMediaReference(
     try {
       await patchResource(token, resource, fieldPatch);
       if (request.mediaType === "avatar") {
-        const authUpdate = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${encodeURIComponent(firebaseApiKey)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken: token, photoUrl: url, returnSecureToken: false }),
-          signal: AbortSignal.timeout(8_000),
-        });
-        if (!authUpdate.ok) throw new Error("Firebase Auth photo update failed");
         const publicProfile = await getResource(token, "publicProfiles", uid);
         if (publicProfile) {
-          try {
-            await patchResource(token, publicProfile, { photoURL: url });
-          } catch {
-            // The private profile remains authoritative; clients can fall back to it.
-          }
+          await patchResource(token, publicProfile, { photoURL: url, updatedAt: new Date() }).catch(() => {
+            // The private profile and Firebase Auth are authoritative; public projection can be repaired on next sign-in.
+          });
         }
       }
       return oldUrl;

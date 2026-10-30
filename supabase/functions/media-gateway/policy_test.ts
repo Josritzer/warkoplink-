@@ -5,6 +5,7 @@ import {
   parseFirestoreDocument,
   validateImageBytes,
   mediaObjectPath,
+  expiredOrphanPaths,
 } from "./policy.ts";
 
 Deno.test("accepts only avatar, warung and event media", () => {
@@ -55,6 +56,20 @@ Deno.test("enforces sequential five-photo slots and one event poster", () => {
   assertThrows(() => normalizeUploadRequest({ mediaType: "warung", resourceId: "w1", slot: 5, contentType: "image/jpeg", size: 10 }));
   assertThrows(() => normalizeUploadRequest({ mediaType: "warung", resourceId: "w1", slot: -1, contentType: "image/jpeg", size: 10 }));
   assertThrows(() => normalizeUploadRequest({ mediaType: "event", resourceId: "p1", slot: 1, contentType: "image/jpeg", size: 10 }));
+});
+
+Deno.test("removes only old unreferenced objects from a resource folder", () => {
+  const now = Date.parse("2026-10-31T00:00:00Z");
+  const objects = [
+    { name: "old.webp", id: "1", created_at: "2026-10-29T00:00:00Z" },
+    { name: "current.webp", id: "2", created_at: "2026-10-29T00:00:00Z" },
+    { name: "recent.webp", id: "3", created_at: "2026-10-30T23:00:00Z" },
+    { name: "folder", id: null, created_at: "2026-10-20T00:00:00Z" },
+  ];
+  assertEquals(
+    expiredOrphanPaths("events/post_1", objects, new Set(["events/post_1/current.webp"]), now),
+    ["events/post_1/old.webp"],
+  );
 });
 
 Deno.test("uses server-controlled UUID object paths scoped to the authenticated owner", () => {

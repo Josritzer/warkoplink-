@@ -300,3 +300,82 @@ html, body, #root, .app-shell, .desktop-layout, .desktop-layout > main,
     margin-right: 0;
   }
 }
+
+
+/* Obrolan mobile: hilangkan wrapper visual, pastikan chip dapat digeser,
+   dan beri ruang nyata di bawah postingan untuk navigasi tetap. */
+@media (max-width: 767px) {
+  .app-shell {
+    width: 100%;
+    max-width: none;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .desktop-layout,
+  .desktop-layout > main,
+  #community-feed.content-section {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .desktop-layout > main,
+  #community-feed.content-section {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  #community-feed.content-section {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  #community-feed .topic-scroll-wrap {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  #community-feed .topic-list {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    scroll-snap-type: x proximity;
+    padding: 12px 4px;
+  }
+
+  #community-feed .topic {
+    flex: 0 0 auto;
+    max-width: none;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+
+  /* Panah dekoratif sebelumnya menutupi ujung chip terakhir. */
+  #community-feed .topic-scroll-hint {
+    display: none !important;
+  }
+
+  /* Jarak scroll ekstra agar postingan terakhir tidak berhenti di balik nav. */
+  #community-feed .post-list {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+    scroll-margin-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+
+  #community-feed .feed-pagination {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+}

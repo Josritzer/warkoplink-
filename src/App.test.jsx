@@ -466,6 +466,14 @@ describe('membuat postingan', () => {
 
 
 describe('direktori dan pendaftaran warkop', () => {
+  it('direktori dan daftar mention tidak memerlukan composite index nameNormalized', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    expect(fs.orderBy).not.toHaveBeenCalledWith('nameNormalized', 'asc');
+  });
+
   it('direktori hanya meminta warkop verified dan membatasi hasil', async () => {
     const user = userEvent.setup();
     render(<App />);

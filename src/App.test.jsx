@@ -685,3 +685,19 @@ describe('notifikasi sementara dan unggah foto profil', () => {
     expect(screen.queryByText(notice)).toBeNull();
   });
 });
+
+
+describe('aksesibilitas form pendaftaran warkop', () => {
+  it('menjelaskan format lintang dan bujur pada layar Daftar', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+
+    const latitude = screen.getByPlaceholderText('Contoh: -7.0001');
+    const longitude = screen.getByPlaceholderText('Contoh: 112.2810');
+    expect(latitude.getAttribute('inputmode')).toBe('decimal');
+    expect(longitude.getAttribute('inputmode')).toBe('decimal');
+    expect(screen.getByText(/Lintang: angka utara\/selatan/)).toBeTruthy();
+    expect(screen.getByText(/Bujur: angka timur\/barat/)).toBeTruthy();
+  });
+});

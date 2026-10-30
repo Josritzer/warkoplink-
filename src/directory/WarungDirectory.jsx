@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
+import { addDoc, collection, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
 import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock } from 'lucide-react';
 import { ACTIVITY_OPTIONS, collectFacilities, filterWarungs, isOpenNow } from './directoryFilters.js';
 
@@ -41,11 +41,13 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     const verifiedQuery = query(
       collection(db, 'warungs'),
       where('verificationStatus', '==', 'verified'),
-      orderBy('nameNormalized', 'asc'),
       limit(30)
     );
     return onSnapshot(verifiedQuery, (snapshot) => {
-      setWarungs(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      setWarungs(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).sort((a, b) =>
+        String(a.nameNormalized || a.name || '').localeCompare(String(b.nameNormalized || b.name || ''), 'id')
+        || a.id.localeCompare(b.id)
+      ));
       setLastDocument(snapshot.docs.at(-1) || null);
       setHasMore(snapshot.docs.length === 30);
       setStatus('ready');
@@ -116,7 +118,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       const nextQuery = query(
         collection(db, 'warungs'),
         where('verificationStatus', '==', 'verified'),
-        orderBy('nameNormalized', 'asc'),
         startAfter(lastDocument),
         limit(30)
       );

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-const state = vi.hoisted(() => ({ authCallback: null, snapshotNext: null, snapshotError: null }));
+const state = vi.hoisted(() => ({ authCallback: null, snapshotNext: null, snapshotError: null, warungsSnapshots: [] }));
 
 vi.mock('./firebase.js', () => ({ auth: { name: 'auth' }, db: { name: 'db' }, firebaseConfigured: true }));
 
@@ -28,7 +28,12 @@ vi.mock('firebase/firestore', () => ({
   onSnapshot: vi.fn((q, next, error) => {
     // Simpan callback feed/direktori saja; subscription likes/replies tidak boleh menimpa helper tes.
     const path = q?.args?.[0]?.path ?? q?.path;
-    if (path === 'posts' || path === 'warungs') {
+    if (path === 'posts') {
+      state.snapshotNext = next;
+      state.snapshotError = error;
+    }
+    if (path === 'warungs') {
+      state.warungsSnapshots.push({ query: q, next, error });
       state.snapshotNext = next;
       state.snapshotError = error;
     }
@@ -63,6 +68,7 @@ const POSTS = [
 ];
 
 beforeEach(() => {
+  state.warungsSnapshots = [];
   window.localStorage.clear();
   vi.clearAllMocks();
   fs.getDoc.mockResolvedValue({ exists: () => true, data: () => ({}) });
@@ -466,6 +472,14 @@ describe('membuat postingan', () => {
 
 
 describe('direktori dan pendaftaran warkop', () => {
+  it('direktori dan daftar mention tidak memerlukan composite index nameNormalized', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    expect(fs.orderBy).not.toHaveBeenCalledWith('nameNormalized', 'asc');
+  });
+
   it('direktori hanya meminta warkop verified dan membatasi hasil', async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -502,7 +516,9 @@ describe('direktori dan pendaftaran warkop', () => {
       address: 'Jl. Contoh, Lamongan',
       facilities: [],
     }));
-    act(() => state.snapshotNext(snapshotOf(firstPage)));
+    const directorySnapshot = state.warungsSnapshots.find(({ query }) => query?.args?.some((argument) => argument?.limit === 30));
+    expect(directorySnapshot).toBeTruthy();
+    act(() => directorySnapshot.next(snapshotOf(firstPage)));
     expect(await screen.findByRole('heading', { name: 'Warkop 1' })).toBeTruthy();
     const nextPage = snapshotOf([
       { id: 'w31', name: 'Warkop 31', address: 'Jl. Contoh, Lamongan', facilities: [] },

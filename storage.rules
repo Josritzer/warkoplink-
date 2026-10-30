@@ -18,11 +18,11 @@ service firebase.storage {
     }
 
     function validWarungPhotoName(fileName) {
-      return fileName.matches('photo-[0-4]\\.(jpg|jpeg|png|webp)');
+      return fileName.matches('photo-[0-4][.](jpg|jpeg|png|webp)');
     }
 
     function validEventPosterName(fileName) {
-      return fileName.matches('[0-9]+\\.(jpg|jpeg|png|webp)');
+      return fileName.matches('[0-9]+[.](jpg|jpeg|png|webp)');
     }
 
     match /profilePhotos/{userId}/avatar {

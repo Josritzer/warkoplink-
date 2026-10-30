@@ -38,11 +38,11 @@ A warkop or event upload must verify the caller's actual role/ownership against 
 
 ## Mandatory security gates before any write endpoint
 
-The `firebase-auth-check` source now verifies Firebase JWT signature, issuer, audience, algorithm, and time claims, then performs a server-side Firebase Auth `accounts:lookup` to check UID match, disabled-account state, and token revocation. It remains a read-only identity verifier, not a resource-ownership authorization layer. CI tests use mocked Firebase responses; live account lookup and deployment are still pending.
+The `firebase-auth-check` version 2 is deployed and ACTIVE in the WarkopLink Supabase project. It verifies Firebase JWT signature, issuer, audience, algorithm, and time claims, then performs server-side Firebase Auth `accounts:lookup` to check UID match, disabled-account state, and token revocation. It remains a read-only identity verifier, not a resource-ownership authorization layer. CI tests use mocked Firebase responses; live behavior against disabled/revoked accounts and API-key restrictions remain unverified.
 
 Before using Firebase tokens to authorize Storage mutations:
-1. Add revocation-aware Firebase Admin verification, including disabled-account handling, through a trusted server-side mechanism. Do not accept client-supplied UID/role claims as proof.
-2. Define and verify roles for profile ownership, warkop administrators, and event organizers using trusted records.
+1. Reuse the deployed revocation-aware identity verifier only after its live integration behavior and API-key restrictions have been verified safely. Do not treat its returned UID as proof of resource ownership.
+2. Implement a separate authorization step that reads authoritative Firestore records and verifies profile ownership, `warungs/{id}.ownerUid`, and event ownership/organizer roles. Never accept client-supplied UID/role claims or object paths as authority.
 3. Validate request size before buffering; enforce 2 MiB server-side.
 4. Allowlist MIME types and inspect file signatures/decoded content; do not trust the request Content-Type or filename.
 5. Re-encode images, strip EXIF, generate server-controlled object names, and reject malformed/decompression-bomb inputs.

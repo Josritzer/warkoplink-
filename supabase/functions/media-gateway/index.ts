@@ -232,6 +232,31 @@ async function setMediaReference(
   throw new Error("Resource changed repeatedly; retry upload");
 }
 
+async function removeAvatar(token: string, uid: string) {
+  const profile = await getResource(token, "profiles", uid);
+  if (!profile) throw new Error("Profile not found");
+  const oldUrl = typeof profile.data.photoURL === "string" ? profile.data.photoURL : "";
+  await patchResource(token, profile, { photoURL: "" });
+  const authUpdate = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${encodeURIComponent(firebaseApiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken: token, deleteAttribute: ["PHOTO_URL"], returnSecureToken: false }),
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!authUpdate.ok) {
+    const latest = await getResource(token, "profiles", uid);
+    if (latest?.data.photoURL === "") await patchResource(token, latest, { photoURL: oldUrl }).catch(() => {});
+    throw new Error("Firebase Auth photo removal failed");
+  }
+  const publicProfile = await getResource(token, "publicProfiles", uid);
+  if (publicProfile) {
+    await patchResource(token, publicProfile, { photoURL: "", updatedAt: new Date() }).catch(() => {});
+  }
+  const oldPath = isOwnMediaUrl(oldUrl);
+  if (oldPath) await admin.storage.from(BUCKET_PUBLIC).remove([oldPath]);
+  return { removed: true };
+}
+
 function isOwnMediaUrl(url: string | null): string | null {
   if (!url) return null;
   try {
@@ -333,6 +358,7 @@ async function handler(request: Request): Promise<Response> {
     const action = body.action;
     if (action === "init") return response({ upload: await initUpload(token, identity.uid, body) }, 200, origin);
     if (action === "finalize") return response({ media: await finalizeUpload(token, identity.uid, body) }, 200, origin);
+    if (action === "removeAvatar") return response({ media: await removeAvatar(token, identity.uid) }, 200, origin);
     return response({ error: "Unsupported action" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Media operation failed";

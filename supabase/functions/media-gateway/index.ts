@@ -286,6 +286,7 @@ async function initUpload(token: string, uid: string, body: Record<string, unkno
     uploadId,
     path,
     token: data.token,
+    signedUrl: data.signedUrl,
     bucket: BUCKET_PENDING,
     mediaType: request.mediaType,
     expiresInSeconds: 7200,

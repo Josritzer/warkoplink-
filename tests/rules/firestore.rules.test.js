@@ -369,6 +369,28 @@ describe('warungs — direktori aman tahap awal', () => {
     }));
   });
 
+  it('foto lama yang tidak diubah tidak menghalangi edit informasi, tetapi URL foto asing baru ditolak', async () => {
+    const warungId = 'warkop-legacy-photo';
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `warungs/${warungId}`), validWarung({
+        photos: ['https://legacy.example.test/old-photo.jpg'],
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      }));
+    });
+
+    await assertSucceeds(updateDoc(doc(asUser('alice'), `warungs/${warungId}`), {
+      name: 'Warkop Legacy Diperbarui',
+      nameNormalized: 'warkop legacy diperbarui',
+      updatedAt: serverTimestamp(),
+    }));
+
+    await assertFails(updateDoc(doc(asUser('alice'), `warungs/${warungId}`), {
+      photos: ['https://attacker.example.test/foreign-photo.jpg'],
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
   it('warkop tidak dapat dihapus melalui client', async () => {
     await setDoc(doc(asUser('alice'), 'warungs/warkop-no-delete'), validWarung());
     await assertFails(deleteDoc(doc(asUser('alice'), 'warungs/warkop-no-delete')));

@@ -413,9 +413,8 @@ describe('membuat postingan', () => {
     render(<App />);
     emitAuth(fakeUser());
     emitPosts([]);
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
     await user.click(screen.getByRole('button', { name: 'Info & Acara' }));
-    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
-    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
     await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Kategori posting' }), 'Info & Acara');
     await user.type(screen.getByLabelText('Isi obrolan'), '  Halo komunitas  ');

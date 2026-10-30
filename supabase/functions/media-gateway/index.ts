@@ -27,7 +27,8 @@ type Resource = { data: Record<string, any>; updateTime: string; name: string };
 
 const firebaseApiKey = Deno.env.get("FIREBASE_WEB_API_KEY") ?? "";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-const supabaseSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+const supabaseSecret = secretKeys.default ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const admin = createClient(supabaseUrl, supabaseSecret, {
   auth: { persistSession: false, autoRefreshToken: false },
 });

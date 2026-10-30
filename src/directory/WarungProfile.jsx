@@ -21,6 +21,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
   const [eventStart, setEventStart] = useState('');
   const [eventEnd, setEventEnd] = useState('');
   const [eventPhoto, setEventPhoto] = useState(null);
+  const [pendingEventId, setPendingEventId] = useState('');
   const [sharingEvent, setSharingEvent] = useState(false);
 
   const refreshFollowState = useCallback(async () => {

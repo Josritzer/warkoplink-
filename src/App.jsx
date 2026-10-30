@@ -11,7 +11,7 @@ import { auth, db, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
 import ChatPanel from './chat/ChatPanel.jsx';
 import { relativePostTime } from './chat/postTime.js';
-import { uploadWarkopMedia, removeWarkopAvatar } from './media/uploadWarkopMedia.js';
+import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
@@ -407,6 +407,10 @@ export default function App() {
     if (!bodyCheck.ok) return setNotice(bodyCheck.error);
     const detailsCheck = validatePostDetails(composerTopic, details);
     if (!detailsCheck.ok) return setNotice(detailsCheck.error);
+    if (details.eventPosterFile && (composerTopic !== 'Info & Acara' || !details.eventWarungId || !verifiedWarungs.some(warung => warung.id === details.eventWarungId && warung.ownerUid === user.uid))) {
+      setNotice('Pilih warkop terverifikasi milik akun Anda sebelum mengunggah poster.');
+      return false;
+    }
     if (!db) return setNotice('Firebase belum dikonfigurasi.');
     setPosting(true);
     try {
@@ -430,6 +434,7 @@ export default function App() {
         ...(composerTopic === 'Info & Acara' && details.eventEndAt ? { eventEndAt: details.eventEndAt } : {}),
         ...(composerTopic === 'Info & Acara' ? { eventKind: String(details.eventKind || 'Lainnya').slice(0, 40) } : {}),
         ...(composerTopic === 'Info & Acara' && details.eventCapacity && Number(details.eventCapacity) > 0 ? { eventCapacity: Math.min(10000, Math.floor(Number(details.eventCapacity))) } : {}),
+        ...(composerTopic === 'Info & Acara' && details.eventPosterFile ? { warungId: details.eventWarungId } : {}),
         ...(details.price?.trim() ? { price: details.price.trim() } : {}),
         ...(details.workType?.trim() ? { workType: details.workType.trim() } : {}),
         ...(details.contact?.trim() ? { contact: details.contact.trim() } : {}),
@@ -437,8 +442,17 @@ export default function App() {
         reactions: { ...EMPTY_REACTIONS },
         totalReactions: 0
       });
+      let posterNotice = '';
+      if (composerTopic === 'Info & Acara' && details.eventPosterFile) {
+        try {
+          await uploadWarkopMedia({ user, mediaType: 'event', resourceId: postRef.id, file: details.eventPosterFile });
+        } catch (error) {
+          posterNotice = ` Acara sudah terbit, tetapi poster belum berhasil diunggah: ${photoUploadErrorMessage(error)}`;
+        }
+      }
       setDraft('');
-      setNotice('Obrolan berhasil dipublikasikan.');
+      setNotice(posterNotice ? `Obrolan berhasil dipublikasikan.${posterNotice}` : 'Obrolan berhasil dipublikasikan.');
+      return true;
     } catch (error) {
       setNotice(postErrorMessage(error));
     } finally {
@@ -968,7 +982,7 @@ export default function App() {
         user={user} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
         topic={topic} setTopic={setTopic} composerTopic={composerTopic} setComposerTopic={setComposerTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
         openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
-        activeCategory={activeCategory} handlePost={handlePost} posting={posting} verifiedWarungs={verifiedWarungs}
+        activeCategory={activeCategory} handlePost={handlePost} posting={posting} verifiedWarungs={verifiedWarungs} ownVerifiedWarungs={verifiedWarungs.filter(warung => warung.ownerUid === user?.uid)}
         postsStatus={postsStatus} setPostsRetry={setPostsRetry}
         visiblePosts={visiblePosts} hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts}
          loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}

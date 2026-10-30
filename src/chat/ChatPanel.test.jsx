@@ -79,8 +79,8 @@ describe('ChatPanel homepage layout', () => {
 
     expect(container.querySelector('.community-story-strip')).toBeNull();
     expect(container.querySelector('.warkop-stories')).toBeNull();
-    expect(screen.getAllByLabelText('Kategori obrolan').length).toBeGreaterThan(0);
-    expect(screen.getByText('Beranda · mode baca')).toBeTruthy();
+    expect(screen.queryByLabelText('Kategori obrolan')).toBeNull();
+    expect(screen.getByText('Beranda · cuplikan 3 obrolan terbaru')).toBeTruthy();
   });
 });
 

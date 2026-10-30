@@ -4,3 +4,7 @@ project_id = "klikvxuronunonymmiqv"
 # Firebase ID tokens are not Supabase JWTs. The function performs its own
 # signature, issuer, audience, expiry, and algorithm verification.
 verify_jwt = false
+
+[functions.media-gateway]
+# Firebase ID tokens are verified by the function (JWKS + live Firebase account lookup).
+verify_jwt = false

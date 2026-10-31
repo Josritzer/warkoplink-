@@ -185,7 +185,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
-          'regionCode', 'facilities', 'activities', 'priceRange', 'openingHours', 'photos',
+          'regionCode', 'facilities', 'activities', 'menuHighlights', 'specialtyMenu', 'priceRange', 'openingHours', 'photos',
           'verificationStatus', 'createdAt', 'updatedAt'
         ])
         && data.name is string && data.name.size() >= 2 && data.name.size() <= 100
@@ -200,6 +200,8 @@ service cloud.firestore {
         && data.regionCode == 'lamongan-kab'
         && data.facilities is list && data.facilities.size() <= 20
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
+        && (!data.keys().hasAny(['menuHighlights']) || (data.menuHighlights is list && data.menuHighlights.size() <= 12))
+        && (!data.keys().hasAny(['specialtyMenu']) || (data.specialtyMenu is string && data.specialtyMenu.size() <= 300))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
         && data.photos is list && data.photos.size() == 0
@@ -237,6 +239,8 @@ service cloud.firestore {
         && data.regionCode == 'lamongan-kab'
         && data.facilities is list && data.facilities.size() <= 20
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
+        && (!data.keys().hasAny(['menuHighlights']) || (data.menuHighlights is list && data.menuHighlights.size() <= 12))
+        && (!data.keys().hasAny(['specialtyMenu']) || (data.specialtyMenu is string && data.specialtyMenu.size() <= 300))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
         && validWarungPhotoList(data.photos, warungId, oldPhotos);
@@ -412,7 +416,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
-          'facilities', 'activities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
+          'facilities', 'activities', 'menuHighlights', 'specialtyMenu', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
         && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos']) || request.resource.data.updatedAt == request.time)
         && validWarungEdit(request.resource.data, warungId, resource.data.get('photos', [])));

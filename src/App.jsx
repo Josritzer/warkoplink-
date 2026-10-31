@@ -948,7 +948,7 @@ export default function App() {
   }
 
   const visiblePosts = filterPosts(allPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
-  const resolvedSelectedReplyPost = selectedReplyPost ? withPublicAuthorProfile(selectedReplyPost, publicAuthorProfiles[resolvedSelectedReplyPost.authorId]) : null;
+  const resolvedSelectedReplyPost = selectedReplyPost ? withPublicAuthorProfile(selectedReplyPost, publicAuthorProfiles[selectedReplyPost.authorId]) : null;
   const resolvedReplies = selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []).map(reply => withPublicAuthorProfile(reply, publicAuthorProfiles[reply.authorId])) : [];
   const activeCategory = composerTopic;
   const popularTopics = POST_TOPICS.map(name => ({ name, count: allPosts.filter(post => canonicalTopic(post.topic) === name).length }))

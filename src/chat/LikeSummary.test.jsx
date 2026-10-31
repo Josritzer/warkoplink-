@@ -22,29 +22,21 @@ describe('navigasi profil publik dari daftar penyuka', () => {
     mocks.onSnapshot.mockImplementation(() => () => {});
     mocks.getDocs
       .mockResolvedValueOnce({ docs: [{ id: 'user-2' }] })
-      .mockResolvedValueOnce({ docs: [{ id: 'user-2', data: () => ({ displayName: 'Dewi', photoURL: '' }) }] })
-      .mockResolvedValueOnce({ docs: [{ id: 'post-1', data: () => ({ authorId: 'user-2', body: 'Ngopi sore', createdAt: new Date('2026-10-01') }) }] });
+      .mockResolvedValueOnce({ docs: [{ id: 'user-2', data: () => ({ displayName: 'Dewi', photoURL: '' }) }] });
   });
 
-  it('tombol kembali dan tombol Back perangkat menutup profil tanpa menutup daftar penyuka', async () => {
+  it('mengirim anggota terpilih ke navigasi halaman profil penuh', async () => {
     const user = userEvent.setup();
-    render(<LikeSummary post={{ id: 'post-1' }} user={null} liked={false} count={1} onToggleLike={() => {}} />);
+    const onOpenProfile = vi.fn();
+    render(<LikeSummary post={{ id: 'post-1' }} user={null} liked={false} count={1} onToggleLike={() => {}} onOpenProfile={onOpenProfile} />);
 
     await user.click(screen.getByRole('button', { name: /lihat 1 pengguna/i }));
-    const liker = await screen.findByRole('button', { name: 'Lihat profil Dewi' });
-    await user.click(liker);
-    expect(await screen.findByRole('heading', { name: 'Profil pengguna' })).toBeTruthy();
+    await user.click(await screen.findByRole('button', { name: 'Lihat profil Dewi' }));
 
-    const backButton = screen.getByRole('button', { name: 'Kembali ke daftar penyuka' });
-    await user.click(backButton);
-    fireEvent(window, new PopStateEvent('popstate'));
-    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Profil pengguna' })).toBeNull());
-    expect(screen.getByRole('button', { name: 'Lihat profil Dewi' })).toBeTruthy();
-
-    await user.click(screen.getByRole('button', { name: 'Lihat profil Dewi' }));
-    await screen.findByRole('heading', { name: 'Profil pengguna' });
-    fireEvent(window, new PopStateEvent('popstate'));
-    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Profil pengguna' })).toBeNull());
-    expect(screen.getByRole('button', { name: 'Lihat profil Dewi' })).toBeTruthy();
+    expect(onOpenProfile).toHaveBeenCalledWith(expect.objectContaining({
+      uid: 'user-2',
+      displayName: 'Dewi'
+    }));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

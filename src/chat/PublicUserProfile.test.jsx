@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import PublicUserProfile from './PublicUserProfile.jsx';
 
 const mocks = vi.hoisted(() => ({ getDoc: vi.fn(), getDocs: vi.fn() }));
@@ -15,7 +15,7 @@ vi.mock('firebase/firestore', () => ({
 
 describe('profil publik penyuka', () => {
   beforeEach(() => {
-    mocks.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ displayName: 'Dewi', photoURL: '' , email: 'private@example.test' }) });
+    mocks.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ displayName: 'Dewi', photoURL: '', email: 'private@example.test' }) });
     mocks.getDocs.mockResolvedValue({ docs: [{ id: 'post-1', data: () => ({ authorId: 'u2', body: 'Ngopi sore', topic: 'Ngopi Bareng', createdAt: new Date('2026-10-01') }) }] });
   });
 
@@ -24,6 +24,17 @@ describe('profil publik penyuka', () => {
     expect(await screen.findByRole('heading', { name: 'Dewi' })).toBeTruthy();
     expect(screen.getByText('Ngopi sore')).toBeTruthy();
     expect(screen.queryByText('private@example.test')).toBeNull();
+  });
+
+  it('provides profile tabs and an edit action only for the owner', async () => {
+    const { container } = render(<PublicUserProfile profile={{ uid: 'u2', displayName: 'Dewi' }} currentUser={{ uid: 'u2' }} db={{}} onBack={() => {}} onEditProfile={() => {}} />);
+    const profileMain = container.querySelector('main.member-profile-page');
+    expect(profileMain?.getAttribute('aria-label')).toBe('Profil Dewi');
+    const profile = within(profileMain);
+    expect(await profile.findByRole('button', { name: 'Edit profil' })).toBeTruthy();
+    fireEvent.click(profile.getByRole('button', { name: 'Tentang' }));
+    expect(await profile.findByRole('heading', { name: 'Tentang Anda' })).toBeTruthy();
+    expect(profile.queryByText('private@example.test')).toBeNull();
   });
 
   it('menampilkan status kosong ketika belum ada postingan publik', async () => {

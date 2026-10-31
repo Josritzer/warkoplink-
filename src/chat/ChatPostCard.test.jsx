@@ -171,6 +171,19 @@ describe('ChatPostCard', () => {
     expect(await screen.findByRole('menuitem', { name: /Laporkan obrolan/ })).toBeTruthy();
   });
 
+  it('menampilkan tautan profil warkop pada acara yang memiliki warungId', () => {
+    const onOpenWarung = vi.fn();
+    const values = props({
+      post: { ...props().post, topic: 'Info & Acara', warungId: 'warung-1' },
+      verifiedWarungs: [{ id: 'warung-1', name: 'Warkop Pojok' }],
+      onOpenWarung
+    });
+    render(<ChatPostCard {...values} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Lihat Profil Warkop' }));
+    expect(onOpenWarung).toHaveBeenCalledWith('warung-1');
+    expect(screen.getByText('Warkop Pojok')).toBeTruthy();
+  });
+
   it('menampilkan poster acara yang sudah tersimpan pada postingan Info & Acara', () => {
     const { container } = render(<ChatPostCard {...props({
       post: { ...props().post, topic: 'Info & Acara', eventKind: 'Nobar', eventPhotoURL: 'https://media.example.test/events/post-1/poster.webp' }

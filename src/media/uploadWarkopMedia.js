@@ -8,6 +8,8 @@ const RETRYABLE_HTTP_STATUSES = new Set([408, 429, 502, 503, 504]);
 const USER_FACING_UPLOAD_ERRORS = new Map([
   ["Invalid or expired Firebase ID token", "Sesi masuk kedaluwarsa. Keluar dari akun, masuk kembali, lalu coba lagi."],
   ["Firebase account is disabled or token revoked", "Sesi keamanan akun perlu diperbarui. Keluar dari akun, masuk kembali, lalu coba lagi."],
+  ["Firebase account is disabled", "Akun WarkopLink sedang dinonaktifkan. Hubungi admin untuk mengaktifkannya kembali."],
+  ["Firebase account disabled status is invalid", "Status akun tidak dapat dipastikan. Hubungi admin untuk pemeriksaan akun."],
   ["Firebase account is disabled or status is unknown", "Sesi akun tidak dapat diverifikasi. Keluar dari akun, masuk kembali, lalu coba lagi. Jika masih gagal, hubungi admin."],
   ["Firebase ID token has been revoked", "Sesi keamanan akun sudah tidak berlaku. Keluar dari akun, masuk kembali, lalu coba lagi."],
   ["Firebase account lookup failed", "Status akun belum dapat diverifikasi. Periksa koneksi atau hubungi admin jika masalah berlanjut."],

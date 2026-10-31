@@ -26,6 +26,15 @@ describe('profil publik penyuka', () => {
     expect(screen.queryByText('private@example.test')).toBeNull();
   });
 
+  it('provides profile tabs and an edit action only for the owner', async () => {
+    render(<PublicUserProfile profile={{ uid: 'u2', displayName: 'Dewi' }} currentUser={{ uid: 'u2' }} db={{}} onBack={() => {}} onEditProfile={() => {}} />);
+    expect(await screen.findByRole('heading', { name: 'Dewi' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Edit profil' })).toBeTruthy();
+    screen.getByRole('button', { name: 'Tentang' }).click();
+    expect(screen.getByRole('heading', { name: 'Tentang Anda' })).toBeTruthy();
+    expect(screen.queryByText('private@example.test')).toBeNull();
+  });
+
   it('menampilkan status kosong ketika belum ada postingan publik', async () => {
     mocks.getDocs.mockResolvedValueOnce({ docs: [] });
     render(<PublicUserProfile profile={{ uid: 'u2', displayName: 'Dewi' }} db={{}} onBack={() => {}} />);

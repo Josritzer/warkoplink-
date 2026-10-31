@@ -47,7 +47,7 @@ jobs:
         run: npx --yes supabase@latest functions deploy firebase-auth-check --project-ref klikvxuronunonymmiqv
 
   deploy-media-gateway:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(join(github.event.head_commit.modified, ' '), 'supabase/functions/media-gateway/')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (contains(join(github.event.head_commit.modified, ' '), 'supabase/functions/media-gateway/') || contains(join(github.event.head_commit.modified, ' '), 'supabase/functions/firebase-auth-check/account-lookup.ts'))
     needs: firebase-auth-gateway
     runs-on: ubuntu-latest
     env:

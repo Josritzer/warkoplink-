@@ -66,6 +66,7 @@ export default function App() {
   const [replyingPostId, setReplyingPostId] = useState('');
   const [selectedReplyPost, setSelectedReplyPost] = useState(null);
   const [replyPageLoading, setReplyPageLoading] = useState(false);
+  const [replySending, setReplySending] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
   const [replyCounts, setReplyCounts] = useState({});
   const [repliesByPost, setRepliesByPost] = useState({});
@@ -110,6 +111,8 @@ export default function App() {
   const [reportReason, setReportReason] = useState('Spam atau promosi berulang');
   const [reporting, setReporting] = useState(false);
   const registering = useRef(false);
+  const postSubmissionLock = useRef(false);
+  const replySubmissionLock = useRef(false);
   const reactionLocks = useRef(new Set());
 
   // Notifikasi sementara tidak boleh terus menutupi konten atau navigasi.
@@ -447,6 +450,8 @@ export default function App() {
       return false;
     }
     if (!db) return setNotice('Firebase belum dikonfigurasi.');
+    if (postSubmissionLock.current) return false;
+    postSubmissionLock.current = true;
     setPosting(true);
     try {
       // Aturan keamanan mencocokkan nama penulis dengan profil, jadi pastikan profil ada.
@@ -491,6 +496,7 @@ export default function App() {
     } catch (error) {
       setNotice(postErrorMessage(error));
     } finally {
+      postSubmissionLock.current = false;
       setPosting(false);
     }
   }
@@ -788,6 +794,9 @@ export default function App() {
     if (!user) { openAuth(false); return false; }
     const body = replyDraft.trim();
     if (!body || body.length > 1000) { setNotice('Balasan harus berisi 1–1000 karakter.'); return false; }
+    if (replySubmissionLock.current) return false;
+    replySubmissionLock.current = true;
+    setReplySending(true);
 
     // Tampilkan balasan segera, lalu konfirmasi ke Firestore. Jika gagal, batalkan perubahan lokal.
     const temporaryId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -830,6 +839,9 @@ export default function App() {
       setReplyingPostId(post.id);
       setNotice(error?.code === 'permission-denied' ? 'Balasan ditolak oleh aturan keamanan.' : 'Balasan belum terkirim. Coba lagi.');
       return false;
+    } finally {
+      replySubmissionLock.current = false;
+      setReplySending(false);
     }
   }
 
@@ -1031,10 +1043,10 @@ export default function App() {
                   </div>
                 </article>)}
         </div>
-        {selectedReplyPost && <form className="reply-page-form" onSubmit={event => handleReply(event, selectedReplyPost)}>
+        {selectedReplyPost && <form className="reply-page-form" onSubmit={event => handleReply(event, selectedReplyPost)} aria-busy={replySending}>
           <label className="sr-only" htmlFor="reply-page-input">Tulis komentar</label>
-          <textarea id="reply-page-input" autoFocus value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} rows={1} placeholder="Tulis komentar…"/>
-          <button className="reply-send" type="submit" aria-label="Kirim balasan" disabled={!replyDraft.trim()}><Send size={18}/></button>
+          <textarea id="reply-page-input" autoFocus value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} rows={1} placeholder="Tulis komentar…" disabled={replySending}/>
+          <button className="reply-send" type="submit" aria-label={replySending ? 'Mengirim balasan' : 'Kirim balasan'} disabled={!replyDraft.trim() || replySending} aria-busy={replySending}>{replySending ? '…' : <Send size={18}/>}</button>
           {replyDraft.length > 800 && <small className="reply-counter" aria-live="polite">{replyDraft.length}/1000</small>}
         </form>}
       </section> :

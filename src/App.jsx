@@ -12,7 +12,7 @@ import AdminPanel from './AdminPanel.jsx';
 import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
-import { withPublicAuthorProfile } from './chat/authorProfile.js';
+import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
 import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
@@ -878,10 +878,22 @@ export default function App() {
     try {
       const hasProfile = await ensureProfile(user);
       if (!hasProfile) throw new Error('profile-not-ready');
-      await uploadWarkopMedia({ user, mediaType: 'avatar', file });
+      const media = await uploadWarkopMedia({ user, mediaType: 'avatar', file });
       await auth.currentUser?.reload();
-      setUser({ ...auth.currentUser });
-      setNotice('Foto profil berhasil diperbarui.');
+      const currentUser = auth.currentUser;
+      const photoURL = media?.url || currentUser?.photoURL || '';
+      const publicProfile = createPublicProfilePhotoPatch({
+        uid: user.uid,
+        displayName: authorNameFor(currentUser || user),
+        photoURL
+      });
+      await setDoc(doc(db, 'publicProfiles', user.uid), {
+        ...publicProfile,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      setPublicAuthorProfiles(current => ({ ...current, [user.uid]: publicProfile }));
+      setUser({ ...currentUser });
+      setNotice('Foto profil berhasil diperbarui dan disinkronkan ke Beranda.');
     } catch (error) {
       console.warn('Unggah foto profil gagal:', error?.message || 'unknown');
       setNotice(photoUploadErrorMessage(error));

@@ -377,6 +377,24 @@ describe('balasan komentar', () => {
     expect(screen.queryByText('Mengirim…')).toBeNull();
   });
 
+
+  it('mencegah pengiriman balasan ganda saat tombol diklik berulang sebelum server merespons', async () => {
+    let resolveAdd;
+    fs.addDoc.mockImplementationOnce(() => new Promise(resolve => { resolveAdd = resolve; }));
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
+    await user.click(await screen.findByRole('button', { name: 'Balas' }));
+    await user.type(await screen.findByLabelText('Tulis komentar'), 'Satu balasan saja');
+    const send = screen.getByRole('button', { name: 'Kirim balasan' });
+    fireEvent.click(send);
+    fireEvent.click(send);
+    expect(fs.addDoc).toHaveBeenCalledTimes(1);
+    await act(async () => { resolveAdd({ id: 'reply-once' }); });
+  });
+
   it('menghapus balasan optimistis dan mengembalikan teks jika Firestore menolak', async () => {
     fs.addDoc.mockRejectedValueOnce({ code: 'permission-denied' });
     const user = userEvent.setup();

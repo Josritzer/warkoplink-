@@ -55,7 +55,7 @@ function versionedPhotoURL(value) {
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('warkoplink:theme') === 'dark');
-  const [section, setSection] = useState(() => new URLSearchParams(window.location.search).get('warung') ? 'Profil Warkop' : 'Beranda');
+  const [section, setSection] = useState(() => { const params = new URLSearchParams(window.location.search); return params.get('member') ? 'Profil Anggota' : params.get('warung') ? 'Profil Warkop' : 'Beranda'; });
   const [selectedWarungId, setSelectedWarungId] = useState(() => new URLSearchParams(window.location.search).get('warung') || '');
   const [memberProfile, setMemberProfile] = useState(() => { const uid = new URLSearchParams(window.location.search).get('member') || ''; return uid ? { uid, displayName: 'Anggota WarkopLink' } : null; });
   const [verifiedWarungs, setVerifiedWarungs] = useState([]);

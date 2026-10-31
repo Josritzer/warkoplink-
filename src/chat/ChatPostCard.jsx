@@ -297,8 +297,9 @@ export default function ChatPostCard({
         {post.eventStartAt && post.eventStatus !== 'cancelled' && <><a className="button button-quiet" href={calendarLink(post)} target="_blank" rel="noopener noreferrer" aria-label="Tambah acara ke Google Calendar" title="Buka Google Calendar dengan detail acara terisi">Tambah ke Google Calendar</a><button className="button button-quiet" type="button" onClick={() => setNotice(downloadIcs(post) ? 'File kalender acara berhasil disiapkan.' : 'Tanggal acara belum valid.')} title="Unduh file untuk aplikasi kalender lain">Unduh .ics</button></>}
         {post.eventStatus !== 'cancelled' && <>
           <span className="event-rsvp-count" aria-live="polite">{rsvpCount} ikut</span>
-          <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'going'} disabled={rsvpLoading} onClick={() => changeRsvp('going')}>{rsvpStatus === 'going' ? '✓ Ikut' : 'Ikut acara'}</button>
-          <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'maybe'} disabled={rsvpLoading} onClick={() => changeRsvp('maybe')}>{rsvpStatus === 'maybe' ? '✓ Mungkin' : 'Mungkin'}</button>
+          <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'going'} disabled={rsvpLoading} aria-busy={rsvpLoading} onClick={() => changeRsvp('going')}>{rsvpLoading ? 'Menyimpan…' : rsvpStatus === 'going' ? '✓ Ikut' : 'Ikut acara'}</button>
+          <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'maybe'} disabled={rsvpLoading} aria-busy={rsvpLoading} onClick={() => changeRsvp('maybe')}>{rsvpLoading ? 'Menyimpan…' : rsvpStatus === 'maybe' ? '✓ Mungkin' : 'Mungkin'}</button>
+          {rsvpLoading && <small className="event-rsvp-pending" role="status" aria-live="polite">Menyimpan kehadiran ke server…</small>}
         </>}
       </div>}
       {category === 'Jual Beli & Jasa Lokal' && normalizedWhatsAppNumber(post.contact) && <div className="event-action-row">

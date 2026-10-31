@@ -104,7 +104,7 @@ function renderWarungMentions(body, warungs = [], onOpenWarung) {
 }
 // Tampilan satu status; state dan operasi tetap dimiliki App agar data tersinkron antarpengguna.
 export default function ChatPostCard({
-  post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs = [], onOpenWarung,
+  post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs = [], onOpenWarung, onOpenProfile,
   reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, postReactions,
   reactionSummaries, handleReactPost, likeCounts, replyCounts, likedPosts, handleLikePost,
   openReplyPage,
@@ -214,11 +214,11 @@ export default function ChatPostCard({
 
   return <>
   <article id={`post-${post.id}`} className={`post-card post-card-category post-category-${POST_CATEGORY_CLASS[category] || 'ngopi'}`} key={post.id}>
-    <div className="post-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : <span className="post-avatar-initial" aria-hidden="true">{avatarInitial(post)}</span>}</div>
+    <button type="button" className="post-avatar post-profile-link" aria-label={`Lihat profil ${post.authorName || 'Anggota'}`} onClick={() => onOpenProfile?.({ uid: post.authorId, displayName: post.authorName, photoURL: post.authorPhotoURL })}>{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy" /> : <span className="post-avatar-initial" aria-hidden="true">{avatarInitial(post)}</span>}</button>
     <div className="post-content">
       <div className="post-head">
         <div className="post-meta">
-          <b>{post.authorName || 'Anggota SL'}</b><span className="post-category-label">{category}</span>
+          <button type="button" className="post-author-profile" onClick={() => onOpenProfile?.({ uid: post.authorId, displayName: post.authorName, photoURL: post.authorPhotoURL })}>{post.authorName || 'Anggota SL'}</button><span className="post-category-label">{category}</span>
           <small title={post.createdAt?.toDate?.()?.toLocaleString('id-ID') || ''}>{relativePostTime(post.createdAt)}</small>
         </div>
         <div className="post-menu-wrap">
@@ -276,7 +276,7 @@ export default function ChatPostCard({
           }}>Salin kontak {post.contact}</button>)}
 
       <div className="post-stats post-stats-like">
-        <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} />
+        <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
         <button className="engagement-comment-count" type="button" onClick={openCommentsForReply} aria-label={`Buka komentar, ${commentCount} komentar`}>
           {commentCount > 0 ? `${commentCount} komentar` : 'Belum ada komentar'}
         </button>

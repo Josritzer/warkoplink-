@@ -102,8 +102,8 @@ Deno.test("accepts one enabled account whose UID matches and token is current", 
   );
 });
 
-Deno.test("rejects disabled accounts and unknown disabled status", () => {
-  for (const disabled of [true, undefined, null, "false", 0]) {
+Deno.test("rejects disabled accounts and malformed disabled status", () => {
+  for (const disabled of [true, null, "false", 0]) {
     let thrown = false;
     try {
       validateFirebaseAccountLookupResponse(
@@ -118,7 +118,18 @@ Deno.test("rejects disabled accounts and unknown disabled status", () => {
   }
 });
 
-Deno.test("rejects a mismatched UID and invalid account counts", () => {
+
+Deno.test("treats an omitted disabled field as enabled, matching Firebase Admin SDK", () => {
+  assertEquals(
+    validateFirebaseAccountLookupResponse(
+      { users: [{ localId: "verified-uid", validSince: "1800000000" }] },
+      "verified-uid",
+      1_800_000_000,
+    ),
+    { uid: "verified-uid" },
+  );
+});
+\nDeno.test("rejects a mismatched UID and invalid account counts", () => {
   const validUser = { localId: "other-uid", disabled: false, validSince: "1800000000" };
   for (const payload of [
     { users: [validUser] },

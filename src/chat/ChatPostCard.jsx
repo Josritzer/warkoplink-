@@ -1,4 +1,4 @@
-import { MessageSquare, MoreHorizontal, Send, Share2, Trash2 } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Send, Share2, Trash2, Store } from 'lucide-react';
 import LikeSummary from './LikeSummary.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { displayTopic, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
@@ -289,6 +289,7 @@ export default function ChatPostCard({
           <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
         </div>
       </div>
+      {category === 'Info & Acara' && post.warungId && verifiedWarungs.some(warung => warung.id === post.warungId) && <div className="event-venue-link"><Store size={16}/><span>{verifiedWarungs.find(warung => warung.id === post.warungId)?.name || 'Warkop penyelenggara'}</span><button className="button button-quiet" type="button" onClick={() => onOpenWarung?.(post.warungId)}>Lihat Profil Warkop</button></div>}
       {category === 'Info & Acara' && <div className={`event-action-row event-card-actions${post.eventStatus === 'cancelled' ? ' event-cancelled' : ''}`}>
         {post.eventStatus === 'cancelled' && <strong className="event-cancelled-label" role="status">Acara dibatalkan</strong>}
         {post.eventKind && <span className="event-kind-pill">{post.eventKind}</span>}

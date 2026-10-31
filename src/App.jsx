@@ -14,6 +14,7 @@ import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { withPublicAuthorProfile } from './chat/authorProfile.js';
 import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
+import { publicAvatarProfile } from './media/publicAvatarProfile.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
@@ -878,7 +879,17 @@ export default function App() {
     try {
       const hasProfile = await ensureProfile(user);
       if (!hasProfile) throw new Error('profile-not-ready');
-      await uploadWarkopMedia({ user, mediaType: 'avatar', file });
+      const media = await uploadWarkopMedia({ user, mediaType: 'avatar', file });
+      if (!media?.url) throw new Error('Foto berhasil diproses tetapi URL publik tidak tersedia.');
+      const publicProfileRef = doc(db, 'publicProfiles', user.uid);
+      await setDoc(publicProfileRef, {
+        ...publicAvatarProfile(user.uid, authorNameFor(user), media.url),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      const publicProfile = await getDoc(publicProfileRef);
+      if (!publicProfile.exists() || publicProfile.data().photoURL !== media.url) {
+        throw new Error('Sinkronisasi foto profil publik belum terverifikasi. Muat ulang dan coba lagi.');
+      }
       await auth.currentUser?.reload();
       setUser({ ...auth.currentUser });
       setNotice('Foto profil berhasil diperbarui.');
@@ -895,6 +906,15 @@ export default function App() {
     setPhotoUploading(true);
     try {
       await removeWarkopAvatar(user);
+      const publicProfileRef = doc(db, 'publicProfiles', user.uid);
+      await setDoc(publicProfileRef, {
+        ...publicAvatarProfile(user.uid, authorNameFor(user), ''),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      const publicProfile = await getDoc(publicProfileRef);
+      if (!publicProfile.exists() || publicProfile.data().photoURL !== '') {
+        throw new Error('Penghapusan foto profil publik belum terverifikasi. Muat ulang dan coba lagi.');
+      }
       await auth.currentUser?.reload();
       setUser({ ...auth.currentUser });
       setNotice('Foto profil dihapus.');

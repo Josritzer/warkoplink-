@@ -12,7 +12,7 @@ import AdminPanel from './AdminPanel.jsx';
 import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
-import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
+import { createPublicProfilePhotoPatch, resolvePublicProfilePhotoURL, withPublicAuthorProfile } from './chat/authorProfile.js';
 import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
@@ -188,11 +188,18 @@ export default function App() {
           updatedAt: serverTimestamp()
         });
       }
-      // Profil publik terpisah: tidak pernah menyalin email atau field privat.
-      await setDoc(doc(db, 'publicProfiles', currentUser.uid), {
+      // Profil publik terpisah: pertahankan URL publik terbaru agar cache Auth yang tertinggal tidak mengembalikan avatar lama.
+      const publicProfileRef = doc(db, 'publicProfiles', currentUser.uid);
+      const existingPublicProfile = await getDoc(publicProfileRef);
+      const publicPhotoURL = resolvePublicProfilePhotoURL({
+        publicPhotoURL: existingPublicProfile.exists() ? existingPublicProfile.data()?.photoURL : '',
+        privatePhotoURL: profile.photoURL,
+        authPhotoURL: currentUser.photoURL
+      });
+      await setDoc(publicProfileRef, {
         uid: currentUser.uid,
         displayName: profile.displayName || authorNameFor(currentUser),
-        photoURL: versionedPhotoURL(currentUser.photoURL || profile.photoURL || ''),
+        photoURL: versionedPhotoURL(publicPhotoURL),
         updatedAt: serverTimestamp()
       }, { merge: true });
       return true;

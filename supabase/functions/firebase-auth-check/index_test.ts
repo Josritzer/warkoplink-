@@ -102,8 +102,19 @@ Deno.test("accepts one enabled account whose UID matches and token is current", 
   );
 });
 
-Deno.test("rejects disabled accounts and unknown disabled status", () => {
-  for (const disabled of [true, undefined, null, "false", 0]) {
+Deno.test("treats an omitted disabled=false proto field as the enabled default", () => {
+  assertEquals(
+    validateFirebaseAccountLookupResponse(
+      { users: [{ localId: "verified-uid", validSince: "1800000000" }] },
+      "verified-uid",
+      1_800_000_000,
+    ),
+    { uid: "verified-uid" },
+  );
+});
+
+Deno.test("rejects explicitly disabled accounts and malformed disabled values", () => {
+  for (const disabled of [true, null, "false", 0]) {
     let thrown = false;
     try {
       validateFirebaseAccountLookupResponse(

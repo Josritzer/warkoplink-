@@ -42,7 +42,11 @@ export function validateFirebaseAccountLookupResponse(
     throw new TypeError("Firebase account UID mismatch");
   }
 
-  if (typeof user.disabled !== "boolean" || user.disabled !== false) {
+  // Identity Toolkit may omit the default false value. Firebase Admin SDK
+  // treats an omitted disabled field as enabled (response.disabled || false).
+  // Explicit true is rejected; unexpected non-boolean values still fail closed.
+  if (user.disabled === true ||
+      (user.disabled !== undefined && typeof user.disabled !== "boolean")) {
     throw new TypeError("Firebase account is disabled or status is unknown");
   }
 

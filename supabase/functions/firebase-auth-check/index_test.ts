@@ -337,7 +337,7 @@ Deno.test("reports disabled Firebase accounts separately from revoked sessions",
   } catch (error) {
     disabledMessage = error instanceof Error ? error.message : "";
   }
-  assertEquals(disabledMessage, "Firebase account is disabled or status is unknown");
+  assertEquals(disabledMessage, "Firebase account is disabled");
 
   let revokedMessage = "";
   try {

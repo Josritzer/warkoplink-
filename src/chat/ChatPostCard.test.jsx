@@ -179,6 +179,20 @@ describe('ChatPostCard', () => {
     expect(poster?.getAttribute('src')).toBe('https://media.example.test/events/post-1/poster.webp');
     expect(poster?.getAttribute('alt')).toBe('Poster acara Nobar');
   });
+
+  it('menampilkan nama, foto, dan tautan profil warkop penyelenggara acara', () => {
+    const values = props({
+      post: { ...props().post, topic: 'Info & Acara', warungId: 'warung-1' },
+      verifiedWarungs: [{ id: 'warung-1', name: 'Warkop Pojok', photos: ['https://media.example/warung.webp'] }]
+    });
+    const { container } = render(<ChatPostCard {...values} />);
+    expect(screen.getByText('Warkop Pojok')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Lihat profil warkop Warkop Pojok' })).toBeTruthy();
+    expect(container.querySelector('.event-organizer-avatar img')?.getAttribute('src')).toBe('https://media.example/warung.webp');
+    fireEvent.click(screen.getByRole('button', { name: 'Lihat profil warkop Warkop Pojok' }));
+    expect(values.onOpenWarung).toHaveBeenCalledWith('warung-1');
+  });
+
 });
 
 describe('ChatPostCard — tampilan 2026', () => {

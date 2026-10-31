@@ -323,6 +323,12 @@ describe('warungs — direktori aman tahap awal', () => {
     await assertFails(setDoc(doc(asUser('bob'), 'warungs/warkop-bob'), validWarung({ ownerUid: 'alice' })));
   });
 
+  it('pemilik dapat mendaftarkan menu andalan dan menu spesial tanpa harga terperinci', async () => {
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warkop-menu'), validWarung({
+      menuHighlights: ['Kopi hitam', 'Gorengan'], specialtyMenu: 'Kopi racikan khas', priceRange: 'belum-diisi'
+    })));
+  });
+
   it('pemilik tidak dapat mengirim status verified sendiri', async () => {
     await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-verified'), validWarung({ verificationStatus: 'verified' })));
   });

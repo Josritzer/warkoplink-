@@ -20,3 +20,12 @@ export function createPublicProfilePhotoPatch({ uid, displayName, photoURL }) {
   }
   return { uid: safeUid, displayName: safeName, photoURL: safePhotoURL };
 }
+
+
+// Keep the public projection's latest confirmed avatar ahead of a potentially stale Auth cache.
+export function resolvePublicProfilePhotoURL({ publicPhotoURL, privatePhotoURL, authPhotoURL } = {}) {
+  for (const value of [publicPhotoURL, privatePhotoURL, authPhotoURL]) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}

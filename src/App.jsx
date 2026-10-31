@@ -12,7 +12,7 @@ import AdminPanel from './AdminPanel.jsx';
 import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
-import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
+import { createPublicProfilePhotoPatch, resolvePublicProfilePhotoURL, withPublicAuthorProfile } from './chat/authorProfile.js';
 import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
@@ -188,13 +188,22 @@ export default function App() {
           updatedAt: serverTimestamp()
         });
       }
-      // Profil publik terpisah: tidak pernah menyalin email atau field privat.
-      await setDoc(doc(db, 'publicProfiles', currentUser.uid), {
-        uid: currentUser.uid,
-        displayName: profile.displayName || authorNameFor(currentUser),
-        photoURL: versionedPhotoURL(currentUser.photoURL || profile.photoURL || ''),
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      // Transaksi mencegah pemeriksaan profil yang terlambat menimpa foto hasil unggahan terbaru.
+      const publicProfileRef = doc(db, 'publicProfiles', currentUser.uid);
+      await runTransaction(db, async (transaction) => {
+        const existingPublicProfile = await transaction.get(publicProfileRef);
+        const publicPhotoURL = resolvePublicProfilePhotoURL({
+          publicPhotoURL: existingPublicProfile.exists() ? existingPublicProfile.data()?.photoURL : '',
+          privatePhotoURL: profile.photoURL,
+          authPhotoURL: currentUser.photoURL
+        });
+        transaction.set(publicProfileRef, {
+          uid: currentUser.uid,
+          displayName: profile.displayName || authorNameFor(currentUser),
+          photoURL: versionedPhotoURL(publicPhotoURL),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      });
       return true;
     } catch (error) {
       console.warn('Profil belum dapat disimpan:', error?.code || 'unknown');

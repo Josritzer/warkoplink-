@@ -674,3 +674,14 @@
  .member-profile-privacy{padding-inline:14px}
 }
 @media(prefers-reduced-motion:reduce){.member-profile-page *{scroll-behavior:auto}}
+
+
+/* Warkop discovery: photo, menu and event venue actions */
+.warung-card-photo{width:76px;height:76px;flex:0 0 76px;object-fit:cover;border-radius:13px;background:var(--wl-primary-tint)}
+.warung-card-specialty{display:block;margin-top:8px;color:var(--wl-ink);font-size:11px;line-height:1.5;text-transform:none}
+.warung-menu-section{margin-top:16px}
+.warung-menu-section h3{margin:0 0 8px;font-size:13px;color:var(--wl-ink)}
+.warung-menu-section p{margin:0;color:var(--muted);line-height:1.6}
+.event-venue-link{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;margin:12px 0;border:1px solid var(--line);border-radius:12px;color:var(--wl-ink);font-size:13px}
+.event-venue-link span{font-weight:700;flex:1;min-width:120px}
+@media(max-width:420px){.warung-card-photo{width:64px;height:64px;flex-basis:64px}.event-venue-link .button{width:100%}}

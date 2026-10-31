@@ -24,3 +24,24 @@ describe('withPublicAuthorProfile', () => {
     });
   });
 });
+
+
+describe('createPublicProfilePhotoPatch', () => {
+  it('creates the public projection from the confirmed upload URL', async () => {
+    const { createPublicProfilePhotoPatch } = await import('./authorProfile.js');
+    expect(createPublicProfilePhotoPatch({
+      uid: ' user-1 ',
+      displayName: ' Nama Pengguna ',
+      photoURL: ' https://cdn.example/new-avatar.webp '
+    })).toEqual({
+      uid: 'user-1',
+      displayName: 'Nama Pengguna',
+      photoURL: 'https://cdn.example/new-avatar.webp'
+    });
+  });
+
+  it('rejects incomplete identity or photo data instead of writing an empty public avatar', async () => {
+    const { createPublicProfilePhotoPatch } = await import('./authorProfile.js');
+    expect(() => createPublicProfilePhotoPatch({ uid: 'user-1', displayName: 'Nama', photoURL: '' })).toThrow();
+  });
+});

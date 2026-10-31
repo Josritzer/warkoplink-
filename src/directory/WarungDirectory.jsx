@@ -31,7 +31,10 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [facilities, setFacilities] = useState('');
+  const [menuHighlights, setMenuHighlights] = useState('');
+  const [specialtyMenu, setSpecialtyMenu] = useState('');
   const [priceRange, setPriceRange] = useState('belum-diisi');
+  const [locationLoading, setLocationLoading] = useState(false);
   const [hours, setHours] = useState('');
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [incompleteWarungId, setIncompleteWarungId] = useState('');
@@ -66,6 +69,26 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     }, () => setStatus('error'));
   }, [mode, db, directoryRetry]);
 
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setFormError('Browser ini tidak mendukung lokasi otomatis. Silakan isi koordinat secara manual.');
+      return;
+    }
+    setLocationLoading(true);
+    setFormError('');
+    navigator.geolocation.getCurrentPosition((position) => {
+      setLat(position.coords.latitude.toFixed(6));
+      setLng(position.coords.longitude.toFixed(6));
+      setLocationLoading(false);
+      onNotice('Lokasi berhasil diambil. Periksa kembali titiknya sebelum mengirim pendaftaran.');
+    }, (error) => {
+      setLocationLoading(false);
+      setFormError(error.code === error.PERMISSION_DENIED
+        ? 'Izin lokasi ditolak. Aktifkan izin lokasi atau isi koordinat secara manual.'
+        : 'Lokasi belum dapat diambil. Coba lagi atau isi koordinat secara manual.');
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  }
+
   async function handleRegister(event) {
     event.preventDefault();
     if (!user) {
@@ -91,11 +114,14 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         if (cleanAddress.length < 5 || cleanAddress.length > 300) throw new WarungFormValidationError('Alamat harus 5–300 karakter.');
         if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) throw new WarungFormValidationError('Masukkan koordinat lintang atau bujur yang valid.');
         const facilityList = [...new Set(facilities.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))];
+        const menuList = [...new Set(menuHighlights.split(',').map((item) => item.trim()).filter(Boolean))];
         if (facilityList.length > 20) throw new WarungFormValidationError('Maksimal 20 fasilitas.');
+        if (menuList.length > 12 || menuList.some((item) => item.length > 50)) throw new WarungFormValidationError('Maksimal 12 menu andalan, masing-masing paling banyak 50 karakter.');
+        if (specialtyMenu.trim().length > 300) throw new WarungFormValidationError('Menu spesial maksimal 300 karakter.');
         const warungRef = await addDoc(collection(db, 'warungs'), {
           name: cleanName, nameNormalized: cleanName.toLowerCase(), ownerUid: user.uid,
           coordinates: { lat: latitude, lng: longitude }, address: cleanAddress,
-          regionCode: 'lamongan-kab', facilities: facilityList, activities: [], priceRange,
+          regionCode: 'lamongan-kab', facilities: facilityList, activities: [], menuHighlights: menuList, specialtyMenu: specialtyMenu.trim(), priceRange,
           openingHours: hours.trim() ? { keterangan: hours.trim().slice(0, 120) } : {},
           photos: [], verificationStatus: 'pending',
           createdAt: serverTimestamp(), updatedAt: serverTimestamp()
@@ -113,7 +139,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       }
       setIncompleteWarungId('');
       setSelectedPhotos([]);
-      setName(''); setAddress(''); setLat(''); setLng(''); setFacilities('');
+      setName(''); setAddress(''); setLat(''); setLng(''); setFacilities(''); setMenuHighlights(''); setSpecialtyMenu('');
       setPriceRange('belum-diisi'); setHours('');
       onNotice(selectedPhotos.length ? 'Pendaftaran dan foto warkop berhasil dikirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi admin.');
     } catch (error) {
@@ -165,6 +191,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       <form className="warung-form" onSubmit={handleRegister}>
         <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>
         <label>Alamat lengkap di Kabupaten Lamongan<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa, kecamatan"/></label>
+        <button className="button button-quiet" type="button" onClick={useCurrentLocation} disabled={locationLoading || saving}><MapPin size={16}/>{locationLoading ? 'Mengambil lokasi…' : 'Gunakan lokasi saya'}</button>
         <div className="coordinate-fields">
           <label>Lintang (latitude)
             <input type="text" inputMode="decimal" autoComplete="off" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="Contoh: -7.0001" aria-describedby="latitude-help"/>
@@ -181,7 +208,9 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         <label>Foto warkop (maksimal 5, JPG/PNG/WebP, 2 MiB per foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={Boolean(incompleteWarungId)} onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
         {selectedPhotos.length > 0 && <p className="form-hint">{selectedPhotos.length} foto dipilih. {incompleteWarungId ? 'Pilihan foto dikunci sampai unggahan selesai.' : ''}</p>}
         <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
-        <label>Kisaran harga<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Belum diisi</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select></label>
+        <label>Menu andalan (pisahkan dengan koma)<input value={menuHighlights} onChange={(e) => setMenuHighlights(e.target.value)} maxLength={600} placeholder="Kopi hitam, kopi susu, mi instan, gorengan"/></label>
+        <label>Menu spesial / ciri khas warkop<textarea value={specialtyMenu} onChange={(e) => setSpecialtyMenu(e.target.value)} maxLength={300} rows={2} placeholder="Ceritakan racikan atau menu khas warkop (opsional)"/></label>
+        <label>Kisaran harga (opsional)<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Tidak dicantumkan</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select><small>Harga bisa berubah. Boleh dikosongkan dan ditanyakan langsung kepada pemilik.</small></label>
         <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>
         {formError && <p className="form-error" role="alert">{formError}</p>}
         <button className="button button-dark" type="submit" disabled={saving}>{saving ? 'Memproses…' : incompleteWarungId ? 'Lanjutkan unggah foto' : 'Kirim pendaftaran'}</button>

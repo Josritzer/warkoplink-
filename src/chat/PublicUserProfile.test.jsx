@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import PublicUserProfile from './PublicUserProfile.jsx';
 
 const mocks = vi.hoisted(() => ({ getDoc: vi.fn(), getDocs: vi.fn() }));
@@ -32,8 +32,8 @@ describe('profil publik penyuka', () => {
     expect(profileMain?.getAttribute('aria-label')).toBe('Profil Dewi');
     const profile = within(profileMain);
     expect(await profile.findByRole('button', { name: 'Edit profil' })).toBeTruthy();
-    profile.getByRole('button', { name: 'Tentang' }).click();
-    expect(profile.getByRole('heading', { name: 'Tentang Anda' })).toBeTruthy();
+    fireEvent.click(profile.getByRole('button', { name: 'Tentang' }));
+    expect(await profile.findByRole('heading', { name: 'Tentang Anda' })).toBeTruthy();
     expect(profile.queryByText('private@example.test')).toBeNull();
   });
 

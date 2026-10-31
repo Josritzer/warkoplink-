@@ -10,6 +10,7 @@ import {
 import { auth, db, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
 import ChatPanel from './chat/ChatPanel.jsx';
+import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
@@ -56,6 +57,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('warkoplink:theme') === 'dark');
   const [section, setSection] = useState(() => new URLSearchParams(window.location.search).get('warung') ? 'Profil Warkop' : 'Beranda');
   const [selectedWarungId, setSelectedWarungId] = useState(() => new URLSearchParams(window.location.search).get('warung') || '');
+  const [memberProfile, setMemberProfile] = useState(() => { const uid = new URLSearchParams(window.location.search).get('member') || ''; return uid ? { uid, displayName: 'Anggota WarkopLink' } : null; });
   const [verifiedWarungs, setVerifiedWarungs] = useState([]);
   const [topic, setTopic] = useState('Semua');
   const [composerTopic, setComposerTopic] = useState('Ngopi Bareng');
@@ -136,9 +138,12 @@ export default function App() {
   // Profil warkop memiliki URL yang bisa dibagikan dan tetap terbuka setelah refresh.
   useEffect(() => {
     const syncWarungRoute = () => {
-      const warungId = new URLSearchParams(window.location.search).get('warung') || '';
+      const params = new URLSearchParams(window.location.search);
+      const warungId = params.get('warung') || '';
+      const memberUid = params.get('member') || '';
       setSelectedWarungId(warungId);
-      setSection(warungId ? 'Profil Warkop' : 'Beranda');
+      setMemberProfile(memberUid ? { uid: memberUid, displayName: 'Anggota WarkopLink' } : null);
+      setSection(memberUid ? 'Profil Anggota' : warungId ? 'Profil Warkop' : 'Beranda');
     };
     window.addEventListener('popstate', syncWarungRoute);
     return () => window.removeEventListener('popstate', syncWarungRoute);
@@ -888,6 +893,27 @@ export default function App() {
     }
   }
 
+  function openMemberProfile(profile) {
+    if (!profile?.uid) return;
+    const nextProfile = { uid: profile.uid, displayName: profile.displayName || 'Anggota WarkopLink', photoURL: profile.photoURL || '' };
+    setMemberProfile(nextProfile);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('warung');
+    url.searchParams.set('member', profile.uid);
+    window.history.pushState({ memberUid: profile.uid }, '', url);
+    setSection('Profil Anggota');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function closeMemberProfile() {
+    if (new URLSearchParams(window.location.search).has('member')) {
+      window.history.back();
+      return;
+    }
+    setMemberProfile(null);
+    setSection('Obrolan');
+  }
+
   function openWarungProfile(warungId) {
     if (!warungId) return;
     setSelectedWarungId(warungId);
@@ -948,9 +974,9 @@ export default function App() {
           <h2>Komentar</h2>
         </div>
         {selectedReplyPost ? <article className="reply-original-post">
-          <div className="reply-original-avatar" aria-hidden="true">{selectedReplyPost.authorPhotoURL ? <img src={selectedReplyPost.authorPhotoURL} alt="" loading="lazy"/> : String(selectedReplyPost.authorName || 'A').slice(0,1).toUpperCase()}</div>
+          <button type="button" className="reply-original-avatar reply-profile-link" aria-label={`Lihat profil ${selectedReplyPost.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: selectedReplyPost.authorId, displayName: selectedReplyPost.authorName, photoURL: selectedReplyPost.authorPhotoURL })}>{selectedReplyPost.authorPhotoURL ? <img src={selectedReplyPost.authorPhotoURL} alt="" loading="lazy"/> : String(selectedReplyPost.authorName || 'A').slice(0,1).toUpperCase()}</button>
           <div className="reply-original-body">
-            <div className="reply-original-meta"><b>{selectedReplyPost.authorName || 'Anggota SL'}</b><span>{selectedReplyPost.topic || 'Obrolan Umum'}</span><small>{relativePostTime(selectedReplyPost.createdAt)}</small></div>
+            <div className="reply-original-meta"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: selectedReplyPost.authorId, displayName: selectedReplyPost.authorName, photoURL: selectedReplyPost.authorPhotoURL })}>{selectedReplyPost.authorName || 'Anggota SL'}</button><span>{selectedReplyPost.topic || 'Obrolan Umum'}</span><small>{relativePostTime(selectedReplyPost.createdAt)}</small></div>
             <p>{selectedReplyPost.body}</p>
           </div>
         </article> : <p>Obrolan tidak ditemukan. Kembali ke beranda untuk memilih obrolan.</p>}
@@ -961,9 +987,9 @@ export default function App() {
             selectedReplyPost && (repliesByPost[selectedReplyPost.id] || []).length === 0
               ? <p className="reply-page-empty">Belum ada komentar. Jadilah yang pertama menanggapi.</p>
               : (selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []) : []).map(reply => <article className={reply.pending ? 'reply-page-item is-pending' : 'reply-page-item'} key={reply.id}>
-                  <div className="reply-page-avatar">{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0,1).toUpperCase()}</div>
+                  <button type="button" className="reply-page-avatar reply-profile-link" aria-label={`Lihat profil ${reply.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: reply.authorPhotoURL })}>{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0,1).toUpperCase()}</button>
                   <div className="reply-page-main">
-                    <div className="reply-bubble"><b>{reply.authorName || 'Anggota komunitas'}</b><p>{reply.body}</p></div>
+                    <div className="reply-bubble"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: reply.authorPhotoURL })}>{reply.authorName || 'Anggota komunitas'}</button><p>{reply.body}</p></div>
                     <small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small>
                   </div>
                 </article>)}
@@ -975,6 +1001,7 @@ export default function App() {
           {replyDraft.length > 800 && <small className="reply-counter" aria-live="polite">{replyDraft.length}/1000</small>}
         </form>}
       </section> :
+      section === 'Profil Anggota' && memberProfile ? <PublicUserProfile profile={memberProfile} db={db} currentUser={user} onBack={closeMemberProfile} onEditProfile={() => setSection('Akun')}/> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
         {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article>{isAdmin && <button className="button button-dark admin-entry-button" onClick={() => setSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
@@ -998,7 +1025,7 @@ export default function App() {
          loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
         cardProps={{
           user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs, onOpenWarung: openWarungProfile,
-          reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost,
+          reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, onOpenProfile: openMemberProfile,
           postReactions, reactionSummaries, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
           handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
           handleReply, openReplyPage, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,

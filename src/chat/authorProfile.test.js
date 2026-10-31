@@ -45,3 +45,21 @@ describe('createPublicProfilePhotoPatch', () => {
     expect(() => createPublicProfilePhotoPatch({ uid: 'user-1', displayName: 'Nama', photoURL: '' })).toThrow();
   });
 });
+
+
+describe('resolvePublicProfilePhotoURL', () => {
+  it('preserves the latest public avatar when Firebase Auth still has a stale URL', async () => {
+    const { resolvePublicProfilePhotoURL } = await import('./authorProfile.js');
+    expect(resolvePublicProfilePhotoURL({
+      publicPhotoURL: 'https://cdn.example/latest.webp',
+      privatePhotoURL: 'https://cdn.example/old.webp',
+      authPhotoURL: 'https://cdn.example/stale-auth.webp'
+    })).toBe('https://cdn.example/latest.webp');
+  });
+
+  it('falls back to the private profile and then Auth when no public avatar exists', async () => {
+    const { resolvePublicProfilePhotoURL } = await import('./authorProfile.js');
+    expect(resolvePublicProfilePhotoURL({ privatePhotoURL: ' https://cdn.example/private.webp ', authPhotoURL: 'https://cdn.example/auth.webp' })).toBe('https://cdn.example/private.webp');
+    expect(resolvePublicProfilePhotoURL({ authPhotoURL: 'https://cdn.example/auth.webp' })).toBe('https://cdn.example/auth.webp');
+  });
+});

@@ -42,6 +42,15 @@ describe('ChatPostCard', () => {
     fireEvent.click(mention);
     expect(values.onOpenWarung).toHaveBeenCalledWith('pojok-123');
   });
+  it('opens the author profile from the avatar and author name', () => {
+    const values = props({ onOpenProfile: vi.fn() });
+    render(<ChatPostCard {...values} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Lihat profil Anggota' }));
+    expect(values.onOpenProfile).toHaveBeenCalledWith({ uid: 'user-1', displayName: 'Anggota', photoURL: undefined });
+    fireEvent.click(screen.getByRole('button', { name: 'Anggota' }));
+    expect(values.onOpenProfile).toHaveBeenCalledTimes(2);
+  });
+
   it('renders category labels and structured posting details', () => {
     const values = props({ post: { ...props().post, topic: 'Loker', postType: 'Paruh waktu / shift', location: 'Maduran', workType: 'Shift malam', price: 'Rp50.000' } });
     const { container } = render(<ChatPostCard {...values} />);

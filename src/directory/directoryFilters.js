@@ -119,7 +119,9 @@ export function filterWarungs(items, { search = '', facilities = [], activities 
     if (operational === 'buka-sekarang' && isOpenNow(item, now) !== true) return false;
     if (!needle) return true;
     const haystack = normalizeSearchText([
-      item?.name, item?.address, ...(Array.isArray(item?.facilities) ? item.facilities : []),
+      item?.name, item?.address, item?.specialtyMenu,
+      ...(Array.isArray(item?.menuHighlights) ? item.menuHighlights : []),
+      ...(Array.isArray(item?.facilities) ? item.facilities : []),
       ...(Array.isArray(item?.activities) ? item.activities : [])
     ].join(' '));
     return haystack.includes(needle);

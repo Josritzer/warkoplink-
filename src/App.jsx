@@ -959,7 +959,7 @@ export default function App() {
           <button type="button" className="sidebar-nav-item" onClick={() => setNotice('Menu Tersimpan belum tersedia. Tidak ada daftar tersimpan yang dibuat-buat.') }><Heart size={18}/><span>Tersimpan</span><span className="sidebar-soon">Segera</span></button>
         </nav>
         <div className="sidebar-community-note"><span className="sidebar-note-icon"><MapPin size={16}/></span><div><b>Mulai dari Lamongan</b><p>Temukan warkop dan percakapan di sekitar komunitas lokal.</p></div></div>
-        <button type="button" className="sidebar-profile" onClick={() => setSection('Akun')}>
+        <button type="button" className="sidebar-profile" onClick={() => user ? openMemberProfile({ uid: user.uid, displayName: user.displayName || 'Anggota WarkopLink', photoURL: user.photoURL || '' }) : setSection('Akun')}>
           <span className="sidebar-profile-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'W').slice(0,1).toUpperCase()}</span>
           <span className="sidebar-profile-copy"><b>{user?.displayName || (user ? 'Anggota WarkopLink' : 'Pengunjung')}</b><small>{user ? 'Akun komunitas' : 'Masuk untuk berinteraksi'}</small></span>
           <MoreHorizontal size={18}/>
@@ -1067,7 +1067,7 @@ export default function App() {
       <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>
       <button className={section === "Obrolan" ? "bottom-nav-item active" : "bottom-nav-item"} onClick={() => { setSection("Obrolan"); document.getElementById("community-feed")?.scrollIntoView({behavior:"smooth"}); }} aria-current={section === "Obrolan" ? "page" : undefined}><MessageCircle size={20}/><span>Obrolan</span></button>
       <button className={section === 'Daftarkan Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Daftarkan Warkop')} aria-current={section === 'Daftarkan Warkop' ? 'page' : undefined}><Store size={20}/><span>Daftar</span></button>
-      <button className={section === 'Akun' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => setSection('Akun')} aria-current={section === 'Akun' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
+      <button className={section === 'Akun' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => user ? openMemberProfile({ uid: user.uid, displayName: user.displayName || 'Anggota WarkopLink', photoURL: user.photoURL || '' }) : setSection('Akun')} aria-current={section === 'Akun' || section === 'Profil Anggota' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
     </nav>
     <footer><span className="footer-brand"><Sparkles size={16}/> WARKOPLINK</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} WarkopLink Platform</small></footer>
   </div>;

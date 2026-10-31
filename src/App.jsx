@@ -12,6 +12,7 @@ import AdminPanel from './AdminPanel.jsx';
 import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
+import { resolveAuthorPhotoURL, withAuthorPhotos } from './chat/authorPhotos.js';
 import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
@@ -85,6 +86,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [authReady, setAuthReady] = useState(!auth);
   const [posts, setPosts] = useState(readCachedPosts);
+  const [authorPhotosByUid, setAuthorPhotosByUid] = useState({});
   const [olderPosts, setOlderPosts] = useState([]);
   const [lastPostDoc, setLastPostDoc] = useState(null);
   const [hasMorePosts, setHasMorePosts] = useState(false);
@@ -281,6 +283,28 @@ export default function App() {
     [...posts, ...olderPosts].forEach((post) => { if (!unique.has(post.id)) unique.set(post.id, post); });
     return [...unique.values()];
   }, [posts, olderPosts]);
+
+  // Status lama tidak selalu menyimpan URL avatar. Ambil proyeksi profil publik
+  // agar foto terbaru tampil tanpa menulis ulang dokumen status atau komentar.
+  useEffect(() => {
+    if (!db || !allPosts.length) return undefined;
+    let active = true;
+    const authorIds = [...new Set(allPosts
+      .filter((post) => post.authorId && !authorPhotosByUid[post.authorId] && !Object.prototype.hasOwnProperty.call(authorPhotosByUid, post.authorId))
+      .map((post) => post.authorId))];
+    if (!authorIds.length) return undefined;
+    Promise.all(authorIds.map(async (uid) => {
+      try {
+        const snapshot = await getDoc(doc(db, 'publicProfiles', uid));
+        return [uid, snapshot.exists() && typeof snapshot.data()?.photoURL === 'string' ? snapshot.data().photoURL : ''];
+      } catch {
+        return [uid, ''];
+      }
+    })).then((entries) => {
+      if (active) setAuthorPhotosByUid((current) => ({ ...current, ...Object.fromEntries(entries) }));
+    });
+    return () => { active = false; };
+  }, [allPosts, authorPhotosByUid]);
 
   async function loadMorePosts() {
     if (!db || !lastPostDoc || loadingMorePosts || !hasMorePosts) return;
@@ -932,11 +956,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
-  const visiblePosts = filterPosts(allPosts, topic, search);
+  const postsWithAuthorPhotos = useMemo(() => withAuthorPhotos(allPosts, authorPhotosByUid), [allPosts, authorPhotosByUid]);
+  const visiblePosts = filterPosts(postsWithAuthorPhotos, topic, search);
   const activeCategory = composerTopic;
   const popularTopics = POST_TOPICS.map(name => ({ name, count: allPosts.filter(post => canonicalTopic(post.topic) === name).length }))
     .filter(item => item.count > 0).sort((left, right) => right.count - left.count).slice(0, 4);
-  const recentSidebarPosts = allPosts.slice(0, 3);
+  const recentSidebarPosts = postsWithAuthorPhotos.slice(0, 3);
 
   return <div className={section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>
     <header className="topbar app-header">
@@ -982,7 +1007,7 @@ export default function App() {
           <h2>Komentar</h2>
         </div>
         {selectedReplyPost ? <article className="reply-original-post">
-          <button type="button" className="reply-original-avatar reply-profile-link" aria-label={`Lihat profil ${selectedReplyPost.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: selectedReplyPost.authorId, displayName: selectedReplyPost.authorName, photoURL: selectedReplyPost.authorPhotoURL })}>{selectedReplyPost.authorPhotoURL ? <img src={selectedReplyPost.authorPhotoURL} alt="" loading="lazy"/> : String(selectedReplyPost.authorName || 'A').slice(0,1).toUpperCase()}</button>
+          <button type="button" className="reply-original-avatar reply-profile-link" aria-label={`Lihat profil ${selectedReplyPost.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: selectedReplyPost.authorId, displayName: selectedReplyPost.authorName, photoURL: resolveAuthorPhotoURL(selectedReplyPost, authorPhotosByUid) })}>{resolveAuthorPhotoURL(selectedReplyPost, authorPhotosByUid) ? <img src={resolveAuthorPhotoURL(selectedReplyPost, authorPhotosByUid)} alt="" loading="lazy"/> : String(selectedReplyPost.authorName || 'A').slice(0,1).toUpperCase()}</button>
           <div className="reply-original-body">
             <div className="reply-original-meta"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: selectedReplyPost.authorId, displayName: selectedReplyPost.authorName, photoURL: selectedReplyPost.authorPhotoURL })}>{selectedReplyPost.authorName || 'Anggota SL'}</button><span>{selectedReplyPost.topic || 'Obrolan Umum'}</span><small>{relativePostTime(selectedReplyPost.createdAt)}</small></div>
             <p>{selectedReplyPost.body}</p>
@@ -995,7 +1020,7 @@ export default function App() {
             selectedReplyPost && (repliesByPost[selectedReplyPost.id] || []).length === 0
               ? <p className="reply-page-empty">Belum ada komentar. Jadilah yang pertama menanggapi.</p>
               : (selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []) : []).map(reply => <article className={reply.pending ? 'reply-page-item is-pending' : 'reply-page-item'} key={reply.id}>
-                  <button type="button" className="reply-page-avatar reply-profile-link" aria-label={`Lihat profil ${reply.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: reply.authorPhotoURL })}>{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0,1).toUpperCase()}</button>
+                  <button type="button" className="reply-page-avatar reply-profile-link" aria-label={`Lihat profil ${reply.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: resolveAuthorPhotoURL(reply, authorPhotosByUid) })}>{resolveAuthorPhotoURL(reply, authorPhotosByUid) ? <img src={resolveAuthorPhotoURL(reply, authorPhotosByUid)} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0,1).toUpperCase()}</button>
                   <div className="reply-page-main">
                     <div className="reply-bubble"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: reply.authorPhotoURL })}>{reply.authorName || 'Anggota komunitas'}</button><p>{reply.body}</p></div>
                     <small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small>

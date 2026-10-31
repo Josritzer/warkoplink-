@@ -21,6 +21,15 @@ describe('directoryFilters', () => {
     expect(filterWarungs(items, { search: 'parkir' }).map((i) => i.id)).toEqual(['1']);
   });
 
+  it('mencari warkop melalui menu andalan dan menu spesial', () => {
+    const withMenus = [
+      { id: 'menu-1', name: 'Warkop Pojok', address: 'Maduran', menuHighlights: ['Kopi susu', 'Gorengan'], specialtyMenu: 'Kopi racikan gula aren' },
+      { id: 'menu-2', name: 'Warung Sore', address: 'Babat', menuHighlights: ['Teh hangat'] }
+    ];
+    expect(filterWarungs(withMenus, { search: 'gula aren' }).map((item) => item.id)).toEqual(['menu-1']);
+    expect(filterWarungs(withMenus, { search: 'teh hangat' }).map((item) => item.id)).toEqual(['menu-2']);
+  });
+
   it('fasilitas terpilih harus terpenuhi semuanya', () => {
     expect(filterWarungs(items, { facilities: ['wi-fi'] }).map((i) => i.id)).toEqual(['1', '2']);
     expect(filterWarungs(items, { facilities: ['wi-fi', 'parkir'] }).map((i) => i.id)).toEqual(['1']);

@@ -287,11 +287,12 @@ export default function App() {
   // Status lama tidak selalu menyimpan URL avatar. Ambil proyeksi profil publik
   // agar foto terbaru tampil tanpa menulis ulang dokumen status atau komentar.
   useEffect(() => {
-    if (!db || !allPosts.length) return undefined;
+    const authorRecords = [...allPosts, ...Object.values(repliesByPost).flat(), ...(selectedReplyPost ? [selectedReplyPost] : [])];
+    if (!db || !authorRecords.length) return undefined;
     let active = true;
-    const authorIds = [...new Set(allPosts
-      .filter((post) => post.authorId && !authorPhotosByUid[post.authorId] && !Object.prototype.hasOwnProperty.call(authorPhotosByUid, post.authorId))
-      .map((post) => post.authorId))];
+    const authorIds = [...new Set(authorRecords
+      .filter((record) => record.authorId && !authorPhotosByUid[record.authorId] && !Object.prototype.hasOwnProperty.call(authorPhotosByUid, record.authorId))
+      .map((record) => record.authorId))];
     if (!authorIds.length) return undefined;
     Promise.all(authorIds.map(async (uid) => {
       try {
@@ -304,7 +305,7 @@ export default function App() {
       if (active) setAuthorPhotosByUid((current) => ({ ...current, ...Object.fromEntries(entries) }));
     });
     return () => { active = false; };
-  }, [allPosts, authorPhotosByUid]);
+  }, [allPosts, repliesByPost, selectedReplyPost, authorPhotosByUid]);
 
   async function loadMorePosts() {
     if (!db || !lastPostDoc || loadingMorePosts || !hasMorePosts) return;

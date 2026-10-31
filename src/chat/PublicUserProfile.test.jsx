@@ -28,8 +28,7 @@ describe('profil publik penyuka', () => {
 
   it('provides profile tabs and an edit action only for the owner', async () => {
     render(<PublicUserProfile profile={{ uid: 'u2', displayName: 'Dewi' }} currentUser={{ uid: 'u2' }} db={{}} onBack={() => {}} onEditProfile={() => {}} />);
-    const profileHeadings = await screen.findAllByRole('heading', { name: 'Dewi' });
-    expect(profileHeadings.length).toBeGreaterThan(0);
+    expect(await screen.findByRole('main', { name: 'Profil Dewi' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Edit profil' })).toBeTruthy();
     screen.getByRole('button', { name: 'Tentang' }).click();
     expect(screen.getByRole('heading', { name: 'Tentang Anda' })).toBeTruthy();

@@ -15,7 +15,7 @@ vi.mock('firebase/firestore', () => ({
 
 describe('profil publik penyuka', () => {
   beforeEach(() => {
-    mocks.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ displayName: 'Dewi', photoURL: '' , email: 'private@example.test' }) });
+    mocks.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ displayName: 'Dewi', photoURL: '', email: 'private@example.test' }) });
     mocks.getDocs.mockResolvedValue({ docs: [{ id: 'post-1', data: () => ({ authorId: 'u2', body: 'Ngopi sore', topic: 'Ngopi Bareng', createdAt: new Date('2026-10-01') }) }] });
   });
 
@@ -28,11 +28,13 @@ describe('profil publik penyuka', () => {
 
   it('provides profile tabs and an edit action only for the owner', async () => {
     const { container } = render(<PublicUserProfile profile={{ uid: 'u2', displayName: 'Dewi' }} currentUser={{ uid: 'u2' }} db={{}} onBack={() => {}} onEditProfile={() => {}} />);
-    expect(await screen.findByRole('button', { name: 'Edit profil' })).toBeTruthy();
-    expect(container.querySelector('main.member-profile-page')?.getAttribute('aria-label')).toBe('Profil Dewi');
-    screen.getByRole('button', { name: 'Tentang' }).click();
-    expect(screen.getByRole('heading', { name: 'Tentang Anda' })).toBeTruthy();
-    expect(screen.queryByText('private@example.test')).toBeNull();
+    const profileMain = container.querySelector('main.member-profile-page');
+    expect(profileMain?.getAttribute('aria-label')).toBe('Profil Dewi');
+    const profile = within(profileMain);
+    expect(await profile.findByRole('button', { name: 'Edit profil' })).toBeTruthy();
+    profile.getByRole('button', { name: 'Tentang' }).click();
+    expect(profile.getByRole('heading', { name: 'Tentang Anda' })).toBeTruthy();
+    expect(profile.queryByText('private@example.test')).toBeNull();
   });
 
   it('menampilkan status kosong ketika belum ada postingan publik', async () => {

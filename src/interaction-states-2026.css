@@ -258,3 +258,28 @@ textarea:focus-visible, select:focus-visible {
   .event-organizer-link { gap: 8px; padding: 8px; }
   .event-organizer-action { font-size: 10px; white-space: normal; text-align: right; max-width: 88px; }
 }
+
+
+.warung-profile-events { margin: 22px 0; }
+.warung-profile-events > h2 { margin-bottom: 12px; }
+.warung-event-list { display: grid; gap: 10px; }
+.warung-event-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--wl-line-soft);
+  border-radius: 14px;
+  background: var(--wl-paper);
+}
+.warung-event-card.is-cancelled { opacity: .72; }
+.warung-event-poster { width: 76px; height: 76px; flex: 0 0 76px; object-fit: cover; border-radius: 10px; }
+.warung-event-copy { min-width: 0; }
+.warung-event-copy > strong { display: block; overflow-wrap: anywhere; }
+.warung-event-copy > p { margin: 5px 0 8px; color: var(--wl-muted); font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+.warung-event-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; color: var(--wl-muted); font-size: 11px; }
+.warung-event-meta span { color: var(--wl-primary); font-weight: 700; }
+@media (max-width: 420px) {
+  .warung-event-card { gap: 9px; padding: 10px; }
+  .warung-event-poster { width: 64px; height: 64px; flex-basis: 64px; }
+}

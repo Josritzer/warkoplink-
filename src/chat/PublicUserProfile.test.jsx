@@ -27,9 +27,9 @@ describe('profil publik penyuka', () => {
   });
 
   it('provides profile tabs and an edit action only for the owner', async () => {
-    render(<PublicUserProfile profile={{ uid: 'u2', displayName: 'Dewi' }} currentUser={{ uid: 'u2' }} db={{}} onBack={() => {}} onEditProfile={() => {}} />);
-    expect(await screen.findByRole('main', { name: 'Profil Dewi' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Edit profil' })).toBeTruthy();
+    const { container } = render(<PublicUserProfile profile={{ uid: 'u2', displayName: 'Dewi' }} currentUser={{ uid: 'u2' }} db={{}} onBack={() => {}} onEditProfile={() => {}} />);
+    expect(await screen.findByRole('button', { name: 'Edit profil' })).toBeTruthy();
+    expect(container.querySelector('main.member-profile-page')?.getAttribute('aria-label')).toBe('Profil Dewi');
     screen.getByRole('button', { name: 'Tentang' }).click();
     expect(screen.getByRole('heading', { name: 'Tentang Anda' })).toBeTruthy();
     expect(screen.queryByText('private@example.test')).toBeNull();

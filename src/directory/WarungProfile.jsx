@@ -14,6 +14,8 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
   const [hoursDraft, setHoursDraft] = useState({});
   const [open24Hours, setOpen24Hours] = useState(false);
   const [activityDraft, setActivityDraft] = useState([]);
+  const [menuHighlightsDraft, setMenuHighlightsDraft] = useState('');
+  const [specialtyMenuDraft, setSpecialtyMenuDraft] = useState('');
   const [savingDetails, setSavingDetails] = useState(false);
   const [eventTitle, setEventTitle] = useState('');
   const [eventDescription, setEventDescription] = useState('');
@@ -57,6 +59,8 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       setWarung(data);
       setOpen24Hours(data.openingHours?.is24Hours === true);
       setActivityDraft(Array.isArray(data.activities) ? data.activities : []);
+      setMenuHighlightsDraft(Array.isArray(data.menuHighlights) ? data.menuHighlights.join(', ') : '');
+      setSpecialtyMenuDraft(data.specialtyMenu || '');
       const schedule = data.openingHours?.schedule || {};
       setHoursDraft(Object.fromEntries(['mon','tue','wed','thu','fri','sat','sun'].map((day) => [day, {
         closed: schedule[day]?.closed === true || !schedule[day],
@@ -117,8 +121,13 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
         schedule: Object.fromEntries(weekdays.map(({ key }) => [key, hoursDraft[key]?.closed ? { closed: true } : { open: hoursDraft[key].open, close: hoursDraft[key].close }])),
         keterangan: 'Jadwal mingguan tersedia di profil'
       };
-      await updateDoc(doc(db, 'warungs', warungId), { openingHours, activities: activityDraft, updatedAt: serverTimestamp() });
-      onNotice('Jam operasional dan aktivitas warkop berhasil disimpan.');
+      const menuHighlights = [...new Set(menuHighlightsDraft.split(',').map((item) => item.trim()).filter(Boolean))];
+      if (menuHighlights.length > 12 || menuHighlights.some((item) => item.length > 50) || specialtyMenuDraft.trim().length > 300) {
+        onNotice('Periksa menu: maksimal 12 menu andalan (50 karakter per menu) dan menu spesial 300 karakter.');
+        return;
+      }
+      await updateDoc(doc(db, 'warungs', warungId), { openingHours, activities: activityDraft, menuHighlights, specialtyMenu: specialtyMenuDraft.trim(), updatedAt: serverTimestamp() });
+      onNotice('Profil warkop berhasil diperbarui.');
     } catch (error) {
       onNotice(error?.code === 'permission-denied' ? 'Penyimpanan ditolak aturan keamanan. Periksa aturan Firestore yang sudah terpasang.' : 'Perubahan belum tersimpan. Periksa koneksi lalu coba lagi.');
     } finally { setSavingDetails(false); }
@@ -207,7 +216,9 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       <h2>Tentang warkop</h2>
       <p className="warung-profile-address"><MapPin size={17}/>{warung.address}</p>
       {warung.openingHours?.keterangan && <p><strong>Jam buka:</strong> {warung.openingHours.keterangan}</p>}
-      <p><strong>Kisaran harga:</strong> {warung.priceRange === 'belum-diisi' ? 'Belum diisi' : warung.priceRange}</p>
+      {Array.isArray(warung.menuHighlights) && warung.menuHighlights.length > 0 && <div className="warung-menu-section"><h3>Menu andalan</h3><div className="facility-tags">{warung.menuHighlights.map((menu) => <span key={menu}>{menu}</span>)}</div></div>}
+      {warung.specialtyMenu && <div className="warung-menu-section"><h3>Menu spesial & ciri khas</h3><p>{warung.specialtyMenu}</p></div>}
+      {warung.priceRange && warung.priceRange !== 'belum-diisi' && <p><strong>Kisaran harga (informasi pemilik):</strong> {warung.priceRange}</p>}
       {(warung.facilities || []).length > 0 && <div className="facility-tags">{warung.facilities.map((facility) => <span key={facility}>{facility}</span>)}</div>}
       {Number.isFinite(warung.coordinates?.lat) && Number.isFinite(warung.coordinates?.lng) && <a className="warung-map-link" href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(warung.coordinates.lat + ',' + warung.coordinates.lng)} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta ↗</a>}
     </div>
@@ -224,8 +235,10 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
             <label>Tutup<input aria-label={`${label}, jam tutup`} type="time" value={hoursDraft[key]?.close || '23:00'} disabled={hoursDraft[key]?.closed} onChange={(event) => setHoursDraft((current) => ({ ...current, [key]: { ...current[key], close: event.target.value } }))}/></label>
           </div>)}</div>}
         </fieldset>
+        <label>Menu andalan (pisahkan dengan koma)<input value={menuHighlightsDraft} onChange={(event) => setMenuHighlightsDraft(event.target.value)} maxLength={600} placeholder="Kopi hitam, kopi susu, gorengan"/></label>
+        <label>Menu spesial / ciri khas<textarea value={specialtyMenuDraft} onChange={(event) => setSpecialtyMenuDraft(event.target.value)} maxLength={300} rows={2} placeholder="Menu khas warkop Anda"/></label>
         <fieldset><legend>Aktivitas yang benar-benar tersedia</legend><div className="owner-activity-options">{ACTIVITY_OPTIONS.map((activity) => <label key={activity.value}><input type="checkbox" checked={activityDraft.includes(activity.value)} onChange={(event) => setActivityDraft((current) => event.target.checked ? [...current, activity.value] : current.filter((value) => value !== activity.value))}/>{activity.label}</label>)}</div></fieldset>
-        <button className="button button-dark" type="submit" disabled={savingDetails}>{savingDetails ? 'Menyimpan…' : 'Simpan jam & aktivitas'}</button>
+        <button className="button button-dark" type="submit" disabled={savingDetails}>{savingDetails ? 'Menyimpan…' : 'Simpan profil warkop'}</button>
       </form>
       <div className="owner-event-tools"><h3><CalendarDays size={18}/> Tambahkan acara warkop</h3><p>Acara yang dibagikan akan langsung muncul sebagai posting di Beranda dan menu Obrolan.</p>
         <form className="warung-form" onSubmit={shareEventToHome}>

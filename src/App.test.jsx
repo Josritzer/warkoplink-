@@ -447,6 +447,27 @@ describe('membuat postingan', () => {
     expect(screen.getByRole('button', { name: 'Kirim' }).disabled).toBe(true);
   });
 
+
+  it('mencegah postingan ganda saat tombol kirim ditekan berulang sebelum server merespons', async () => {
+    let resolvePost;
+    fs.setDoc.mockImplementation((ref, data) => {
+      if (ref?.path === 'posts/new-post') return new Promise(resolve => { resolvePost = resolve; });
+      return Promise.resolve();
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([]);
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
+    await user.click(screen.getByRole('button', { name: /Ayo ngobrol/ }));
+    await user.type(screen.getByLabelText('Isi obrolan'), 'Satu postingan saja');
+    const send = screen.getByRole('button', { name: 'Kirim' });
+    fireEvent.click(send);
+    fireEvent.click(send);
+    await waitFor(() => expect(fs.setDoc.mock.calls.filter(([ref]) => ref?.path === 'posts/new-post')).toHaveLength(1));
+    await act(async () => { resolvePost(); });
+  });
+
   it('lima kategori final tersedia sebagai tab feed', async () => {
     const user = userEvent.setup();
     render(<App />);

@@ -674,6 +674,7 @@ describe('notifikasi sementara dan unggah foto profil', () => {
     const { container } = render(<App />);
     emitAuth(fakeUser());
     await user.click(screen.getByRole('button', { name: 'Akun' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit profil' }));
 
     media.uploadWarkopMedia.mockRejectedValueOnce(
       new Error('Firebase account is disabled or status is unknown')

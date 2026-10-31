@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import PublicUserProfile from './PublicUserProfile.jsx';
 
 const mocks = vi.hoisted(() => ({ getDoc: vi.fn(), getDocs: vi.fn() }));

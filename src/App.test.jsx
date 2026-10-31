@@ -664,6 +664,30 @@ describe('unggah poster Info & Acara', () => {
       body: 'Nobar final malam ini'
     }));
   });
+
+  it('menyimpan hubungan acara dengan warkop meskipun acara tidak memiliki poster', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([]);
+    act(() => state.warungsSnapshots[0].next(snapshotOf([{
+      id: 'warung-1', ownerUid: 'u1', name: 'Warkop Pojok', verificationStatus: 'verified'
+    }])));
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
+    await user.click(await screen.findByRole('button', { name: /Ayo ngobrol/ }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Kategori posting' }), 'Info & Acara');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Warkop penyelenggara' }), 'warung-1');
+    await user.type(screen.getByRole('textbox', { name: 'Isi obrolan' }), 'Nobar tanpa poster');
+    await user.click(screen.getByRole('button', { name: 'Kirim' }));
+
+    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      topic: 'Info & Acara',
+      warungId: 'warung-1',
+      body: 'Nobar tanpa poster'
+    })));
+    expect(media.uploadWarkopMedia).not.toHaveBeenCalled();
+  });
+
 });
 
 

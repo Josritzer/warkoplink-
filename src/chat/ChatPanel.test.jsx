@@ -57,6 +57,7 @@ describe('ChatPanel homepage layout', () => {
       composerOpen={false}
       setComposerOpen={vi.fn()}
       readOnly
+      previewMode
       onOpenDiscussion={vi.fn()}
       onOpenDirectory={vi.fn()}
       openAuth={vi.fn()}
@@ -79,8 +80,10 @@ describe('ChatPanel homepage layout', () => {
 
     expect(container.querySelector('.community-story-strip')).toBeNull();
     expect(container.querySelector('.warkop-stories')).toBeNull();
-    expect(screen.getAllByLabelText('Kategori obrolan').length).toBeGreaterThan(0);
-    expect(screen.getByText('Beranda · mode baca')).toBeTruthy();
+    // Scope assertions to this render; screen queries can match DOM left by another render.
+    expect(container.querySelector('[aria-label="Kategori obrolan"]')).toBeNull();
+    expect(container.textContent).toContain('Beranda · cuplikan 3 obrolan terbaru');
+    expect(container.querySelector('h2')?.textContent).toBe('Suasana komunitas');
   });
 });
 

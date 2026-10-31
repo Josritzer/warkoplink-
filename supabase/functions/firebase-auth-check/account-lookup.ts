@@ -42,8 +42,13 @@ export function validateFirebaseAccountLookupResponse(
     throw new TypeError("Firebase account UID mismatch");
   }
 
-  if (typeof user.disabled !== "boolean" || user.disabled !== false) {
-    throw new TypeError("Firebase account is disabled or status is unknown");
+  // ProtoJSON may omit a bool field when its value is the default false.
+  // Missing therefore means enabled; explicit true remains rejected.
+  if (user.disabled === true) {
+    throw new TypeError("Firebase account is disabled");
+  }
+  if (user.disabled !== undefined && typeof user.disabled !== "boolean") {
+    throw new TypeError("Invalid Firebase disabled status");
   }
 
   if (isFirebaseTokenRevoked(authTimeSeconds, user.validSince)) {

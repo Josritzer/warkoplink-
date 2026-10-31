@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, documentId, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } from 'firebase/firestore';
 import { Heart, X } from 'lucide-react';
-import PublicUserProfile from './PublicUserProfile.jsx';
 import { db } from '../firebase.js';
 
 function initial(name) {
@@ -24,8 +23,7 @@ async function fetchPublicProfiles(uids) {
   return unique.map(uid => byUid.get(uid) || { uid, displayName: 'Anggota WarkopLink', photoURL: '' });
 }
 
-export default function LikeSummary({ post, user, liked, count, onToggleLike, openAuth, setNotice }) {
-  const [selectedProfile, setSelectedProfile] = useState(null);
+export default function LikeSummary({ post, user, liked, count, onToggleLike, openAuth, setNotice, onOpenProfile }) {
   const [preview, setPreview] = useState([]);
   const [previewUids, setPreviewUids] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -106,31 +104,7 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
     }
   }
 
-  const profileHistoryKey = `warkoplink-public-profile-${post?.id || ''}`;
-
-  useEffect(() => {
-    if (!selectedProfile) return undefined;
-    // Tambahkan satu entri riwayat agar tombol Back Android/browser menutup profil,
-    // bukan meninggalkan halaman. Dialog penyuka tetap terpasang di bawahnya.
-    window.history.pushState(
-      { ...(window.history.state || {}), warkoplinkOverlay: profileHistoryKey },
-      ''
-    );
-    const handlePopState = () => setSelectedProfile(null);
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [selectedProfile, profileHistoryKey]);
-
-  function backToLikers() {
-    if (window.history.state?.warkoplinkOverlay === profileHistoryKey) {
-      window.history.back();
-    } else {
-      setSelectedProfile(null);
-    }
-  }
-
   async function openLikerList() {
-    setSelectedProfile(null);
     setDialogOpen(true);
     setLikers([]);
     setCursor(null);
@@ -153,7 +127,7 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
       <section className="liker-dialog" role="dialog" aria-modal="true" aria-labelledby={`liker-title-${post.id}`} ref={dialogRef}>
         <header className="liker-dialog-header"><h2 id={`liker-title-${post.id}`}>Disukai oleh</h2><button ref={closeRef} className="liker-dialog-close" type="button" aria-label="Tutup daftar penyuka" onClick={() => setDialogOpen(false)}><X size={20}/></button></header>
         <div className="liker-dialog-list" aria-live="polite">
-          {likers.map(profile => <button className="liker-row" key={profile.uid} type="button" onClick={() => setSelectedProfile(profile)} aria-label={`Lihat profil ${profile.displayName}`}><Avatar profile={profile} size="large"/><span>{profile.displayName}</span><span className="liker-row-open" aria-hidden="true">›</span></button>)}
+          {likers.map(profile => <button className="liker-row" key={profile.uid} type="button" onClick={() => { setDialogOpen(false); onOpenProfile?.(profile); }} aria-label={`Lihat profil ${profile.displayName}`}><Avatar profile={profile} size="large"/><span>{profile.displayName}</span><span className="liker-row-open" aria-hidden="true">›</span></button>)}
           {loading && <p className="liker-state" role="status">Memuat penyuka…</p>}
           {!loading && !likers.length && !listError && <p className="liker-state">Belum ada akun yang menyukai postingan ini.</p>}
           {listError && <div className="liker-state" role="alert"><p>{listError}</p><button className="button button-quiet" type="button" onClick={() => loadLikers(true)}>Coba lagi</button></div>}
@@ -161,6 +135,5 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
         {hasMore && <button className="button button-quiet liker-load-more" type="button" disabled={loading} onClick={() => loadLikers(false)}>{loading ? 'Memuat…' : 'Muat lebih banyak'}</button>}
       </section>
     </div>}
-    {selectedProfile && <PublicUserProfile profile={selectedProfile} db={db} onBack={backToLikers} />}
   </>;
 }

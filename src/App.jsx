@@ -443,7 +443,7 @@ export default function App() {
     const detailsCheck = validatePostDetails(composerTopic, details);
     if (!detailsCheck.ok) return setNotice(detailsCheck.error);
     if (details.eventWarungId && (composerTopic !== 'Info & Acara' || !verifiedWarungs.some(warung => warung.id === details.eventWarungId && warung.ownerUid === user.uid))) {
-      setNotice('Pilih warkop terverifikasi milik akun Anda sebelum mengunggah poster.');
+      setNotice('Pilih warkop terverifikasi milik akun Anda sebagai penyelenggara acara.');
       return false;
     }
     if (!db) return setNotice('Firebase belum dikonfigurasi.');

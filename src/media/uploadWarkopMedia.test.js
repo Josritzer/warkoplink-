@@ -39,6 +39,16 @@ describe("unggah foto warkop", () => {
       .toBe("Sesi akun tidak dapat diverifikasi. Keluar dari akun, masuk kembali, lalu coba lagi. Jika masih gagal, hubungi admin.");
   });
 
+  it("guides users when Firebase confirms their account is disabled", () => {
+    expect(photoUploadErrorMessage(new Error("Firebase account is disabled")))
+      .toBe("Akun WarkopLink sedang dinonaktifkan. Hubungi admin untuk mengaktifkannya kembali.");
+  });
+
+  it("hides malformed Firebase account status details", () => {
+    expect(photoUploadErrorMessage(new Error("Firebase account disabled status is invalid")))
+      .toBe("Status akun tidak dapat dipastikan. Hubungi admin untuk pemeriksaan akun.");
+  });
+
   it("explains revoked Firebase sessions without exposing backend details", () => {
     expect(photoUploadErrorMessage(new Error("Firebase ID token has been revoked")))
       .toBe("Sesi keamanan akun sudah tidak berlaku. Keluar dari akun, masuk kembali, lalu coba lagi.");

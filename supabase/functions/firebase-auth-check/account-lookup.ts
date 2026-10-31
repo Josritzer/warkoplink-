@@ -45,9 +45,11 @@ export function validateFirebaseAccountLookupResponse(
   // Identity Toolkit may omit the default false value. Firebase Admin SDK
   // treats an omitted disabled field as enabled (response.disabled || false).
   // Explicit true is rejected; unexpected non-boolean values still fail closed.
-  if (user.disabled === true ||
-      (user.disabled !== undefined && typeof user.disabled !== "boolean")) {
-    throw new TypeError("Firebase account is disabled or status is unknown");
+  if (user.disabled === true) {
+    throw new TypeError("Firebase account is disabled");
+  }
+  if (user.disabled !== undefined && typeof user.disabled !== "boolean") {
+    throw new TypeError("Firebase account disabled status is invalid");
   }
 
   if (isFirebaseTokenRevoked(authTimeSeconds, user.validSince)) {

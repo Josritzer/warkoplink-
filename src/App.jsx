@@ -12,6 +12,7 @@ import AdminPanel from './AdminPanel.jsx';
 import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
+import { withPublicAuthorProfile } from './chat/authorProfile.js';
 import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
@@ -92,6 +93,7 @@ export default function App() {
   const [loadMoreError, setLoadMoreError] = useState('');
   const [postsStatus, setPostsStatus] = useState(() => db ? (readCachedPosts().length ? 'ready' : 'loading') : 'ready');
   const [postsRetry, setPostsRetry] = useState(0);
+  const [publicAuthorProfiles, setPublicAuthorProfiles] = useState({});
   const [authOpen, setAuthOpen] = useState(false);
   const [registerMode, setRegisterMode] = useState(false);
   const [email, setEmail] = useState('');
@@ -281,6 +283,19 @@ export default function App() {
     [...posts, ...olderPosts].forEach((post) => { if (!unique.has(post.id)) unique.set(post.id, post); });
     return [...unique.values()];
   }, [posts, olderPosts]);
+
+  // Profil publik menjadi sumber foto terbaru untuk postingan dan komentar lama.
+  useEffect(() => {
+    if (!db) return undefined;
+    const records = [...allPosts, ...Object.values(repliesByPost).flat(), ...(selectedReplyPost ? [selectedReplyPost] : [])];
+    const authorIds = [...new Set(records.map(record => record?.authorId).filter(uid => typeof uid === 'string' && uid))];
+    const unsubscribers = authorIds.map(uid => onSnapshot(doc(db, 'publicProfiles', uid), snapshot => {
+      setPublicAuthorProfiles(current => ({ ...current, [uid]: snapshot.exists() ? snapshot.data() : null }));
+    }, () => {
+      // Avatar tetap memakai URL historis jika profil publik tidak dapat dimuat.
+    }));
+    return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+  }, [allPosts, repliesByPost, selectedReplyPost?.authorId]);
 
   async function loadMorePosts() {
     if (!db || !lastPostDoc || loadingMorePosts || !hasMorePosts) return;
@@ -932,7 +947,9 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
-  const visiblePosts = filterPosts(allPosts, topic, search);
+  const visiblePosts = filterPosts(allPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
+  const resolvedSelectedReplyPost = selectedReplyPost ? withPublicAuthorProfile(selectedReplyPost, publicAuthorProfiles[resolvedSelectedReplyPost.authorId]) : null;
+  const resolvedReplies = selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []).map(reply => withPublicAuthorProfile(reply, publicAuthorProfiles[reply.authorId])) : [];
   const activeCategory = composerTopic;
   const popularTopics = POST_TOPICS.map(name => ({ name, count: allPosts.filter(post => canonicalTopic(post.topic) === name).length }))
     .filter(item => item.count > 0).sort((left, right) => right.count - left.count).slice(0, 4);
@@ -981,11 +998,11 @@ export default function App() {
           <button className="reply-page-back" type="button" onClick={() => setSection('Beranda')}>← Kembali ke beranda</button>
           <h2>Komentar</h2>
         </div>
-        {selectedReplyPost ? <article className="reply-original-post">
-          <button type="button" className="reply-original-avatar reply-profile-link" aria-label={`Lihat profil ${selectedReplyPost.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: selectedReplyPost.authorId, displayName: selectedReplyPost.authorName, photoURL: selectedReplyPost.authorPhotoURL })}>{selectedReplyPost.authorPhotoURL ? <img src={selectedReplyPost.authorPhotoURL} alt="" loading="lazy"/> : String(selectedReplyPost.authorName || 'A').slice(0,1).toUpperCase()}</button>
+        {resolvedSelectedReplyPost ? <article className="reply-original-post">
+          <button type="button" className="reply-original-avatar reply-profile-link" aria-label={`Lihat profil ${resolvedSelectedReplyPost.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: resolvedSelectedReplyPost.authorId, displayName: resolvedSelectedReplyPost.authorName, photoURL: resolvedSelectedReplyPost.authorPhotoURL })}>{resolvedSelectedReplyPost.authorPhotoURL ? <img src={resolvedSelectedReplyPost.authorPhotoURL} alt="" loading="lazy"/> : String(resolvedSelectedReplyPost.authorName || 'A').slice(0,1).toUpperCase()}</button>
           <div className="reply-original-body">
-            <div className="reply-original-meta"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: selectedReplyPost.authorId, displayName: selectedReplyPost.authorName, photoURL: selectedReplyPost.authorPhotoURL })}>{selectedReplyPost.authorName || 'Anggota SL'}</button><span>{selectedReplyPost.topic || 'Obrolan Umum'}</span><small>{relativePostTime(selectedReplyPost.createdAt)}</small></div>
-            <p>{selectedReplyPost.body}</p>
+            <div className="reply-original-meta"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: resolvedSelectedReplyPost.authorId, displayName: resolvedSelectedReplyPost.authorName, photoURL: resolvedSelectedReplyPost.authorPhotoURL })}>{resolvedSelectedReplyPost.authorName || 'Anggota SL'}</button><span>{resolvedSelectedReplyPost.topic || 'Obrolan Umum'}</span><small>{relativePostTime(resolvedSelectedReplyPost.createdAt)}</small></div>
+            <p>{resolvedSelectedReplyPost.body}</p>
           </div>
         </article> : <p>Obrolan tidak ditemukan. Kembali ke beranda untuk memilih obrolan.</p>}
         <div className="reply-thread-list" aria-label="Komentar dan balasan">
@@ -994,7 +1011,7 @@ export default function App() {
           {replyPageLoading ? <div className="empty-state" role="status"><p>Memuat komentar…</p></div> :
             selectedReplyPost && (repliesByPost[selectedReplyPost.id] || []).length === 0
               ? <p className="reply-page-empty">Belum ada komentar. Jadilah yang pertama menanggapi.</p>
-              : (selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []) : []).map(reply => <article className={reply.pending ? 'reply-page-item is-pending' : 'reply-page-item'} key={reply.id}>
+              : (selectedReplyPost ? resolvedReplies : []).map(reply => <article className={reply.pending ? 'reply-page-item is-pending' : 'reply-page-item'} key={reply.id}>
                   <button type="button" className="reply-page-avatar reply-profile-link" aria-label={`Lihat profil ${reply.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: reply.authorPhotoURL })}>{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0,1).toUpperCase()}</button>
                   <div className="reply-page-main">
                     <div className="reply-bubble"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: reply.authorPhotoURL })}>{reply.authorName || 'Anggota komunitas'}</button><p>{reply.body}</p></div>

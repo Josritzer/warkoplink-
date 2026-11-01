@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
 import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
-import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock } from 'lucide-react';
+import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, LocateFixed } from 'lucide-react';
 import { ACTIVITY_OPTIONS, PRICE_OPTIONS, collectFacilities, filterWarungs, isOpenNow } from './directoryFilters.js';
 
 class WarungFormValidationError extends Error {
@@ -40,6 +40,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [incompleteWarungId, setIncompleteWarungId] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [registrationStep, setRegistrationStep] = useState(1);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
@@ -68,6 +70,52 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setStatus('ready');
     }, () => setStatus('error'));
   }, [mode, db, directoryRetry]);
+
+
+  function handleNextRegistrationStep() {
+    setFormError('');
+    if (registrationStep === 1) {
+      if (name.trim().length < 2 || name.trim().length > 100) return setFormError('Nama warkop harus 2–100 karakter.');
+      if (address.trim().length < 5 || address.trim().length > 300) return setFormError('Alamat harus 5–300 karakter.');
+      const latitude = Number(lat);
+      const longitude = Number(lng);
+      if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return setFormError('Tentukan lokasi warkop dengan GPS atau isi koordinat yang valid.');
+      }
+    }
+    setRegistrationStep((step) => Math.min(3, step + 1));
+  }
+
+  function handlePreviousRegistrationStep() {
+    setFormError('');
+    setRegistrationStep((step) => Math.max(1, step - 1));
+  }
+
+  function handleUseCurrentLocation() {
+    if (!navigator.geolocation) {
+      setFormError('Browser ini tidak mendukung GPS. Silakan isi koordinat secara manual.');
+      return;
+    }
+    setLocating(true);
+    setFormError('');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLat(coords.latitude.toFixed(6));
+        setLng(coords.longitude.toFixed(6));
+        setLocating(false);
+      },
+      (error) => {
+        const message = error.code === 1
+          ? 'Izin lokasi ditolak. Izinkan akses lokasi di browser atau isi koordinat secara manual.'
+          : error.code === 2
+            ? 'Lokasi belum dapat ditemukan. Coba aktifkan GPS lalu ulangi.'
+            : 'Permintaan lokasi terlalu lama. Coba lagi atau isi koordinat secara manual.';
+        setFormError(message);
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+  }
 
   async function handleRegister(event) {
     event.preventDefault();
@@ -122,6 +170,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setName(''); setAddress(''); setLat(''); setLng(''); setFacilities('');
       setMenuItems(''); setSpecialties(''); setAmbience('');
       setPriceRange('belum-diisi'); setHours('');
+      setRegistrationStep(1);
       onNotice(selectedPhotos.length ? 'Pendaftaran dan foto warkop berhasil dikirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi admin.');
     } catch (error) {
       const message = error instanceof WarungFormValidationError ? error.message : photoUploadErrorMessage(error);
@@ -169,32 +218,41 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       <h2>Daftarkan warkop Anda.</h2>
       <p>Isi data yang benar. Pendaftaran berstatus menunggu sampai admin memeriksanya; warkop baru tampil di direktori publik setelah disetujui.</p>
       {!user && <div className="directory-notice"><ShieldCheck size={18}/><span>Anda perlu masuk ke akun untuk mengirim pendaftaran.</span><button className="button button-dark" onClick={onRequestAuth}>Masuk / Daftar akun</button></div>}
+      <div className="warung-registration-progress" aria-label={"Langkah " + registrationStep + " dari 3"}>
+        <div className="warung-registration-progress-copy"><strong>Langkah {registrationStep} dari 3</strong><span>{['Identitas & lokasi', 'Menu & fasilitas', 'Foto & konfirmasi'][registrationStep - 1]}</span></div>
+        <div className="warung-registration-progress-track"><span style={{ width: (registrationStep / 3) * 100 + '%' }} /></div>
+        <div className="warung-registration-step-labels"><span className={registrationStep >= 1 ? 'active' : ''}>Identitas</span><span className={registrationStep >= 2 ? 'active' : ''}>Detail</span><span className={registrationStep >= 3 ? 'active' : ''}>Foto</span></div>
+      </div>
       <form className="warung-form" onSubmit={handleRegister}>
-        <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>
-        <label>Alamat lengkap di Kabupaten Lamongan<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa, kecamatan"/></label>
-        <div className="coordinate-fields">
-          <label>Lintang (latitude)
-            <input type="text" inputMode="decimal" autoComplete="off" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="Contoh: -7.0001" aria-describedby="latitude-help"/>
-          </label>
-          <label>Bujur (longitude)
-            <input type="text" inputMode="decimal" autoComplete="off" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="Contoh: 112.2810" aria-describedby="longitude-help"/>
-          </label>
-        </div>
-        <div className="coordinate-help">
-          <small id="latitude-help">Lintang: angka utara/selatan, untuk Lamongan biasanya diawali -7.</small>
-          <small id="longitude-help">Bujur: angka timur/barat, untuk Lamongan biasanya diawali 112.</small>
-          <small>Contoh koordinat di atas hanya panduan. Pastikan titik sesuai alamat warkop.</small>
-        </div>
-        <label>Foto warkop (maksimal 5, JPG/PNG/WebP, 2 MiB per foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={Boolean(incompleteWarungId)} onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
-        {selectedPhotos.length > 0 && <p className="form-hint">{selectedPhotos.length} foto dipilih. {incompleteWarungId ? 'Pilihan foto dikunci sampai unggahan selesai.' : ''}</p>}
-        <label>Menu utama, pisahkan dengan koma<input value={menuItems} onChange={(e) => setMenuItems(e.target.value)} maxLength={600} placeholder="Kopi, teh, mi instan, nasi goreng"/></label>
-        <label>Menu spesial, pisahkan dengan koma<input value={specialties} onChange={(e) => setSpecialties(e.target.value)} maxLength={400} placeholder="Kopi racikan, mi nyemek, pisang goreng"/></label>
-        <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
-        <label>Suasana warkop<textarea value={ambience} onChange={(e) => setAmbience(e.target.value)} maxLength={240} rows={2} placeholder="Santai, cocok untuk ngobrol atau kerja ringan"/></label>
-        <label>Kisaran harga (opsional)<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Tidak ingin mencantumkan</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select></label>
-        <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>
+        {registrationStep === 1 && <>
+          <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>
+          <label>Alamat lengkap di Kabupaten Lamongan<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa, kecamatan"/></label>
+          <div className="coordinate-fields">
+            <label>Lintang (latitude)<input type="text" inputMode="decimal" autoComplete="off" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="Contoh: -7.0001" aria-describedby="latitude-help"/></label>
+            <label>Bujur (longitude)<input type="text" inputMode="decimal" autoComplete="off" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="Contoh: 112.2810" aria-describedby="longitude-help"/></label>
+          </div>
+          <button className="button button-quiet warung-location-button" type="button" onClick={handleUseCurrentLocation} disabled={locating}><LocateFixed size={17}/>{locating ? 'Mencari lokasi…' : 'Gunakan Lokasi Saya'}</button>
+          <div className="coordinate-help"><small id="latitude-help">Lintang: angka utara/selatan, untuk Lamongan biasanya diawali -7.</small><small id="longitude-help">Bujur: angka timur/barat, untuk Lamongan biasanya diawali 112.</small><small>GPS mengisi koordinat perangkat. Periksa dan sesuaikan titik agar tepat di lokasi warkop.</small></div>
+        </>}
+        {registrationStep === 2 && <>
+          <label>Menu utama, pisahkan dengan koma<input value={menuItems} onChange={(e) => setMenuItems(e.target.value)} maxLength={600} placeholder="Kopi, teh, mi instan, nasi goreng"/></label>
+          <label>Menu spesial, pisahkan dengan koma<input value={specialties} onChange={(e) => setSpecialties(e.target.value)} maxLength={400} placeholder="Kopi racikan, mi nyemek, pisang goreng"/></label>
+          <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
+          <label>Suasana warkop<textarea value={ambience} onChange={(e) => setAmbience(e.target.value)} maxLength={240} rows={2} placeholder="Santai, cocok untuk ngobrol atau kerja ringan"/></label>
+          <label>Kisaran harga (opsional)<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Tidak ingin mencantumkan</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select></label>
+          <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>
+        </>}
+        {registrationStep === 3 && <>
+          <p className="form-hint">Periksa kembali data warkop sebelum dikirim. Foto dapat ditambahkan sekarang atau menyusul.</p>
+          <div className="warung-registration-summary"><strong>{name}</strong><span>{address}</span><span>Koordinat: {lat}, {lng}</span>{menuItems.trim() && <span>Menu: {menuItems}</span>}{specialties.trim() && <span>Menu spesial: {specialties}</span>}</div>
+          <label>Foto warkop (maksimal 5, JPG/PNG/WebP, 2 MiB per foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={Boolean(incompleteWarungId)} onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
+          {selectedPhotos.length > 0 && <p className="form-hint">{selectedPhotos.length} foto dipilih. {incompleteWarungId ? 'Pilihan foto dikunci sampai unggahan selesai.' : ''}</p>}
+        </>}
         {formError && <p className="form-error" role="alert">{formError}</p>}
-        <button className="button button-dark" type="submit" disabled={saving}>{saving ? 'Memproses…' : incompleteWarungId ? 'Lanjutkan unggah foto' : 'Kirim pendaftaran'}</button>
+        <div className="warung-form-step-actions">
+          {registrationStep > 1 && <button className="button button-quiet" type="button" onClick={handlePreviousRegistrationStep} disabled={saving}>Kembali</button>}
+          {registrationStep < 3 ? <button className="button button-dark" type="button" onClick={handleNextRegistrationStep}>Lanjut</button> : <button className="button button-dark" type="submit" disabled={saving}>{saving ? 'Memproses…' : incompleteWarungId ? 'Lanjutkan unggah foto' : 'Kirim pendaftaran'}</button>}
+        </div>
       </form>
     </section>;
   }

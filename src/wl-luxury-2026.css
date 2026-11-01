@@ -337,3 +337,17 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
 .warung-profile-hours-list > div:last-child { border-bottom: 0; }
 .warung-profile-hours-list dt { color: var(--wl-text-muted); }
 .warung-profile-hours-list dd { margin: 0; color: var(--wl-text); font-weight: 650; text-align: right; }
+
+.event-lifecycle-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.event-lifecycle-pill { display: inline-flex; align-items: center; border: 1px solid var(--wl-border); border-radius: 999px; background: var(--wl-surface-soft); color: var(--wl-brand-hover); padding: 5px 10px; font-size: 10px; font-weight: 750; }
+.event-lifecycle-pill.is-cancelled { background: var(--wl-danger-soft); border-color: var(--wl-danger-soft); color: var(--wl-danger); }
+.event-lifecycle-pill.is-ended { background: var(--wl-surface-soft); color: var(--wl-text-muted); }
+.event-rsvp-primary { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.event-rsvp-primary .button-dark { min-width: 140px; }
+.event-calendar-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 1px solid var(--wl-border); }
+.event-rsvp-count { color: var(--wl-text-muted); font-size: 12px; font-weight: 650; }
+@media (max-width: 480px) {
+  .event-rsvp-primary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .72fr); }
+  .event-rsvp-primary .button { width: 100%; padding-inline: 10px; }
+  .event-calendar-actions .button { min-height: 40px; }
+}

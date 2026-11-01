@@ -39,6 +39,14 @@ jobs:
       - name: Build community app
         run: npm run build
 
+      - name: Upload production build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: warkoplink-hosting-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
   deploy:
     if: ${{ inputs.confirm_production_deploy == true }}
     needs: build
@@ -54,6 +62,15 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: package-lock.json
+
+      - name: Download production build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: warkoplink-hosting-dist
+          path: dist/
+
+      - name: Verify Hosting build output
+        run: test -s dist/index.html
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2

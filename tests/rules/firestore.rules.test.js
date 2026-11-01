@@ -61,6 +61,8 @@ beforeEach(async () => {
 const asAnon = () => env.unauthenticatedContext().firestore();
 const asUser = (uid) => env.authenticatedContext(uid).firestore();
 const asAdmin = () => env.authenticatedContext('admin', { admin: true }).firestore();
+const asSuperAdmin = () => env.authenticatedContext('owner', { platformRole: 'super_admin' }).firestore();
+const asModerator = () => env.authenticatedContext('moderator', { platformRole: 'moderator' }).firestore();
 
 describe('postReports', () => {
   it('pengguna login dapat melaporkan postingan yang ada', async () => {
@@ -849,5 +851,82 @@ describe('notifications', () => {
     await assertSucceeds(updateDoc(doc(asUser('alice'), 'notifications/comment-read-test'), { readAt: serverTimestamp() }));
     await assertFails(updateDoc(doc(asUser('bob'), 'notifications/comment-read-test'), { readAt: serverTimestamp() }));
     await assertFails(deleteDoc(doc(asUser('bob'), 'notifications/comment-read-test')));
+  });
+});
+
+
+describe('peran platform', () => {
+  it('moderator dapat membaca laporan privat untuk moderasi', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'postReports/post-alice_bob'), {
+        targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'bob',
+        reason: 'Spam atau promosi berulang', createdAt: Timestamp.now(),
+      });
+    });
+    await assertSucceeds(getDoc(doc(asModerator(), 'postReports/post-alice_bob')));
+  });
+
+  it('moderator tidak dapat membaca audit verifikasi pendaftaran warkop', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'verificationAudit/audit-seed'), {
+        warungId: 'warung-1', warungName: 'Warkop Pojok', previousStatus: 'pending',
+        newStatus: 'verified', actorUid: 'owner', reason: '', createdAt: Timestamp.now(),
+      });
+    });
+    await assertFails(getDoc(doc(asModerator(), 'verificationAudit/audit-seed')));
+  });
+
+  it('moderator dapat memperbarui status laporan bersama audit atomik', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'postReports/post-alice_bob'), {
+        targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'bob',
+        reason: 'Spam atau promosi berulang', createdAt: Timestamp.now(),
+      });
+    });
+    const db = asModerator();
+    const stateRef = doc(db, 'postReportModeration/post-alice_bob');
+    const auditRef = doc(db, 'postReportAudit/moderator-audit');
+    const batch = writeBatch(db);
+    batch.set(stateRef, {
+      reportId: 'post-alice_bob', status: 'Ditinjau', updatedBy: 'moderator',
+      updatedAt: serverTimestamp(), latestAuditId: auditRef.id,
+    });
+    batch.set(auditRef, {
+      reportId: 'post-alice_bob', previousStatus: 'Baru', newStatus: 'Ditinjau',
+      actorUid: 'moderator', note: '', createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('moderator tidak dapat memverifikasi pendaftaran warkop meski audit disertakan', async () => {
+    const ownerDb = asUser('alice');
+    await setDoc(doc(ownerDb, 'warungs/role-warung'), validWarung());
+    const db = asModerator();
+    const auditRef = doc(db, 'verificationAudit/moderator-forbidden');
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'warungs/role-warung'), {
+      verificationStatus: 'verified', verificationAuditId: auditRef.id, updatedAt: serverTimestamp(),
+    });
+    batch.set(auditRef, {
+      warungId: 'role-warung', warungName: 'Warkop Pojok', previousStatus: 'pending',
+      newStatus: 'verified', actorUid: 'moderator', reason: '', createdAt: serverTimestamp(),
+    });
+    await assertFails(batch.commit());
+  });
+
+  it('super admin dapat membaca laporan dan audit verifikasi', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'postReports/post-alice_bob'), {
+        targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'bob',
+        reason: 'Spam atau promosi berulang', createdAt: Timestamp.now(),
+      });
+      await setDoc(doc(db, 'verificationAudit/audit-seed'), {
+        warungId: 'warung-1', warungName: 'Warkop Pojok', previousStatus: 'pending',
+        newStatus: 'verified', actorUid: 'owner', reason: '', createdAt: Timestamp.now(),
+      });
+    });
+    await assertSucceeds(getDoc(doc(asSuperAdmin(), 'postReports/post-alice_bob')));
+    await assertSucceeds(getDoc(doc(asSuperAdmin(), 'verificationAudit/audit-seed')));
   });
 });

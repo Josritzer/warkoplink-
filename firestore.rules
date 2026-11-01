@@ -5,8 +5,18 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return signedIn() && request.auth.token.admin == true;
+    function isSuperAdmin() {
+      return signedIn() && (
+        request.auth.token.platformRole == 'super_admin'
+        || request.auth.token.admin == true
+      );
+    }
+
+    function isModerator() {
+      return signedIn() && (
+        isSuperAdmin()
+        || request.auth.token.platformRole == 'moderator'
+      );
     }
 
     function auditPath(auditId) {
@@ -14,7 +24,7 @@ service cloud.firestore {
     }
 
     function validAdminDecision(warungId, data) {
-      return isAdmin()
+      return isSuperAdmin()
         && data.verificationStatus in ['verified', 'rejected']
         && data.verificationAuditId is string
         && data.updatedAt == request.time
@@ -40,7 +50,7 @@ service cloud.firestore {
     }
 
     function validReportModeration(reportId, data, previousStatus) {
-      return isAdmin()
+      return isModerator()
         && exists(/databases/$(database)/documents/postReports/$(reportId))
         && data.keys().hasAll(['reportId', 'status', 'updatedBy', 'updatedAt', 'latestAuditId'])
         && data.keys().hasOnly(['reportId', 'status', 'updatedBy', 'updatedAt', 'latestAuditId'])
@@ -437,7 +447,7 @@ service cloud.firestore {
     // Direktori publik hanya menampilkan warkop yang telah diverifikasi.
     // Pemilik tetap dapat membaca dokumen miliknya saat masih menunggu verifikasi.
     match /warungs/{warungId} {
-      allow read: if isAdmin()
+      allow read: if isSuperAdmin()
         || resource.data.verificationStatus == 'verified'
         || (signedIn() && resource.data.ownerUid == request.auth.uid);
       allow create: if signedIn()
@@ -478,8 +488,8 @@ service cloud.firestore {
 
     // Catatan audit hanya dapat dibuat sebagai bagian dari keputusan admin atomik.
     match /verificationAudit/{auditId} {
-      allow read: if isAdmin();
-      allow create: if isAdmin()
+      allow read: if isSuperAdmin();
+      allow create: if isSuperAdmin()
         && request.resource.data.keys().hasAll([
           'warungId', 'warungName', 'previousStatus', 'newStatus',
           'actorUid', 'reason', 'createdAt'
@@ -502,10 +512,10 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.verificationAuditId == auditId;
       allow update, delete: if false;
     }
-    // Laporan bersifat privat dan hanya admin yang boleh membacanya.
+    // Laporan bersifat privat dan hanya Moderator atau Super Admin yang boleh membacanya.
     // ID deterministik membatasi satu laporan per akun untuk setiap postingan.
     match /postReports/{reportId} {
-      allow read: if isAdmin();
+      allow read: if isModerator();
       allow create: if signedIn()
         && request.resource.data.keys().hasAll(['targetPostId', 'targetAuthorId', 'reporterUid', 'reason', 'createdAt'])
         && request.resource.data.keys().hasOnly(['targetPostId', 'targetAuthorId', 'reporterUid', 'reason', 'createdAt'])
@@ -521,10 +531,10 @@ service cloud.firestore {
     }
 
 
-    // Status moderasi terpisah dari laporan asli. Hanya admin dapat membaca/menulis.
+    // Status moderasi terpisah dari laporan asli. Moderator dan Super Admin dapat mengelolanya.
     // Setiap perubahan wajib disertai peristiwa audit dalam batch yang sama.
     match /postReportModeration/{reportId} {
-      allow read: if isAdmin();
+      allow read: if isModerator();
       allow create: if !exists(reportModerationPath(reportId))
         && validReportModeration(reportId, request.resource.data, 'Baru');
       allow update: if resource.data.reportId == reportId
@@ -532,10 +542,10 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Audit moderasi bersifat append-only dan tidak dapat diperbarui/dihapus.
+    // Audit moderasi bersifat append-only dan tidak dapat diperbarui/dihapus oleh klien.
     match /postReportAudit/{auditId} {
-      allow read: if isAdmin();
-      allow create: if isAdmin()
+      allow read: if isModerator();
+      allow create: if isModerator()
         && request.resource.data.keys().hasAll([
           'reportId', 'previousStatus', 'newStatus', 'actorUid', 'note', 'createdAt'
         ])
@@ -617,6 +627,18 @@ service cloud.firestore {
             && exists(/databases/$(database)/documents/warungs/$(data.warungId)/followers/$(request.auth.uid))
             && get(/databases/$(database)/documents/warungs/$(data.warungId)/followers/$(request.auth.uid)).data.uid == request.auth.uid)
         );
+    }
+
+    // Klaim role hanya diterbitkan oleh Firebase Admin SDK dari lingkungan tepercaya.
+    // Client tidak pernah dapat membaca/menulis dokumen role sebagai sumber otorisasi.
+    match /platformRoles/{userId} {
+      allow read, write: if false;
+    }
+
+    // Audit penetapan role ditulis oleh Admin SDK; hanya Super Admin dapat membacanya.
+    match /platformRoleAudit/{eventId} {
+      allow read: if isSuperAdmin();
+      allow create, update, delete: if false;
     }
 
     match /notifications/{notificationId} {

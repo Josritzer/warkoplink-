@@ -217,7 +217,28 @@ describe('ChatPostCard', () => {
     expect(screen.getByRole('button', { name: 'Ikut acara' }).disabled).toBe(false);
   });
 
-  it('menampilkan poster acara yang sudah tersimpan pada postingan Info & Acara', () => {
+
+  it('mengunci RSVP terhadap klik ganda dan menampilkan jumlah hanya saat tersedia', async () => {
+    let resolveRsvp;
+    firestoreMocks.setDoc.mockImplementationOnce(() => new Promise(resolve => { resolveRsvp = resolve; }));
+    const values = props({ post: { ...props().post, topic: 'Info & Acara', eventStartAt: '2099-06-20T12:00:00.000Z' } });
+    render(<ChatPostCard {...values} />);
+    expect(screen.queryByText(/ikut$/i)).toBeNull();
+    const button = screen.getByRole('button', { name: 'Ikut acara' });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(firestoreMocks.setDoc).toHaveBeenCalledOnce();
+    await act(async () => { resolveRsvp(); });
+  });
+
+  it('menandai acara lampau sebagai selesai dan menonaktifkan RSVP', () => {
+    render(<ChatPostCard {...props({
+      post: { ...props().post, topic: 'Info & Acara', eventStartAt: '2000-06-20T12:00:00.000Z', eventEndAt: '2000-06-20T14:00:00.000Z' }
+    })} />);
+    expect(screen.getByText('Acara selesai')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Acara selesai' }).disabled).toBe(true);
+  });
+\n  it('menampilkan poster acara yang sudah tersimpan pada postingan Info & Acara', () => {
     const { container } = render(<ChatPostCard {...props({
       post: { ...props().post, topic: 'Info & Acara', eventKind: 'Nobar', eventPhotoURL: 'https://media.example.test/events/post-1/poster.webp' }
     })} />);

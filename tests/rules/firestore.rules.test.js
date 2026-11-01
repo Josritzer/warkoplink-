@@ -750,3 +750,76 @@ describe('pengikut profil warkop', () => {
     await assertSucceeds(deleteDoc(doc(asUser('alice'), 'warungs/warung-follow/followers/alice')));
   });
 });
+
+
+describe('notifications', () => {
+  async function seedMentionTarget() {
+    await env.withSecurityRulesDisabled(async ctx => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'usernames/bob_name'), {
+        uid: 'bob', username: 'bob_name', createdAt: Timestamp.now(),
+      });
+      await updateDoc(doc(db, 'posts/post-alice'), { body: 'Halo @bob_name, sampai jumpa!' });
+    });
+  }
+
+  it('allows a post author to notify the mapped user mentioned in the post', async () => {
+    await seedMentionTarget();
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'notifications/mention-valid'), {
+      recipientUid: 'bob', actorUid: 'alice', type: 'mention', postId: 'post-alice',
+      username: 'bob_name', createdAt: serverTimestamp(), readAt: null,
+    }));
+  });
+
+  it('rejects a mention notification when the source text does not contain the username', async () => {
+    await env.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(), 'usernames/bob_name'), {
+        uid: 'bob', username: 'bob_name', createdAt: Timestamp.now(),
+      });
+    });
+    await assertFails(setDoc(doc(asUser('alice'), 'notifications/mention-fake'), {
+      recipientUid: 'bob', actorUid: 'alice', type: 'mention', postId: 'post-alice',
+      username: 'bob_name', createdAt: serverTimestamp(), readAt: null,
+    }));
+  });
+
+  it('allows a reply author to notify the username mentioned in that reply', async () => {
+    await seedMentionTarget();
+    const db = asUser('alice');
+    const reply = await addDoc(collection(db, 'posts/post-alice/replies'), {
+      authorId: 'alice', authorName: 'Alice', body: 'Hai @bob_name', createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(setDoc(doc(db, 'notifications/reply-mention'), {
+      recipientUid: 'bob', actorUid: 'alice', type: 'mention', postId: 'post-alice',
+      replyId: reply.id, username: 'bob_name', createdAt: serverTimestamp(), readAt: null,
+    }));
+  });
+
+  it('allows a reply author to notify the owner of the parent post about a new comment', async () => {
+    const db = asUser('bob');
+    const reply = await addDoc(collection(db, 'posts/post-alice/replies'), {
+      authorId: 'bob', authorName: 'Bob', body: 'Saya setuju', createdAt: serverTimestamp(),
+    });
+    const notification = doc(db, 'notifications/comment-for-alice');
+    await assertSucceeds(setDoc(notification, {
+      recipientUid: 'alice', actorUid: 'bob', type: 'comment', postId: 'post-alice',
+      replyId: reply.id, createdAt: serverTimestamp(), readAt: null,
+    }));
+    await assertSucceeds(getDoc(doc(asUser('alice'), 'notifications/comment-for-alice')));
+    await assertFails(getDoc(doc(asUser('bob'), 'notifications/comment-for-alice')));
+  });
+
+  it('only the recipient can mark a notification as read or delete it', async () => {
+    const db = asUser('bob');
+    const reply = await addDoc(collection(db, 'posts/post-alice/replies'), {
+      authorId: 'bob', authorName: 'Bob', body: 'Komentar', createdAt: serverTimestamp(),
+    });
+    await setDoc(doc(db, 'notifications/comment-read-test'), {
+      recipientUid: 'alice', actorUid: 'bob', type: 'comment', postId: 'post-alice',
+      replyId: reply.id, createdAt: serverTimestamp(), readAt: null,
+    });
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'notifications/comment-read-test'), { readAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(asUser('bob'), 'notifications/comment-read-test'), { readAt: serverTimestamp() }));
+    await assertFails(deleteDoc(doc(asUser('bob'), 'notifications/comment-read-test')));
+  });
+});

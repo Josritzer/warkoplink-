@@ -1,0 +1,268 @@
+/* WarkopLink Glass + Card Play — restrained functional surface layer.
+   Glass is reserved for app chrome and floating controls; content remains opaque and readable. */
+
+:root {
+  --wl-glass-bg: color-mix(in srgb, var(--wl-surface) 86%, transparent);
+  --wl-glass-border: color-mix(in srgb, var(--wl-border-strong) 62%, transparent);
+  --wl-glass-shadow: 0 10px 30px rgb(32 22 42 / 12%);
+  --wl-card-hover: color-mix(in srgb, var(--wl-surface) 94%, var(--wl-brand-soft));
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  :root { --wl-glass-bg: var(--wl-surface); }
+}
+
+/* GLASS: navigation and controls only. Keep text contrast on both themes. */
+.app-header {
+  background: var(--wl-glass-bg);
+  border-bottom-color: var(--wl-glass-border);
+  box-shadow: 0 4px 18px rgb(32 22 42 / 5%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+}
+
+.bottom-nav {
+  background: var(--wl-glass-bg);
+  border-color: var(--wl-glass-border);
+  box-shadow: var(--wl-glass-shadow);
+  -webkit-backdrop-filter: blur(20px) saturate(165%);
+  backdrop-filter: blur(20px) saturate(165%);
+}
+
+.app-notice,
+.status-reactions,
+.auth-modal {
+  background: var(--wl-glass-bg);
+  border-color: var(--wl-glass-border);
+  box-shadow: var(--wl-shadow-overlay);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+/* CARD PLAY: category choices behave like selectable controls, not decoration. */
+.directory-discovery-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0 22px;
+}
+
+.directory-discovery-tabs > button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 9px;
+  row-gap: 2px;
+  min-width: 0;
+  min-height: 68px;
+  padding: 11px 12px;
+  border: 1px solid var(--wl-border);
+  border-radius: 15px;
+  background: var(--wl-surface);
+  color: var(--wl-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.directory-discovery-tabs > button > span {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--wl-surface-soft);
+  color: var(--wl-brand);
+  font-size: 17px;
+}
+
+.directory-discovery-tabs > button b {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.directory-discovery-tabs > button small {
+  min-width: 0;
+  color: var(--wl-text-muted);
+  font-size: 10px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.directory-discovery-tabs > button:hover {
+  border-color: var(--wl-border-strong);
+  background: var(--wl-card-hover);
+  box-shadow: 0 6px 18px rgb(32 22 42 / 7%);
+  transform: translateY(-1px);
+}
+
+.directory-discovery-tabs > button:active {
+  transform: translateY(1px) scale(.985);
+}
+
+.directory-discovery-tabs > button.active,
+.directory-discovery-tabs > button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--wl-brand) 58%, var(--wl-border));
+  background: var(--wl-brand-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wl-brand) 18%, transparent);
+}
+
+.directory-discovery-tabs > button.active > span,
+.directory-discovery-tabs > button[aria-pressed="true"] > span {
+  background: var(--wl-brand);
+  color: var(--wl-text-on-brand);
+}
+
+/* Directory cards are actionable surfaces with restrained depth, not oversized panels. */
+.warung-card {
+  border-radius: 18px;
+  border-color: var(--wl-border);
+  box-shadow: 0 5px 18px rgb(32 22 42 / 5%);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.warung-card:hover {
+  border-color: var(--wl-border-strong);
+  box-shadow: 0 12px 28px rgb(32 22 42 / 10%);
+  transform: translateY(-2px);
+}
+
+.warung-card:focus-within {
+  border-color: var(--wl-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wl-focus) 18%, transparent), 0 8px 22px rgb(32 22 42 / 7%);
+}
+
+.warung-card-actions .button,
+.warung-follow-button,
+.directory-register-cta {
+  transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease;
+}
+
+.warung-card-actions .button:active,
+.warung-follow-button:active,
+.directory-register-cta:active,
+.button:active {
+  transform: translateY(1px) scale(.985);
+}
+
+.warung-card-actions .button:disabled,
+.warung-follow-button:disabled,
+button:disabled {
+  cursor: not-allowed;
+  opacity: .62;
+  transform: none;
+  box-shadow: none;
+}
+
+.directory-card-signal {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 9px;
+  border: 1px solid var(--wl-border);
+  border-radius: 999px;
+  background: var(--wl-surface-soft);
+  color: var(--wl-brand-hover);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.directory-event-signal {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--wl-gold) 34%, var(--wl-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--wl-gold-soft) 32%, var(--wl-surface));
+}
+
+.directory-event-signal b {
+  color: var(--wl-brand-hover);
+  font-size: 9px;
+  letter-spacing: .09em;
+}
+
+.directory-event-signal span {
+  color: var(--wl-text);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Map controls are floating utility surfaces; the map tiles remain untouched. */
+.warung-map-picker .leaflet-bar,
+.warung-map-picker .leaflet-control-zoom a {
+  border-color: var(--wl-glass-border);
+  background: var(--wl-glass-bg);
+  color: var(--wl-text);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.warung-map-canvas {
+  border-color: var(--wl-border) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 5px 18px rgb(32 22 42 / 6%);
+}
+
+:where(.directory-discovery-tabs > button, .warung-card-actions .button, .warung-follow-button):focus-visible {
+  outline: 3px solid var(--wl-focus);
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .directory-discovery-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-block: 16px 18px;
+  }
+
+  .directory-discovery-tabs > button {
+    min-height: 64px;
+    padding: 10px;
+    border-radius: 13px;
+  }
+
+  .directory-discovery-tabs > button b { font-size: 11px; }
+  .directory-discovery-tabs > button small { font-size: 9px; }
+  .warung-card { border-radius: 16px; }
+  .warung-card:hover { transform: none; }
+  .app-header { min-height: 58px; }
+}
+
+@media (max-width: 359px) {
+  .directory-discovery-tabs > button {
+    grid-template-columns: 24px minmax(0, 1fr);
+    column-gap: 7px;
+    padding-inline: 8px;
+  }
+  .directory-discovery-tabs > button > span {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .directory-discovery-tabs > button,
+  .warung-card,
+  .warung-card-actions .button,
+  .warung-follow-button,
+  .directory-register-cta {
+    transition: none !important;
+  }
+  .directory-discovery-tabs > button:hover,
+  .warung-card:hover {
+    transform: none;
+  }
+}

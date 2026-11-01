@@ -851,3 +851,36 @@ describe('aksesibilitas form pendaftaran warkop', () => {
     expect(screen.getByText(/Bujur: angka timur\/barat/)).toBeTruthy();
   });
 });
+
+
+describe('navigasi sosial tahap awal', () => {
+  it('menyediakan tepat lima menu utama di navigasi bawah', () => {
+    render(<App />);
+    const navigation = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
+    expect([...navigation.querySelectorAll('button')].map((button) => button.textContent.trim())).toEqual([
+      'Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun',
+    ]);
+  });
+
+  it('membuka halaman Pesan dengan tab Pribadi, Komunitas, dan Teman', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    emitPosts([]);
+    const navigation = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
+    await user.click(within(navigation).getByRole('button', { name: 'Pesan' }));
+
+    expect(screen.getByRole('heading', { name: 'Pesan' })).toBeTruthy();
+    expect(screen.getByRole('tablist', { name: 'Kategori pesan' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Pribadi' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('Pesan pribadi belum tersedia')).toBeTruthy();
+
+    await user.click(screen.getByRole('tab', { name: 'Komunitas' }));
+    expect(screen.getByRole('tab', { name: 'Komunitas' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('Komunitas resmi sedang disiapkan')).toBeTruthy();
+
+    await user.click(screen.getByRole('tab', { name: 'Teman' }));
+    expect(screen.getByRole('tab', { name: 'Teman' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('Daftar teman akan tersedia setelah mutual follow dibangun')).toBeTruthy();
+  });
+});

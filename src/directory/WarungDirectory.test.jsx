@@ -132,13 +132,14 @@ describe('kategori penemuan direktori', () => {
       { id: 'no-event', name: 'Warkop Biasa', address: 'Babat', verificationStatus: 'verified' }
     ];
     fixture.events = [
-      { id: 'event-upcoming', warungId: 'event-warung', eventKind: 'Nobar', eventStartAt: '2099-06-20T12:00:00.000Z', eventStatus: 'scheduled', topic: 'Info & Acara' },
+      { id: 'event-upcoming', warungId: 'event-warung', body: 'Nobar Final Liga', eventKind: 'Nobar', eventStartAt: '2099-06-20T12:00:00.000Z', eventStatus: 'scheduled', topic: 'Info & Acara' },
       { id: 'event-old', warungId: 'no-event', eventKind: 'Turnamen', eventStartAt: '2020-01-01T12:00:00.000Z', eventEndAt: '2020-01-01T14:00:00.000Z', eventStatus: 'scheduled', topic: 'Info & Acara' }
     ];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
     fireEvent.click(await screen.findByRole('button', { name: /Ada Event Sekarang/ }));
     expect(await screen.findByText('Warkop Event')).toBeTruthy();
     expect(screen.getByText(/AKAN DATANG · Nobar/)).toBeTruthy();
+    expect(screen.getByText('Nobar Final Liga')).toBeTruthy();
     expect(screen.queryByText('Warkop Biasa')).toBeNull();
   });
 

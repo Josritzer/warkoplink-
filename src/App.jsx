@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
+import { PLATFORM_ROLES, platformRoleFromClaims } from './auth/platformRoles.js';
 import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
@@ -263,8 +264,9 @@ export default function App() {
       if (nextUser && typeof nextUser.getIdTokenResult === 'function') {
         try {
           const token = await nextUser.getIdTokenResult(true);
-          setIsSuperAdmin(token.claims?.platformRole === 'super_admin' || token.claims?.admin === true);
-          setIsModerator(token.claims?.platformRole === 'moderator' || token.claims?.platformRole === 'super_admin' || token.claims?.admin === true);
+          const role = platformRoleFromClaims(token.claims || {});
+          setIsSuperAdmin(role === PLATFORM_ROLES.SUPER_ADMIN);
+          setIsModerator(role === PLATFORM_ROLES.MODERATOR || role === PLATFORM_ROLES.SUPER_ADMIN);
         } catch {
           setIsSuperAdmin(false);
           setIsModerator(false);

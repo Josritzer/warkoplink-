@@ -90,7 +90,8 @@ describe('kartu direktori warkop', () => {
     expect(firestore.getDocs).toHaveBeenCalledOnce();
     expect(screen.getByText(/31 dari 31 warkop/)).toBeTruthy();
   });
-\n  it('menampilkan placeholder elegan ketika warkop belum memiliki foto', async () => {
+
+  it('menampilkan placeholder elegan ketika warkop belum memiliki foto', async () => {
     fixture.rows = [{
       id: 'warung-baru',
       name: 'Warkop Baru',

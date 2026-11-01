@@ -56,7 +56,24 @@ function versionedPhotoURL(value) {
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('warkoplink:theme') === 'dark');
-  const [section, setSection] = useState(() => { const params = new URLSearchParams(window.location.search); return params.get('member') ? 'Profil Anggota' : params.get('warung') ? 'Profil Warkop' : 'Beranda'; });
+  const [section, setSectionState] = useState(() => { const params = new URLSearchParams(window.location.search); return params.get('member') ? 'Profil Anggota' : params.get('warung') ? 'Profil Warkop' : 'Beranda'; });
+  // Native page transitions are progressive enhancement: unsupported browsers and
+  // reduced-motion users keep the same immediate React navigation behavior.
+  const setSection = useCallback((nextSection) => {
+    const updateSection = () => setSectionState(nextSection);
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (typeof document.startViewTransition !== 'function' || reduceMotion) {
+      updateSection();
+      return;
+    }
+    try {
+      document.startViewTransition(() => {
+        updateSection();
+      });
+    } catch {
+      updateSection();
+    }
+  }, []);
   const [selectedWarungId, setSelectedWarungId] = useState(() => new URLSearchParams(window.location.search).get('warung') || '');
   const [memberProfile, setMemberProfile] = useState(() => { const uid = new URLSearchParams(window.location.search).get('member') || ''; return uid ? { uid, displayName: 'Anggota WarkopLink' } : null; });
   const [verifiedWarungs, setVerifiedWarungs] = useState([]);

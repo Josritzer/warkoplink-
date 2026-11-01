@@ -1,0 +1,105 @@
+/* Component-first responsiveness and native page transitions for WarkopLink.
+   All rules are progressive enhancements; existing layout remains the fallback. */
+
+/* Component containers let the directory respond to its available column width. */
+.content-section {
+  container: wl-content / inline-size;
+}
+
+.warung-card {
+  container: wl-warung-card / inline-size;
+}
+
+.directory-discovery-tabs {
+  container: wl-discovery-tabs / inline-size;
+}
+
+/* A narrow content column should stack cards even on a wide desktop viewport. */
+@container wl-content (max-width: 560px) {
+  .warung-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .directory-discovery-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+@container wl-content (min-width: 561px) {
+  .warung-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .directory-discovery-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Card internals adapt to the actual card width, not the device viewport. */
+@container wl-warung-card (max-width: 360px) {
+  .warung-card-body {
+    gap: 9px;
+    padding: 13px;
+  }
+
+  .warung-card-heading {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .warung-card h3 {
+    font-size: clamp(18px, 7cqi, 21px);
+    overflow-wrap: anywhere;
+  }
+
+  .warung-card-status {
+    margin-left: 0;
+  }
+
+  .warung-card-actions {
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+}
+
+@container wl-warung-card (min-width: 480px) {
+  .warung-card-body {
+    padding: 18px;
+  }
+
+  .warung-card h3 {
+    font-size: clamp(21px, 5cqi, 26px);
+  }
+}
+
+/* The browser animates only the main app content; header and bottom navigation
+   stay stable so the interface does not feel like a full-screen wipe. */
+.desktop-layout {
+  view-transition-name: wl-page-content;
+}
+
+::view-transition-old(wl-page-content) {
+  animation: wl-page-out 110ms ease both;
+}
+
+::view-transition-new(wl-page-content) {
+  animation: wl-page-in 180ms cubic-bezier(.2, .7, .2, 1) both;
+}
+
+@keyframes wl-page-out {
+  to { opacity: 0; transform: translateY(3px); }
+}
+
+@keyframes wl-page-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(wl-page-content),
+  ::view-transition-new(wl-page-content) {
+    animation: none !important;
+  }
+}

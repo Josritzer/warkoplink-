@@ -104,6 +104,8 @@ export default function App() {
   const [displayName, setDisplayName] = useState('');
   const [profileBio, setProfileBio] = useState('');
   const [profileLocation, setProfileLocation] = useState('');
+  const [profileUsername, setProfileUsername] = useState('');
+  const [savedUsername, setSavedUsername] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -186,6 +188,8 @@ export default function App() {
     if (!db || !user?.uid) {
       setProfileBio('');
       setProfileLocation('');
+      setProfileUsername('');
+      setSavedUsername('');
       setProfileLoaded(true);
       return undefined;
     }
@@ -194,6 +198,8 @@ export default function App() {
       const data = snapshot.exists() ? snapshot.data() : {};
       setProfileBio(typeof data.bio === 'string' ? data.bio : '');
       setProfileLocation(typeof data.location === 'string' ? data.location : '');
+      setProfileUsername(typeof data.username === 'string' ? data.username : '');
+      setSavedUsername(typeof data.username === 'string' ? data.username : '');
       setProfileLoaded(true);
     }).catch(() => {
       if (active) {
@@ -210,6 +216,11 @@ export default function App() {
     const nextName = String(displayName || user.displayName || '').trim();
     const nextBio = String(profileBio || '').trim();
     const nextLocation = String(profileLocation || '').trim();
+    const nextUsername = String(profileUsername || '').trim().toLowerCase().replace(/^@/, '');
+    if (!/^[a-z0-9_]{3,20}$/.test(nextUsername)) {
+      setNotice('Username harus 3–20 karakter, hanya huruf kecil, angka, dan garis bawah.');
+      return;
+    }
     if (nextName.length < 2 || nextName.length > 60) {
       setNotice('Nama tampilan harus berisi 2–60 karakter.');
       return;
@@ -223,20 +234,33 @@ export default function App() {
       const ready = await ensureProfile(user);
       if (!ready) throw new Error('profile-not-ready');
       await updateProfile(auth.currentUser, { displayName: nextName });
-      await updateDoc(doc(db, 'profiles', user.uid), {
-        displayName: nextName,
-        bio: nextBio,
-        location: nextLocation,
-        updatedAt: serverTimestamp()
+      await runTransaction(db, async transaction => {
+        const newUsernameRef = doc(db, 'usernames', nextUsername);
+        const newUsernameSnapshot = await transaction.get(newUsernameRef);
+        if (newUsernameSnapshot.exists() && newUsernameSnapshot.data()?.uid !== user.uid) {
+          throw new Error('username-taken');
+        }
+        const oldUsernameRef = savedUsername && savedUsername !== nextUsername
+          ? doc(db, 'usernames', savedUsername) : null;
+        const oldUsernameSnapshot = oldUsernameRef ? await transaction.get(oldUsernameRef) : null;
+        if (!newUsernameSnapshot.exists()) {
+          transaction.set(newUsernameRef, { uid: user.uid, username: nextUsername, createdAt: serverTimestamp() });
+        }
+        if (oldUsernameSnapshot?.exists() && oldUsernameSnapshot.data()?.uid === user.uid) {
+          transaction.delete(oldUsernameRef);
+        }
+        transaction.update(doc(db, 'profiles', user.uid), {
+          displayName: nextName, bio: nextBio, location: nextLocation,
+          username: nextUsername, updatedAt: serverTimestamp()
+        });
+        transaction.set(doc(db, 'publicProfiles', user.uid), {
+          uid: user.uid, displayName: nextName,
+          photoURL: versionedPhotoURL(auth.currentUser?.photoURL || user.photoURL || ''),
+          bio: nextBio, location: nextLocation, username: nextUsername,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
       });
-      await setDoc(doc(db, 'publicProfiles', user.uid), {
-        uid: user.uid,
-        displayName: nextName,
-        photoURL: versionedPhotoURL(auth.currentUser?.photoURL || user.photoURL || ''),
-        bio: nextBio,
-        location: nextLocation,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      setSavedUsername(nextUsername);
       await auth.currentUser?.reload();
       setUser({ ...auth.currentUser });
       setNotice('Profil berhasil diperbarui.');
@@ -1134,6 +1158,7 @@ export default function App() {
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
         {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><form className="profile-edit-form" onSubmit={handleSaveProfile}>
           <label>Nama tampilan<input value={displayName || user.displayName || ''} onChange={event => setDisplayName(event.target.value)} maxLength={60} minLength={2} required disabled={!profileLoaded || profileSaving}/></label>
+          <label>Username<input value={profileUsername} onChange={event => setProfileUsername(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20))} maxLength={20} minLength={3} placeholder="contoh: kopisore" disabled={!profileLoaded || profileSaving}/><small>Dipakai anggota lain untuk menyebut Anda: @username</small></label>
           <label>Bio singkat<textarea value={profileBio} onChange={event => setProfileBio(event.target.value)} maxLength={160} rows={3} placeholder="Ceritakan sedikit tentang diri Anda…" disabled={!profileLoaded || profileSaving}/><small>{profileBio.length}/160</small></label>
           <label>Lokasi<input value={profileLocation} onChange={event => setProfileLocation(event.target.value)} maxLength={80} placeholder="Contoh: Maduran, Lamongan" disabled={!profileLoaded || profileSaving}/></label>
           <button className="button button-dark" type="submit" disabled={!profileLoaded || profileSaving}>{profileSaving ? 'Menyimpan profil…' : 'Simpan profil'}</button>

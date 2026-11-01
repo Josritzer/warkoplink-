@@ -418,7 +418,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
-          'facilities', 'activities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
+          'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
         && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos']) || request.resource.data.updatedAt == request.time)
         && validWarungEdit(request.resource.data, warungId, resource.data.get('photos', [])));

@@ -809,6 +809,34 @@ describe('notifications', () => {
     await assertFails(getDoc(doc(asUser('bob'), 'notifications/comment-for-alice')));
   });
 
+  it('allows a post owner to receive a notification when another member reacts', async () => {
+    const db = asUser('bob');
+    await assertSucceeds(setDoc(doc(db, 'posts/post-alice/likes/bob'), {
+      uid: 'bob', emoji: '❤️', createdAt: serverTimestamp(),
+    }));
+    await assertSucceeds(setDoc(doc(db, 'notifications/reaction-for-alice'), {
+      recipientUid: 'alice', actorUid: 'bob', type: 'reaction', postId: 'post-alice',
+      createdAt: serverTimestamp(), readAt: null,
+    }));
+  });
+
+  it('allows a verified warung owner to receive a new-follower notification', async () => {
+    await env.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(), 'warungs/verified-warung'), validWarung({
+        ownerUid: 'alice', verificationStatus: 'verified',
+        createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+      }));
+    });
+    const db = asUser('bob');
+    await assertSucceeds(setDoc(doc(db, 'warungs/verified-warung/followers/bob'), {
+      uid: 'bob', createdAt: serverTimestamp(),
+    }));
+    await assertSucceeds(setDoc(doc(db, 'notifications/follow-for-alice'), {
+      recipientUid: 'alice', actorUid: 'bob', type: 'follow', warungId: 'verified-warung',
+      createdAt: serverTimestamp(), readAt: null,
+    }));
+  });
+
   it('only the recipient can mark a notification as read or delete it', async () => {
     const db = asUser('bob');
     const reply = await addDoc(collection(db, 'posts/post-alice/replies'), {

@@ -687,3 +687,7 @@
 .directory-event-badge{display:inline-flex;align-items:center;gap:7px;width:fit-content;max-width:100%;margin-top:10px;padding:7px 10px;border-radius:9px;background:#f2eafa;color:var(--wl-primary);font-size:10px;font-weight:800;letter-spacing:.25px}
 .directory-ranking-meta{display:inline-flex;align-items:center;gap:6px;margin:9px 10px 0 0;color:var(--wl-primary);font-size:11px;font-weight:700}
 @media(max-width:640px){.directory-category-tabs{gap:7px;margin-right:-2%;padding-right:2%}.directory-category{padding:10px 12px;font-size:11px}.directory-location-status{align-items:flex-start}.directory-location-status .button{padding:9px 12px}}
+
+
+.directory-event-title{display:block;margin-top:8px;color:var(--wl-ink);font-size:12px;line-height:1.5}
+.directory-event-time{display:block;margin-top:3px;color:var(--wl-muted);font-size:10px}

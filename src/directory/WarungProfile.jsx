@@ -101,6 +101,14 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       const followRef = doc(db, 'warungs', warungId, 'followers', user.uid);
       if (nextFollowing) {
         await setDoc(followRef, { uid: user.uid, createdAt: serverTimestamp() });
+        if (warung?.ownerUid && warung.ownerUid !== user.uid) {
+          try {
+            await setDoc(doc(collection(db, 'notifications')), {
+              recipientUid: warung.ownerUid, actorUid: user.uid, type: 'follow',
+              warungId, createdAt: serverTimestamp(), readAt: null
+            });
+          } catch { /* Pengikut tetap tersimpan meski notifikasi gagal dikirim. */ }
+        }
       } else {
         await deleteDoc(followRef);
       }

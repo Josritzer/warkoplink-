@@ -876,6 +876,44 @@ describe('peran platform', () => {
     await assertFails(getDoc(doc(asModerator(), 'verificationAudit/audit-seed')));
   });
 
+  it('moderator dapat memperbarui status laporan bersama audit atomik', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'postReports/post-alice_bob'), {
+        targetPostId: 'post-alice', targetAuthorId: 'alice', reporterUid: 'bob',
+        reason: 'Spam atau promosi berulang', createdAt: Timestamp.now(),
+      });
+    });
+    const db = asModerator();
+    const stateRef = doc(db, 'postReportModeration/post-alice_bob');
+    const auditRef = doc(db, 'postReportAudit/moderator-audit');
+    const batch = writeBatch(db);
+    batch.set(stateRef, {
+      reportId: 'post-alice_bob', status: 'Ditinjau', updatedBy: 'moderator',
+      updatedAt: serverTimestamp(), latestAuditId: auditRef.id,
+    });
+    batch.set(auditRef, {
+      reportId: 'post-alice_bob', previousStatus: 'Baru', newStatus: 'Ditinjau',
+      actorUid: 'moderator', note: '', createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('moderator tidak dapat memverifikasi pendaftaran warkop meski audit disertakan', async () => {
+    const ownerDb = asUser('alice');
+    await setDoc(doc(ownerDb, 'warungs/role-warung'), validWarung());
+    const db = asModerator();
+    const auditRef = doc(db, 'verificationAudit/moderator-forbidden');
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'warungs/role-warung'), {
+      verificationStatus: 'verified', verificationAuditId: auditRef.id, updatedAt: serverTimestamp(),
+    });
+    batch.set(auditRef, {
+      warungId: 'role-warung', warungName: 'Warkop Pojok', previousStatus: 'pending',
+      newStatus: 'verified', actorUid: 'moderator', reason: '', createdAt: serverTimestamp(),
+    });
+    await assertFails(batch.commit());
+  });
+
   it('super admin dapat membaca laporan dan audit verifikasi', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();

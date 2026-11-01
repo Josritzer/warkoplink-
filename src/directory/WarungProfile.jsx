@@ -121,7 +121,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
   const weekdays = [{ key: 'mon', label: 'Senin' }, { key: 'tue', label: 'Selasa' }, { key: 'wed', label: 'Rabu' }, { key: 'thu', label: 'Kamis' }, { key: 'fri', label: 'Jumat' }, { key: 'sat', label: 'Sabtu' }, { key: 'sun', label: 'Minggu' }];
   const profileSchedule = warung?.openingHours?.schedule || {};
   const hasWeeklySchedule = weekdays.some(({ key }) => Object.prototype.hasOwnProperty.call(profileSchedule, key));
-  const formatClock = (value) => typeof value === 'string' && /^\\d{2}:\\d{2}$/.test(value) ? value.replace(':', '.') : value;
+  const formatClock = (value) => typeof value === 'string' && /^\d{2}:\d{2}$/.test(value) ? value.replace(':', '.') : value;
 
   async function saveWarungDetails(event) {
     event.preventDefault();

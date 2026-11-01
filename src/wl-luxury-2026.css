@@ -303,7 +303,7 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
   .warung-card h3 { font-size: 22px; }
   .warung-profile-cover { aspect-ratio: 4 / 3; max-height: 260px; border-radius: 20px; }
   .warung-profile-heading { align-items: flex-start; flex-wrap: wrap; }
-  .warung-profile-follow-button { margin-left: auto; }
+  .warung-follow-button { margin-left: auto; }
   .bottom-nav {
     left: 12px;
     bottom: calc(8px + env(safe-area-inset-bottom, 0px));

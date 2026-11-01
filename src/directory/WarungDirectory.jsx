@@ -409,7 +409,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>
     <h2>Cari warkop di Lamongan.</h2>
-    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Hasil diurutkan berdasarkan nama. Pencarian dan filter otomatis memeriksa seluruh warkop terverifikasi yang tersedia.</p>
+    <p>Direktori publik hanya menampilkan warkop terverifikasi. Temukan warkop populer, agenda acara, lokasi terdekat, atau yang baru bergabung. Data dimuat bertahap; pencarian dan filter memeriksa halaman berikutnya agar hasil tidak terlewat.</p>
 
     <div className="directory-category-tabs" role="group" aria-label="Kategori penemuan warkop">
       <button type="button" className={category === 'popular' ? 'directory-category active' : 'directory-category'} aria-pressed={category === 'popular'} onClick={() => handleCategoryChange('popular')}><Flame size={16}/> Populer</button>

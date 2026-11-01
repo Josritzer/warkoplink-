@@ -19,7 +19,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [directoryRetry, setDirectoryRetry] = useState(0);
   const [lastDocument, setLastDocument] = useState(null);
   const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);\n  const [searchingAll, setSearchingAll] = useState(false);
   const [moreError, setMoreError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [facilityFilter, setFacilityFilter] = useState([]);
@@ -71,6 +71,54 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setStatus('ready');
     }, () => setStatus('error'));
   }, [mode, db, directoryRetry]);
+
+  const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua' || priceFilter !== 'semua';
+
+  // Ketika pengguna mencari atau memfilter, perluas seluruh halaman verified secara otomatis.
+  // Tanpa ini, hasil di halaman ke-2 dan seterusnya tidak pernah ikut diperiksa.
+  useEffect(() => {
+    if (mode !== 'directory' || !db || status !== 'ready' || !hasActiveFilter || !hasMore || !lastDocument) return undefined;
+    let cancelled = false;
+    async function loadAllMatchingPages() {
+      setSearchingAll(true);
+      setMoreError('');
+      let cursor = lastDocument;
+      let hasNextPage = true;
+      const additionalRows = [];
+      try {
+        while (hasNextPage && !cancelled) {
+          const snapshot = await getDocs(query(
+            collection(db, 'warungs'),
+            where('verificationStatus', '==', 'verified'),
+            startAfter(cursor),
+            limit(30)
+          ));
+          const pageRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+          additionalRows.push(...pageRows);
+          if (snapshot.docs.length) cursor = snapshot.docs.at(-1);
+          hasNextPage = snapshot.docs.length === 30;
+        }
+        if (!cancelled) {
+          setWarungs((current) => {
+            const merged = new Map(current.map((item) => [item.id, item]));
+            additionalRows.forEach((item) => { if (!merged.has(item.id)) merged.set(item.id, item); });
+            return [...merged.values()].sort((a, b) =>
+              String(a.nameNormalized || a.name || '').localeCompare(String(b.nameNormalized || b.name || ''), 'id')
+              || a.id.localeCompare(b.id)
+            );
+          });
+          setLastDocument(cursor);
+          setHasMore(false);
+        }
+      } catch {
+        if (!cancelled) setMoreError('Pencarian belum mencakup seluruh direktori karena halaman berikutnya gagal dimuat. Coba lagi.');
+      } finally {
+        if (!cancelled) setSearchingAll(false);
+      }
+    }
+    loadAllMatchingPages();
+    return () => { cancelled = true; };
+  }, [mode, db, status, hasActiveFilter, hasMore, lastDocument, directoryRetry]);
 
 
   function handleNextRegistrationStep() {
@@ -184,7 +232,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   }
 
   async function handleLoadMore() {
-    if (!db || !lastDocument || loadingMore || !hasMore) return;
+    if (!db || !lastDocument || loadingMore || searchingAll || !hasMore) return;
     setLoadingMore(true);
     setMoreError('');
     try {
@@ -261,7 +309,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
 
   const facilityOptions = collectFacilities(warungs);
   const visibleWarungs = filterWarungs(warungs, { search: searchTerm, facilities: facilityFilter, activities: activityFilter, operational: operationalFilter, priceRange: priceFilter, now });
-  const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua' || priceFilter !== 'semua';
   function toggleFacility(key) {
     setFacilityFilter((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   }
@@ -271,7 +318,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>
     <h2>Cari warkop di Lamongan.</h2>
-    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Hasil diurutkan berdasarkan nama. Pencarian dan filter berlaku pada data yang sudah dimuat; muat halaman berikutnya untuk memperluas hasil.</p>
+    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Hasil diurutkan berdasarkan nama. Pencarian dan filter otomatis memeriksa seluruh warkop terverifikasi yang tersedia.</p>
     <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, fasilitas…" aria-label="Cari warkop"/></label>
     <div className="directory-filters" role="group" aria-label="Filter warkop">
       <label>Operasional<select aria-label="Filter operasional" value={operationalFilter} onChange={(e) => setOperationalFilter(e.target.value)}><option value="semua">Semua status</option><option value="buka-sekarang">Buka sekarang</option><option value="buka-24-jam">Buka 24 jam</option></select></label>
@@ -282,8 +329,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     </div>
     {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
     {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi.</p><button className="button button-quiet" type="button" onClick={() => setDirectoryRetry((attempt) => attempt + 1)}>Coba lagi</button></div>}
-    {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
-    {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
+    {status === 'ready' && searchingAll && visibleWarungs.length === 0 && <div className="empty-state" role="status"><h3>Menelusuri seluruh direktori…</h3><p>Memeriksa halaman warkop berikutnya agar hasil pencarian tidak terlewat.</p></div>}\n    {status === 'ready' && !searchingAll && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
+    {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{searchingAll ? ' · sedang memeriksa halaman berikutnya' : hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
     <div className="warung-list">{visibleWarungs.map((item) => {
       const primaryPhoto = Array.isArray(item.photos) ? item.photos.find((photo) => typeof photo === 'string' && photo.trim()) : '';
       const openState = item.openingHours?.is24Hours === true ? true : isOpenNow(item, now);
@@ -312,7 +359,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       </article>;
     })}</div>
     {moreError && <p className="form-error" role="alert">{moreError}</p>}
-    {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore}>{loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
+    {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore || searchingAll}>{searchingAll ? 'Menelusuri direktori…' : loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
     <button className="button button-dark directory-register-cta" type="button" onClick={onRegister}>Daftarkan warkop</button>
   </section>;
 }

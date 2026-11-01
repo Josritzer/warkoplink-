@@ -222,6 +222,26 @@ textarea:focus-visible, select:focus-visible {
 }
 
 
+/* Multi-step warung registration */
+.warung-registration-progress { display: grid; gap: 10px; margin: 18px 0 22px; }
+.warung-registration-progress-copy { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; }
+.warung-registration-progress-copy span { color: var(--muted, #687080); text-align: right; }
+.warung-registration-progress-track { height: 5px; overflow: hidden; border-radius: 99px; background: #eceaf4; }
+.warung-registration-progress-track span { display: block; height: 100%; border-radius: inherit; background: #7653c8; transition: width 180ms ease; }
+.warung-registration-step-labels { display: flex; justify-content: space-between; color: #8a8793; font-size: 11px; }
+.warung-registration-step-labels .active { color: #6543b2; font-weight: 700; }
+.warung-location-button { display: inline-flex; width: fit-content; align-items: center; gap: 8px; }
+.warung-form-step-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+.warung-form-step-actions .button { min-width: 112px; }
+.warung-registration-summary { display: grid; gap: 6px; padding: 14px; border: 1px solid #e7e4ee; border-radius: 12px; background: #faf9fc; font-size: 13px; overflow-wrap: anywhere; }
+.warung-registration-summary strong { font-size: 15px; }
+@media (max-width: 520px) {
+  .warung-registration-progress-copy { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .warung-form-step-actions { position: sticky; bottom: 8px; padding: 10px 0 max(4px, env(safe-area-inset-bottom)); background: var(--surface, #fff); z-index: 2; }
+  .warung-form-step-actions .button { flex: 1; }
+}
+
+
 /* Event organizer identity and direct public warung profile navigation. */
 .event-organizer { margin: 12px 0; }
 .event-organizer-link {

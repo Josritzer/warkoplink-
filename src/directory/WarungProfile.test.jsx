@@ -27,6 +27,7 @@ vi.mock('firebase/firestore', () => ({
   }),
   serverTimestamp: vi.fn(() => 'server-time'),
   setDoc: vi.fn(async () => { state.following = true; state.count += 1; }),
+  updateDoc: vi.fn(async () => undefined),
 }));
 
 import WarungProfile from './WarungProfile.jsx';
@@ -83,6 +84,37 @@ describe('WarungProfile', () => {
     expect(screen.getByText(/Menu belum dicantumkan/)).toBeTruthy();
     expect(screen.getByText(/Fasilitas belum dicantumkan/)).toBeTruthy();
     expect(screen.getByText(/Suasana belum dideskripsikan/)).toBeTruthy();
+    state.warung = null;
+  });
+
+
+  it('pemilik dapat mengedit identitas, menu, fasilitas, dan suasana warkop', async () => {
+    const { updateDoc } = await import('firebase/firestore');
+    state.warung = {
+      name: 'Warkop Pojok', ownerUid: 'owner-1', verificationStatus: 'verified',
+      address: 'Jl. Merdeka, Lamongan', coordinates: { lat: -7, lng: 112 },
+      facilities: ['Wi-Fi'], menuItems: ['Kopi', 'Teh'], specialties: ['Kopi racikan'],
+      ambience: 'Santai untuk ngobrol', priceRange: 'belum-diisi',
+      openingHours: { keterangan: '08.00–23.00' }, photos: []
+    };
+    render(<WarungProfile warungId="warung-1" db={{}} user={{ uid: 'owner-1' }} onBack={vi.fn()} onRequestAuth={vi.fn()} onNotice={vi.fn()} />);
+    expect(await screen.findByRole('heading', { name: 'Kelola Warkop' })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Warkop Senja' } });
+    fireEvent.change(screen.getByLabelText('Alamat warkop'), { target: { value: 'Jl. Baru, Maduran, Lamongan' } });
+    fireEvent.change(screen.getByLabelText('Menu utama (pisahkan dengan koma)'), { target: { value: 'Kopi, Teh tarik' } });
+    fireEvent.change(screen.getByLabelText('Menu spesial (pisahkan dengan koma)'), { target: { value: 'Kopi gula aren' } });
+    fireEvent.change(screen.getByLabelText('Fasilitas (pisahkan dengan koma)'), { target: { value: 'Wi-Fi, Parkir, Toilet' } });
+    fireEvent.change(screen.getByLabelText('Suasana warkop'), { target: { value: 'Nyaman untuk kerja dan ngobrol' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan perubahan warkop' }));
+    await waitFor(() => expect(updateDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      name: 'Warkop Senja',
+      nameNormalized: 'warkop senja',
+      address: 'Jl. Baru, Maduran, Lamongan',
+      menuItems: ['Kopi', 'Teh tarik'],
+      specialties: ['Kopi gula aren'],
+      facilities: ['Wi-Fi', 'Parkir', 'Toilet'],
+      ambience: 'Nyaman untuk kerja dan ngobrol'
+    })));
     state.warung = null;
   });
 

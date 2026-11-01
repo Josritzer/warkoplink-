@@ -674,3 +674,23 @@
  .member-profile-privacy{padding-inline:14px}
 }
 @media(prefers-reduced-motion:reduce){.member-profile-page *{scroll-behavior:auto}}
+
+
+/* Four discovery categories — responsive, keyboard-friendly and theme-token based. */
+.directory-discovery-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:22px 0 16px}
+.directory-discovery-tabs button{display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;align-items:center;column-gap:9px;min-width:0;min-height:68px;padding:11px 12px;border:1px solid var(--wl-line);border-radius:14px;background:var(--wl-paper);color:var(--wl-ink);text-align:left;transition:border-color .16s,background .16s,transform .16s}
+.directory-discovery-tabs button:hover{border-color:var(--wl-primary-bright);transform:translateY(-1px)}
+.directory-discovery-tabs button:focus-visible{outline:3px solid var(--wl-primary-bright);outline-offset:2px}
+.directory-discovery-tabs button.active{border-color:var(--wl-primary-bright);background:var(--wl-primary-tint);box-shadow:inset 0 0 0 1px var(--wl-primary-bright)}
+.directory-discovery-tabs button>span{grid-row:1/3;display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:var(--wl-line-soft);color:var(--wl-primary-bright);font-size:18px;font-weight:800}
+.directory-discovery-tabs button b{font-size:12px;line-height:1.3;overflow-wrap:anywhere}
+.directory-discovery-tabs button small{font-size:10px;color:var(--wl-muted);line-height:1.35;overflow-wrap:anywhere}
+.directory-category-status,.directory-location-note{margin:12px 0;padding:12px 14px;border:1px solid var(--wl-line);border-radius:12px;background:var(--wl-paper);color:var(--wl-muted);font-size:12px;line-height:1.55}
+.directory-location-note p{margin:0 0 10px}
+.directory-location-note .button{min-height:40px}
+.directory-card-signal{display:inline-flex;align-items:center;gap:5px;margin:0 0 9px;color:var(--wl-primary-bright);font-size:11px;font-weight:700}
+.directory-event-signal{display:grid;gap:4px;margin:10px 0;padding:10px 11px;border-left:3px solid var(--wl-primary-bright);border-radius:0 9px 9px 0;background:var(--wl-primary-tint)}
+.directory-event-signal b{font-size:9px;letter-spacing:.08em;color:var(--wl-primary-bright)}
+.directory-event-signal span{font-size:11px;line-height:1.45;color:var(--wl-ink);overflow-wrap:anywhere}
+@media(max-width:760px){.directory-discovery-tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.directory-discovery-tabs button{min-height:64px;padding:9px}}
+@media(max-width:380px){.directory-discovery-tabs button{grid-template-columns:26px 1fr;column-gap:7px;padding:8px}.directory-discovery-tabs button>span{width:26px;height:26px}.directory-discovery-tabs button b{font-size:11px}.directory-discovery-tabs button small{font-size:9px}}

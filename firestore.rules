@@ -563,5 +563,57 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Notifikasi pribadi. Dokumen hanya boleh dibuat sebagai bukti aktivitas sumber
+    // yang benar-benar ditulis oleh actor; penerima hanya dapat membaca/menandai miliknya.
+    function validMentionText(body, username) {
+      return body is string && body.matches('(?is).*@' + username + '([^a-z0-9_]|$).*');
+    }
+
+    function validNotification(data) {
+      return signedIn()
+        && data.keys().hasAll(['recipientUid', 'actorUid', 'type', 'postId', 'createdAt', 'readAt'])
+        && data.keys().hasOnly(['recipientUid', 'actorUid', 'type', 'postId', 'replyId', 'username', 'createdAt', 'readAt'])
+        && data.recipientUid is string
+        && data.recipientUid != request.auth.uid
+        && data.actorUid == request.auth.uid
+        && data.type in ['mention', 'comment']
+        && data.postId is string
+        && exists(/databases/$(database)/documents/posts/$(data.postId))
+        && data.createdAt == request.time
+        && data.readAt == null
+        && (
+          (data.type == 'mention'
+            && data.username is string
+            && exists(/databases/$(database)/documents/usernames/$(data.username))
+            && get(/databases/$(database)/documents/usernames/$(data.username)).data.uid == data.recipientUid
+            && (
+              (!data.keys().hasAny(['replyId'])
+                && get(/databases/$(database)/documents/posts/$(data.postId)).data.authorId == request.auth.uid
+                && validMentionText(get(/databases/$(database)/documents/posts/$(data.postId)).data.body, data.username))
+              || (data.keys().hasAny(['replyId'])
+                && data.replyId is string
+                && exists(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId))
+                && get(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId)).data.authorId == request.auth.uid
+                && validMentionText(get(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId)).data.body, data.username))
+            ))
+          || (data.type == 'comment'
+            && data.replyId is string
+            && get(/databases/$(database)/documents/posts/$(data.postId)).data.authorId == data.recipientUid
+            && exists(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId))
+            && get(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId)).data.authorId == request.auth.uid)
+        );
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.recipientUid == request.auth.uid;
+      allow create: if validNotification(request.resource.data);
+      allow update: if signedIn()
+        && resource.data.recipientUid == request.auth.uid
+        && resource.data.readAt == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
+        && request.resource.data.readAt == request.time;
+      allow delete: if signedIn() && resource.data.recipientUid == request.auth.uid;
+    }
+
   }
 }

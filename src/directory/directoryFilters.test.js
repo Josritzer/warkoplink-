@@ -35,7 +35,8 @@ describe('directoryFilters', () => {
     expect(filterWarungs(rich, { search: 'teras sawah' }).map((item) => item.id)).toEqual(['special']);
     expect(filterWarungs(rich, { search: 'mi nyemek' }).map((item) => item.id)).toEqual(['special']);
   });
-\n  it('fasilitas terpilih harus terpenuhi semuanya', () => {
+
+  it('fasilitas terpilih harus terpenuhi semuanya', () => {
     expect(filterWarungs(items, { facilities: ['wi-fi'] }).map((i) => i.id)).toEqual(['1', '2']);
     expect(filterWarungs(items, { facilities: ['wi-fi', 'parkir'] }).map((i) => i.id)).toEqual(['1']);
   });

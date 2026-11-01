@@ -10,7 +10,7 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(value.toDate());
 }
 
-export default function AdminPanel({ db, user, onNotice }) {
+export default function AdminPanel({ db, user, onNotice, canVerifyWarungs = false }) {
   const [pending, setPending] = useState([]);
   const [audit, setAudit] = useState([]);
   const [loadingPending, setLoadingPending] = useState(true);
@@ -20,6 +20,11 @@ export default function AdminPanel({ db, user, onNotice }) {
   const [busyId, setBusyId] = useState('');
 
   useEffect(() => {
+    if (!canVerifyWarungs) {
+      setLoadingPending(false);
+      setLoadingAudit(false);
+      return undefined;
+    }
     if (!db) {
       setError('Firebase belum dikonfigurasi.');
       setLoadingPending(false);
@@ -48,7 +53,7 @@ export default function AdminPanel({ db, user, onNotice }) {
       unsubscribePending();
       unsubscribeAudit();
     };
-  }, [db]);
+  }, [db, canVerifyWarungs]);
 
   async function decide(warung, nextStatus) {
     if (!db || !user || busyId) return;
@@ -96,10 +101,11 @@ export default function AdminPanel({ db, user, onNotice }) {
   return <section className="content-section admin-section">
     <span className="eyebrow">PENGELOLAAN TERBATAS</span>
     <h2>Panel admin</h2>
-    <p>Verifikasi pendaftaran dan periksa riwayat keputusan. Perubahan status dan catatan audit disimpan dalam satu batch atomik.</p>
-    <div className="admin-security-note"><ShieldAlert size={18}/><span>Akses menggunakan klaim admin dari Firebase Authentication. Panel ini tidak memberikan hak admin kepada pengguna.</span></div>
+    <p>{canVerifyWarungs ? 'Kelola moderasi laporan dan verifikasi pendaftaran warkop.' : 'Tinjau laporan dan bantu menjaga percakapan komunitas tetap sehat.'}</p>
+    <div className="admin-security-note"><ShieldAlert size={18}/><span>Akses ditentukan oleh klaim role tepercaya dari Firebase Authentication. Panel ini tidak memberikan hak kepada pengguna.</span></div>
     {error && <p className="form-error" role="alert">{error}</p>}
     <ReportModerationPanel db={db} user={user} onNotice={onNotice}/>
+    {canVerifyWarungs && <>
     <div className="admin-subheading"><h3><Clock3 size={18}/> Pendaftaran menunggu</h3><span>{pending.length} / 50</span></div>
     {loadingPending && <p role="status">Memuat pendaftaran…</p>}
     {!loadingPending && pending.length === 0 && <div className="empty-state"><h3>Tidak ada pendaftaran menunggu</h3><p>Pendaftaran baru akan muncul di sini.</p></div>}
@@ -120,5 +126,6 @@ export default function AdminPanel({ db, user, onNotice }) {
       <div><b>{item.warungName || item.warungId}</b><small>{formatDate(item.createdAt)} · Admin UID: {item.actorUid}</small>{item.reason && <p>{item.reason}</p>}</div>
       <span className={item.newStatus === 'verified' ? 'admin-status-verified' : 'admin-status-rejected'}>{item.newStatus === 'verified' ? 'DISETUJUI' : 'DITOLAK'}</span>
     </article>)}</div>
+    </>}
   </section>;
 }

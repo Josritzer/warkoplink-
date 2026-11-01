@@ -121,8 +121,9 @@ export default function ChatPostCard({
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const [moreEmojisOpen, setMoreEmojisOpen] = useState(false);
   const [rsvpStatus, setRsvpStatus] = useState('');
-  const [rsvpCount, setRsvpCount] = useState(0);
+  const [rsvpCount, setRsvpCount] = useState(null);
   const [rsvpLoading, setRsvpLoading] = useState(false);
+  const rsvpLock = useRef(false);
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(post.body || '');
   const [editTopic, setEditTopic] = useState(displayTopic(post.topic));
@@ -158,7 +159,8 @@ export default function ChatPostCard({
       setNotice('Masuk untuk menyatakan kehadiran acara.');
       return;
     }
-    if (!db || rsvpLoading) return;
+    if (!db || rsvpLoading || rsvpLock.current) return;
+    rsvpLock.current = true;
     setRsvpLoading(true);
     const rsvpRef = doc(db, 'posts', post.id, 'eventRsvps', user.uid);
     try {
@@ -176,6 +178,7 @@ export default function ChatPostCard({
         ? 'RSVP ditolak oleh aturan keamanan.'
         : 'Status kehadiran belum tersimpan. Coba lagi.');
     } finally {
+      rsvpLock.current = false;
       setRsvpLoading(false);
     }
   }
@@ -205,6 +208,18 @@ export default function ChatPostCard({
 
   const category = displayTopic(post.topic);
   const linkedWarung = post.warungId ? verifiedWarungs.find(warung => warung.id === post.warungId) : null;
+  const eventStart = post.eventStartAt ? new Date(post.eventStartAt) : null;
+  const validEventStart = eventStart && !Number.isNaN(eventStart.getTime());
+  const parsedEventEnd = post.eventEndAt ? new Date(post.eventEndAt) : null;
+  const eventEnd = parsedEventEnd && !Number.isNaN(parsedEventEnd.getTime())
+    ? parsedEventEnd
+    : validEventStart ? new Date(eventStart.getTime() + 2 * 60 * 60 * 1000) : null;
+  const eventLifecycle = post.eventStatus === 'cancelled'
+    ? { label: 'Dibatalkan', canRsvp: false }
+    : !validEventStart ? { label: 'Waktu belum ditentukan', canRsvp: true }
+      : Date.now() < eventStart.getTime() ? { label: 'Akan datang', canRsvp: true }
+        : Date.now() <= eventEnd.getTime() ? { label: 'Sedang berlangsung', canRsvp: true }
+          : { label: 'Acara selesai', canRsvp: false };
   const metaItems = [
     post.postType && { label: post.postType, icon: '✦' },
     post.eventDate && { label: post.eventDate, icon: '◷' },
@@ -297,18 +312,22 @@ export default function ChatPostCard({
           <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
         </div>
       </div>
-      {category === 'Info & Acara' && <div className={`event-action-row event-card-actions${post.eventStatus === 'cancelled' ? ' event-cancelled' : ''}`}>
-        {post.eventStatus === 'cancelled' && <strong className="event-cancelled-label" role="status">Acara dibatalkan</strong>}
-        {post.eventKind && <span className="event-kind-pill">{post.eventKind}</span>}
-        {post.eventStartAt && <span className="event-time-label">{new Date(post.eventStartAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}{post.eventEndAt ? ` – ${new Date(post.eventEndAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : ''}</span>}
+      {category === 'Info & Acara' && <div className={"event-action-row event-card-actions" + (eventLifecycle.label === 'Dibatalkan' ? ' event-cancelled' : '')}>
+        <div className="event-lifecycle-row">
+          {post.eventKind && <span className="event-kind-pill">{post.eventKind}</span>}
+          <span className={"event-lifecycle-pill" + (eventLifecycle.label === 'Dibatalkan' ? ' is-cancelled' : eventLifecycle.label === 'Acara selesai' ? ' is-ended' : '')} role="status">{eventLifecycle.label}</span>
+        </div>
+        {validEventStart && <span className="event-time-label">{eventStart.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}{eventEnd ? ' – ' + eventEnd.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}</span>}
         {Number.isFinite(post.eventCapacity) && post.eventCapacity > 0 && <span className="event-capacity-label">Maks. {post.eventCapacity} orang</span>}
-        {post.eventStartAt && post.eventStatus !== 'cancelled' && <><a className="button button-quiet" href={calendarLink(post)} target="_blank" rel="noopener noreferrer" aria-label="Tambah acara ke Google Calendar" title="Buka Google Calendar dengan detail acara terisi">Tambah ke Google Calendar</a><button className="button button-quiet" type="button" onClick={() => setNotice(downloadIcs(post) ? 'File kalender acara berhasil disiapkan.' : 'Tanggal acara belum valid.')} title="Unduh file untuk aplikasi kalender lain">Unduh .ics</button></>}
-        {post.eventStatus !== 'cancelled' && <>
-          <span className="event-rsvp-count" aria-live="polite">{rsvpCount} ikut</span>
-          <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'going'} disabled={rsvpLoading} aria-busy={rsvpLoading} onClick={() => changeRsvp('going')}>{rsvpLoading ? 'Menyimpan…' : rsvpStatus === 'going' ? '✓ Ikut' : 'Ikut acara'}</button>
-          <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'maybe'} disabled={rsvpLoading} aria-busy={rsvpLoading} onClick={() => changeRsvp('maybe')}>{rsvpLoading ? 'Menyimpan…' : rsvpStatus === 'maybe' ? '✓ Mungkin' : 'Mungkin'}</button>
+        {eventLifecycle.canRsvp && <>
+          <div className="event-rsvp-primary">
+            <button className="button button-dark" type="button" aria-pressed={rsvpStatus === 'going'} disabled={rsvpLoading} aria-busy={rsvpLoading} onClick={() => changeRsvp('going')}>{rsvpLoading ? 'Menyimpan…' : rsvpStatus === 'going' ? '✓ Anda ikut' : 'Ikut acara'}</button>
+            <button className="button button-quiet" type="button" aria-pressed={rsvpStatus === 'maybe'} disabled={rsvpLoading} aria-busy={rsvpLoading} onClick={() => changeRsvp('maybe')}>{rsvpLoading ? 'Menyimpan…' : rsvpStatus === 'maybe' ? '✓ Mungkin' : 'Mungkin'}</button>
+          </div>
+          {typeof rsvpCount === 'number' && <span className="event-rsvp-count" aria-live="polite">{rsvpCount.toLocaleString('id-ID')} ikut</span>}
           {rsvpLoading && <small className="event-rsvp-pending" role="status" aria-live="polite">Menyimpan kehadiran ke server…</small>}
         </>}
+        {validEventStart && eventLifecycle.label !== 'Dibatalkan' && <div className="event-calendar-actions"><a className="button button-quiet" href={calendarLink(post)} target="_blank" rel="noopener noreferrer" aria-label="Tambah acara ke Google Calendar" title="Buka Google Calendar dengan detail acara terisi">Tambah ke kalender</a><button className="button button-quiet" type="button" onClick={() => setNotice(downloadIcs(post) ? 'File kalender acara berhasil disiapkan.' : 'Tanggal acara belum valid.')} title="Unduh file untuk aplikasi kalender lain">Unduh .ics</button></div>}
       </div>}
       {category === 'Jual Beli & Jasa Lokal' && normalizedWhatsAppNumber(post.contact) && <div className="event-action-row">
         <a className="button button-dark" href={`https://wa.me/${normalizedWhatsAppNumber(post.contact)}`} target="_blank" rel="noopener noreferrer" aria-label="Hubungi penjual melalui WhatsApp">Chat WhatsApp</a>

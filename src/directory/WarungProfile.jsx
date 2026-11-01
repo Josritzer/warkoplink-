@@ -119,6 +119,9 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
 
   const isOwner = Boolean(user?.uid && warung?.ownerUid === user.uid);
   const weekdays = [{ key: 'mon', label: 'Senin' }, { key: 'tue', label: 'Selasa' }, { key: 'wed', label: 'Rabu' }, { key: 'thu', label: 'Kamis' }, { key: 'fri', label: 'Jumat' }, { key: 'sat', label: 'Sabtu' }, { key: 'sun', label: 'Minggu' }];
+  const profileSchedule = warung?.openingHours?.schedule || {};
+  const hasWeeklySchedule = weekdays.some(({ key }) => Object.prototype.hasOwnProperty.call(profileSchedule, key));
+  const formatClock = (value) => typeof value === 'string' && /^\d{2}:\d{2}$/.test(value) ? value.replace(':', '.') : value;
 
   async function saveWarungDetails(event) {
     event.preventDefault();
@@ -207,7 +210,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
 
   return <section className="content-section warung-profile-page" aria-labelledby="warung-profile-title">
     <button className="button button-quiet profile-back" type="button" onClick={onBack}><ArrowLeft size={16}/> Kembali ke direktori</button>
-    <div className="warung-profile-cover">{warung.photos?.[0] ? <img src={warung.photos[0]} alt={`Foto utama ${warung.name}`} /> : <Store size={38}/>}</div>
+    <div className="warung-profile-cover">{warung.photos?.[0] ? <img src={warung.photos[0]} alt={`Foto utama ${warung.name}`} /> : <div className="warung-profile-cover-empty" role="img" aria-label={`Foto warkop belum tersedia untuk ${warung.name}`}><Store size={38}/><span>Foto warkop belum ditambahkan</span></div>}</div>
     {Array.isArray(warung.photos) && warung.photos.length > 0 && <div className="warung-photo-gallery" aria-label="Galeri foto warkop">{warung.photos.slice(0, 5).map((photo, index) => <img key={`${photo}-${index}`} src={photo} alt={`Foto ${warung.name} ${index + 1}`} loading="lazy" />)}</div>}
     <div className="warung-profile-heading">
       <div className="warung-profile-avatar"><Store size={30}/></div>
@@ -223,12 +226,30 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
     <div className="warung-profile-details">
       <h2>Tentang warkop</h2>
       <p className="warung-profile-address"><MapPin size={17}/>{warung.address}</p>
-      {warung.openingHours?.keterangan && <p><strong>Jam buka:</strong> {warung.openingHours.keterangan}</p>}
-      {Array.isArray(warung.menuItems) && warung.menuItems.length > 0 && <div className="warung-profile-menu"><h3>Menu utama</h3><div className="facility-tags">{warung.menuItems.map((item) => <span key={item}>{item}</span>)}</div></div>}
-      {Array.isArray(warung.specialties) && warung.specialties.length > 0 && <div className="warung-profile-menu"><h3>Menu spesial</h3><div className="facility-tags">{warung.specialties.map((item) => <span key={item}>{item}</span>)}</div></div>}
-      {warung.ambience && <p><strong>Suasana:</strong> {warung.ambience}</p>}
+      <section className="warung-profile-info-block" aria-labelledby="warung-profile-hours-title">
+        <h3 id="warung-profile-hours-title">Jam operasional</h3>
+        {warung.openingHours?.is24Hours === true ? <p>Buka 24 jam setiap hari</p> : hasWeeklySchedule
+          ? <dl className="warung-profile-hours-list">{weekdays.map(({ key, label }) => {
+              const entry = profileSchedule[key];
+              return <div key={key}><dt>{label}</dt><dd>{entry?.closed ? 'Tutup' : entry?.open && entry?.close ? `${formatClock(entry.open)}–${formatClock(entry.close)}` : 'Belum dicantumkan'}</dd></div>;
+            })}</dl>
+          : warung.openingHours?.keterangan && warung.openingHours.keterangan !== 'Jadwal mingguan tersedia di profil'
+            ? <p>{warung.openingHours.keterangan}</p>
+            : <p className="profile-empty-hint">Jam operasional belum dicantumkan. Hubungi warkop untuk memastikan waktu buka.</p>}
+      </section>
+      <section className="warung-profile-info-block"><h3>Menu utama</h3>
+        {Array.isArray(warung.menuItems) && warung.menuItems.length > 0 ? <div className="facility-tags">{warung.menuItems.map((item) => <span key={item}>{item}</span>)}</div> : <p className="profile-empty-hint">Menu belum dicantumkan. Hubungi warkop untuk memastikan menu yang tersedia.</p>}
+      </section>
+      <section className="warung-profile-info-block"><h3>Menu spesial</h3>
+        {Array.isArray(warung.specialties) && warung.specialties.length > 0 ? <div className="facility-tags">{warung.specialties.map((item) => <span key={item}>{item}</span>)}</div> : <p className="profile-empty-hint">Menu spesial belum dibagikan. Cek kembali nanti untuk rekomendasi dari pemilik.</p>}
+      </section>
+      <section className="warung-profile-info-block"><h3>Suasana</h3>
+        {warung.ambience ? <p>{warung.ambience}</p> : <p className="profile-empty-hint">Suasana belum dideskripsikan. Lihat foto warkop atau kunjungi langsung untuk mengenalnya.</p>}
+      </section>
       {warung.priceRange && warung.priceRange !== 'belum-diisi' && <p><strong>Kisaran harga:</strong> {warung.priceRange}</p>}
-      {(warung.facilities || []).length > 0 && <div className="facility-tags">{warung.facilities.map((facility) => <span key={facility}>{facility}</span>)}</div>}
+      <section className="warung-profile-info-block"><h3>Fasilitas</h3>
+        {(Array.isArray(warung.facilities) && warung.facilities.length > 0) ? <div className="facility-tags">{warung.facilities.map((facility) => <span key={facility}>{facility}</span>)}</div> : <p className="profile-empty-hint">Fasilitas belum dicantumkan. Tanyakan langsung kepada warkop sebelum berkunjung.</p>}
+      </section>
       {Number.isFinite(warung.coordinates?.lat) && Number.isFinite(warung.coordinates?.lng) && <a className="warung-map-link" href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(warung.coordinates.lat + ',' + warung.coordinates.lng)} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta ↗</a>}
     </div>
     <section className="warung-profile-events" aria-labelledby="warung-profile-events-title">
@@ -237,6 +258,9 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
         const [title, ...descriptionLines] = String(event.body || 'Acara warkop').split(/\r?\n/);
         const startsAt = event.eventStartAt ? new Date(event.eventStartAt) : null;
         const validStart = startsAt && !Number.isNaN(startsAt.getTime());
+        const parsedEnd = event.eventEndAt ? new Date(event.eventEndAt) : null;
+        const endsAt = parsedEnd && !Number.isNaN(parsedEnd.getTime()) ? parsedEnd : validStart ? new Date(startsAt.getTime() + 2 * 60 * 60 * 1000) : null;
+        const eventState = event.eventStatus === 'cancelled' ? 'Dibatalkan' : !validStart ? 'Waktu belum ditentukan' : Date.now() < startsAt.getTime() ? 'Akan datang' : endsAt && Date.now() > endsAt.getTime() ? 'Selesai' : 'Berlangsung';
         return <article className={event.eventStatus === 'cancelled' ? 'warung-event-card is-cancelled' : 'warung-event-card'} key={event.id}>
           {event.eventPhotoURL && <img className="warung-event-poster" src={event.eventPhotoURL} alt={`Poster ${title}`} loading="lazy"/>}
           <div className="warung-event-copy">
@@ -245,13 +269,13 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
             <div className="warung-event-meta">
               {event.eventKind && <span>{event.eventKind}</span>}
               {validStart && <time dateTime={startsAt.toISOString()}>{startsAt.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</time>}
-              {event.eventStatus === 'cancelled' && <span role="status">Dibatalkan</span>}
+              <span className="event-lifecycle-pill" role="status">{eventState}</span>
             </div>
           </div>
         </article>;
-      })}</div> : <p>Belum ada acara dari warkop ini. Kegiatan terbaru akan tampil di sini setelah dibagikan.</p>}
+      })}</div> : <p>Belum ada acara yang dibagikan dari warkop ini. Jelajahi obrolan komunitas atau kunjungi lagi nanti untuk melihat agenda terbaru.</p>}
     </section>
-    <div className="warung-profile-posts"><h2>Aktivitas warkop</h2>{(warung.activities || []).length ? <div className="facility-tags">{warung.activities.map((activity) => <span key={activity}>{ACTIVITY_OPTIONS.find((item) => item.value === activity)?.label || activity}</span>)}</div> : <p>Aktivitas belum ditambahkan oleh pemilik.</p>}</div>
+    <div className="warung-profile-posts"><h2>Aktivitas warkop</h2>{(warung.activities || []).length ? <div className="facility-tags">{warung.activities.map((activity) => <span key={activity}>{ACTIVITY_OPTIONS.find((item) => item.value === activity)?.label || activity}</span>)}</div> : <p>Aktivitas belum dicantumkan. Hubungi warkop untuk menanyakan kegiatan yang tersedia.</p>}</div>
     {isOwner && <section className="warung-owner-tools" aria-labelledby="warung-owner-tools-title">
       <h2 id="warung-owner-tools-title">Kelola profil warkop</h2>
       <p>Pengaturan ini hanya tersedia untuk pemilik warkop yang terdaftar.</p>

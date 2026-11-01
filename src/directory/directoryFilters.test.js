@@ -85,3 +85,36 @@ describe('directoryFilters', () => {
     expect(isOpenNow({ openingHours: { schedule: { mon: { closed: true }, tue: { closed: true }, wed: { closed: true }, thu: { closed: true }, fri: { open: '08:00', close: '17:00' }, sat: { closed: true }, sun: { closed: true } } } }, new Date('2026-10-30T16:00:00.000Z'))).toBe(false);
   });
 });
+
+
+describe('kategori penemuan direktori', () => {
+  it('menghitung jarak garis lurus dengan haversine dan menolak koordinat invalid', async () => {
+    const { getDistanceKm } = await import('./directoryFilters.js');
+    expect(getDistanceKm({ lat: -7, lng: 112 }, { lat: -7, lng: 112 })).toBe(0);
+    expect(getDistanceKm({ lat: -7, lng: 112 }, { lat: -7, lng: 113 })).toBeCloseTo(111.2, 0);
+    expect(getDistanceKm({ lat: 100, lng: 112 }, { lat: -7, lng: 112 })).toBeNull();
+  });
+
+  it('mengklasifikasikan event berlangsung, akan datang, selesai, dan dibatalkan', async () => {
+    const { getEventLifecycle } = await import('./directoryFilters.js');
+    const now = new Date('2026-11-01T12:00:00.000Z');
+    expect(getEventLifecycle({ eventStartAt: '2026-11-01T11:00:00.000Z', eventEndAt: '2026-11-01T13:00:00.000Z' }, now)).toBe('ongoing');
+    expect(getEventLifecycle({ eventStartAt: '2026-11-01T13:00:00.000Z' }, now)).toBe('upcoming');
+    expect(getEventLifecycle({ eventStartAt: '2026-11-01T08:00:00.000Z', eventEndAt: '2026-11-01T09:00:00.000Z' }, now)).toBe('ended');
+    expect(getEventLifecycle({ eventStartAt: '2026-11-01T11:00:00.000Z', eventStatus: 'cancelled' }, now)).toBe('cancelled');
+  });
+
+  it('mengurutkan empat kategori dari data nyata dan deterministik', async () => {
+    const { sortDirectoryWarungs } = await import('./directoryFilters.js');
+    const rows = [
+      { id: 'a', name: 'A', createdAt: '2026-10-01T00:00:00.000Z', coordinates: { lat: -7, lng: 112 } },
+      { id: 'b', name: 'B', createdAt: '2026-10-20T00:00:00.000Z', coordinates: { lat: -7, lng: 112.01 } },
+      { id: 'c', name: 'C', createdAt: '2026-10-10T00:00:00.000Z' }
+    ];
+    expect(sortDirectoryWarungs(rows, 'popular', { followerCounts: { a: 2, b: 8 } }).map(row => row.id)).toEqual(['b', 'a', 'c']);
+    expect(sortDirectoryWarungs(rows, 'newest').map(row => row.id)).toEqual(['b', 'c', 'a']);
+    expect(sortDirectoryWarungs(rows, 'nearby', { origin: { lat: -7, lng: 112 } }).map(row => row.id)).toEqual(['a', 'b', 'c']);
+    const events = [{ id: 'e1', warungId: 'a', eventStartAt: '2026-11-01T11:00:00.000Z', eventEndAt: '2026-11-01T13:00:00.000Z' }];
+    expect(sortDirectoryWarungs(rows, 'events', { events, now: new Date('2026-11-01T12:00:00.000Z') }).map(row => row.id)).toEqual(['a']);
+  });
+});

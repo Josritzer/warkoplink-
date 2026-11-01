@@ -17,6 +17,8 @@ import './mobile-layout-safety.css';
 import './wl-luxury-2026.css';
 // Glass is limited to navigation/overlays; Card Play styles actionable directory content.
 import './wl-glass-card-play.css';
+// Component-first responsive rules and native page transitions.
+import './wl-modern-css-navigation.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>

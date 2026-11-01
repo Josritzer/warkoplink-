@@ -4,7 +4,7 @@ import { runViewTransition } from './navigation/viewTransitions.js';
 import { EMPTY_REACTIONS, reactionFieldForEmoji, shouldRemoveReaction, summarizeReactions } from './reactions.js';
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
-  sendEmailVerification, reload, signOut, updateProfile
+  signOut, updateProfile
 } from 'firebase/auth';
 import {
   addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, increment, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where

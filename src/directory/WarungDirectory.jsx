@@ -349,6 +349,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
           </div>
           <p className="warung-card-address"><MapPin size={15}/>{item.address}</p>
           {highlights.length > 0 && <div className="facility-tags warung-card-highlights">{highlights.map((highlight, index) => <span key={`${highlight}-${index}`}>{highlight}</span>)}</div>}
+          {item.ambience && <p className="warung-card-ambience">{item.ambience}</p>}
           <div className="warung-card-meta">
             {item.openingHours?.is24Hours === true ? <small><Clock size={13}/> Buka 24 jam</small> : item.openingHours?.keterangan && !item.openingHours?.schedule ? <small><Clock size={13}/> Jam buka: {item.openingHours.keterangan}</small> : null}
             {priceLabel && <small>{priceLabel}</small>}

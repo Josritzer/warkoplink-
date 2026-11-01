@@ -471,6 +471,7 @@ export default function App() {
   }
 
   async function handleOpenNotification(notification) {
+    if (notification?.warungId) { openWarungProfile(notification.warungId); return; }
     if (!notification?.postId || !db) return;
     try {
       const snapshot = await getDoc(doc(db, 'posts', notification.postId));
@@ -706,6 +707,14 @@ export default function App() {
           transaction.update(postRef, updates);
         }
       });
+      if (!removing && post.authorId && post.authorId !== user.uid) {
+        try {
+          await setDoc(doc(collection(db, 'notifications')), {
+            recipientUid: post.authorId, actorUid: user.uid, type: 'reaction',
+            postId, createdAt: serverTimestamp(), readAt: null
+          });
+        } catch { /* Reaksi tersimpan meski notifikasi gagal dikirim. */ }
+      }
     } catch (error) {
       setReactionSummaries(current => ({ ...current, [postId]: previous.summary }));
       setLikeCounts(current => ({ ...current, [postId]: previous.count }));

@@ -303,8 +303,8 @@ describe('ChatPostCard — tampilan 2026', () => {
     expect(screen.getByRole('button', { name: /2 komentar/ })).toBeTruthy();
   });
 
-  it('menampilkan teks netral saat belum ada komentar', () => {
+  it('menampilkan aksi Komentar tanpa pesan kosong yang membingungkan', () => {
     render(<ChatPostCard {...props()} />);
-    expect(screen.getByRole('button', { name: /0 komentar/ }).textContent).toBe('Belum ada komentar');
+    expect(screen.getByRole('button', { name: 'Buka komentar, 0 komentar' }).textContent).toBe('Komentar');
   });
 });

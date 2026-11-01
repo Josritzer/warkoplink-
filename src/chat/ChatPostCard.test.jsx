@@ -222,7 +222,12 @@ describe('ChatPostCard', () => {
     let resolveRsvp;
     firestoreMocks.setDoc.mockImplementationOnce(() => new Promise(resolve => { resolveRsvp = resolve; }));
     const values = props({ post: { ...props().post, topic: 'Info & Acara', eventStartAt: '2099-06-20T12:00:00.000Z' } });
-    firestoreMocks.onSnapshot.mockImplementationOnce((ref, next, error) => { error?.(new Error('offline')); return vi.fn(); });
+    firestoreMocks.onSnapshot.mockImplementation((ref, next, error) => {
+      if (ref?.path?.endsWith('/eventRsvps')) error?.(new Error('offline'));
+      else if (ref?.kind === 'query') next({ size: 0, docs: [] });
+      else next({ exists: () => false, data: () => ({}) });
+      return vi.fn();
+    });
     render(<ChatPostCard {...values} />);
     expect(screen.queryByText(/ikut$/i)).toBeNull();
     const button = screen.getByRole('button', { name: 'Ikut acara' });

@@ -851,3 +851,40 @@ describe('aksesibilitas form pendaftaran warkop', () => {
     expect(screen.getByText(/Bujur: angka timur\/barat/)).toBeTruthy();
   });
 });
+
+
+describe('navigasi View Transitions', () => {
+  it('menggunakan View Transitions API saat berpindah halaman jika didukung browser', async () => {
+    const user = userEvent.setup();
+    const transition = vi.fn((update) => {
+      update();
+      return { finished: Promise.resolve() };
+    });
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: transition,
+    });
+
+    try {
+      render(<App />);
+      const directoryButton = screen.getAllByRole('button', { name: 'Cari Warkop' }).at(-1);
+      await user.click(directoryButton);
+
+      expect(transition).toHaveBeenCalledTimes(1);
+      expect(screen.getAllByRole('button', { name: 'Cari Warkop' }).at(-1).getAttribute('aria-current')).toBe('page');
+    } finally {
+      delete document.startViewTransition;
+    }
+  });
+
+  it('tetap berpindah halaman tanpa View Transitions API sebagai fallback', async () => {
+    const user = userEvent.setup();
+    delete document.startViewTransition;
+    render(<App />);
+
+    const directoryButton = screen.getAllByRole('button', { name: 'Cari Warkop' }).at(-1);
+    await user.click(directoryButton);
+
+    expect(screen.getAllByRole('button', { name: 'Cari Warkop' }).at(-1).getAttribute('aria-current')).toBe('page');
+  });
+});

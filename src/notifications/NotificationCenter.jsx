@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, limit, onSnapshot, query, serverTimestamp, where, updateDoc, writeBatch } from 'firebase/firestore';
 import { Bell, CheckCheck, MessageCircle, AtSign, Heart, Store } from 'lucide-react';
 import { isUnreadNotification, notificationLabel } from './notificationModel.js';
 import { relativePostTime } from '../chat/postTime.js';
@@ -15,8 +15,8 @@ export default function NotificationCenter({ db, user, onOpenNotification, onNot
   useEffect(() => {
     if (!db || !user?.uid) { setItems([]); setLoading(false); return undefined; }
     setLoading(true);
-    return onSnapshot(query(collection(db, 'notifications'), orderBy('createdAt', 'desc'), limit(50)), snapshot => {
-      const own = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).filter(item => item.recipientUid === user.uid);
+    return onSnapshot(query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), limit(50)), snapshot => {
+      const own = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setItems(own);
       setLoading(false);
     }, () => {

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { updateDoc } from 'firebase/firestore';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const state = vi.hoisted(() => ({ warungNext: null, following: false, count: 0, events: [], warung: null }));
@@ -27,12 +28,13 @@ vi.mock('firebase/firestore', () => ({
   }),
   serverTimestamp: vi.fn(() => 'server-time'),
   setDoc: vi.fn(async () => { state.following = true; state.count += 1; }),
+  updateDoc: vi.fn(async () => undefined),
 }));
 
 import WarungProfile from './WarungProfile.jsx';
 
 describe('WarungProfile', () => {
-  afterEach(() => cleanup());
+  afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
   it('menampilkan informasi warkop terverifikasi', async () => {
     state.following = false;
@@ -84,6 +86,23 @@ describe('WarungProfile', () => {
     expect(screen.getByText(/Fasilitas belum dicantumkan/)).toBeTruthy();
     expect(screen.getByText(/Suasana belum dideskripsikan/)).toBeTruthy();
     state.warung = null;
+  });
+
+  it('pemilik dapat memperbarui menu, menu spesial, fasilitas, suasana, jam dan aktivitas', async () => {
+    const onNotice = vi.fn();
+    render(<WarungProfile warungId="warung-1" db={{}} user={{ uid: 'owner-1' }} onBack={vi.fn()} onRequestAuth={vi.fn()} onNotice={onNotice} />);
+    fireEvent.change(await screen.findByLabelText('Menu utama warkop'), { target: { value: 'Kopi susu, Teh tarik' } });
+    fireEvent.change(screen.getByLabelText('Menu spesial warkop'), { target: { value: 'Kopi gula aren' } });
+    fireEvent.change(screen.getByLabelText('Fasilitas warkop'), { target: { value: 'Wi-Fi, Parkir luas' } });
+    fireEvent.change(screen.getByLabelText('Suasana warkop'), { target: { value: 'Nyaman untuk ngobrol' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan perubahan profil' }));
+    await waitFor(() => expect(updateDoc).toHaveBeenCalled());
+    const payload = updateDoc.mock.calls[0][1];
+    expect(payload.menuItems).toEqual(['Kopi susu', 'Teh tarik']);
+    expect(payload.specialties).toEqual(['Kopi gula aren']);
+    expect(payload.facilities).toEqual(['Wi-Fi', 'Parkir luas']);
+    expect(payload.ambience).toBe('Nyaman untuk ngobrol');
+    expect(onNotice).toHaveBeenCalledWith('Profil warkop berhasil diperbarui.');
   });
 
   it('meminta pengguna masuk sebelum mengikuti', async () => {

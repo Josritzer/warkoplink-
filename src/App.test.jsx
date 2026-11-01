@@ -584,6 +584,17 @@ describe('direktori dan pendaftaran warkop', () => {
     expect(await screen.findByText(/Pendaftaran terkirim/)).toBeTruthy();
   });
 
+  it('pendaftaran warkop mengutamakan menu khas tanpa mewajibkan kisaran harga', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+    expect(screen.getByLabelText('Menu utama, pisahkan dengan koma')).toBeTruthy();
+    expect(screen.getByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
+    expect(screen.getByLabelText('Suasana warkop')).toBeTruthy();
+    expect(screen.getByLabelText('Kisaran harga')).not.toHaveProperty('required', true);
+  });
+
   it('menunjukkan penyebab foto gagal dan cara melanjutkan pendaftaran tersimpan', async () => {
     const user = userEvent.setup();
     media.uploadWarkopMedia.mockRejectedValueOnce(new Error('Invalid or expired Firebase ID token'));

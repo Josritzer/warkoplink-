@@ -48,6 +48,13 @@ function props(overrides = {}) {
 }
 
 describe('ChatPostCard', () => {
+  it('always labels the comment action as Komentar and shows the count when present', () => {
+    const { rerender } = render(<ChatPostCard {...props({ replyCounts: { 'post-1': 0 } })} />);
+    expect(screen.getByRole('button', { name: 'Buka komentar, 0 komentar' }).textContent).toBe('Komentar');
+    rerender(<ChatPostCard {...props({ replyCounts: { 'post-1': 3 } })} />);
+    expect(screen.getByRole('button', { name: 'Buka komentar, 3 komentar' }).textContent).toBe('Komentar · 3');
+  });
+
   it('memakai inisial, bukan gambar acak eksternal, saat penulis tidak punya foto', () => {
     const { container } = render(<ChatPostCard {...props({ post: { ...props().post, authorName: 'budi' } })} />);
     const avatar = container.querySelector('.post-avatar');

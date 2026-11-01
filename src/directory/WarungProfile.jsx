@@ -258,6 +258,9 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
         const [title, ...descriptionLines] = String(event.body || 'Acara warkop').split(/\r?\n/);
         const startsAt = event.eventStartAt ? new Date(event.eventStartAt) : null;
         const validStart = startsAt && !Number.isNaN(startsAt.getTime());
+        const parsedEnd = event.eventEndAt ? new Date(event.eventEndAt) : null;
+        const endsAt = parsedEnd && !Number.isNaN(parsedEnd.getTime()) ? parsedEnd : validStart ? new Date(startsAt.getTime() + 2 * 60 * 60 * 1000) : null;
+        const eventState = event.eventStatus === 'cancelled' ? 'Dibatalkan' : !validStart ? 'Waktu belum ditentukan' : Date.now() < startsAt.getTime() ? 'Akan datang' : endsAt && Date.now() > endsAt.getTime() ? 'Selesai' : 'Berlangsung';
         return <article className={event.eventStatus === 'cancelled' ? 'warung-event-card is-cancelled' : 'warung-event-card'} key={event.id}>
           {event.eventPhotoURL && <img className="warung-event-poster" src={event.eventPhotoURL} alt={`Poster ${title}`} loading="lazy"/>}
           <div className="warung-event-copy">
@@ -266,7 +269,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
             <div className="warung-event-meta">
               {event.eventKind && <span>{event.eventKind}</span>}
               {validStart && <time dateTime={startsAt.toISOString()}>{startsAt.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</time>}
-              {event.eventStatus === 'cancelled' && <span role="status">Dibatalkan</span>}
+              <span className="event-lifecycle-pill" role="status">{eventState}</span>
             </div>
           </div>
         </article>;

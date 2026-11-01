@@ -266,3 +266,85 @@ button:disabled {
     transform: none;
   }
 }
+
+
+/* Component-level responsiveness: warung cards adapt to their own available width. */
+.warung-card {
+  container-name: warung-card;
+  container-type: inline-size;
+  min-width: 0;
+}
+
+@container warung-card (max-width: 420px) {
+  .warung-card-body,
+  .warung-card-heading,
+  .warung-card-heading > div {
+    min-width: 0;
+  }
+
+  .warung-card-heading {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .warung-card-heading h3,
+  .warung-card-address,
+  .warung-card-ambience {
+    overflow-wrap: anywhere;
+  }
+
+  .warung-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .warung-card-actions > * {
+    min-width: 0;
+  }
+}
+
+@container warung-card (min-width: 520px) {
+  .warung-card-body {
+    gap: 14px;
+  }
+
+  .warung-card-heading h3 {
+    font-size: clamp(16px, 2.2cqi, 20px);
+  }
+}
+
+/* Native page transition; navigation remains usable when the API is absent. */
+.app-page-content {
+  view-transition-name: app-page-content;
+}
+
+::view-transition-old(app-page-content),
+::view-transition-new(app-page-content) {
+  animation-duration: 180ms;
+  animation-timing-function: cubic-bezier(.2, .7, .2, 1);
+}
+
+::view-transition-old(app-page-content) {
+  animation-name: wl-page-out;
+}
+
+::view-transition-new(app-page-content) {
+  animation-name: wl-page-in;
+}
+
+@keyframes wl-page-out {
+  to { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes wl-page-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(app-page-content),
+  ::view-transition-new(app-page-content) {
+    animation: none !important;
+  }
+}

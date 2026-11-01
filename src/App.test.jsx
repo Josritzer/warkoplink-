@@ -333,7 +333,7 @@ describe('registrasi', () => {
     await fillAuth(user, dialog, { name: 'Sari', email: 'sari@example.test', password: 'rahasia1' });
     await user.click(within(dialog).getByRole('button', { name: 'Buat akun' }));
 
-    expect(await screen.findByText(/profil belum tersimpan/)).toBeTruthy();
+    expect(await screen.findByText(/Profil belum tersimpan/i)).toBeTruthy();
     expect(screen.queryByText(/Autentikasi gagal/)).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
   });

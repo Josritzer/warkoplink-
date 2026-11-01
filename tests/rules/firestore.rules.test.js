@@ -287,6 +287,24 @@ describe('profiles', () => {
     await assertFails(updateDoc(doc(asUser('alice'), 'profiles/alice'), { email: 'baru@example.test' }));
   });
 
+  it('pemilik dapat menyimpan bio dan lokasi profil dengan batas panjang', async () => {
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'profiles/alice'), {
+      bio: 'Senang ngopi dan berbagi cerita.', location: 'Maduran, Lamongan', updatedAt: serverTimestamp()
+    }));
+    await assertFails(updateDoc(doc(asUser('alice'), 'profiles/alice'), {
+      bio: 'x'.repeat(161), updatedAt: serverTimestamp()
+    }));
+  });
+
+  it('profil publik hanya menerima bio dan lokasi yang aman', async () => {
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'publicProfiles/alice'), {
+      uid: 'alice', displayName: 'Alice', photoURL: '', bio: 'Suka kopi', location: 'Maduran', updatedAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(asUser('alice'), 'publicProfiles/alice'), {
+      uid: 'alice', displayName: 'Alice', photoURL: '', bio: 'x'.repeat(161), location: 'Maduran', updatedAt: serverTimestamp()
+    }));
+  });
+
   it('profil tidak boleh dihapus', async () => {
     await assertFails(deleteDoc(doc(asUser('alice'), 'profiles/alice')));
   });

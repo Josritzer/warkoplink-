@@ -5,7 +5,6 @@ import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, LocateFixed } from 'lucide-react';
 import { ACTIVITY_OPTIONS, collectFacilities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, sortWarungsForDiscovery } from './directoryFilters.js';
 import LeafletLocationPicker from './LeafletLocationPicker.jsx';
-import './directoryDiscovery.css';
 
 class WarungFormValidationError extends Error {
   constructor(message) {
@@ -27,7 +26,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [facilityFilter, setFacilityFilter] = useState([]);
   const [activityFilter, setActivityFilter] = useState([]);
   const [operationalFilter, setOperationalFilter] = useState('semua');
-  const [priceFilter] = useState('semua');
+  const priceFilter = 'semua';
   const [discoveryCategory, setDiscoveryCategory] = useState('all');
   const [followerCounts, setFollowerCounts] = useState({});
   const [popularStatus, setPopularStatus] = useState('idle');
@@ -155,14 +154,14 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     if (mode !== 'directory' || discoveryCategory !== 'events' || !db) return undefined;
     let cancelled = false;
     setEventsStatus('loading');
-    return onSnapshot(query(collection(db, 'posts'), where('topic', '==', 'Info & Acara'), limit(200)), (snapshot) => {
+    const unsubscribe = onSnapshot(query(collection(db, 'posts'), where('topic', '==', 'Info & Acara'), limit(200)), (snapshot) => {
       if (cancelled) return;
       const nowValue = new Date();
       setDiscoveryEvents(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
         .filter((event) => event.warungId && isCurrentOrUpcomingEvent(event, nowValue)));
       setEventsStatus('ready');
     }, () => { if (!cancelled) setEventsStatus('error'); });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; unsubscribe(); };
   }, [mode, db, discoveryCategory]);
 
   function selectDiscoveryCategory(category) {
@@ -415,7 +414,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     {discoveryCategory === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="directory-category-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}
     {discoveryCategory === 'popular' && popularStatus === 'ready' && visibleWarungs.length === 0 && <p className="directory-category-status">Belum ada warkop dengan pengikut. Ikuti warkop favorit untuk membantu komunitas menemukannya.</p>}
     {status === 'ready' && searchingAll && visibleWarungs.length === 0 && <div className="empty-state" role="status"><h3>Menelusuri seluruh direktori…</h3><p>Memeriksa halaman warkop berikutnya agar hasil pencarian tidak terlewat.</p></div>}
-    {status === 'ready' && !searchingAll && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
+    {status === 'ready' && !searchingAll && visibleWarungs.length === 0 && !(discoveryCategory === 'popular' && popularStatus === 'loading') && !(discoveryCategory === 'events' && eventsStatus === 'loading') && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
     {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{searchingAll ? ' · sedang memeriksa halaman berikutnya' : hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
     <div className="warung-list">{visibleWarungs.map((item) => {
       const primaryPhoto = Array.isArray(item.photos) ? item.photos.find((photo) => typeof photo === 'string' && photo.trim()) : '';

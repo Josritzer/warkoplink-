@@ -237,7 +237,7 @@ describe('ChatPostCard', () => {
       post: { ...props().post, topic: 'Info & Acara', eventStartAt: '2000-06-20T12:00:00.000Z', eventEndAt: '2000-06-20T14:00:00.000Z' }
     })} />);
     expect(screen.getByText('Acara selesai')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Acara selesai' }).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Ikut acara' })).toBeNull();
   });
 
   it('menampilkan poster acara yang sudah tersimpan pada postingan Info & Acara', () => {

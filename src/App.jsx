@@ -91,7 +91,9 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [user, setUser] = useState(null);
   const [notificationCount, setNotificationCount] = useState(0);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
+  const isPlatformStaff = isSuperAdmin || isModerator;
   const [authReady, setAuthReady] = useState(!auth);
   const [posts, setPosts] = useState(readCachedPosts);
   const [olderPosts, setOlderPosts] = useState([]);
@@ -255,14 +257,17 @@ export default function App() {
     if (!auth) return undefined;
     return onAuthStateChanged(auth, async (nextUser) => {
       setUser(nextUser);
-      setIsAdmin(false);
+      setIsSuperAdmin(false);
+      setIsModerator(false);
       setAuthReady(true);
       if (nextUser && typeof nextUser.getIdTokenResult === 'function') {
         try {
           const token = await nextUser.getIdTokenResult(true);
-          setIsAdmin(token.claims?.admin === true);
+          setIsSuperAdmin(token.claims?.platformRole === 'super_admin' || token.claims?.admin === true);
+          setIsModerator(token.claims?.platformRole === 'moderator' || token.claims?.platformRole === 'super_admin' || token.claims?.admin === true);
         } catch {
-          setIsAdmin(false);
+          setIsSuperAdmin(false);
+          setIsModerator(false);
         }
       }
       if (nextUser && !registering.current) ensureProfile(nextUser);
@@ -1087,7 +1092,7 @@ export default function App() {
         </button>
       </aside>
       <main className="app-page-content">
-      {section === 'Panel Admin' && isAdmin ? <AdminPanel db={db} user={user} onNotice={setNotice}/> :
+      {section === 'Panel Admin' && isPlatformStaff ? <AdminPanel db={db} user={user} onNotice={setNotice} canVerifyWarungs={isSuperAdmin}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
       section === 'Pesan' ? <MessagesPage onOpenPublicChat={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
@@ -1127,7 +1132,7 @@ export default function App() {
       section === 'Profil Anggota' && memberProfile ? <PublicUserProfile profile={memberProfile} db={db} currentUser={user} onBack={closeMemberProfile} onEditProfile={() => navigateSection('Akun')}/> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
-        {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article><section className="account-card profile-editor-card"><div className="account-details"><b>Edit profil komunitas</b><small>Atur nama tampilan, username, bio, lokasi, minat, dan tautan publik.</small></div><ProfileEditor user={user} db={db} onNotice={setNotice}/></section>{isAdmin && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
+        {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article><section className="account-card profile-editor-card"><div className="account-details"><b>Edit profil komunitas</b><small>Atur nama tampilan, username, bio, lokasi, minat, dan tautan publik.</small></div><ProfileEditor user={user} db={db} onNotice={setNotice}/></section>{isPlatformStaff && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
           <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :

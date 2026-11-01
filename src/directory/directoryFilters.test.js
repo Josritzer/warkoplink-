@@ -103,7 +103,7 @@ describe('kategori penemuan direktori', () => {
     expect(isCurrentOrUpcomingEvent({ topic: 'Info & Acara', eventStartAt: '2026-11-01T09:00:00Z', eventEndAt: '2026-11-01T12:00:00Z' }, now)).toBe(true);
     expect(isCurrentOrUpcomingEvent({ topic: 'Info & Acara', eventStartAt: '2026-10-30T09:00:00Z' }, now)).toBe(false);
     expect(isCurrentOrUpcomingEvent({ topic: 'Info & Acara', eventStartAt: '2026-11-02T09:00:00Z', eventStatus: 'cancelled' }, now)).toBe(false);
-    expect(sortWarungsForDiscovery([{ id: 'a' }, { id: 'b' }], 'events', { eventWarungIds: ['b'] }).map(x => x.id)).toEqual(['b']);
+    expect(sortWarungsForDiscovery([{ id: 'a' }, { id: 'b' }], 'events', { eventWarungIds: ['a', 'b'], eventStarts: { a: '2026-11-03T10:00:00Z', b: '2026-11-02T10:00:00Z' } }).map(x => x.id)).toEqual(['b', 'a']);
   });
 
   it('mengurutkan warkop terdekat dan terbaru secara deterministik', () => {

@@ -568,10 +568,12 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.type(screen.getByLabelText('Fasilitas, pisahkan dengan koma'), 'Wi-Fi, parkir');
     await user.type(screen.getByLabelText('Menu utama, pisahkan dengan koma'), 'Kopi, teh, mi instan');
     await user.type(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), 'Kopi racikan, mi nyemek');
     await user.type(screen.getByLabelText('Suasana warkop'), 'Santai untuk ngobrol');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
     await waitFor(() => expect(fs.addDoc).toHaveBeenCalledWith({ path: 'warungs' }, expect.objectContaining({
       name: 'Warkop Pojok',
@@ -596,6 +598,11 @@ describe('direktori dan pendaftaran warkop', () => {
     render(<App />);
     emitAuth(fakeUser());
     await user.click(screen.getByRole('button', { name: 'Daftar' }));
+    await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
+    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
+    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(screen.getByLabelText('Menu utama, pisahkan dengan koma')).toBeTruthy();
     expect(screen.getByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     expect(screen.getByLabelText('Suasana warkop')).toBeTruthy();
@@ -612,6 +619,8 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.upload(screen.getByLabelText(/Foto warkop/), new File(['foto'], 'warkop.jpg', { type: 'image/jpeg' }));
     await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
 
@@ -630,6 +639,8 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
     expect(fs.addDoc).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog')).toBeTruthy();
@@ -645,10 +656,48 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '200');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112');
-    await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect((await screen.findByRole('alert')).textContent).toContain('koordinat');
     expect(fs.addDoc).not.toHaveBeenCalled();
   });
+  it('form bertahap mempertahankan isian ketika pengguna kembali ke langkah sebelumnya', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    await user.click(screen.getByRole('button', { name: 'Daftar' }));
+    await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Tes');
+    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
+    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+    await user.type(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), 'Kopi racikan');
+    await user.click(screen.getByRole('button', { name: 'Kembali' }));
+    expect(screen.getByLabelText('Nama warkop').value).toBe('Warkop Tes');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(screen.getByLabelText('Menu spesial, pisahkan dengan koma').value).toBe('Kopi racikan');
+  });
+
+  it('mengisi koordinat dari GPS dan tetap membolehkan koreksi manual', async () => {
+    const user = userEvent.setup();
+    const originalGeolocation = navigator.geolocation;
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+      getCurrentPosition: (success) => success({ coords: { latitude: -7.1234567, longitude: 112.7654321 } }),
+    } });
+    try {
+      render(<App />);
+      emitAuth(fakeUser());
+      await user.click(screen.getByRole('button', { name: 'Daftar' }));
+      await user.click(screen.getByRole('button', { name: 'Gunakan Lokasi Saya' }));
+      expect(screen.getByLabelText('Lintang (latitude)').value).toBe('-7.123457');
+      expect(screen.getByLabelText('Bujur (longitude)').value).toBe('112.765432');
+      await user.clear(screen.getByLabelText('Lintang (latitude)'));
+      await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.2');
+      expect(screen.getByLabelText('Lintang (latitude)').value).toBe('-7.2');
+    } finally {
+      Object.defineProperty(navigator, 'geolocation', { configurable: true, value: originalGeolocation });
+    }
+  });
+
 });
 
 

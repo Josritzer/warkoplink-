@@ -303,8 +303,13 @@ describe('ChatPostCard — tampilan 2026', () => {
     expect(screen.getByRole('button', { name: /2 komentar/ })).toBeTruthy();
   });
 
-  it('menampilkan teks netral saat belum ada komentar', () => {
+  it('menampilkan label Komentar saat belum ada komentar', () => {
     render(<ChatPostCard {...props()} />);
-    expect(screen.getByRole('button', { name: /0 komentar/ }).textContent).toBe('Belum ada komentar');
+    expect(screen.getByRole('button', { name: /0 komentar/ }).textContent).toBe('Komentar');
+  });
+
+  it('menampilkan jumlah komentar secara ringkas saat komentar tersedia', () => {
+    render(<ChatPostCard {...props({ replyCounts: { 'post-1': 3 } })} />);
+    expect(screen.getByRole('button', { name: /3 komentar/ }).textContent).toBe('Komentar · 3');
   });
 });

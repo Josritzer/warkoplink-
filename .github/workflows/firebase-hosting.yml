@@ -1,22 +1,13 @@
 name: Deploy SL Community Platform to Firebase Hosting
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "public/**"
-      - "index.html"
-      - "package.json"
-      - "package-lock.json"
-      - "vite.config.*"
-      - "firebase.json"
-      - "firestore.indexes.json"
-      - ".firebaserc"
-      - ".env.example"
-      - "firestore.rules"
-      - ".github/workflows/firebase-hosting.yml"
   workflow_dispatch:
+    inputs:
+      deploy_firestore:
+        description: "Sertakan Firestore Rules dan Indexes dalam deploy"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,6 +18,7 @@ concurrency:
 
 jobs:
   build_and_deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -61,29 +53,11 @@ jobs:
         run: |
           node -e 'const c=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON); console.log("Firebase deploy service account:", c.client_email)'
 
-      # A source-only release must not republish production Firestore rules/indexes.
-      # Those are deployed only when their source files change in a push to main.
-      - name: Detect Firestore rule/index changes
-        id: firestore-changes
-        if: github.event_name == 'push'
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-          CURRENT_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          changed_files="$(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA" -- firestore.rules firestore.indexes.json)"
-          if [ -n "$changed_files" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            printf 'Firestore sources changed:\n%s\n' "$changed_files"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No Firestore rule/index source changes; production rules will not be republished."
-          fi
-
+      # Firestore deployment is an explicit opt-in on the manual production run.
       # Storage is intentionally excluded until Firebase Storage is explicitly initialized.
       - name: Deploy Hosting only
         run: npx --yes firebase-tools deploy --only hosting --project sl-community-platform --non-interactive
 
-      - name: Deploy Firestore Rules and Indexes only when their source changes
-        if: steps.firestore-changes.outputs.changed == 'true'
+      - name: Deploy Firestore Rules and Indexes when explicitly selected
+        if: inputs.deploy_firestore == true
         run: npx --yes firebase-tools deploy --only firestore:rules,firestore:indexes --project sl-community-platform --non-interactive

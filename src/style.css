@@ -694,3 +694,21 @@
 .directory-event-signal span{font-size:11px;line-height:1.45;color:var(--wl-ink);overflow-wrap:anywhere}
 @media(max-width:760px){.directory-discovery-tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.directory-discovery-tabs button{min-height:64px;padding:9px}}
 @media(max-width:380px){.directory-discovery-tabs button{grid-template-columns:26px 1fr;column-gap:7px;padding:8px}.directory-discovery-tabs button>span{width:26px;height:26px}.directory-discovery-tabs button b{font-size:11px}.directory-discovery-tabs button small{font-size:9px}}
+
+
+/* Pesan shell: tab ringan, separator horizontal, tanpa kartu besar. */
+.messages-page{max-width:880px;margin:0 auto}
+.messages-page-heading{margin:8px 0 22px}
+.messages-page-heading h2{margin:8px 0 6px}
+.messages-page-heading p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}
+.messages-tabs{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;border-bottom:1px solid var(--line);scrollbar-width:none}
+.messages-tabs::-webkit-scrollbar{display:none}
+.messages-tab{flex:1 0 0;min-width:92px;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 10px 12px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--muted);font-size:13px;font-weight:700;white-space:nowrap}
+.messages-tab[aria-selected="true"]{color:var(--wl-primary);border-bottom-color:var(--wl-primary-bright)}
+.messages-tab:focus-visible{outline:2px solid var(--wl-primary-bright);outline-offset:-3px}
+.messages-panel{min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:42px 20px 52px;text-align:center;border-bottom:1px solid var(--line)}
+.messages-empty-icon{width:54px;height:54px;display:grid;place-items:center;border-radius:18px;background:var(--wl-primary-tint);color:var(--wl-primary-bright)}
+.messages-empty-icon svg{width:25px;height:25px}
+.messages-panel h3{margin:4px 0 0;font:700 17px Manrope,sans-serif;color:var(--wl-ink)}
+.messages-panel p{max-width:440px;margin:0;color:var(--muted);font-size:12px;line-height:1.7}
+@media(max-width:390px){.messages-tabs{gap:2px}.messages-tab{min-width:0;padding:12px 7px;font-size:12px;gap:6px}.messages-panel{min-height:245px;padding:32px 14px 40px}}

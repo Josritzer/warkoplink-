@@ -155,15 +155,13 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     if (mode !== 'directory' || discoveryCategory !== 'events' || !db) return undefined;
     let cancelled = false;
     setEventsStatus('loading');
-    getDocs(query(collection(db, 'posts'), where('topic', '==', 'Info & Acara'), limit(200)))
-      .then((snapshot) => {
-        if (cancelled) return;
-        const nowValue = new Date();
-        setDiscoveryEvents(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
-          .filter((event) => event.warungId && isCurrentOrUpcomingEvent(event, nowValue)));
-        setEventsStatus('ready');
-      })
-      .catch(() => { if (!cancelled) setEventsStatus('error'); });
+    return onSnapshot(query(collection(db, 'posts'), where('topic', '==', 'Info & Acara'), limit(200)), (snapshot) => {
+      if (cancelled) return;
+      const nowValue = new Date();
+      setDiscoveryEvents(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
+        .filter((event) => event.warungId && isCurrentOrUpcomingEvent(event, nowValue)));
+      setEventsStatus('ready');
+    }, () => { if (!cancelled) setEventsStatus('error'); });
     return () => { cancelled = true; };
   }, [mode, db, discoveryCategory]);
 
@@ -374,9 +372,9 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     item.id, calculateDistanceKm(visitorLocation, item.coordinates)
   ]).filter(([, distance]) => Number.isFinite(distance))) : {};
   const eventWarungIds = discoveryEvents.map((event) => event.warungId);
-  const categoryWarungs = sortWarungsForDiscovery(warungs, discoveryCategory, {
-    followerCounts, distances, eventWarungIds, now
-  });
+  const categoryWarungs = discoveryCategory === 'nearby' && !visitorLocation
+    ? warungs
+    : sortWarungsForDiscovery(warungs, discoveryCategory, { followerCounts, distances, eventWarungIds, now });
   const visibleWarungs = filterWarungs(categoryWarungs, {
     search: searchTerm, facilities: facilityFilter, activities: activityFilter,
     operational: operationalFilter, priceRange: priceFilter, now

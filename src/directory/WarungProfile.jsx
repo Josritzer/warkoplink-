@@ -12,6 +12,12 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
   const [following, setFollowing] = useState(false);
   const [followers, setFollowers] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [addressDraft, setAddressDraft] = useState('');
+  const [menuItemsDraft, setMenuItemsDraft] = useState('');
+  const [specialtiesDraft, setSpecialtiesDraft] = useState('');
+  const [facilitiesDraft, setFacilitiesDraft] = useState('');
+  const [ambienceDraft, setAmbienceDraft] = useState('');
   const [hoursDraft, setHoursDraft] = useState({});
   const [open24Hours, setOpen24Hours] = useState(false);
   const [activityDraft, setActivityDraft] = useState([]);
@@ -56,6 +62,12 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       }
       const data = { id: snapshot.id, ...snapshot.data() };
       setWarung(data);
+      setNameDraft(data.name || '');
+      setAddressDraft(data.address || '');
+      setMenuItemsDraft(Array.isArray(data.menuItems) ? data.menuItems.join(', ') : '');
+      setSpecialtiesDraft(Array.isArray(data.specialties) ? data.specialties.join(', ') : '');
+      setFacilitiesDraft(Array.isArray(data.facilities) ? data.facilities.join(', ') : '');
+      setAmbienceDraft(data.ambience || '');
       setOpen24Hours(data.openingHours?.is24Hours === true);
       setActivityDraft(Array.isArray(data.activities) ? data.activities : []);
       const schedule = data.openingHours?.schedule || {};
@@ -134,6 +146,15 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
   async function saveWarungDetails(event) {
     event.preventDefault();
     if (!isOwner || !db || savingDetails) return;
+    const name = nameDraft.trim();
+    const address = addressDraft.trim();
+    const toList = (value, maximum) => value.split(',').map(item => item.trim()).filter(Boolean).slice(0, maximum);
+    const menuItems = toList(menuItemsDraft, 30);
+    const specialties = toList(specialtiesDraft, 15);
+    const facilities = toList(facilitiesDraft, 20);
+    if (name.length < 2 || name.length > 100) { onNotice('Nama warkop harus 2–100 karakter.'); return; }
+    if (address.length < 5 || address.length > 300) { onNotice('Alamat warkop harus 5–300 karakter.'); return; }
+    if (menuItemsDraft.length > 600 || specialtiesDraft.length > 400 || facilitiesDraft.length > 600 || ambienceDraft.trim().length > 240) { onNotice('Periksa panjang menu, fasilitas, dan deskripsi suasana.'); return; }
     if (!open24Hours && weekdays.some(({ key }) => !hoursDraft[key]?.closed && (!hoursDraft[key]?.open || !hoursDraft[key]?.close || hoursDraft[key]?.open === hoursDraft[key]?.close))) {
       onNotice('Periksa jam buka dan tutup setiap hari. Jam yang sama tidak dianggap jadwal valid.');
       return;
@@ -145,8 +166,19 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
         schedule: Object.fromEntries(weekdays.map(({ key }) => [key, hoursDraft[key]?.closed ? { closed: true } : { open: hoursDraft[key].open, close: hoursDraft[key].close }])),
         keterangan: 'Jadwal mingguan tersedia di profil'
       };
-      await updateDoc(doc(db, 'warungs', warungId), { openingHours, activities: activityDraft, updatedAt: serverTimestamp() });
-      onNotice('Jam operasional dan aktivitas warkop berhasil disimpan.');
+      await updateDoc(doc(db, 'warungs', warungId), {
+        name,
+        nameNormalized: name.toLocaleLowerCase('id-ID'),
+        address,
+        menuItems,
+        specialties,
+        facilities,
+        ambience: ambienceDraft.trim(),
+        openingHours,
+        activities: activityDraft,
+        updatedAt: serverTimestamp()
+      });
+      onNotice('Informasi warkop berhasil diperbarui.');
     } catch (error) {
       onNotice(error?.code === 'permission-denied' ? 'Penyimpanan ditolak aturan keamanan. Periksa aturan Firestore yang sudah terpasang.' : 'Perubahan belum tersimpan. Periksa koneksi lalu coba lagi.');
     } finally { setSavingDetails(false); }
@@ -285,9 +317,17 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
     </section>
     <div className="warung-profile-posts"><h2>Aktivitas warkop</h2>{(warung.activities || []).length ? <div className="facility-tags">{warung.activities.map((activity) => <span key={activity}>{ACTIVITY_OPTIONS.find((item) => item.value === activity)?.label || activity}</span>)}</div> : <p>Aktivitas belum dicantumkan. Hubungi warkop untuk menanyakan kegiatan yang tersedia.</p>}</div>
     {isOwner && <section className="warung-owner-tools" aria-labelledby="warung-owner-tools-title">
-      <h2 id="warung-owner-tools-title">Kelola profil warkop</h2>
+      <h2 id="warung-owner-tools-title">Kelola Warkop</h2>
       <p>Pengaturan ini hanya tersedia untuk pemilik warkop yang terdaftar.</p>
       <form className="warung-form" onSubmit={saveWarungDetails}>
+        <fieldset><legend>Informasi warkop</legend>
+          <label>Nama warkop<input aria-label="Nama warkop" value={nameDraft} onChange={event => setNameDraft(event.target.value)} maxLength={100} required /></label>
+          <label>Alamat warkop<textarea aria-label="Alamat warkop" value={addressDraft} onChange={event => setAddressDraft(event.target.value)} maxLength={300} rows={2} required /></label>
+          <label>Menu utama (pisahkan dengan koma)<textarea aria-label="Menu utama (pisahkan dengan koma)" value={menuItemsDraft} onChange={event => setMenuItemsDraft(event.target.value)} maxLength={600} rows={2} placeholder="Kopi, teh, mi instan" /></label>
+          <label>Menu spesial (pisahkan dengan koma)<textarea aria-label="Menu spesial (pisahkan dengan koma)" value={specialtiesDraft} onChange={event => setSpecialtiesDraft(event.target.value)} maxLength={400} rows={2} placeholder="Kopi racikan, mi nyemek" /></label>
+          <label>Fasilitas (pisahkan dengan koma)<textarea aria-label="Fasilitas (pisahkan dengan koma)" value={facilitiesDraft} onChange={event => setFacilitiesDraft(event.target.value)} maxLength={600} rows={2} placeholder="Wi-Fi, parkir, toilet" /></label>
+          <label>Suasana warkop<textarea aria-label="Suasana warkop" value={ambienceDraft} onChange={event => setAmbienceDraft(event.target.value)} maxLength={240} rows={2} placeholder="Santai, cocok untuk ngobrol atau kerja ringan" /></label>
+        </fieldset>
         <fieldset><legend><Clock size={16}/> Jam operasional</legend>
           <label className="owner-24h-option"><input type="checkbox" checked={open24Hours} onChange={(event) => setOpen24Hours(event.target.checked)}/> Warkop buka 24 jam setiap hari</label>
           {!open24Hours && <div className="opening-hours-editor">{weekdays.map(({ key, label }) => <div className="opening-hours-row" key={key}>
@@ -297,7 +337,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
           </div>)}</div>}
         </fieldset>
         <fieldset><legend>Aktivitas yang benar-benar tersedia</legend><div className="owner-activity-options">{ACTIVITY_OPTIONS.map((activity) => <label key={activity.value}><input type="checkbox" checked={activityDraft.includes(activity.value)} onChange={(event) => setActivityDraft((current) => event.target.checked ? [...current, activity.value] : current.filter((value) => value !== activity.value))}/>{activity.label}</label>)}</div></fieldset>
-        <button className="button button-dark" type="submit" disabled={savingDetails}>{savingDetails ? 'Menyimpan…' : 'Simpan jam & aktivitas'}</button>
+        <button className="button button-dark" type="submit" disabled={savingDetails}>{savingDetails ? 'Menyimpan…' : 'Simpan perubahan warkop'}</button>
       </form>
       <div className="owner-event-tools"><h3><CalendarDays size={18}/> Tambahkan acara warkop</h3><p>Acara yang dibagikan akan langsung muncul sebagai posting di Beranda dan menu Obrolan.</p>
         <form className="warung-form" onSubmit={shareEventToHome}>

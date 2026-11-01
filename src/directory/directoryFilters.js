@@ -166,7 +166,7 @@ export function isCurrentOrUpcomingEvent(event, now = new Date()) {
 }
 
 export function sortWarungsForDiscovery(items, category, {
-  followerCounts = {}, distances = {}, eventWarungIds = [], now = new Date()
+  followerCounts = {}, distances = {}, eventWarungIds = [], eventStarts = {}, now = new Date()
 } = {}) {
   const rows = [...(items || [])];
   const compareName = (a, b) => String(a.nameNormalized || a.name || '').localeCompare(
@@ -179,7 +179,9 @@ export function sortWarungsForDiscovery(items, category, {
   }
   if (category === 'events') {
     const ids = new Set(eventWarungIds);
-    return rows.filter((item) => ids.has(item.id)).sort(compareName);
+    return rows.filter((item) => ids.has(item.id)).sort((a, b) =>
+      timestampMillis(eventStarts[a.id]) - timestampMillis(eventStarts[b.id]) || compareName(a, b)
+    );
   }
   if (category === 'nearby') {
     return rows.filter((item) => Number.isFinite(distances[item.id])).sort((a, b) =>

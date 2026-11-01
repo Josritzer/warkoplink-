@@ -571,18 +571,18 @@ service cloud.firestore {
 
     function validNotification(data) {
       return signedIn()
-        && data.keys().hasAll(['recipientUid', 'actorUid', 'type', 'postId', 'createdAt', 'readAt'])
-        && data.keys().hasOnly(['recipientUid', 'actorUid', 'type', 'postId', 'replyId', 'username', 'createdAt', 'readAt'])
+        && data.keys().hasAll(['recipientUid', 'actorUid', 'type', 'createdAt', 'readAt'])
+        && data.keys().hasOnly(['recipientUid', 'actorUid', 'type', 'postId', 'replyId', 'username', 'warungId', 'createdAt', 'readAt'])
         && data.recipientUid is string
         && data.recipientUid != request.auth.uid
         && data.actorUid == request.auth.uid
-        && data.type in ['mention', 'comment']
-        && data.postId is string
-        && exists(/databases/$(database)/documents/posts/$(data.postId))
+        && data.type in ['mention', 'comment', 'reaction', 'follow']
         && data.createdAt == request.time
         && data.readAt == null
         && (
           (data.type == 'mention'
+            && data.postId is string
+            && exists(/databases/$(database)/documents/posts/$(data.postId))
             && data.username is string
             && exists(/databases/$(database)/documents/usernames/$(data.username))
             && get(/databases/$(database)/documents/usernames/$(data.username)).data.uid == data.recipientUid
@@ -597,10 +597,25 @@ service cloud.firestore {
                 && validMentionText(get(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId)).data.body, data.username))
             ))
           || (data.type == 'comment'
+            && data.postId is string
+            && exists(/databases/$(database)/documents/posts/$(data.postId))
             && data.replyId is string
             && get(/databases/$(database)/documents/posts/$(data.postId)).data.authorId == data.recipientUid
             && exists(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId))
             && get(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId)).data.authorId == request.auth.uid)
+          || (data.type == 'reaction'
+            && data.postId is string
+            && exists(/databases/$(database)/documents/posts/$(data.postId))
+            && get(/databases/$(database)/documents/posts/$(data.postId)).data.authorId == data.recipientUid
+            && exists(/databases/$(database)/documents/posts/$(data.postId)/likes/$(request.auth.uid))
+            && get(/databases/$(database)/documents/posts/$(data.postId)/likes/$(request.auth.uid)).data.uid == request.auth.uid)
+          || (data.type == 'follow'
+            && data.warungId is string
+            && exists(/databases/$(database)/documents/warungs/$(data.warungId))
+            && get(/databases/$(database)/documents/warungs/$(data.warungId)).data.ownerUid == data.recipientUid
+            && get(/databases/$(database)/documents/warungs/$(data.warungId)).data.verificationStatus == 'verified'
+            && exists(/databases/$(database)/documents/warungs/$(data.warungId)/followers/$(request.auth.uid))
+            && get(/databases/$(database)/documents/warungs/$(data.warungId)/followers/$(request.auth.uid)).data.uid == request.auth.uid)
         );
     }
 

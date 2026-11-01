@@ -80,12 +80,13 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     }, () => setStatus('error'));
   }, [mode, db, directoryRetry]);
 
-  const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua' || priceFilter !== 'semua' || discoveryCategory !== 'all';
+  const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua' || priceFilter !== 'semua';
+  const shouldLoadAllWarungs = hasActiveFilter || discoveryCategory !== 'all';
 
   // Ketika pengguna mencari atau memfilter, perluas seluruh halaman verified secara otomatis.
   // Tanpa ini, hasil di halaman ke-2 dan seterusnya tidak pernah ikut diperiksa.
   useEffect(() => {
-    if (mode !== 'directory' || !db || status !== 'ready' || !hasActiveFilter || !hasMore || !lastDocument) return undefined;
+    if (mode !== 'directory' || !db || status !== 'ready' || !shouldLoadAllWarungs || !hasMore || !lastDocument) return undefined;
     let cancelled = false;
     async function loadAllMatchingPages() {
       setSearchingAll(true);
@@ -126,7 +127,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     }
     loadAllMatchingPages();
     return () => { cancelled = true; };
-  }, [mode, db, status, hasActiveFilter, hasMore, lastDocument, directoryRetry]);
+  }, [mode, db, status, shouldLoadAllWarungs, hasMore, lastDocument, directoryRetry]);
 
 
   // Popularitas memakai jumlah follower profil warkop, bukan reaksi pada postingan.

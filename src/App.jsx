@@ -20,7 +20,9 @@ import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
 import ProfileEditor from './profile/ProfileEditor.jsx';
-import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun } from 'lucide-react';
+import NotificationCenter from './notifications/NotificationCenter.jsx';
+import { extractMentionUsernames } from './notifications/notificationModel.js';
+import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts, isPublicPost,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
@@ -87,6 +89,7 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [installPrompt, setInstallPrompt] = useState(null);
   const [user, setUser] = useState(null);
+  const [notificationCount, setNotificationCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authReady, setAuthReady] = useState(!auth);
   const [posts, setPosts] = useState(readCachedPosts);
@@ -265,6 +268,16 @@ export default function App() {
     });
   }, [ensureProfile]);
 
+  // Inbox pribadi: hanya membaca dokumen yang ditujukan kepada UID aktif.
+  useEffect(() => {
+    if (!db || !user?.uid) { setNotificationCount(0); return undefined; }
+    return onSnapshot(
+      query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), limit(50)),
+      snapshot => setNotificationCount(snapshot.docs.filter(item => item.data()?.readAt == null).length),
+      () => setNotificationCount(0)
+    );
+  }, [user?.uid]);
+
   useEffect(() => {
     if (!db) return undefined;
     setPostsStatus(current => current === 'ready' && posts.length ? current : 'loading');
@@ -441,6 +454,33 @@ export default function App() {
     }
   }
 
+  async function createMentionNotifications(body, postId, replyId = '') {
+    if (!db || !user?.uid) return;
+    const usernames = extractMentionUsernames(body);
+    if (!usernames.length) return;
+    const mappings = await Promise.all(usernames.map(async username => {
+      const snapshot = await getDoc(doc(db, 'usernames', username));
+      return snapshot.exists() ? { username, uid: snapshot.data()?.uid } : null;
+    }));
+    const recipients = [...new Map(mappings.filter(item => item?.uid && item.uid !== user.uid)
+      .map(item => [item.uid, item])).values()];
+    await Promise.all(recipients.map(({ username, uid }) => setDoc(doc(collection(db, 'notifications')), {
+      recipientUid: uid, actorUid: user.uid, type: 'mention', postId, username,
+      ...(replyId ? { replyId } : {}), createdAt: serverTimestamp(), readAt: null
+    })));
+  }
+
+  async function handleOpenNotification(notification) {
+    if (!notification?.postId || !db) return;
+    try {
+      const snapshot = await getDoc(doc(db, 'posts', notification.postId));
+      if (!snapshot.exists()) { setNotice('Obrolan dari notifikasi ini sudah tidak tersedia.'); return; }
+      await openReplyPage({ id: snapshot.id, ...snapshot.data() });
+    } catch {
+      setNotice('Obrolan belum dapat dibuka. Periksa koneksi lalu coba lagi.');
+    }
+  }
+
   async function handlePost(event, details = {}) {
     event.preventDefault();
     if (!user) {
@@ -489,7 +529,10 @@ export default function App() {
         reactions: { ...EMPTY_REACTIONS },
         totalReactions: 0
       });
-      let posterNotice = '';
+      let mentionNotice = '';
+      try { await createMentionNotifications(bodyCheck.value, postRef.id); }
+      catch { mentionNotice = ' Mention belum dapat dikirim ke semua akun yang ditandai.'; }
+      let posterNotice = mentionNotice;
       if (composerTopic === 'Info & Acara' && details.eventPosterFile) {
         try {
           await uploadWarkopMedia({ user, mediaType: 'event', resourceId: postRef.id, file: details.eventPosterFile });
@@ -834,6 +877,17 @@ export default function App() {
           reply.id === temporaryId ? { ...optimisticReply, id: savedReply.id, pending: false } : reply
         )
       }));
+      try {
+        const parentSnapshot = await getDoc(doc(db, 'posts', post.id));
+        const recipientUid = parentSnapshot.exists() ? parentSnapshot.data()?.authorId : '';
+        if (recipientUid && recipientUid !== user.uid) {
+          await setDoc(doc(collection(db, 'notifications')), {
+            recipientUid, actorUid: user.uid, type: 'comment', postId: post.id,
+            replyId: savedReply.id, createdAt: serverTimestamp(), readAt: null
+          });
+        }
+        await createMentionNotifications(body, post.id, savedReply.id);
+      } catch { /* Balasan tetap tersimpan meski pengiriman notifikasi tertunda. */ }
       setNotice('Balasan berhasil dikirim.');
       return true;
     } catch (error) {
@@ -1009,6 +1063,7 @@ export default function App() {
           <button type="button" aria-label="Desktop: Beranda" className={section === 'Beranda' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Beranda'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Home size={18}/><span>Beranda</span></button>
           <button type="button" aria-label="Desktop: Cari Warkop" className={section === 'Cari Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Cari Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Compass size={18}/><span>Cari Warkop</span></button>
           <button type="button" aria-label="Desktop: Obrolan" className={section === 'Obrolan' && topic === 'Semua' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={18}/><span>Obrolan</span></button>
+          <button type="button" aria-label="Desktop: Notifikasi" className={section === 'Notifikasi' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Notifikasi')}><Bell size={18}/><span>Notifikasi</span>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 99 ? '99+' : notificationCount}</span>}</button>
           <button type="button" aria-label="Desktop: Agenda & acara" className={section === 'Obrolan' && topic === 'Info & Acara' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={18}/><span>Agenda & acara</span></button>
           <button type="button" aria-label="Desktop: Jual beli & jasa" className={section === 'Obrolan' && topic === 'Jual Beli & Jasa Lokal' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli & Jasa Lokal'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={18}/><span>Jual beli & jasa</span></button>
           <button type="button" aria-label="Desktop: Ajukan Warkop" className={section === 'Daftarkan Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Daftarkan Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><ArrowUpRight size={18}/><span>Ajukan Warkop</span></button>
@@ -1024,6 +1079,7 @@ export default function App() {
       <main className="app-page-content">
       {section === 'Panel Admin' && isAdmin ? <AdminPanel db={db} user={user} onNotice={setNotice}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
+      section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
         <div className="reply-page-top">
           <button className="reply-page-back" type="button" onClick={() => navigateSection('Beranda')}>← Kembali ke beranda</button>
@@ -1122,7 +1178,8 @@ export default function App() {
       <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
       <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>
       <button className={section === "Obrolan" ? "bottom-nav-item active" : "bottom-nav-item"} onClick={() => { navigateSection("Obrolan"); document.getElementById("community-feed")?.scrollIntoView({behavior:"smooth"}); }} aria-current={section === "Obrolan" ? "page" : undefined}><MessageCircle size={20}/><span>Obrolan</span></button>
-      <button className={section === 'Daftarkan Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} aria-label="Ajukan Warkop" onClick={() => navigateSection('Daftarkan Warkop')} aria-current={section === 'Daftarkan Warkop' ? 'page' : undefined}><Store size={20}/><span>Ajukan</span></button>
+      <button className={section === 'Daftarkan Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} aria-label="Daftarkan Warkop" onClick={() => navigateSection('Daftarkan Warkop')} aria-current={section === 'Daftarkan Warkop' ? 'page' : undefined}><Store size={20}/><span>Daftar</span></button>
+      <button className={section === 'Notifikasi' ? 'bottom-nav-item active' : 'bottom-nav-item'} aria-label="Notifikasi" onClick={() => navigateSection('Notifikasi')} aria-current={section === 'Notifikasi' ? 'page' : undefined}><span className="notification-nav-icon"><Bell size={20}/>{notificationCount > 0 && <i>{notificationCount > 9 ? '9+' : notificationCount}</i>}</span><span>Notifikasi</span></button>
       <button className={section === 'Akun' || section === 'Profil Anggota' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => user ? openMemberProfile({ uid: user.uid, displayName: user.displayName || 'Anggota WarkopLink', photoURL: user.photoURL || '' }) : navigateSection('Akun')} aria-current={section === 'Akun' || section === 'Profil Anggota' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
     </nav>
     <footer><span className="footer-brand"><Sparkles size={16}/> WARKOPLINK</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} WarkopLink Platform</small></footer>

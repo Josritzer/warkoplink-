@@ -238,7 +238,8 @@ describe('ChatPostCard', () => {
     expect(screen.getByText('Acara selesai')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Acara selesai' }).disabled).toBe(true);
   });
-\n  it('menampilkan poster acara yang sudah tersimpan pada postingan Info & Acara', () => {
+
+  it('menampilkan poster acara yang sudah tersimpan pada postingan Info & Acara', () => {
     const { container } = render(<ChatPostCard {...props({
       post: { ...props().post, topic: 'Info & Acara', eventKind: 'Nobar', eventPhotoURL: 'https://media.example.test/events/post-1/poster.webp' }
     })} />);

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-const state = vi.hoisted(() => ({ warungNext: null, following: false, count: 0, events: [] }));
+const state = vi.hoisted(() => ({ warungNext: null, following: false, count: 0, events: [], warung: null }));
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((db, ...parts) => ({ path: parts.join('/') })),
   deleteDoc: vi.fn(async () => { state.following = false; }),
@@ -17,7 +17,7 @@ vi.mock('firebase/firestore', () => ({
       return vi.fn();
     }
     state.warungNext = next;
-    next({ id: 'warung-1', exists: () => true, data: () => ({
+    next({ id: 'warung-1', exists: () => true, data: () => state.warung || ({
       name: 'Warkop Pojok', verificationStatus: 'verified', address: 'Jl. Merdeka, Lamongan',
       coordinates: { lat: -7, lng: 112 }, facilities: ['Wi-Fi'], priceRange: 'belum-diisi',
       menuItems: ['Kopi', 'Teh'], specialties: ['Kopi racikan'], ambience: 'Santai untuk ngobrol',
@@ -60,7 +60,32 @@ describe('WarungProfile', () => {
     state.events = [];
   });
 
-  it('meminta pengguna masuk sebelum mengikuti', async () => {
+
+  it('menampilkan jadwal mingguan sebenarnya dan petunjuk untuk bagian profil yang kosong', async () => {
+    state.warung = {
+      name: 'Warkop Senja', verificationStatus: 'verified', address: 'Maduran, Lamongan',
+      openingHours: {
+        is24Hours: false,
+        keterangan: 'Jadwal mingguan tersedia di profil',
+        schedule: {
+          mon: { open: '08:00', close: '22:00' }, tue: { closed: true },
+          wed: { open: '09:00', close: '23:00' }, thu: { open: '09:00', close: '23:00' },
+          fri: { open: '09:00', close: '23:00' }, sat: { open: '09:00', close: '23:00' },
+          sun: { open: '09:00', close: '23:00' }
+        }
+      },
+      menuItems: [], specialties: [], facilities: [], activities: [], photos: [], ambience: ''
+    };
+    render(<WarungProfile warungId="warung-1" db={{}} user={null} onBack={vi.fn()} onRequestAuth={vi.fn()} onNotice={vi.fn()} />);
+    expect(await screen.findByText('Senin')).toBeTruthy();
+    expect(screen.getByText('08.00–22.00')).toBeTruthy();
+    expect(screen.getByText('Tutup')).toBeTruthy();
+    expect(screen.getByText(/Menu belum dicantumkan/)).toBeTruthy();
+    expect(screen.getByText(/Fasilitas belum dicantumkan/)).toBeTruthy();
+    expect(screen.getByText(/Suasana belum dideskripsikan/)).toBeTruthy();
+    state.warung = null;
+  });
+\n  it('meminta pengguna masuk sebelum mengikuti', async () => {
     const onRequestAuth = vi.fn();
     const onNotice = vi.fn();
     render(<WarungProfile warungId="warung-1" db={{}} user={null} onBack={vi.fn()} onRequestAuth={onRequestAuth} onNotice={onNotice} />);

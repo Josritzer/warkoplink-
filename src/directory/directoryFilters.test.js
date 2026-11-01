@@ -91,7 +91,7 @@ describe('kategori penemuan direktori', () => {
   it('menghitung jarak garis lurus dengan haversine dan menolak koordinat invalid', async () => {
     const { getDistanceKm } = await import('./directoryFilters.js');
     expect(getDistanceKm({ lat: -7, lng: 112 }, { lat: -7, lng: 112 })).toBe(0);
-    expect(getDistanceKm({ lat: -7, lng: 112 }, { lat: -7, lng: 113 })).toBeCloseTo(111.2, 0);
+    expect(getDistanceKm({ lat: -7, lng: 112 }, { lat: -7, lng: 113 })).toBeCloseTo(110.4, 0);
     expect(getDistanceKm({ lat: 100, lng: 112 }, { lat: -7, lng: 112 })).toBeNull();
   });
 

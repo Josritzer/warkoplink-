@@ -220,6 +220,8 @@ export default function App() {
     }
     setProfileSaving(true);
     try {
+      const ready = await ensureProfile(user);
+      if (!ready) throw new Error('profile-not-ready');
       await updateProfile(auth.currentUser, { displayName: nextName });
       await updateDoc(doc(db, 'profiles', user.uid), {
         displayName: nextName,

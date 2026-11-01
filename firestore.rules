@@ -59,7 +59,7 @@ service cloud.firestore {
 
     function validProfile(data) {
       return data.keys().hasAll(['displayName', 'email', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['displayName', 'email', 'photoURL', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['displayName', 'email', 'photoURL', 'bio', 'location', 'createdAt', 'updatedAt'])
         && data.displayName is string
         && data.displayName.size() >= 2
         && data.displayName.size() <= 60
@@ -254,23 +254,27 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.keys().hasAll(['uid', 'displayName', 'photoURL', 'updatedAt'])
-        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'bio', 'location', 'updatedAt'])
         && request.resource.data.uid == userId
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() >= 2
         && request.resource.data.displayName.size() <= 60
         && request.resource.data.photoURL is string
         && request.resource.data.photoURL.size() <= 2048
+        && (!request.resource.data.keys().hasAny(['bio']) || (request.resource.data.bio is string && request.resource.data.bio.size() <= 160))
+        && (!request.resource.data.keys().hasAny(['location']) || (request.resource.data.location is string && request.resource.data.location.size() <= 80))
         && request.resource.data.updatedAt == request.time;
       allow update: if signedIn()
         && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'bio', 'location', 'updatedAt'])
         && request.resource.data.uid == userId
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() >= 2
         && request.resource.data.displayName.size() <= 60
         && request.resource.data.photoURL is string
         && request.resource.data.photoURL.size() <= 2048
+        && (!request.resource.data.keys().hasAny(['bio']) || (request.resource.data.bio is string && request.resource.data.bio.size() <= 160))
+        && (!request.resource.data.keys().hasAny(['location']) || (request.resource.data.location is string && request.resource.data.location.size() <= 80))
         && (request.resource.data.updatedAt == request.time || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL']));
       allow delete: if false;
     }
@@ -282,11 +286,13 @@ service cloud.firestore {
         && validProfile(request.resource.data);
       allow update: if signedIn()
         && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'bio', 'location', 'updatedAt'])
         && (!request.resource.data.keys().hasAny(['photoURL']) || (request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 2048))
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() >= 2
-        && request.resource.data.displayName.size() <= 60;
+        && request.resource.data.displayName.size() <= 60
+        && (!request.resource.data.keys().hasAny(['bio']) || (request.resource.data.bio is string && request.resource.data.bio.size() <= 160))
+        && (!request.resource.data.keys().hasAny(['location']) || (request.resource.data.location is string && request.resource.data.location.size() <= 80));
       allow delete: if false;
     }
 

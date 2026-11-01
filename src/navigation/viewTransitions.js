@@ -14,9 +14,13 @@ export function runViewTransition(update, documentRef = globalThis.document) {
     };
   })();
 
-  const reduceMotion = documentRef?.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const matchMedia = documentRef?.defaultView?.matchMedia?.bind(documentRef.defaultView);
+  const reduceMotion = matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const touchFirst = matchMedia?.('(pointer: coarse)')?.matches;
   const start = documentRef?.startViewTransition;
-  if (reduceMotion || typeof start !== 'function') {
+  // Native snapshot transitions can stutter on mid-range Android GPUs, especially
+  // while the app chrome uses backdrop-filter. Keep touch navigation immediate.
+  if (reduceMotion || touchFirst || typeof start !== 'function') {
     runUpdate();
     return undefined;
   }

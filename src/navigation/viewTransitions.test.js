@@ -35,6 +35,21 @@ describe('runViewTransition', () => {
     expect(update).toHaveBeenCalledOnce();
   });
 
+  it('skips the native transition on touch-first devices to avoid snapshot jank', () => {
+    const update = vi.fn();
+    const startViewTransition = vi.fn();
+    const documentRef = {
+      startViewTransition,
+      defaultView: {
+        matchMedia: vi.fn((query) => ({ matches: query === '(pointer: coarse)' }))
+      }
+    };
+
+    runViewTransition(update, documentRef);
+    expect(startViewTransition).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledOnce();
+  });
+
   it('skips the native transition when reduced motion is preferred', () => {
     const update = vi.fn();
     const startViewTransition = vi.fn();

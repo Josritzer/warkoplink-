@@ -61,8 +61,8 @@ beforeEach(async () => {
 const asAnon = () => env.unauthenticatedContext().firestore();
 const asUser = (uid) => env.authenticatedContext(uid).firestore();
 const asAdmin = () => env.authenticatedContext('admin', { admin: true }).firestore();
-const asSuperAdmin = () => env.authenticatedContext('owner', { superAdmin: true }).firestore();
-const asModerator = () => env.authenticatedContext('moderator', { moderator: true }).firestore();
+const asSuperAdmin = () => env.authenticatedContext('owner', { platformRole: 'super_admin' }).firestore();
+const asModerator = () => env.authenticatedContext('moderator', { platformRole: 'moderator' }).firestore();
 
 describe('postReports', () => {
   it('pengguna login dapat melaporkan postingan yang ada', async () => {

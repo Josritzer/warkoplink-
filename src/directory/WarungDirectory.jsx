@@ -380,15 +380,20 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const distances = visitorLocation ? Object.fromEntries(warungs.map((item) => [
     item.id, calculateDistanceKm(visitorLocation, item.coordinates)
   ]).filter(([, distance]) => Number.isFinite(distance))) : {};
-  const eventWarungIds = discoveryEvents.map((event) => event.warungId);
+  const orderedEvents = [...discoveryEvents].sort((a, b) =>
+    new Date(a.eventStartAt || a.eventDate).getTime() - new Date(b.eventStartAt || b.eventDate).getTime()
+  );
+  const eventByWarung = new Map();
+  orderedEvents.forEach((event) => { if (!eventByWarung.has(event.warungId)) eventByWarung.set(event.warungId, event); });
+  const eventWarungIds = [...eventByWarung.keys()];
+  const eventStarts = Object.fromEntries([...eventByWarung.entries()].map(([id, event]) => [id, event.eventStartAt || event.eventDate]));
   const categoryWarungs = discoveryCategory === 'nearby' && !visitorLocation
     ? warungs
-    : sortWarungsForDiscovery(warungs, discoveryCategory, { followerCounts, distances, eventWarungIds, now });
+    : sortWarungsForDiscovery(warungs, discoveryCategory, { followerCounts, distances, eventWarungIds, eventStarts, now });
   const visibleWarungs = filterWarungs(categoryWarungs, {
     search: searchTerm, facilities: facilityFilter, activities: activityFilter,
     operational: operationalFilter, priceRange: priceFilter, now
   });
-  const eventByWarung = new Map(discoveryEvents.map((event) => [event.warungId, event]));
   function toggleFacility(key) {
     setFacilityFilter((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   }

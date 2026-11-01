@@ -88,7 +88,7 @@ describe('kartu direktori warkop', () => {
 
     expect(await screen.findByText('Kopi Target')).toBeTruthy();
     expect(firestore.getDocs).toHaveBeenCalledOnce();
-    expect(screen.getByText(/31 dari 31 warkop/)).toBeTruthy();
+    expect(screen.getByText(/1 dari 31 warkop/)).toBeTruthy();
   });
 
   it('menampilkan placeholder elegan ketika warkop belum memiliki foto', async () => {

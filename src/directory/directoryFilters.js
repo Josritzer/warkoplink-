@@ -128,3 +128,99 @@ export function filterWarungs(items, { search = '', facilities = [], activities 
     return haystack.includes(needle);
   });
 }
+
+
+function coordinateIsValid(point) {
+  return Number.isFinite(point?.lat) && Number.isFinite(point?.lng)
+    && point.lat >= -90 && point.lat <= 90
+    && point.lng >= -180 && point.lng <= 180;
+}
+
+export function getDistanceKm(origin, destination) {
+  if (!coordinateIsValid(origin) || !coordinateIsValid(destination)) return null;
+  const radians = (degrees) => degrees * Math.PI / 180;
+  const latitudeDelta = radians(destination.lat - origin.lat);
+  const longitudeDelta = radians(destination.lng - origin.lng);
+  const originLatitude = radians(origin.lat);
+  const destinationLatitude = radians(destination.lat);
+  const haversine = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(originLatitude) * Math.cos(destinationLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+  return 6371.0088 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(Math.max(0, 1 - haversine)));
+}
+
+function timestampMillis(value) {
+  if (value && typeof value.toMillis === 'function') return value.toMillis();
+  if (value && Number.isFinite(value.seconds)) return value.seconds * 1000;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+export function getEventLifecycle(event, now = new Date()) {
+  if (event?.eventStatus === 'cancelled') return 'cancelled';
+  const start = timestampMillis(event?.eventStartAt);
+  if (start === null) return 'invalid';
+  const suppliedEnd = timestampMillis(event?.eventEndAt);
+  const end = suppliedEnd !== null && suppliedEnd > start ? suppliedEnd : start + 2 * 60 * 60 * 1000;
+  const current = now instanceof Date ? now.getTime() : timestampMillis(now);
+  if (current === null) return 'invalid';
+  if (current < start) return 'upcoming';
+  if (current > end) return 'ended';
+  return 'ongoing';
+}
+
+export function sortDirectoryWarungs(items, category = 'popular', {
+  followerCounts = {}, origin = null, events = [], now = new Date()
+} = {}) {
+  const eventByWarung = new Map();
+  for (const event of events || []) {
+    if (!event?.warungId || !['ongoing', 'upcoming'].includes(getEventLifecycle(event, now))) continue;
+    const current = eventByWarung.get(event.warungId) || [];
+    current.push(event);
+    eventByWarung.set(event.warungId, current);
+  }
+  for (const linked of eventByWarung.values()) {
+    linked.sort((a, b) => timestampMillis(a.eventStartAt) - timestampMillis(b.eventStartAt));
+  }
+
+  const enriched = (items || []).map((item) => ({
+    ...item,
+    distanceKm: coordinateIsValid(origin) ? getDistanceKm(origin, item.coordinates) : null,
+    activeEvent: (eventByWarung.get(item.id) || [])[0] || null
+  }));
+
+  if (category === 'events') {
+    return enriched.filter((item) => item.activeEvent)
+      .sort((a, b) => {
+        const aState = getEventLifecycle(a.activeEvent, now);
+        const bState = getEventLifecycle(b.activeEvent, now);
+        return Number(bState === 'ongoing') - Number(aState === 'ongoing')
+          || timestampMillis(a.activeEvent.eventStartAt) - timestampMillis(b.activeEvent.eventStartAt)
+          || String(a.name || '').localeCompare(String(b.name || ''), 'id');
+      });
+  }
+
+  if (category === 'nearby') {
+    return enriched.sort((a, b) => {
+      if (a.distanceKm === null) return b.distanceKm === null ? String(a.name || '').localeCompare(String(b.name || ''), 'id') : 1;
+      if (b.distanceKm === null) return -1;
+      return a.distanceKm - b.distanceKm || String(a.name || '').localeCompare(String(b.name || ''), 'id');
+    });
+  }
+
+  if (category === 'newest') {
+    return enriched.sort((a, b) => {
+      const aTime = timestampMillis(a.createdAt) ?? -Infinity;
+      const bTime = timestampMillis(b.createdAt) ?? -Infinity;
+      return bTime - aTime || String(a.name || '').localeCompare(String(b.name || ''), 'id');
+    });
+  }
+
+  return enriched.sort((a, b) => {
+    const countDifference = (Number(followerCounts[b.id]) || 0) - (Number(followerCounts[a.id]) || 0);
+    return countDifference || String(a.name || '').localeCompare(String(b.name || ''), 'id');
+  });
+}

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
 import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
-import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, LocateFixed } from 'lucide-react';
-import { ACTIVITY_OPTIONS, PRICE_OPTIONS, collectFacilities, filterWarungs, isOpenNow } from './directoryFilters.js';
+import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, LocateFixed, Flame, CalendarDays, Navigation, Sparkles } from 'lucide-react';
+import { ACTIVITY_OPTIONS, collectFacilities, filterWarungs, getEventLifecycle, isOpenNow, sortDirectoryWarungs } from './directoryFilters.js';
 import LeafletLocationPicker from './LeafletLocationPicker.jsx';
 
 class WarungFormValidationError extends Error {
@@ -26,7 +26,14 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [facilityFilter, setFacilityFilter] = useState([]);
   const [activityFilter, setActivityFilter] = useState([]);
   const [operationalFilter, setOperationalFilter] = useState('semua');
-  const [priceFilter, setPriceFilter] = useState('semua');
+  const [category, setCategory] = useState('popular');
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [followerCounts, setFollowerCounts] = useState({});
+  const [popularLoading, setPopularLoading] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locatingUser, setLocatingUser] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const [now, setNow] = useState(() => new Date());
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -73,7 +80,89 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     }, () => setStatus('error'));
   }, [mode, db, directoryRetry]);
 
-  const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua' || priceFilter !== 'semua';
+
+  useEffect(() => {
+    if (mode !== 'directory' || category !== 'events' || !db) {
+      setEvents([]);
+      setEventsLoading(false);
+      return undefined;
+    }
+    setEventsLoading(true);
+    const eventsQuery = query(
+      collection(db, 'posts'),
+      where('topic', '==', 'Info & Acara'),
+      orderBy('createdAt', 'desc'),
+      limit(100)
+    );
+    return onSnapshot(eventsQuery, (snapshot) => {
+      setEvents(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
+        .filter((item) => item.warungId && ['ongoing', 'upcoming'].includes(getEventLifecycle(item, new Date()))));
+      setEventsLoading(false);
+    }, () => {
+      setEvents([]);
+      setEventsLoading(false);
+    });
+  }, [mode, category, db]);
+
+  useEffect(() => {
+    if (mode !== 'directory' || category !== 'popular' || !db || !warungs.length) {
+      setPopularLoading(false);
+      return undefined;
+    }
+    let cancelled = false;
+    async function loadFollowerCounts() {
+      setPopularLoading(true);
+      const counts = {};
+      try {
+        // Batas lima permintaan paralel menjaga beban pembacaan tetap terkendali.
+        for (let offset = 0; offset < warungs.length && !cancelled; offset += 5) {
+          const batch = warungs.slice(offset, offset + 5);
+          const results = await Promise.all(batch.map(async (item) => {
+            const snapshot = await getCountFromServer(collection(db, 'warungs', item.id, 'followers'));
+            return [item.id, snapshot.data().count];
+          }));
+          results.forEach(([id, count]) => { counts[id] = count; });
+          if (!cancelled) setFollowerCounts((current) => ({ ...current, ...Object.fromEntries(results) }));
+        }
+      } catch {
+        // Ranking tetap dapat digunakan dengan data hitungan yang berhasil dibaca.
+      } finally {
+        if (!cancelled) setPopularLoading(false);
+      }
+    }
+    loadFollowerCounts();
+    return () => { cancelled = true; };
+  }, [mode, category, db, warungs]);
+
+  function requestDirectoryLocation() {
+    if (!navigator.geolocation) {
+      setLocationError('Perangkat ini tidak mendukung GPS. Direktori tetap dapat digunakan tanpa jarak.');
+      return;
+    }
+    setLocatingUser(true);
+    setLocationError('');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setUserLocation({ lat: coords.latitude, lng: coords.longitude });
+        setLocationError('');
+        setLocatingUser(false);
+      },
+      (error) => {
+        setLocationError(error.code === 1
+          ? 'Izin lokasi belum diberikan. Aktifkan izin lokasi untuk mengurutkan warkop terdekat.'
+          : 'Lokasi belum berhasil ditemukan. Aktifkan GPS lalu coba lagi.');
+        setLocatingUser(false);
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
+    );
+  }
+
+  function handleCategoryChange(nextCategory) {
+    setCategory(nextCategory);
+    if (nextCategory === 'nearby' && !userLocation && !locatingUser) requestDirectoryLocation();
+  }
+
+  const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua';
 
   // Ketika pengguna mencari atau memfilter, perluas seluruh halaman verified secara otomatis.
   // Tanpa ini, hasil di halaman ke-2 dan seterusnya tidak pernah ikut diperiksa.
@@ -309,7 +398,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   }
 
   const facilityOptions = collectFacilities(warungs);
-  const visibleWarungs = filterWarungs(warungs, { search: searchTerm, facilities: facilityFilter, activities: activityFilter, operational: operationalFilter, priceRange: priceFilter, now });
+  const visibleWarungs = filterWarungs(warungs, { search: searchTerm, facilities: facilityFilter, activities: activityFilter, operational: operationalFilter, now });
+  const orderedWarungs = sortDirectoryWarungs(visibleWarungs, category, { followerCounts, origin: userLocation, events, now });
   function toggleFacility(key) {
     setFacilityFilter((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   }
@@ -319,24 +409,41 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>
     <h2>Cari warkop di Lamongan.</h2>
-    <p>Direktori publik hanya menampilkan warkop terverifikasi. Data dimuat bertahap, 30 entri per permintaan. Hasil diurutkan berdasarkan nama. Pencarian dan filter otomatis memeriksa seluruh warkop terverifikasi yang tersedia.</p>
+    <p>Direktori publik hanya menampilkan warkop terverifikasi. Temukan warkop populer, agenda acara, lokasi terdekat, atau yang baru bergabung. Data dimuat bertahap; pencarian dan filter memeriksa halaman berikutnya agar hasil tidak terlewat.</p>
+
+    <div className="directory-category-tabs" role="group" aria-label="Kategori penemuan warkop">
+      <button type="button" className={category === 'popular' ? 'directory-category active' : 'directory-category'} aria-pressed={category === 'popular'} onClick={() => handleCategoryChange('popular')}><Flame size={16}/> Populer</button>
+      <button type="button" className={category === 'events' ? 'directory-category active' : 'directory-category'} aria-pressed={category === 'events'} onClick={() => handleCategoryChange('events')}><CalendarDays size={16}/> Ada Event Sekarang</button>
+      <button type="button" className={category === 'nearby' ? 'directory-category active' : 'directory-category'} aria-pressed={category === 'nearby'} onClick={() => handleCategoryChange('nearby')}><Navigation size={16}/> Terdekat</button>
+      <button type="button" className={category === 'newest' ? 'directory-category active' : 'directory-category'} aria-pressed={category === 'newest'} onClick={() => handleCategoryChange('newest')}><Sparkles size={16}/> Warkop Terbaru</button>
+    </div>
+    {category === 'popular' && <p className="directory-category-hint">Diurutkan dari jumlah pengikut nyata pada profil warkop. Peringkat mengikuti warkop yang sudah dimuat.</p>}
+    {category === 'popular' && !popularLoading && Object.keys(followerCounts).length > 0 && !Object.values(followerCounts).some((count) => count > 0) && <p className="directory-category-hint">Belum ada pengikut pada warkop yang dimuat. Peringkat sementara mengikuti nama sampai ada aktivitas nyata.</p>}
+    {category === 'events' && <p className="directory-category-hint">Menampilkan acara terhubung ke warkop yang sedang berlangsung atau akan datang.</p>}
+    {category === 'nearby' && <div className="directory-location-status">
+      {userLocation
+        ? <span><Navigation size={14}/> Jarak dihitung dari lokasi perangkat dan merupakan perkiraan garis lurus.</span>
+        : <span>{locationError || 'Izinkan lokasi perangkat untuk mengurutkan berdasarkan jarak.'}</span>}
+      {!userLocation && <button className="button button-quiet" type="button" onClick={requestDirectoryLocation} disabled={locatingUser}>{locatingUser ? 'Mencari lokasi…' : 'Aktifkan lokasi'}</button>}
+    </div>}
+
     <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, fasilitas…" aria-label="Cari warkop"/></label>
     <div className="directory-filters" role="group" aria-label="Filter warkop">
       <label>Operasional<select aria-label="Filter operasional" value={operationalFilter} onChange={(e) => setOperationalFilter(e.target.value)}><option value="semua">Semua status</option><option value="buka-sekarang">Buka sekarang</option><option value="buka-24-jam">Buka 24 jam</option></select></label>
-      <label>Kisaran harga<select aria-label="Filter kisaran harga" value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)}><option value="semua">Semua harga</option>{PRICE_OPTIONS.map((price) => <option key={price.value} value={price.value}>{price.label}</option>)}</select></label>
+      
       <div className="directory-filter-group"><strong>Aktivitas</strong><div className="facility-filter-list">{ACTIVITY_OPTIONS.map((activity) => <button type="button" key={activity.value} className={activityFilter.includes(activity.value) ? 'facility-chip active' : 'facility-chip'} aria-pressed={activityFilter.includes(activity.value)} onClick={() => toggleActivity(activity.value)}>{activity.label}</button>)}</div></div>
       {facilityOptions.length > 0 && <div className="directory-filter-group"><strong>Fasilitas</strong><div className="facility-filter-list">{facilityOptions.map((facility) => <button type="button" key={facility.key} className={facilityFilter.includes(facility.key) ? 'facility-chip active' : 'facility-chip'} aria-pressed={facilityFilter.includes(facility.key)} onClick={() => toggleFacility(facility.key)}>{facility.label}</button>)}</div></div>}
-      {hasActiveFilter && <button type="button" className="button button-quiet" onClick={() => { setSearchTerm(''); setFacilityFilter([]); setActivityFilter([]); setOperationalFilter('semua'); setPriceFilter('semua'); }}>Hapus filter</button>}
+      {hasActiveFilter && <button type="button" className="button button-quiet" onClick={() => { setSearchTerm(''); setFacilityFilter([]); setActivityFilter([]); setOperationalFilter('semua'); }}>Hapus filter</button>}
     </div>
     {status === 'loading' && <div className="empty-state" role="status"><h3>Memuat direktori…</h3><p>Mohon tunggu sebentar.</p></div>}
     {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi.</p><button className="button button-quiet" type="button" onClick={() => setDirectoryRetry((attempt) => attempt + 1)}>Coba lagi</button></div>}
     {status === 'ready' && searchingAll && visibleWarungs.length === 0 && <div className="empty-state" role="status"><h3>Menelusuri seluruh direktori…</h3><p>Memeriksa halaman warkop berikutnya agar hasil pencarian tidak terlewat.</p></div>}
-    {status === 'ready' && !searchingAll && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
-    {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{searchingAll ? ' · sedang memeriksa halaman berikutnya' : hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
-    <div className="warung-list">{visibleWarungs.map((item) => {
+    {status === 'ready' && category === 'events' && eventsLoading && <div className="empty-state" role="status"><h3>Memuat agenda warkop…</h3><p>Mencari acara yang masih aktif dan akan datang.</p></div>}
+    {status === 'ready' && !searchingAll && !eventsLoading && orderedWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{category === 'events' ? 'Belum ada event aktif' : hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{category === 'events' ? 'Belum ada acara yang sedang berlangsung atau akan datang dari warkop terverifikasi.' : hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
+    {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {orderedWarungs.length} dari {warungs.length} warkop yang sudah dimuat{searchingAll ? ' · sedang memeriksa halaman berikutnya' : hasMore ? ' · masih ada halaman berikutnya' : ''}{category === 'popular' && popularLoading ? ' · menghitung pengikut…' : ''}.</p>}
+    <div className="warung-list">{orderedWarungs.map((item) => {
       const primaryPhoto = Array.isArray(item.photos) ? item.photos.find((photo) => typeof photo === 'string' && photo.trim()) : '';
       const openState = item.openingHours?.is24Hours === true ? true : isOpenNow(item, now);
-      const priceLabel = PRICE_OPTIONS.find((price) => price.value === item.priceRange)?.label;
       const highlights = [...(item.specialties || []), ...(item.activities || []).map((activity) => ACTIVITY_OPTIONS.find((option) => option.value === activity)?.label || activity), ...(item.facilities || [])].filter(Boolean).slice(0, 5);
       return <article className="warung-card" key={item.id}>
         {primaryPhoto
@@ -348,11 +455,17 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
             {openState === true ? <span className="warung-card-status is-open"><span/> Buka</span> : openState === false ? <span className="warung-card-status is-closed"><span/> Tutup</span> : null}
           </div>
           <p className="warung-card-address"><MapPin size={15}/>{item.address}</p>
+          {item.activeEvent && <>
+            <div className="directory-event-badge"><CalendarDays size={14}/><span>{getEventLifecycle(item.activeEvent, now) === 'ongoing' ? 'SEDANG BERLANGSUNG' : 'AKAN DATANG'} · {String(item.activeEvent.eventKind || 'Acara warkop')}</span></div>
+            <strong className="directory-event-title">{String(item.activeEvent.body || 'Acara warkop').split(/\r?\n/)[0].slice(0, 90)}</strong>
+            <time className="directory-event-time" dateTime={new Date(item.activeEvent.eventStartAt).toISOString()}>{new Date(item.activeEvent.eventStartAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</time>
+          </>}
+          {category === 'popular' && Object.prototype.hasOwnProperty.call(followerCounts, item.id) && <small className="directory-ranking-meta"><Flame size={13}/> {followerCounts[item.id].toLocaleString('id-ID')} pengikut</small>}
+          {category === 'nearby' && item.distanceKm !== null && <small className="directory-ranking-meta"><Navigation size={13}/> {item.distanceKm < 1 ? Math.round(item.distanceKm * 1000) + ' m' : item.distanceKm.toFixed(1) + ' km'} · perkiraan</small>}
           {highlights.length > 0 && <div className="facility-tags warung-card-highlights">{highlights.map((highlight, index) => <span key={`${highlight}-${index}`}>{highlight}</span>)}</div>}
           {item.ambience && <p className="warung-card-ambience">{item.ambience}</p>}
           <div className="warung-card-meta">
             {item.openingHours?.is24Hours === true ? <small><Clock size={13}/> Buka 24 jam</small> : item.openingHours?.keterangan && !item.openingHours?.schedule ? <small><Clock size={13}/> Jam buka: {item.openingHours.keterangan}</small> : null}
-            {priceLabel && <small>{priceLabel}</small>}
           </div>
           <div className="warung-card-actions">
             <button className="button button-dark" type="button" onClick={() => onOpenWarung?.(item.id)} aria-label={`Lihat detail ${item.name}`}>Lihat detail <ArrowUpRight size={15}/></button>

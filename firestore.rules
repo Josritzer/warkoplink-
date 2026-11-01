@@ -180,7 +180,7 @@ service cloud.firestore {
     function validWarung(data) {
       return data.keys().hasAll([
           'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
-          'regionCode', 'facilities', 'priceRange', 'openingHours', 'photos',
+          'regionCode', 'facilities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos',
           'verificationStatus', 'createdAt', 'updatedAt'
         ])
         && data.keys().hasOnly([

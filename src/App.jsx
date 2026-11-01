@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { runViewTransition } from './navigation/viewTransitions.js';
 import { EMPTY_REACTIONS, reactionFieldForEmoji, shouldRemoveReaction, summarizeReactions } from './reactions.js';
 import {
@@ -117,7 +118,7 @@ export default function App() {
   const reactionLocks = useRef(new Set());
 
   const navigateSection = useCallback((nextSection) => {
-    runViewTransition(() => setSection(nextSection));
+    runViewTransition(() => flushSync(() => setSection(nextSection)));
   }, []);
 
   // Notifikasi sementara tidak boleh terus menutupi konten atau navigasi.

@@ -85,7 +85,8 @@ describe('WarungProfile', () => {
     expect(screen.getByText(/Suasana belum dideskripsikan/)).toBeTruthy();
     state.warung = null;
   });
-\n  it('meminta pengguna masuk sebelum mengikuti', async () => {
+
+  it('meminta pengguna masuk sebelum mengikuti', async () => {
     const onRequestAuth = vi.fn();
     const onNotice = vi.fn();
     render(<WarungProfile warungId="warung-1" db={{}} user={null} onBack={vi.fn()} onRequestAuth={onRequestAuth} onNotice={onNotice} />);

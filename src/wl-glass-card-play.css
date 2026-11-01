@@ -348,3 +348,22 @@ button:disabled {
     animation: none !important;
   }
 }
+
+
+/* Touch-first devices: avoid expensive backdrop compositing during navigation.
+   Solid surfaces keep the same hierarchy without GPU-heavy blur on mid-range phones. */
+@media (pointer: coarse) {
+  .app-header,
+  .bottom-nav,
+  .app-notice,
+  .auth-modal {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--wl-surface);
+  }
+
+  .app-header,
+  .bottom-nav {
+    box-shadow: 0 2px 10px rgb(32 22 42 / 6%);
+  }
+}

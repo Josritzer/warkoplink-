@@ -301,7 +301,7 @@ export default function ChatPostCard({
       <div className="post-stats post-stats-like">
         <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
         <button className="engagement-comment-count" type="button" onClick={openCommentsForReply} aria-label={`Buka komentar, ${commentCount} komentar`}>
-          {commentCount > 0 ? `${commentCount} komentar` : 'Belum ada komentar'}
+          {commentCount > 0 ? `Komentar · ${commentCount}` : 'Komentar'}
         </button>
       </div>
       <div className="post-actions">

@@ -512,7 +512,7 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.verificationAuditId == auditId;
       allow update, delete: if false;
     }
-    // Laporan bersifat privat dan hanya admin yang boleh membacanya.
+    // Laporan bersifat privat dan hanya Moderator atau Super Admin yang boleh membacanya.
     // ID deterministik membatasi satu laporan per akun untuk setiap postingan.
     match /postReports/{reportId} {
       allow read: if isModerator();
@@ -531,7 +531,7 @@ service cloud.firestore {
     }
 
 
-    // Status moderasi terpisah dari laporan asli. Hanya admin dapat membaca/menulis.
+    // Status moderasi terpisah dari laporan asli. Moderator dan Super Admin dapat mengelolanya.
     // Setiap perubahan wajib disertai peristiwa audit dalam batch yang sama.
     match /postReportModeration/{reportId} {
       allow read: if isModerator();
@@ -542,7 +542,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Audit moderasi bersifat append-only dan tidak dapat diperbarui/dihapus.
+    // Audit moderasi bersifat append-only dan tidak dapat diperbarui/dihapus oleh klien.
     match /postReportAudit/{auditId} {
       allow read: if isModerator();
       allow create: if isModerator()

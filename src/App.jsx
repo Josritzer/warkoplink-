@@ -1137,7 +1137,7 @@ export default function App() {
         onViewAllDiscussions={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}
         onOpenDiscussion={() => { navigateSection('Obrolan'); setComposerOpen(true); window.scrollTo({ top: 0, behavior: 'auto' }); }}
         onOpenDirectory={() => navigateSection('Cari Warkop')}
-        user={user} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
+        user={user} db={db} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
         topic={topic} setTopic={setTopic} composerTopic={composerTopic} setComposerTopic={setComposerTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
         openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
         activeCategory={activeCategory} handlePost={handlePost} posting={posting} verifiedWarungs={verifiedWarungs} ownVerifiedWarungs={verifiedWarungs.filter(warung => warung.ownerUid === user?.uid)}

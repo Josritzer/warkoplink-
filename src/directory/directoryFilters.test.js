@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectActivities, collectFacilities, filterWarungs, isOpenNow, normalizeSearchText } from './directoryFilters.js';
+import { calculateDistanceKm, collectActivities, collectFacilities, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, normalizeSearchText, sortWarungsForDiscovery } from './directoryFilters.js';
 
 const items = [
   { id: '1', name: 'Warkop Pojok', address: 'Jl. Kembangbahu, Lamongan', facilities: ['Wi-Fi', 'parkir'], priceRange: 'hemat' },
@@ -83,5 +83,32 @@ describe('directoryFilters', () => {
     expect(isOpenNow({ openingHours: { keterangan: 'Setiap hari 08.00–23.00' } }, new Date('2026-10-30T16:00:00.000Z'))).toBe(null);
     expect(isOpenNow({ openingHours: { is24Hours: true } }, new Date('2026-10-30T16:00:00.000Z'))).toBe(true);
     expect(isOpenNow({ openingHours: { schedule: { mon: { closed: true }, tue: { closed: true }, wed: { closed: true }, thu: { closed: true }, fri: { open: '08:00', close: '17:00' }, sat: { closed: true }, sun: { closed: true } } } }, new Date('2026-10-30T16:00:00.000Z'))).toBe(false);
+  });
+});
+
+
+describe('kategori penemuan direktori', () => {
+  it('menghitung jarak garis lurus dan menolak koordinat tidak valid', () => {
+    expect(calculateDistanceKm({ lat: -7.0, lng: 112.0 }, { lat: -7.0, lng: 112.01 })).toBeCloseTo(1.11, 1);
+    expect(calculateDistanceKm({ lat: 91, lng: 0 }, { lat: 0, lng: 0 })).toBeNull();
+  });
+
+  it('mengurutkan warkop populer berdasarkan pengikut, bukan like postingan', () => {
+    const rows = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }, { id: 'c', name: 'C' }];
+    expect(sortWarungsForDiscovery(rows, 'popular', { followerCounts: { a: 2, b: 8, c: 0 } }).map(x => x.id)).toEqual(['b', 'a']);
+  });
+
+  it('menampilkan hanya warkop yang terhubung ke acara aktif atau mendatang', () => {
+    const now = new Date('2026-11-01T10:00:00Z');
+    expect(isCurrentOrUpcomingEvent({ topic: 'Info & Acara', eventStartAt: '2026-11-01T09:00:00Z', eventEndAt: '2026-11-01T12:00:00Z' }, now)).toBe(true);
+    expect(isCurrentOrUpcomingEvent({ topic: 'Info & Acara', eventStartAt: '2026-10-30T09:00:00Z' }, now)).toBe(false);
+    expect(isCurrentOrUpcomingEvent({ topic: 'Info & Acara', eventStartAt: '2026-11-02T09:00:00Z', eventStatus: 'cancelled' }, now)).toBe(false);
+    expect(sortWarungsForDiscovery([{ id: 'a' }, { id: 'b' }], 'events', { eventWarungIds: ['a', 'b'], eventStarts: { a: '2026-11-03T10:00:00Z', b: '2026-11-02T10:00:00Z' } }).map(x => x.id)).toEqual(['b', 'a']);
+  });
+
+  it('mengurutkan warkop terdekat dan terbaru secara deterministik', () => {
+    const rows = [{ id: 'old', createdAt: '2026-10-01T00:00:00Z' }, { id: 'new', createdAt: '2026-10-30T00:00:00Z' }];
+    expect(sortWarungsForDiscovery(rows, 'nearby', { distances: { old: 4, new: 1 } }).map(x => x.id)).toEqual(['new', 'old']);
+    expect(sortWarungsForDiscovery(rows, 'newest').map(x => x.id)).toEqual(['new', 'old']);
   });
 });

@@ -499,7 +499,7 @@ export default function App() {
             ? `Akun berhasil dibuat. Tautan verifikasi dikirim ke ${result.user.email}. Periksa Kotak Masuk dan folder Spam.`
             : 'Akun berhasil dibuat, tetapi email verifikasi belum terkirim. Buka menu Akun untuk mencoba mengirim ulang.'
           : verificationSent
-            ? 'Akun berhasil dibuat dan email verifikasi dikirim. Profil akan dicoba disimpan kembali saat Anda masuk berikutnya.'
+            ? 'Akun berhasil dibuat dan email verifikasi dikirim. Profil belum tersimpan; sistem akan mencoba menyimpannya kembali saat Anda masuk berikutnya.'
             : 'Akun berhasil dibuat, tetapi profil dan email verifikasi belum selesai. Buka menu Akun untuk mencoba mengirim ulang email.');
       } else {
         await signInWithEmailAndPassword(auth, emailCheck.value, passwordCheck.value);

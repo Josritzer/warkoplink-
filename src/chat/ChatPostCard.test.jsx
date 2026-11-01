@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ChatPostCard from './ChatPostCard.jsx';
 
 const firestoreMocks = vi.hoisted(() => ({ setDoc: vi.fn(), deleteDoc: vi.fn(), onSnapshot: vi.fn(), getDocs: vi.fn() }));
@@ -235,6 +235,28 @@ describe('ChatPostCard', () => {
     fireEvent.click(button);
     expect(firestoreMocks.setDoc).toHaveBeenCalledOnce();
     await act(async () => { resolveRsvp(); });
+  });
+
+  it('shows the saved going state and attendee count when RSVP data is available', () => {
+    const values = props({ post: { ...props().post, topic: 'Info & Acara', eventStartAt: '2099-06-20T12:00:00.000Z' } });
+    firestoreMocks.onSnapshot.mockImplementation((ref, next) => {
+      if (ref?.kind === 'document' && ref.path.endsWith('/eventRsvps/user-1')) next({ exists: () => true, data: () => ({ status: 'going' }) });
+      else if (ref?.kind === 'query') next({ size: 2, docs: [] });
+      else next({ exists: () => false, data: () => ({}) });
+      return vi.fn();
+    });
+    render(<ChatPostCard {...values} />);
+    const going = screen.getByRole('button', { name: '✓ Anda ikut' });
+    expect(going.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('2 ikut')).toBeTruthy();
+  });
+
+  it('shows a clear failure notice when RSVP cannot be saved', async () => {
+    const values = props({ post: { ...props().post, topic: 'Info & Acara', eventStartAt: '2099-06-20T12:00:00.000Z' } });
+    firestoreMocks.setDoc.mockRejectedValueOnce(new Error('offline'));
+    render(<ChatPostCard {...values} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ikut acara' }));
+    await waitFor(() => expect(values.setNotice).toHaveBeenCalledWith('Status kehadiran belum tersimpan. Coba lagi.'));
   });
 
   it('menandai acara lampau sebagai selesai dan menonaktifkan RSVP', () => {

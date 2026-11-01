@@ -284,13 +284,33 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     {status === 'error' && <div className="empty-state" role="alert"><h3>Direktori belum dapat dimuat</h3><p>Periksa koneksi dan konfigurasi Firebase, lalu coba lagi.</p><button className="button button-quiet" type="button" onClick={() => setDirectoryRetry((attempt) => attempt + 1)}>Coba lagi</button></div>}
     {status === 'ready' && visibleWarungs.length === 0 && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
     {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
-    <div className="warung-list">{visibleWarungs.map((item) => <article className="warung-card" key={item.id}>
-      <div className="warung-card-icon"><Store size={22}/></div><div className="warung-card-body"><h3><button className="warung-profile-link" type="button" onClick={() => onOpenWarung?.(item.id)}>{item.name} <ArrowUpRight size={14}/></button></h3><p><MapPin size={14}/>{item.address}</p>
-      <div className="facility-tags">{(item.facilities || []).map((facility) => <span key={facility}>{facility}</span>)}{(item.activities || []).map((activity) => <span key={activity}>{ACTIVITY_OPTIONS.find((option) => option.value === activity)?.label || activity}</span>)}</div>
-      {item.openingHours?.is24Hours === true ? <small><Clock size={13} aria-hidden="true"/> Buka 24 jam · Buka sekarang</small> : <>{isOpenNow(item, now) === true ? <small><Clock size={13} aria-hidden="true"/> Buka sekarang</small> : isOpenNow(item, now) === false ? <small><Clock size={13} aria-hidden="true"/> Tutup</small> : null}{item.openingHours?.keterangan && !item.openingHours?.schedule ? <small>Jam buka: {item.openingHours.keterangan}</small> : null}</>}
-      {Number.isFinite(item.coordinates?.lat) && Number.isFinite(item.coordinates?.lng) && <a className="warung-map-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.coordinates.lat},${item.coordinates.lng}`)}`} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta <ArrowUpRight size={13}/></a>}
-      </div>
-    </article>)}</div>
+    <div className="warung-list">{visibleWarungs.map((item) => {
+      const primaryPhoto = Array.isArray(item.photos) ? item.photos.find((photo) => typeof photo === 'string' && photo.trim()) : '';
+      const openState = item.openingHours?.is24Hours === true ? true : isOpenNow(item, now);
+      const priceLabel = PRICE_OPTIONS.find((price) => price.value === item.priceRange)?.label;
+      const highlights = [...(item.specialties || []), ...(item.activities || []).map((activity) => ACTIVITY_OPTIONS.find((option) => option.value === activity)?.label || activity), ...(item.facilities || [])].filter(Boolean).slice(0, 5);
+      return <article className="warung-card" key={item.id}>
+        {primaryPhoto
+          ? <div className="warung-card-media"><img src={primaryPhoto} alt={`Foto utama ${item.name}`} loading="lazy" decoding="async"/></div>
+          : <div className="warung-card-media warung-card-media-placeholder" role="img" aria-label={`Foto warkop belum tersedia untuk ${item.name}`}><Store size={34}/><span>Warkop pilihan lokal</span></div>}
+        <div className="warung-card-body">
+          <div className="warung-card-heading">
+            <div><span className="warung-card-kicker"><ShieldCheck size={12}/> TERKURASI WARKOPLINK</span><h3>{item.name}</h3></div>
+            {openState === true ? <span className="warung-card-status is-open"><span/> Buka</span> : openState === false ? <span className="warung-card-status is-closed"><span/> Tutup</span> : null}
+          </div>
+          <p className="warung-card-address"><MapPin size={15}/>{item.address}</p>
+          {highlights.length > 0 && <div className="facility-tags warung-card-highlights">{highlights.map((highlight, index) => <span key={`${highlight}-${index}`}>{highlight}</span>)}</div>}
+          <div className="warung-card-meta">
+            {item.openingHours?.is24Hours === true ? <small><Clock size={13}/> Buka 24 jam</small> : item.openingHours?.keterangan && !item.openingHours?.schedule ? <small><Clock size={13}/> {item.openingHours.keterangan}</small> : null}
+            {priceLabel && <small>{priceLabel}</small>}
+          </div>
+          <div className="warung-card-actions">
+            <button className="button button-dark" type="button" onClick={() => onOpenWarung?.(item.id)} aria-label={`Lihat detail ${item.name}`}>Lihat detail <ArrowUpRight size={15}/></button>
+            {Number.isFinite(item.coordinates?.lat) && Number.isFinite(item.coordinates?.lng) && <a className="warung-map-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.coordinates.lat},${item.coordinates.lng}`)}`} target="_blank" rel="noopener noreferrer">Lokasi <MapPin size={14}/></a>}
+          </div>
+        </div>
+      </article>;
+    })}</div>
     {moreError && <p className="form-error" role="alert">{moreError}</p>}
     {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore}>{loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
     <button className="button button-dark directory-register-cta" type="button" onClick={onRegister}>Daftarkan warkop</button>

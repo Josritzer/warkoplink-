@@ -223,6 +223,7 @@ describe('ChatPostCard', () => {
     firestoreMocks.setDoc.mockImplementationOnce(() => new Promise(resolve => { resolveRsvp = resolve; }));
     const values = props({ post: { ...props().post, topic: 'Info & Acara', eventStartAt: '2099-06-20T12:00:00.000Z' } });
     render(<ChatPostCard {...values} />);
+    firestoreMocks.onSnapshot.mockImplementationOnce((ref, next, error) => { error?.(new Error('offline')); return vi.fn(); });
     expect(screen.queryByText(/ikut$/i)).toBeNull();
     const button = screen.getByRole('button', { name: 'Ikut acara' });
     fireEvent.click(button);

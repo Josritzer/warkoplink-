@@ -119,17 +119,18 @@ export default function LeafletLocationPicker({ latitude, longitude, onChange })
     } else {
       markerRef.current.setLatLng(coordinates);
     }
+    map.panTo(coordinates, { animate: false });
   }, [latitude, longitude]);
 
   return (
-    <div className="warung-map-picker">
-      <div className="warung-map-picker-heading">
+    <div className="warung-map-picker" style={{ display: 'grid', gap: 8, margin: '14px 0' }}>
+      <div className="warung-map-picker-heading" style={{ display: 'grid', gap: 3, fontSize: 13 }}>
         <strong>Pilih Lokasi di Peta</strong>
         <span>Ketuk peta atau geser pin ke posisi warkop.</span>
       </div>
-      <div ref={mapElement} className="warung-map-canvas" role="application" aria-label="Peta pemilih lokasi warkop" />
+      <div ref={mapElement} className="warung-map-canvas" role="application" aria-label="Peta pemilih lokasi warkop" style={{ width: '100%', height: 260, borderRadius: 12, overflow: 'hidden', background: '#f1eff6', border: '1px solid #e7e4ee', zIndex: 0 }} />
       {mapError && <p className="form-hint" role="status">{mapError}</p>}
-      <small className="warung-map-attribution">Peta © OpenStreetMap contributors</small>
+      <small className="warung-map-attribution" style={{ color: '#687080', fontSize: 11 }}>Peta © OpenStreetMap contributors</small>
     </div>
   );
 }

@@ -121,8 +121,9 @@ export default function ChatPostCard({
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const [moreEmojisOpen, setMoreEmojisOpen] = useState(false);
   const [rsvpStatus, setRsvpStatus] = useState('');
-  const [rsvpCount, setRsvpCount] = useState(0);
+  const [rsvpCount, setRsvpCount] = useState(null);
   const [rsvpLoading, setRsvpLoading] = useState(false);
+  const rsvpLock = useRef(false);
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(post.body || '');
   const [editTopic, setEditTopic] = useState(displayTopic(post.topic));
@@ -158,7 +159,8 @@ export default function ChatPostCard({
       setNotice('Masuk untuk menyatakan kehadiran acara.');
       return;
     }
-    if (!db || rsvpLoading) return;
+    if (!db || rsvpLoading || rsvpLock.current) return;
+    rsvpLock.current = true;
     setRsvpLoading(true);
     const rsvpRef = doc(db, 'posts', post.id, 'eventRsvps', user.uid);
     try {

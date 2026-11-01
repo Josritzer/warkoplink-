@@ -4,6 +4,7 @@ import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarko
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, LocateFixed } from 'lucide-react';
 import { ACTIVITY_OPTIONS, PRICE_OPTIONS, collectFacilities, filterWarungs, isOpenNow } from './directoryFilters.js';
+import LeafletLocationPicker from './LeafletLocationPicker.jsx';
 
 class WarungFormValidationError extends Error {
   constructor(message) {
@@ -231,6 +232,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
             <label>Lintang (latitude)<input type="text" inputMode="decimal" autoComplete="off" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="Contoh: -7.0001" aria-describedby="latitude-help"/></label>
             <label>Bujur (longitude)<input type="text" inputMode="decimal" autoComplete="off" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="Contoh: 112.2810" aria-describedby="longitude-help"/></label>
           </div>
+          <LeafletLocationPicker latitude={lat} longitude={lng} onChange={(nextLat, nextLng) => { setLat(nextLat); setLng(nextLng); }} />
           <button className="button button-quiet warung-location-button" type="button" onClick={handleUseCurrentLocation} disabled={locating}><LocateFixed size={17}/>{locating ? 'Mencari lokasi…' : 'Gunakan Lokasi Saya'}</button>
           <div className="coordinate-help"><small id="latitude-help">Lintang: angka utara/selatan, untuk Lamongan biasanya diawali -7.</small><small id="longitude-help">Bujur: angka timur/barat, untuk Lamongan biasanya diawali 112.</small><small>GPS mengisi koordinat perangkat. Periksa dan sesuaikan titik agar tepat di lokasi warkop.</small></div>
         </>}

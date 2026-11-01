@@ -102,6 +102,10 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [profileBio, setProfileBio] = useState('');
+  const [profileLocation, setProfileLocation] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [authError, setAuthError] = useState('');
   const [busy, setBusy] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -175,6 +179,73 @@ export default function App() {
     url.searchParams.delete('warung');
     window.history.replaceState(window.history.state, '', url);
   }, [section]);
+
+  useEffect(() => {
+    let active = true;
+    setProfileLoaded(false);
+    if (!db || !user?.uid) {
+      setProfileBio('');
+      setProfileLocation('');
+      setProfileLoaded(true);
+      return undefined;
+    }
+    getDoc(doc(db, 'profiles', user.uid)).then(snapshot => {
+      if (!active) return;
+      const data = snapshot.exists() ? snapshot.data() : {};
+      setProfileBio(typeof data.bio === 'string' ? data.bio : '');
+      setProfileLocation(typeof data.location === 'string' ? data.location : '');
+      setProfileLoaded(true);
+    }).catch(() => {
+      if (active) {
+        setProfileLoaded(true);
+        setNotice('Data profil belum dapat dimuat. Coba buka ulang menu Akun.');
+      }
+    });
+    return () => { active = false; };
+  }, [db, user?.uid]);
+
+  async function handleSaveProfile(event) {
+    event.preventDefault();
+    if (!user || !db || profileSaving) return;
+    const nextName = String(displayName || user.displayName || '').trim();
+    const nextBio = String(profileBio || '').trim();
+    const nextLocation = String(profileLocation || '').trim();
+    if (nextName.length < 2 || nextName.length > 60) {
+      setNotice('Nama tampilan harus berisi 2–60 karakter.');
+      return;
+    }
+    if (nextBio.length > 160 || nextLocation.length > 80) {
+      setNotice('Bio maksimal 160 karakter dan lokasi maksimal 80 karakter.');
+      return;
+    }
+    setProfileSaving(true);
+    try {
+      await updateProfile(auth.currentUser, { displayName: nextName });
+      await updateDoc(doc(db, 'profiles', user.uid), {
+        displayName: nextName,
+        bio: nextBio,
+        location: nextLocation,
+        updatedAt: serverTimestamp()
+      });
+      await setDoc(doc(db, 'publicProfiles', user.uid), {
+        uid: user.uid,
+        displayName: nextName,
+        photoURL: versionedPhotoURL(auth.currentUser?.photoURL || user.photoURL || ''),
+        bio: nextBio,
+        location: nextLocation,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      await auth.currentUser?.reload();
+      setUser({ ...auth.currentUser });
+      setNotice('Profil berhasil diperbarui.');
+    } catch (error) {
+      setNotice(error?.code === 'permission-denied'
+        ? 'Perubahan profil ditolak oleh aturan keamanan. Periksa data lalu coba lagi.'
+        : 'Profil belum berhasil disimpan. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setProfileSaving(false);
+    }
+  }
 
   // Membuat dokumen profil jika akun Auth sudah ada tetapi profil belum tersimpan
   // (misalnya pembuatan profil gagal saat registrasi). Aman dipanggil berulang.
@@ -1059,7 +1130,12 @@ export default function App() {
       section === 'Profil Anggota' && memberProfile ? <PublicUserProfile profile={memberProfile} db={db} currentUser={user} onBack={closeMemberProfile} onEditProfile={() => navigateSection('Akun')}/> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
-        {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article>{isAdmin && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
+        {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><form className="profile-edit-form" onSubmit={handleSaveProfile}>
+          <label>Nama tampilan<input value={displayName || user.displayName || ''} onChange={event => setDisplayName(event.target.value)} maxLength={60} minLength={2} required disabled={!profileLoaded || profileSaving}/></label>
+          <label>Bio singkat<textarea value={profileBio} onChange={event => setProfileBio(event.target.value)} maxLength={160} rows={3} placeholder="Ceritakan sedikit tentang diri Anda…" disabled={!profileLoaded || profileSaving}/><small>{profileBio.length}/160</small></label>
+          <label>Lokasi<input value={profileLocation} onChange={event => setProfileLocation(event.target.value)} maxLength={80} placeholder="Contoh: Maduran, Lamongan" disabled={!profileLoaded || profileSaving}/></label>
+          <button className="button button-dark" type="submit" disabled={!profileLoaded || profileSaving}>{profileSaving ? 'Menyimpan profil…' : 'Simpan profil'}</button>
+        </form><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article>{isAdmin && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
           <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :

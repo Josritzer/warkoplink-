@@ -1,38 +1,27 @@
-name: Deploy SL Community Platform to Firebase Hosting
+name: Build and manually deploy SL Community Platform
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "public/**"
-      - "index.html"
-      - "package.json"
-      - "package-lock.json"
-      - "vite.config.*"
-      - "firebase.json"
-      - "firestore.indexes.json"
-      - ".firebaserc"
-      - ".env.example"
-      - "firestore.rules"
-      - ".github/workflows/firebase-hosting.yml"
   workflow_dispatch:
+    inputs:
+      confirm_production_deploy:
+        description: "Centang hanya jika deploy Firebase Hosting produksi sudah disetujui"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
   group: firebase-hosting-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  build_and_deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -42,13 +31,29 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Load public Firebase web configuration
         run: cp .env.example .env
 
       - name: Build community app
         run: npm run build
+
+  deploy:
+    if: ${{ inputs.confirm_production_deploy == true }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -61,29 +66,5 @@ jobs:
         run: |
           node -e 'const c=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON); console.log("Firebase deploy service account:", c.client_email)'
 
-      # A source-only release must not republish production Firestore rules/indexes.
-      # Those are deployed only when their source files change in a push to main.
-      - name: Detect Firestore rule/index changes
-        id: firestore-changes
-        if: github.event_name == 'push'
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-          CURRENT_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          changed_files="$(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA" -- firestore.rules firestore.indexes.json)"
-          if [ -n "$changed_files" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            printf 'Firestore sources changed:\n%s\n' "$changed_files"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No Firestore rule/index source changes; production rules will not be republished."
-          fi
-
-      # Storage is intentionally excluded until Firebase Storage is explicitly initialized.
       - name: Deploy Hosting only
         run: npx --yes firebase-tools deploy --only hosting --project sl-community-platform --non-interactive
-
-      - name: Deploy Firestore Rules and Indexes only when their source changes
-        if: steps.firestore-changes.outputs.changed == 'true'
-        run: npx --yes firebase-tools deploy --only firestore:rules,firestore:indexes --project sl-community-platform --non-interactive

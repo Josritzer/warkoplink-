@@ -466,6 +466,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     })}</div>
     {moreError && <p className="form-error" role="alert">{moreError}</p>}
     {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore || searchingAll}>{searchingAll ? 'Menelusuri direktori…' : loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
-    <button className="button button-dark directory-register-cta" type="button" onClick={onRegister}>Ajukan Warkop</button>
+    <button className="button button-dark directory-register-cta" type="button" onClick={onRegister}><span className="directory-register-icon-wrap"><Store size={17} aria-hidden="true"/></span>Ajukan Warkop</button>
   </section>;
 }

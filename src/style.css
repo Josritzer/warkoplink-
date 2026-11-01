@@ -694,3 +694,18 @@
 .directory-event-signal span{font-size:11px;line-height:1.45;color:var(--wl-ink);overflow-wrap:anywhere}
 @media(max-width:760px){.directory-discovery-tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.directory-discovery-tabs button{min-height:64px;padding:9px}}
 @media(max-width:380px){.directory-discovery-tabs button{grid-template-columns:26px 1fr;column-gap:7px;padding:8px}.directory-discovery-tabs button>span{width:26px;height:26px}.directory-discovery-tabs button b{font-size:11px}.directory-discovery-tabs button small{font-size:9px}}
+
+/* Stage 2 — halaman Pesan: struktur disiapkan tanpa memalsukan fitur DM. */
+.messages-page{max-width:760px}
+.messages-intro{max-width:620px}
+.messages-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:24px 0 0;padding:5px;border:1px solid var(--wl-line-soft);border-radius:14px;background:var(--wl-cream)}
+.messages-tab{min-width:0;padding:11px 8px;border:0;border-radius:10px;background:transparent;color:var(--wl-muted);font-size:12px;font-weight:700}
+.messages-tab[aria-selected="true"]{background:#fff;color:var(--wl-primary);box-shadow:0 2px 10px rgba(var(--wl-primary-rgb),.08)}
+.messages-panel{min-height:260px;display:grid;place-items:center;padding:30px 20px;margin-top:14px;border:1px solid var(--wl-line-soft);border-radius:16px;background:var(--wl-surface,#fff);text-align:center}
+.messages-panel-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:16px;background:var(--wl-primary-tint);color:var(--wl-primary);margin:0 auto 14px}
+.messages-panel h3{margin:0 0 8px;color:var(--wl-ink);font:700 16px Manrope,sans-serif}
+.messages-panel p{max-width:390px;margin:0 auto;color:var(--wl-muted);font-size:12px;line-height:1.7}
+.messages-panel .button{margin-top:17px}
+.directory-register-icon-wrap{width:27px;height:27px;display:inline-grid;place-items:center;border-radius:9px;background:rgba(34,197,94,.14);color:#4ade80}
+.directory-register-cta{gap:10px}
+@media(max-width:620px){.messages-tabs{margin-top:19px}.messages-panel{min-height:230px;padding:24px 16px}.bottom-nav-item{font-size:9px}}

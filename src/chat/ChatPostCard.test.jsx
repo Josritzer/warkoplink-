@@ -1,6 +1,35 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import ChatPostCard from './ChatPostCard.jsx';
+
+const firestoreMocks = vi.hoisted(() => ({ setDoc: vi.fn(), deleteDoc: vi.fn(), onSnapshot: vi.fn(), getDocs: vi.fn() }));
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn((...args) => ({ path: args.slice(1).join('/'), kind: 'collection' })),
+  deleteDoc: firestoreMocks.deleteDoc,
+  documentId: vi.fn(() => '__name__'),
+  getDocs: firestoreMocks.getDocs,
+  limit: vi.fn(value => ({ limit: value })),
+  doc: vi.fn((...args) => ({ path: args.slice(1).join('/'), kind: 'document' })),
+  onSnapshot: firestoreMocks.onSnapshot,
+  orderBy: vi.fn((...args) => ({ orderBy: args })),
+  query: vi.fn((...args) => ({ path: args[0]?.path, kind: 'query' })),
+  serverTimestamp: vi.fn(() => 'server-timestamp'),
+  startAfter: vi.fn(value => ({ startAfter: value })),
+  setDoc: firestoreMocks.setDoc,
+  where: vi.fn((...args) => ({ where: args }))
+}));
+vi.mock('../firebase.js', () => ({ db: { name: 'test-db' } }));
+
+beforeEach(() => {
+  firestoreMocks.setDoc.mockReset().mockResolvedValue(undefined);
+  firestoreMocks.deleteDoc.mockReset().mockResolvedValue(undefined);
+  firestoreMocks.getDocs.mockReset().mockResolvedValue({ docs: [] });
+  firestoreMocks.onSnapshot.mockReset().mockImplementation((ref, next) => {
+    if (ref?.kind === 'query') next({ size: 0, docs: [] });
+    else next({ exists: () => false, data: () => ({}) });
+    return vi.fn();
+  });
+});
 
 afterEach(() => cleanup());
 
@@ -169,6 +198,23 @@ describe('ChatPostCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Opsi postingan' }));
     expect(screen.queryByRole('menuitem', { name: /Hapus obrolan/ })).toBeNull();
     expect(await screen.findByRole('menuitem', { name: /Laporkan obrolan/ })).toBeTruthy();
+  });
+
+
+  it('menampilkan status menyimpan dan mengunci RSVP sampai Firestore mengonfirmasi', async () => {
+    let resolveRsvp;
+    firestoreMocks.setDoc.mockImplementationOnce(() => new Promise(resolve => { resolveRsvp = resolve; }));
+    render(<ChatPostCard {...props({
+      post: { ...props().post, topic: 'Info & Acara', eventStartAt: '2099-06-20T12:00:00.000Z' }
+    })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ikut acara' }));
+    const pendingButtons = screen.getAllByRole('button', { name: 'Menyimpan…' });
+    expect(pendingButtons).toHaveLength(2);
+    expect(pendingButtons.every(button => button.disabled)).toBe(true);
+    expect(pendingButtons.every(button => button.getAttribute('aria-busy') === 'true')).toBe(true);
+    expect(screen.getAllByRole('status').some(status => status.textContent.includes('Menyimpan kehadiran'))).toBe(true);
+    await act(async () => { resolveRsvp(); });
+    expect(screen.getByRole('button', { name: 'Ikut acara' }).disabled).toBe(false);
   });
 
   it('menampilkan poster acara yang sudah tersimpan pada postingan Info & Acara', () => {

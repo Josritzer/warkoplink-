@@ -141,6 +141,33 @@ describe('preferensi tampilan', () => {
   });
 });
 
+
+describe('navigasi utama dan halaman pesan', () => {
+  it('menampilkan tepat lima menu utama dan tidak menaruh pendaftaran di navigasi bawah', () => {
+    render(<App />);
+    const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
+    const labels = within(nav).getAllByRole('button').map(button => button.textContent.trim());
+    expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
+    expect(within(nav).queryByRole('button', { name: /Daftar|Ajukan Warkop/ })).toBeNull();
+  });
+
+  it('menampilkan tab Pribadi, Komunitas, dan Teman dengan status fitur yang jujur', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
+    await user.click(within(nav).getByRole('button', { name: 'Pesan' }));
+    expect(screen.getByRole('heading', { name: 'Pesan' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Pribadi' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Komunitas' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
+    expect(screen.getByText(/fitur pertemanan dan pesan pribadi belum aktif/i)).toBeTruthy();
+    await user.click(screen.getByRole('tab', { name: 'Komunitas' }));
+    expect(screen.getByText(/komunitas resmi dikelola oleh admin WarkopLink/i)).toBeTruthy();
+    await user.click(screen.getByRole('tab', { name: 'Teman' }));
+    expect(screen.getByText(/hubungan saling mengikuti/i)).toBeTruthy();
+  });
+});
+
 describe('halaman publik', () => {
   it('pengunjung membuka halaman komunitas; ada state loading lalu state kosong', async () => {
     render(<App />);
@@ -602,7 +629,8 @@ describe('direktori dan pendaftaran warkop', () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
-    await user.click(screen.getByRole('button', { name: 'Ajukan Warkop' }));
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
@@ -636,7 +664,8 @@ describe('direktori dan pendaftaran warkop', () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
-    await user.click(screen.getByRole('button', { name: 'Ajukan Warkop' }));
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
@@ -653,7 +682,8 @@ describe('direktori dan pendaftaran warkop', () => {
     media.uploadWarkopMedia.mockRejectedValueOnce(new Error('Invalid or expired Firebase ID token'));
     render(<App />);
     emitAuth(fakeUser());
-    await user.click(screen.getByRole('button', { name: 'Ajukan Warkop' }));
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
@@ -673,7 +703,8 @@ describe('direktori dan pendaftaran warkop', () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(null);
-    await user.click(screen.getByRole('button', { name: 'Ajukan Warkop' }));
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
@@ -690,7 +721,8 @@ describe('direktori dan pendaftaran warkop', () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
-    await user.click(screen.getByRole('button', { name: 'Ajukan Warkop' }));
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '200');
@@ -703,7 +735,8 @@ describe('direktori dan pendaftaran warkop', () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
-    await user.click(screen.getByRole('button', { name: 'Ajukan Warkop' }));
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Tes');
     await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
@@ -725,7 +758,8 @@ describe('direktori dan pendaftaran warkop', () => {
     try {
       render(<App />);
       emitAuth(fakeUser());
-      await user.click(screen.getByRole('button', { name: 'Ajukan Warkop' }));
+      await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
       await user.click(screen.getByRole('button', { name: 'Gunakan Lokasi Saya' }));
       expect(screen.getByLabelText('Lintang (latitude)').value).toBe('-7.123457');
       expect(screen.getByLabelText('Bujur (longitude)').value).toBe('112.765432');
@@ -841,7 +875,8 @@ describe('aksesibilitas form pendaftaran warkop', () => {
   it('menjelaskan format lintang dan bujur pada layar Daftar', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Ajukan Warkop' }));
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
 
     const latitude = screen.getByPlaceholderText('Contoh: -7.0001');
     const longitude = screen.getByPlaceholderText('Contoh: 112.2810');

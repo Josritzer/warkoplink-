@@ -325,3 +325,15 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
   .warung-card:hover, .warung-card:hover .warung-card-media img { transform: none; }
 }
+
+.warung-profile-cover-empty { display: grid; width: 100%; height: 100%; place-content: center; justify-items: center; gap: 10px; color: #65447b; background: radial-gradient(ellipse at 80% 10%, rgb(255 255 255 / 45%), transparent 45%), linear-gradient(135deg, #ece5ef, #d8c8e0); }
+.warung-profile-cover-empty span { color: #634a70; font-family: Georgia, serif; font-size: 13px; letter-spacing: .06em; }
+.warung-profile-info-block { padding: 17px 0; border-bottom: 1px solid var(--wl-border); }
+.warung-profile-info-block h3 { margin: 0 0 10px; color: var(--wl-text); font-family: inherit; font-size: 13px; font-weight: 750; letter-spacing: .03em; }
+.warung-profile-info-block p { margin: 0; color: var(--wl-text-muted); font-size: 13px; line-height: 1.7; }
+.profile-empty-hint { color: var(--wl-text-muted); }
+.warung-profile-hours-list { display: grid; gap: 0; margin: 0; }
+.warung-profile-hours-list > div { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--wl-line-soft); font-size: 12px; }
+.warung-profile-hours-list > div:last-child { border-bottom: 0; }
+.warung-profile-hours-list dt { color: var(--wl-text-muted); }
+.warung-profile-hours-list dd { margin: 0; color: var(--wl-text); font-weight: 650; text-align: right; }

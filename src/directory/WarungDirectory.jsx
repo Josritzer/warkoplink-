@@ -19,7 +19,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [directoryRetry, setDirectoryRetry] = useState(0);
   const [lastDocument, setLastDocument] = useState(null);
   const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);\n  const [searchingAll, setSearchingAll] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [searchingAll, setSearchingAll] = useState(false);
   const [moreError, setMoreError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [facilityFilter, setFacilityFilter] = useState([]);

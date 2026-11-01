@@ -43,11 +43,13 @@ export default function LeafletLocationPicker({ latitude, longitude, onChange })
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const onChangeRef = useRef(onChange);
+  const coordinatesRef = useRef({ latitude, longitude });
   const [mapError, setMapError] = useState('');
 
   useEffect(() => {
     onChangeRef.current = onChange;
-  }, [onChange]);
+    coordinatesRef.current = { latitude, longitude };
+  }, [onChange, latitude, longitude]);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +57,8 @@ export default function LeafletLocationPicker({ latitude, longitude, onChange })
 
     loadLeaflet().then((L) => {
       if (cancelled || !mapElement.current) return;
-      const initial = getMapInitialView(latitude, longitude);
+      const latestCoordinates = coordinatesRef.current;
+      const initial = getMapInitialView(latestCoordinates.latitude, latestCoordinates.longitude);
       const iconBase = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/images/`;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: iconBase + 'marker-icon-2x.png',
@@ -80,7 +83,7 @@ export default function LeafletLocationPicker({ latitude, longitude, onChange })
         onChangeRef.current(String(next[0]), String(next[1]));
       };
 
-      const current = parseMapCoordinates(latitude, longitude);
+      const current = parseMapCoordinates(latestCoordinates.latitude, latestCoordinates.longitude);
       if (current) {
         markerRef.current = L.marker(current, { draggable: true }).addTo(map);
         markerRef.current.on('dragend', (event) => setPoint(event.target.getLatLng()));

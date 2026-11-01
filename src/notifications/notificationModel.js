@@ -1,6 +1,6 @@
 export function extractMentionUsernames(value) {
   const text = String(value ?? '');
-  const matches = text.matchAll(/(^|[^a-z0-9_])@([a-z0-9_]{3,20})(?![a-z0-9_])/gi);
+  const matches = text.matchAll(/(^|[^a-z0-9_])@([a-z0-9_]{3,20})(?=$|[\\s.,!?;:()[\\]{}'\"<>])/gi);
   return [...new Set([...matches].map(match => match[2].toLowerCase()))];
 }
 

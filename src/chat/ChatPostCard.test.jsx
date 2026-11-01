@@ -208,9 +208,10 @@ describe('ChatPostCard', () => {
       post: { ...props().post, topic: 'Info & Acara', eventStartAt: '2099-06-20T12:00:00.000Z' }
     })} />);
     fireEvent.click(screen.getByRole('button', { name: 'Ikut acara' }));
-    const pendingButton = screen.getByRole('button', { name: 'Menyimpan…' });
-    expect(pendingButton.disabled).toBe(true);
-    expect(pendingButton.getAttribute('aria-busy')).toBe('true');
+    const pendingButtons = screen.getAllByRole('button', { name: 'Menyimpan…' });
+    expect(pendingButtons).toHaveLength(2);
+    expect(pendingButtons.every(button => button.disabled)).toBe(true);
+    expect(pendingButtons.every(button => button.getAttribute('aria-busy') === 'true')).toBe(true);
     expect(screen.getAllByRole('status').some(status => status.textContent.includes('Menyimpan kehadiran'))).toBe(true);
     await act(async () => { resolveRsvp(); });
     expect(screen.getByRole('button', { name: 'Ikut acara' }).disabled).toBe(false);

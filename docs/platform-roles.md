@@ -13,13 +13,16 @@ Moderator tidak otomatis menjadi pemilik komunitas atau pemilik warkop. Hak role
 
 ## Penetapan role
 
-Jalankan hanya dari lingkungan lokal tepercaya yang telah login ke Google Cloud ADC untuk proyek `sl-community-platform`.
+Bootstrap Super Admin pertama disediakan melalui GitHub Actions setelah PR ini digabung ke `main`:
 
-Bootstrap Super Admin pertama (hanya setelah UID dan email diverifikasi langsung di Firebase Authentication):
+1. Buka tab **Actions** pada repository.
+2. Pilih **Bootstrap WarkopLink Super Admin**.
+3. Jalankan workflow dengan centang persetujuan `confirm_super_admin_bootstrap`.
+4. Workflow hanya menargetkan UID dan email pemilik yang dikunci di skrip; skrip memeriksa kecocokan akun Firebase, status email terverifikasi, dan memastikan belum ada Super Admin lain.
 
-```sh
-node scripts/set-platform-role.mjs <UID> super_admin <EMAIL_FIREBASE> --bootstrap --apply
-```
+Workflow memakai secret `FIREBASE_SERVICE_ACCOUNT_SL_COMMUNITY_PLATFORM` yang sudah digunakan oleh workflow Hosting. Service account harus memiliki izin Firebase Authentication Admin dan Firestore write; jika belum, workflow berhenti dengan error izin dan tidak boleh diberi izin tambahan tanpa persetujuan pemilik.
+
+Skrip bootstrap juga menolak UID atau email lain. Untuk perubahan role setelah bootstrap, gunakan skrip tepercaya berikut dari lingkungan Admin SDK yang disetujui:
 
 Penetapan atau perubahan berikutnya wajib dilakukan oleh Super Admin aktif:
 

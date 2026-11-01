@@ -128,3 +128,68 @@ export function filterWarungs(items, { search = '', facilities = [], activities 
     return haystack.includes(needle);
   });
 }
+
+
+export function calculateDistanceKm(origin, destination) {
+  const lat1 = Number(origin?.lat);
+  const lng1 = Number(origin?.lng);
+  const lat2 = Number(destination?.lat);
+  const lng2 = Number(destination?.lng);
+  if (![lat1, lng1, lat2, lng2].every(Number.isFinite)
+    || Math.abs(lat1) > 90 || Math.abs(lat2) > 90
+    || Math.abs(lng1) > 180 || Math.abs(lng2) > 180) return null;
+  const radians = (degrees) => degrees * Math.PI / 180;
+  const dLat = radians(lat2 - lat1);
+  const dLng = radians(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function timestampMillis(value) {
+  if (value && typeof value.toDate === 'function') return value.toDate().getTime();
+  if (value && Number.isFinite(value.seconds)) return value.seconds * 1000;
+  if (typeof value === 'string' || value instanceof Date) {
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+export function isCurrentOrUpcomingEvent(event, now = new Date()) {
+  if (!event || event.topic !== 'Info & Acara' || event.eventStatus === 'cancelled') return false;
+  const start = timestampMillis(event.eventStartAt || event.eventDate);
+  if (!start) return false;
+  const current = now instanceof Date ? now.getTime() : new Date(now).getTime();
+  const end = timestampMillis(event.eventEndAt);
+  return end ? end >= current : start >= current;
+}
+
+export function sortWarungsForDiscovery(items, category, {
+  followerCounts = {}, distances = {}, eventWarungIds = [], now = new Date()
+} = {}) {
+  const rows = [...(items || [])];
+  const compareName = (a, b) => String(a.nameNormalized || a.name || '').localeCompare(
+    String(b.nameNormalized || b.name || ''), 'id'
+  ) || String(a.id).localeCompare(String(b.id));
+  if (category === 'popular') {
+    return rows.filter((item) => Number(followerCounts[item.id]) > 0).sort((a, b) =>
+      (Number(followerCounts[b.id]) || 0) - (Number(followerCounts[a.id]) || 0) || compareName(a, b)
+    );
+  }
+  if (category === 'events') {
+    const ids = new Set(eventWarungIds);
+    return rows.filter((item) => ids.has(item.id)).sort(compareName);
+  }
+  if (category === 'nearby') {
+    return rows.filter((item) => Number.isFinite(distances[item.id])).sort((a, b) =>
+      distances[a.id] - distances[b.id] || compareName(a, b)
+    );
+  }
+  if (category === 'newest') {
+    return rows.sort((a, b) =>
+      timestampMillis(b.createdAt) - timestampMillis(a.createdAt) || compareName(a, b)
+    );
+  }
+  return rows.sort(compareName);
+}

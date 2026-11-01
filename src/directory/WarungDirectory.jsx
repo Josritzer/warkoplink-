@@ -134,14 +134,24 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     if (mode !== 'directory' || discoveryCategory !== 'popular' || status !== 'ready' || searchingAll || hasMore) return undefined;
     let cancelled = false;
     setPopularStatus('loading');
-    Promise.all(warungs.map(async (item) => {
-      try {
-        const result = await getCountFromServer(collection(db, 'warungs', item.id, 'followers'));
-        return [item.id, result.data().count];
-      } catch {
-        return [item.id, null];
-      }
-    })).then((entries) => {
+    let cursor = 0;
+    const entries = [];
+    async function readFollowerCounts() {
+      const workers = Array.from({ length: Math.min(8, warungs.length) }, async () => {
+        while (!cancelled && cursor < warungs.length) {
+          const item = warungs[cursor++];
+          try {
+            const result = await getCountFromServer(collection(db, 'warungs', item.id, 'followers'));
+            entries.push([item.id, result.data().count]);
+          } catch {
+            entries.push([item.id, null]);
+          }
+        }
+      });
+      await Promise.all(workers);
+      return entries;
+    }
+    readFollowerCounts().then((entries) => {
       if (cancelled) return;
       setFollowerCounts(Object.fromEntries(entries.filter(([, count]) => Number.isFinite(count))));
       setPopularStatus(entries.some(([, count]) => count === null) ? 'error' : 'ready');
@@ -391,7 +401,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     <p>Temukan warkop yang ramai, punya acara, dekat dengan lokasi, atau baru bergabung. Semua hasil hanya menampilkan warkop terverifikasi.</p>
     <div className="directory-discovery-tabs" role="group" aria-label="Kategori direktori">
       <button type="button" className={discoveryCategory === 'popular' ? 'active' : ''} aria-pressed={discoveryCategory === 'popular'} onClick={() => selectDiscoveryCategory('popular')}><span>♥</span><b>Populer</b><small>Paling diikuti</small></button>
-      <button type="button" className={discoveryCategory === 'events' ? 'active' : ''} aria-pressed={discoveryCategory === 'events'} onClick={() => selectDiscoveryCategory('events')}><span>◷</span><b>Ada Event</b><small>Acara aktif & mendatang</small></button>
+      <button type="button" className={discoveryCategory === 'events' ? 'active' : ''} aria-pressed={discoveryCategory === 'events'} onClick={() => selectDiscoveryCategory('events')}><span>◷</span><b>Ada Event Sekarang</b><small>Sedang berlangsung & akan datang</small></button>
       <button type="button" className={discoveryCategory === 'nearby' ? 'active' : ''} aria-pressed={discoveryCategory === 'nearby'} onClick={() => selectDiscoveryCategory('nearby')}><span>⌖</span><b>Terdekat</b><small>Jarak dari Anda</small></button>
       <button type="button" className={discoveryCategory === 'newest' ? 'active' : ''} aria-pressed={discoveryCategory === 'newest'} onClick={() => selectDiscoveryCategory('newest')}><span>✦</span><b>Warkop Terbaru</b><small>Baru terverifikasi</small></button>
     </div>

@@ -851,3 +851,36 @@ describe('aksesibilitas form pendaftaran warkop', () => {
     expect(screen.getByText(/Bujur: angka timur\/barat/)).toBeTruthy();
   });
 });
+
+
+describe('navigasi utama dan halaman Pesan', () => {
+  it('menampilkan tepat lima menu utama dan memindahkan Ajukan Warkop ke direktori', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+
+    const navigation = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
+    expect(within(navigation).getAllByRole('button')).toHaveLength(5);
+    for (const label of ['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']) {
+      expect(within(navigation).getByRole('button', { name: label })).toBeTruthy();
+    }
+    expect(within(navigation).queryByRole('button', { name: 'Ajukan Warkop' })).toBeNull();
+
+    await user.click(within(navigation).getByRole('button', { name: 'Cari Warkop' }));
+    expect(await screen.findByRole('button', { name: 'Ajukan Warkop' })).toBeTruthy();
+  });
+
+  it('membuka halaman Pesan dengan tiga tab yang direncanakan', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+
+    const navigation = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
+    await user.click(within(navigation).getByRole('button', { name: 'Pesan' }));
+
+    expect(screen.getByRole('heading', { name: 'Pesan' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Pribadi' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Komunitas' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
+  });
+});

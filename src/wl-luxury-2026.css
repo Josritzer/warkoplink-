@@ -353,3 +353,5 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
 }
 
 .warung-card-ambience { display: -webkit-box; margin: 0; overflow: hidden; color: var(--wl-text-muted); font-size: 12px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+
+.event-ended-label { color: var(--wl-text-muted); font-size: 12px; font-weight: 700; }

@@ -569,6 +569,9 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
     await user.type(screen.getByLabelText('Fasilitas, pisahkan dengan koma'), 'Wi-Fi, parkir');
+    await user.type(screen.getByLabelText('Menu utama, pisahkan dengan koma'), 'Kopi, teh, mi instan');
+    await user.type(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), 'Kopi racikan, mi nyemek');
+    await user.type(screen.getByLabelText('Suasana warkop'), 'Santai untuk ngobrol');
     await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
     await waitFor(() => expect(fs.addDoc).toHaveBeenCalledWith({ path: 'warungs' }, expect.objectContaining({
       name: 'Warkop Pojok',
@@ -577,6 +580,10 @@ describe('direktori dan pendaftaran warkop', () => {
       coordinates: { lat: -7.0001, lng: 112.281 },
       regionCode: 'lamongan-kab',
       facilities: ['wi-fi', 'parkir'],
+      menuItems: ['Kopi', 'teh', 'mi instan'],
+      specialties: ['Kopi racikan', 'mi nyemek'],
+      ambience: 'Santai untuk ngobrol',
+      priceRange: 'belum-diisi',
       verificationStatus: 'pending',
       createdAt: '__SERVER_TS__',
       updatedAt: '__SERVER_TS__',

@@ -2,16 +2,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import * as firestore from 'firebase/firestore';
 
-const fixture = vi.hoisted(() => ({ rows: [] }));
+const fixture = vi.hoisted(() => ({ rows: [], events: [] }));
 
 vi.mock('firebase/firestore', () => ({
   addDoc: vi.fn(),
   collection: vi.fn((db, ...segments) => ({ path: segments.join('/') })),
   doc: vi.fn(),
+  getCountFromServer: vi.fn(async () => ({ data: () => ({ count: 0 }) })),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
   limit: vi.fn((value) => ({ limit: value })),
   onSnapshot: vi.fn((query, onNext) => {
+    if (query?.args?.[0]?.path === 'posts') {
+      queueMicrotask(() => onNext({ docs: fixture.events.map(({ id, ...data }) => ({ id, data: () => data })) }));
+    }
     if (query?.args?.[0]?.path === 'warungs') {
       queueMicrotask(() => onNext({
         docs: fixture.rows.map(({ id, ...data }) => ({ id, data: () => data }))
@@ -43,9 +47,37 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   fixture.rows = [];
+  fixture.events = [];
 });
 
 describe('kartu direktori warkop', () => {
+  it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {
+    fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', verificationStatus: 'verified' }];
+    render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
+    expect(await screen.findByRole('button', { name: /Populer/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Ada Event/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Terdekat/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Warkop Terbaru/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Warkop Terbaru/ }));
+    expect(screen.getByRole('button', { name: /Warkop Terbaru/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByLabelText('Filter kisaran harga')).toBeNull();
+  });
+
+  it('menampilkan acara yang masih berlangsung pada kategori event', async () => {
+    fixture.rows = [{ id: 'warung-event', name: 'Warkop Acara', address: 'Lamongan', verificationStatus: 'verified' }];
+    fixture.events = [{
+      id: 'event-live', topic: 'Info & Acara', warungId: 'warung-event',
+      body: 'Nobar final', eventKind: 'Nobar',
+      eventStartAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      eventEndAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+    }];
+    render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
+    await screen.findByText('Warkop Acara');
+    fireEvent.click(screen.getByRole('button', { name: /Ada Event/ }));
+    expect(await screen.findByText(/Nobar · Nobar final/)).toBeTruthy();
+    expect(screen.getByText('SEDANG BERLANGSUNG')).toBeTruthy();
+  });
+
   it('menampilkan foto, menu spesial, status, dan membuka profil dari aksi utama', async () => {
     fixture.rows = [{
       id: 'warung-senja',

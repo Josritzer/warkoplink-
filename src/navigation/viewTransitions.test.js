@@ -22,11 +22,29 @@ describe('runViewTransition', () => {
     expect(update).toHaveBeenCalledOnce();
   });
 
-  it('falls back to a normal update if the API throws synchronously', () => {
+  it('falls back without running the update twice if the API throws after invoking it', () => {
     const update = vi.fn();
-    const documentRef = { startViewTransition: vi.fn(() => { throw new Error('unsupported'); }) };
+    const documentRef = {
+      startViewTransition(callback) {
+        callback();
+        throw new Error('transition failed after update');
+      }
+    };
 
     expect(runViewTransition(update, documentRef)).toBeUndefined();
+    expect(update).toHaveBeenCalledOnce();
+  });
+
+  it('skips the native transition when reduced motion is preferred', () => {
+    const update = vi.fn();
+    const startViewTransition = vi.fn();
+    const documentRef = {
+      startViewTransition,
+      defaultView: { matchMedia: vi.fn(() => ({ matches: true })) }
+    };
+
+    runViewTransition(update, documentRef);
+    expect(startViewTransition).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledOnce();
   });
 

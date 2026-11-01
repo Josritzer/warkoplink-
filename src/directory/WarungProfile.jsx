@@ -207,7 +207,10 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       <h2>Tentang warkop</h2>
       <p className="warung-profile-address"><MapPin size={17}/>{warung.address}</p>
       {warung.openingHours?.keterangan && <p><strong>Jam buka:</strong> {warung.openingHours.keterangan}</p>}
-      <p><strong>Kisaran harga:</strong> {warung.priceRange === 'belum-diisi' ? 'Belum diisi' : warung.priceRange}</p>
+      {Array.isArray(warung.menuItems) && warung.menuItems.length > 0 && <div className="warung-profile-menu"><h3>Menu utama</h3><div className="facility-tags">{warung.menuItems.map((item) => <span key={item}>{item}</span>)}</div></div>}
+      {Array.isArray(warung.specialties) && warung.specialties.length > 0 && <div className="warung-profile-menu"><h3>Menu spesial</h3><div className="facility-tags">{warung.specialties.map((item) => <span key={item}>{item}</span>)}</div></div>}
+      {warung.ambience && <p><strong>Suasana:</strong> {warung.ambience}</p>}
+      {warung.priceRange && warung.priceRange !== 'belum-diisi' && <p><strong>Kisaran harga:</strong> {warung.priceRange}</p>}
       {(warung.facilities || []).length > 0 && <div className="facility-tags">{warung.facilities.map((facility) => <span key={facility}>{facility}</span>)}</div>}
       {Number.isFinite(warung.coordinates?.lat) && Number.isFinite(warung.coordinates?.lng) && <a className="warung-map-link" href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(warung.coordinates.lat + ',' + warung.coordinates.lng)} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta ↗</a>}
     </div>

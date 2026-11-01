@@ -265,7 +265,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   if (mode === 'register') {
     return <section className="content-section explore-section">
       <span className="eyebrow">DAFTAR GRATIS</span>
-      <h2>Daftarkan warkop Anda.</h2>
+      <h2>Ajukan warkop Anda.</h2>
       <p>Isi data yang benar. Pendaftaran berstatus menunggu sampai admin memeriksanya; warkop baru tampil di direktori publik setelah disetujui.</p>
       {!user && <div className="directory-notice"><ShieldCheck size={18}/><span>Anda perlu masuk ke akun untuk mengirim pendaftaran.</span><button className="button button-dark" onClick={onRequestAuth}>Masuk / Daftar akun</button></div>}
       <div className="warung-registration-progress" aria-label={"Langkah " + registrationStep + " dari 3"}>
@@ -363,6 +363,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     })}</div>
     {moreError && <p className="form-error" role="alert">{moreError}</p>}
     {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore || searchingAll}>{searchingAll ? 'Menelusuri direktori…' : loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
-    <button className="button button-dark directory-register-cta" type="button" onClick={onRegister}>Daftarkan warkop</button>
+    <button className="button button-dark directory-register-cta" type="button" onClick={onRegister}>Ajukan Warkop</button>
   </section>;
 }

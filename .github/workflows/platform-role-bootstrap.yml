@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-package-lock --no-audit --no-fund
 
       - name: Authenticate with existing Firebase service account
         uses: google-github-actions/auth@v2

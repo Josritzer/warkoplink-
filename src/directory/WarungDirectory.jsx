@@ -31,6 +31,9 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [facilities, setFacilities] = useState('');
+  const [menuItems, setMenuItems] = useState('');
+  const [specialties, setSpecialties] = useState('');
+  const [ambience, setAmbience] = useState('');
   const [priceRange, setPriceRange] = useState('belum-diisi');
   const [hours, setHours] = useState('');
   const [selectedPhotos, setSelectedPhotos] = useState([]);
@@ -95,7 +98,10 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         const warungRef = await addDoc(collection(db, 'warungs'), {
           name: cleanName, nameNormalized: cleanName.toLowerCase(), ownerUid: user.uid,
           coordinates: { lat: latitude, lng: longitude }, address: cleanAddress,
-          regionCode: 'lamongan-kab', facilities: facilityList, activities: [], priceRange,
+          regionCode: 'lamongan-kab', facilities: facilityList, activities: [],
+          menuItems: menuItems.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 30),
+          specialties: specialties.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 15),
+          ambience: ambience.trim().slice(0, 240), priceRange,
           openingHours: hours.trim() ? { keterangan: hours.trim().slice(0, 120) } : {},
           photos: [], verificationStatus: 'pending',
           createdAt: serverTimestamp(), updatedAt: serverTimestamp()
@@ -114,6 +120,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setIncompleteWarungId('');
       setSelectedPhotos([]);
       setName(''); setAddress(''); setLat(''); setLng(''); setFacilities('');
+      setMenuItems(''); setSpecialties(''); setAmbience('');
       setPriceRange('belum-diisi'); setHours('');
       onNotice(selectedPhotos.length ? 'Pendaftaran dan foto warkop berhasil dikirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi admin.');
     } catch (error) {
@@ -180,8 +187,11 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         </div>
         <label>Foto warkop (maksimal 5, JPG/PNG/WebP, 2 MiB per foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={Boolean(incompleteWarungId)} onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
         {selectedPhotos.length > 0 && <p className="form-hint">{selectedPhotos.length} foto dipilih. {incompleteWarungId ? 'Pilihan foto dikunci sampai unggahan selesai.' : ''}</p>}
+        <label>Menu utama, pisahkan dengan koma<input value={menuItems} onChange={(e) => setMenuItems(e.target.value)} maxLength={600} placeholder="Kopi, teh, mi instan, nasi goreng"/></label>
+        <label>Menu spesial, pisahkan dengan koma<input value={specialties} onChange={(e) => setSpecialties(e.target.value)} maxLength={400} placeholder="Kopi racikan, mi nyemek, pisang goreng"/></label>
         <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
-        <label>Kisaran harga<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Belum diisi</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select></label>
+        <label>Suasana warkop<textarea value={ambience} onChange={(e) => setAmbience(e.target.value)} maxLength={240} rows={2} placeholder="Santai, cocok untuk ngobrol atau kerja ringan"/></label>
+        <label>Kisaran harga (opsional)<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Tidak ingin mencantumkan</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select></label>
         <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>
         {formError && <p className="form-error" role="alert">{formError}</p>}
         <button className="button button-dark" type="submit" disabled={saving}>{saving ? 'Memproses…' : incompleteWarungId ? 'Lanjutkan unggah foto' : 'Kirim pendaftaran'}</button>

@@ -2,14 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import ChatPostCard from './ChatPostCard.jsx';
 
-const firestoreMocks = vi.hoisted(() => ({ setDoc: vi.fn(), deleteDoc: vi.fn(), onSnapshot: vi.fn() }));
+const firestoreMocks = vi.hoisted(() => ({ setDoc: vi.fn(), deleteDoc: vi.fn(), onSnapshot: vi.fn(), getDocs: vi.fn() }));
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((...args) => ({ path: args.slice(1).join('/'), kind: 'collection' })),
   deleteDoc: firestoreMocks.deleteDoc,
+  documentId: vi.fn(() => '__name__'),
+  getDocs: firestoreMocks.getDocs,
+  limit: vi.fn(value => ({ limit: value })),
   doc: vi.fn((...args) => ({ path: args.slice(1).join('/'), kind: 'document' })),
   onSnapshot: firestoreMocks.onSnapshot,
+  orderBy: vi.fn((...args) => ({ orderBy: args })),
   query: vi.fn((...args) => ({ path: args[0]?.path, kind: 'query' })),
   serverTimestamp: vi.fn(() => 'server-timestamp'),
+  startAfter: vi.fn(value => ({ startAfter: value })),
   setDoc: firestoreMocks.setDoc,
   where: vi.fn((...args) => ({ where: args }))
 }));
@@ -18,6 +23,7 @@ vi.mock('../firebase.js', () => ({ db: { name: 'test-db' } }));
 beforeEach(() => {
   firestoreMocks.setDoc.mockReset().mockResolvedValue(undefined);
   firestoreMocks.deleteDoc.mockReset().mockResolvedValue(undefined);
+  firestoreMocks.getDocs.mockReset().mockResolvedValue({ docs: [] });
   firestoreMocks.onSnapshot.mockReset().mockImplementation((ref, next) => {
     if (ref?.kind === 'query') next({ size: 0, docs: [] });
     else next({ exists: () => false, data: () => ({}) });
@@ -205,7 +211,7 @@ describe('ChatPostCard', () => {
     const pendingButton = screen.getByRole('button', { name: 'Menyimpan…' });
     expect(pendingButton.disabled).toBe(true);
     expect(pendingButton.getAttribute('aria-busy')).toBe('true');
-    expect(screen.getByRole('status').textContent).toContain('Menyimpan kehadiran');
+    expect(screen.getAllByRole('status').some(status => status.textContent.includes('Menyimpan kehadiran'))).toBe(true);
     await act(async () => { resolveRsvp(); });
     expect(screen.getByRole('button', { name: 'Ikut acara' }).disabled).toBe(false);
   });

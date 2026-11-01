@@ -4,8 +4,28 @@
       "collectionGroup": "warungs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "verificationStatus", "order": "ASCENDING" },
-        { "fieldPath": "nameNormalized", "order": "ASCENDING" }
+        {
+          "fieldPath": "verificationStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nameNormalized",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recipientUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     }
   ],

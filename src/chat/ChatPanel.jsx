@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Compass, MessageCircle, Send } from 'lucide-react';
+import { collection, doc, endAt, getDoc, getDocs, limit, orderBy, query, startAt } from 'firebase/firestore';
 import { FILTER_TOPICS, MAX_POST_LENGTH, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
 import ChatPostCard from './ChatPostCard.jsx';
 import { validateImageFile } from '../media/imagePolicy.js';
@@ -7,7 +8,7 @@ import { validateImageFile } from '../media/imagePolicy.js';
 // Komposisi UI panel; sumber data dan aksi tetap dari App agar alur reaksi/komentar tidak berubah.
 export default function ChatPanel(props) {
   const {
-    user, firebaseConfigured, search, setSearch, topic, setTopic, composerTopic, setComposerTopic, composerOpen, setComposerOpen, readOnly = false, previewMode = false, onOpenDiscussion, onViewAllDiscussions, onOpenDirectory,
+    user, db, firebaseConfigured, search, setSearch, topic, setTopic, composerTopic, setComposerTopic, composerOpen, setComposerOpen, readOnly = false, previewMode = false, onOpenDiscussion, onViewAllDiscussions, onOpenDirectory,
     openAuth, setNotice, draft, setDraft, activeCategory, handlePost, posting,
     postsStatus, setPostsRetry, visiblePosts, cardProps, hasMorePosts, loadingMorePosts, loadMoreError, onLoadMorePosts, verifiedWarungs = [], ownVerifiedWarungs = []
   } = props;
@@ -24,6 +25,7 @@ export default function ChatPanel(props) {
   const [price, setPrice] = useState('');
   const [workType, setWorkType] = useState('');
   const [contact, setContact] = useState('');
+  const [memberMentionSuggestions, setMemberMentionSuggestions] = useState([]);
   useEffect(() => {
     if (!eventPosterFile || typeof URL.createObjectURL !== 'function') { setEventPosterPreview(''); return undefined; }
     const preview = URL.createObjectURL(eventPosterFile);
@@ -38,6 +40,24 @@ export default function ChatPanel(props) {
   const mentionSuggestions = mentionMatch
     ? verifiedWarungs.filter(warung => String(warung.name || warung.nameNormalized || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID').startsWith(mentionQuery)).slice(0, 5)
     : [];
+  useEffect(() => {
+    let active = true;
+    if (!db || !mentionMatch || mentionQuery.length < 1 || /\s/.test(mentionQuery)) { setMemberMentionSuggestions([]); return undefined; }
+    getDocs(query(collection(db, 'usernames'), orderBy('username'), startAt(mentionQuery), endAt(mentionQuery + '\uf8ff'), limit(5)))
+      .then(async snapshot => {
+        const rows = await Promise.all(snapshot.docs.map(async item => {
+          const uid = item.data()?.uid;
+          if (!uid) return null;
+          try {
+            const profile = await getDoc(doc(db, 'publicProfiles', uid));
+            return { uid, username: item.data()?.username || item.id, displayName: profile.exists() ? profile.data()?.displayName : 'Anggota WarkopLink' };
+          } catch { return { uid, username: item.data()?.username || item.id, displayName: 'Anggota WarkopLink' }; }
+        }));
+        if (active) setMemberMentionSuggestions(rows.filter(Boolean).filter(item => item.uid !== user?.uid));
+      })
+      .catch(() => { if (active) setMemberMentionSuggestions([]); });
+    return () => { active = false; };
+  }, [db, mentionMatch?.[0], mentionQuery, user?.uid]);
   const category = composerTopic || POST_TOPICS[0];
   const showDate = category === 'Info & Acara' || category === 'Ngopi Bareng';
   const showPrice = category === 'Jual Beli & Jasa Lokal';
@@ -67,7 +87,13 @@ export default function ChatPanel(props) {
             {(POST_SUBTYPES[category] || []).map(item => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
-        <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={event => setDraft(event.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ceritakan hal yang ingin dibagikan… Gunakan @ untuk menyebut warkop" rows={3} aria-describedby="composer-character-count"/>
+        <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={event => setDraft(event.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ceritakan hal yang ingin dibagikan… Gunakan @username untuk menyebut anggota" rows={3} aria-describedby="composer-character-count"/>
+        {memberMentionSuggestions.length > 0 && <div className="mention-suggestions member-mention-suggestions" role="listbox" aria-label="Anggota WarkopLink">
+          <small>Sebut anggota</small>
+          {memberMentionSuggestions.map(member => <button key={member.uid} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/(^|\s)@([^@]*)$/, (_, prefix) => `${prefix}@${member.username} `))}>
+            <span className="mention-suggestion-mark">@</span><span><b>{member.displayName}</b><small>@{member.username}</small></span>
+          </button>)}
+        </div>}
         {mentionSuggestions.length > 0 && <div className="mention-suggestions" role="listbox" aria-label="Warkop terverifikasi">
           <small>Sebut warkop terverifikasi</small>
           {mentionSuggestions.map(warung => <button key={warung.id} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/@([^@]*)$/, `@${warung.name} `))}>

@@ -60,6 +60,7 @@ describe('kartu direktori warkop', () => {
     expect(screen.getByRole('button', { name: /Warkop Terbaru/ })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Warkop Terbaru/ }));
     expect(screen.getByRole('button', { name: /Warkop Terbaru/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByRole('button', { name: 'Hapus filter' })).toBeNull();
     expect(screen.queryByLabelText('Filter kisaran harga')).toBeNull();
   });
 

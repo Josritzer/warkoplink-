@@ -1,4 +1,4 @@
-import { MessageSquare, MoreHorizontal, Send, Share2, Trash2 } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Send, Share2, Trash2, Store } from 'lucide-react';
 import LikeSummary from './LikeSummary.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { displayTopic, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
@@ -204,6 +204,7 @@ export default function ChatPostCard({
   }
 
   const category = displayTopic(post.topic);
+  const linkedWarung = post.warungId ? verifiedWarungs.find(warung => warung.id === post.warungId) : null;
   const metaItems = [
     post.postType && { label: post.postType, icon: '✦' },
     post.eventDate && { label: post.eventDate, icon: '◷' },
@@ -261,6 +262,13 @@ export default function ChatPostCard({
         <label>Kontak (HTTPS atau @akun)<input aria-label="Edit kontak" value={editContact} onChange={event => setEditContact(event.target.value)} maxLength={240}/></label>
         <div className="report-form-actions"><button className="button button-dark" type="submit">Simpan perubahan</button><button className="button button-quiet" type="button" onClick={() => setEditing(false)}>Batal</button></div>
       </form> : <p>{renderWarungMentions(post.body, verifiedWarungs, onOpenWarung)}</p>}
+      {!editing && category === 'Info & Acara' && post.warungId && <div className="event-organizer">
+        <button type="button" className="event-organizer-link" onClick={() => onOpenWarung?.(post.warungId)} aria-label={`Lihat profil warkop ${linkedWarung?.name || 'penyelenggara'}`}>
+          <span className="event-organizer-avatar">{linkedWarung?.photos?.[0] ? <img src={linkedWarung.photos[0]} alt="" loading="lazy"/> : <Store size={17}/>}</span>
+          <span className="event-organizer-copy"><small>Diselenggarakan oleh</small><strong>{linkedWarung?.name || 'Warkop penyelenggara'}</strong></span>
+          <span className="event-organizer-action">Lihat Profil Warkop ↗</span>
+        </button>
+      </div>}
       {!editing && post.eventPhotoURL && <div className="event-post-image"><img src={post.eventPhotoURL} alt={`Poster acara ${post.eventKind || "warkop"}`} loading="lazy" /></div>}
       {!editing && metaItems.length > 0 && <div className="post-detail-row" aria-label="Detail posting">
         {metaItems.map(item => <span key={item.label}><span aria-hidden="true">{item.icon}</span>{item.label}</span>)}

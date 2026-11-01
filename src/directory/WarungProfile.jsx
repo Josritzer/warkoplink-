@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { collection, deleteDoc, doc, getCountFromServer, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getCountFromServer, getDoc, limit, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { ArrowLeft, MapPin, ShieldCheck, Store, Users, UserPlus, UserRoundCheck, Clock, CalendarDays, Share2 } from 'lucide-react';
 import { ACTIVITY_OPTIONS } from './directoryFilters.js';
 import { uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
@@ -7,6 +7,7 @@ import { validateImageFile } from '../media/imagePolicy.js';
 
 export default function WarungProfile({ warungId, db, user, onBack, onRequestAuth, onNotice }) {
   const [warung, setWarung] = useState(null);
+  const [events, setEvents] = useState([]);
   const [status, setStatus] = useState('loading');
   const [following, setFollowing] = useState(false);
   const [followers, setFollowers] = useState(0);
@@ -65,6 +66,22 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       }])));
       setStatus('ready');
     }, () => setStatus('error'));
+  }, [db, warungId]);
+
+
+  // Acara publik yang menyimpan warungId selalu muncul pada profil penyelenggaranya.
+  useEffect(() => {
+    if (!db || !warungId) {
+      setEvents([]);
+      return undefined;
+    }
+    const eventsQuery = query(collection(db, 'posts'), where('warungId', '==', warungId), limit(30));
+    return onSnapshot(eventsQuery, (snapshot) => {
+      const linkedEvents = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+        .filter(item => item.topic === 'Info & Acara')
+        .sort((a, b) => new Date(a.eventStartAt || 0).getTime() - new Date(b.eventStartAt || 0).getTime());
+      setEvents(linkedEvents);
+    }, () => setEvents([]));
   }, [db, warungId]);
 
   useEffect(() => { refreshFollowState(); }, [refreshFollowState]);
@@ -211,6 +228,26 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       {(warung.facilities || []).length > 0 && <div className="facility-tags">{warung.facilities.map((facility) => <span key={facility}>{facility}</span>)}</div>}
       {Number.isFinite(warung.coordinates?.lat) && Number.isFinite(warung.coordinates?.lng) && <a className="warung-map-link" href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(warung.coordinates.lat + ',' + warung.coordinates.lng)} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta ↗</a>}
     </div>
+    <section className="warung-profile-events" aria-labelledby="warung-profile-events-title">
+      <h2 id="warung-profile-events-title">Acara dari warkop ini</h2>
+      {events.length ? <div className="warung-event-list">{events.map(event => {
+        const [title, ...descriptionLines] = String(event.body || 'Acara warkop').split(/\r?\n/);
+        const startsAt = event.eventStartAt ? new Date(event.eventStartAt) : null;
+        const validStart = startsAt && !Number.isNaN(startsAt.getTime());
+        return <article className={event.eventStatus === 'cancelled' ? 'warung-event-card is-cancelled' : 'warung-event-card'} key={event.id}>
+          {event.eventPhotoURL && <img className="warung-event-poster" src={event.eventPhotoURL} alt={`Poster ${title}`} loading="lazy"/>}
+          <div className="warung-event-copy">
+            <strong>{title}</strong>
+            {descriptionLines.length > 0 && <p>{descriptionLines.join(' ').trim()}</p>}
+            <div className="warung-event-meta">
+              {event.eventKind && <span>{event.eventKind}</span>}
+              {validStart && <time dateTime={startsAt.toISOString()}>{startsAt.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</time>}
+              {event.eventStatus === 'cancelled' && <span role="status">Dibatalkan</span>}
+            </div>
+          </div>
+        </article>;
+      })}</div> : <p>Belum ada acara dari warkop ini. Kegiatan terbaru akan tampil di sini setelah dibagikan.</p>}
+    </section>
     <div className="warung-profile-posts"><h2>Aktivitas warkop</h2>{(warung.activities || []).length ? <div className="facility-tags">{warung.activities.map((activity) => <span key={activity}>{ACTIVITY_OPTIONS.find((item) => item.value === activity)?.label || activity}</span>)}</div> : <p>Aktivitas belum ditambahkan oleh pemilik.</p>}</div>
     {isOwner && <section className="warung-owner-tools" aria-labelledby="warung-owner-tools-title">
       <h2 id="warung-owner-tools-title">Kelola profil warkop</h2>

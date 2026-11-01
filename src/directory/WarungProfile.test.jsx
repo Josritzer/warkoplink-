@@ -1,14 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-const state = vi.hoisted(() => ({ warungNext: null, following: false, count: 0 }));
+const state = vi.hoisted(() => ({ warungNext: null, following: false, count: 0, events: [] }));
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((db, ...parts) => ({ path: parts.join('/') })),
   deleteDoc: vi.fn(async () => { state.following = false; }),
   doc: vi.fn((db, ...parts) => ({ path: parts.join('/') })),
   getCountFromServer: vi.fn(async () => ({ data: () => ({ count: state.count }) })),
   getDoc: vi.fn(async () => ({ exists: () => state.following })),
+  limit: vi.fn((value) => ({ limit: value })),
+  query: vi.fn((...args) => ({ args, path: args[0]?.path })),
+  where: vi.fn((...args) => ({ where: args })),
   onSnapshot: vi.fn((ref, next) => {
+    if (ref.path === 'posts') {
+      next({ docs: state.events.map(item => ({ id: item.id, data: () => item })) });
+      return vi.fn();
+    }
     state.warungNext = next;
     next({ id: 'warung-1', exists: () => true, data: () => ({
       name: 'Warkop Pojok', verificationStatus: 'verified', address: 'Jl. Merdeka, Lamongan',
@@ -33,6 +40,19 @@ describe('WarungProfile', () => {
     expect(await screen.findByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
     expect(screen.getByText('Jl. Merdeka, Lamongan')).toBeTruthy();
     expect(screen.getByText('3')).toBeTruthy();
+  });
+
+
+  it('menampilkan acara yang terhubung ke profil warkop untuk pengunjung publik', async () => {
+    state.events = [{
+      id: 'event-1', topic: 'Info & Acara', warungId: 'warung-1',
+      body: 'Nobar final\n\nMulai pukul 19.00', eventKind: 'Nobar',
+      eventStartAt: '2099-06-20T12:00:00.000Z', eventStatus: 'scheduled'
+    }];
+    render(<WarungProfile warungId="warung-1" db={{}} user={null} onBack={vi.fn()} onRequestAuth={vi.fn()} onNotice={vi.fn()} />);
+    expect(await screen.findByRole('heading', { name: 'Acara dari warkop ini' })).toBeTruthy();
+    expect(screen.getByText('Nobar final')).toBeTruthy();
+    state.events = [];
   });
 
   it('meminta pengguna masuk sebelum mengikuti', async () => {

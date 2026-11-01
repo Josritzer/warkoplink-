@@ -220,3 +220,66 @@ textarea:focus-visible, select:focus-visible {
   .topic:not(:disabled):active,
   #community-feed .status-reaction:active { transform: none; }
 }
+
+
+/* Event organizer identity and direct public warung profile navigation. */
+.event-organizer { margin: 12px 0; }
+.event-organizer-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--wl-line-soft);
+  border-radius: 12px;
+  background: var(--wl-paper);
+  color: inherit;
+  text-align: left;
+}
+.event-organizer-link:focus-visible { outline: 3px solid var(--wl-interaction-ring); outline-offset: 2px; }
+.event-organizer-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--wl-primary-tint);
+  color: var(--wl-primary);
+}
+.event-organizer-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.event-organizer-copy { display: grid; gap: 2px; min-width: 0; }
+.event-organizer-copy small { color: var(--wl-muted); font-size: 11px; }
+.event-organizer-copy strong { overflow-wrap: anywhere; font-size: 13px; }
+.event-organizer-action { margin-left: auto; color: var(--wl-primary); font-size: 11px; font-weight: 700; white-space: nowrap; }
+@media (max-width: 420px) {
+  .event-organizer-link { gap: 8px; padding: 8px; }
+  .event-organizer-action { font-size: 10px; white-space: normal; text-align: right; max-width: 88px; }
+}
+
+
+.warung-profile-events { margin: 22px 0; }
+.warung-profile-events > h2 { margin-bottom: 12px; }
+.warung-event-list { display: grid; gap: 10px; }
+.warung-event-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--wl-line-soft);
+  border-radius: 14px;
+  background: var(--wl-paper);
+}
+.warung-event-card.is-cancelled { opacity: .72; }
+.warung-event-poster { width: 76px; height: 76px; flex: 0 0 76px; object-fit: cover; border-radius: 10px; }
+.warung-event-copy { min-width: 0; }
+.warung-event-copy > strong { display: block; overflow-wrap: anywhere; }
+.warung-event-copy > p { margin: 5px 0 8px; color: var(--wl-muted); font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+.warung-event-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; color: var(--wl-muted); font-size: 11px; }
+.warung-event-meta span { color: var(--wl-primary); font-weight: 700; }
+@media (max-width: 420px) {
+  .warung-event-card { gap: 9px; padding: 10px; }
+  .warung-event-poster { width: 64px; height: 64px; flex-basis: 64px; }
+}

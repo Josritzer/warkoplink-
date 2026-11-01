@@ -442,8 +442,8 @@ export default function App() {
     if (!bodyCheck.ok) return setNotice(bodyCheck.error);
     const detailsCheck = validatePostDetails(composerTopic, details);
     if (!detailsCheck.ok) return setNotice(detailsCheck.error);
-    if (details.eventPosterFile && (composerTopic !== 'Info & Acara' || !details.eventWarungId || !verifiedWarungs.some(warung => warung.id === details.eventWarungId && warung.ownerUid === user.uid))) {
-      setNotice('Pilih warkop terverifikasi milik akun Anda sebelum mengunggah poster.');
+    if (details.eventWarungId && (composerTopic !== 'Info & Acara' || !verifiedWarungs.some(warung => warung.id === details.eventWarungId && warung.ownerUid === user.uid))) {
+      setNotice('Pilih warkop terverifikasi milik akun Anda untuk mengaitkan acara.');
       return false;
     }
     if (!db) return setNotice('Firebase belum dikonfigurasi.');
@@ -469,7 +469,7 @@ export default function App() {
         ...(composerTopic === 'Info & Acara' && details.eventEndAt ? { eventEndAt: details.eventEndAt } : {}),
         ...(composerTopic === 'Info & Acara' ? { eventKind: String(details.eventKind || 'Lainnya').slice(0, 40) } : {}),
         ...(composerTopic === 'Info & Acara' && details.eventCapacity && Number(details.eventCapacity) > 0 ? { eventCapacity: Math.min(10000, Math.floor(Number(details.eventCapacity))) } : {}),
-        ...(composerTopic === 'Info & Acara' && details.eventPosterFile ? { warungId: details.eventWarungId } : {}),
+        ...(composerTopic === 'Info & Acara' && details.eventWarungId ? { warungId: details.eventWarungId } : {}),
         ...(details.price?.trim() ? { price: details.price.trim() } : {}),
         ...(details.workType?.trim() ? { workType: details.workType.trim() } : {}),
         ...(details.contact?.trim() ? { contact: details.contact.trim() } : {}),

@@ -315,6 +315,15 @@ describe('warungs — direktori aman tahap awal', () => {
     await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warkop-alice'), validWarung()));
   });
 
+  it('pemilik dapat menyimpan menu khas dan suasana tanpa mencantumkan kisaran harga', async () => {
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warkop-menu'), validWarung({
+      priceRange: 'belum-diisi',
+      menuItems: ['Kopi', 'Teh', 'Mi instan'],
+      specialties: ['Kopi racikan', 'Mi nyemek'],
+      ambience: 'Santai untuk ngobrol dan kerja ringan',
+    })));
+  });
+
   it('pengunjung anonim tidak boleh mendaftarkan warkop', async () => {
     await assertFails(setDoc(doc(asAnon(), 'warungs/warkop-anon'), validWarung({ ownerUid: 'alice' })));
   });

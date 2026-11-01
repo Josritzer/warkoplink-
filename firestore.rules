@@ -185,7 +185,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
-          'regionCode', 'facilities', 'activities', 'priceRange', 'openingHours', 'photos',
+          'regionCode', 'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos',
           'verificationStatus', 'createdAt', 'updatedAt'
         ])
         && data.name is string && data.name.size() >= 2 && data.name.size() <= 100
@@ -199,6 +199,9 @@ service cloud.firestore {
         && data.address is string && data.address.size() >= 5 && data.address.size() <= 300
         && data.regionCode == 'lamongan-kab'
         && data.facilities is list && data.facilities.size() <= 20
+        && (!data.keys().hasAny(['menuItems']) || (data.menuItems is list && data.menuItems.size() <= 30))
+        && (!data.keys().hasAny(['specialties']) || (data.specialties is list && data.specialties.size() <= 15))
+        && (!data.keys().hasAny(['ambience']) || (data.ambience is string && data.ambience.size() <= 240))
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
@@ -236,6 +239,9 @@ service cloud.firestore {
         && data.address is string && data.address.size() >= 5 && data.address.size() <= 300
         && data.regionCode == 'lamongan-kab'
         && data.facilities is list && data.facilities.size() <= 20
+        && (!data.keys().hasAny(['menuItems']) || (data.menuItems is list && data.menuItems.size() <= 30))
+        && (!data.keys().hasAny(['specialties']) || (data.specialties is list && data.specialties.size() <= 15))
+        && (!data.keys().hasAny(['ambience']) || (data.ambience is string && data.ambience.size() <= 240))
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
@@ -412,7 +418,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
-          'facilities', 'activities', 'priceRange', 'openingHours', 'photos', 'updatedAt'
+          'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
         && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos']) || request.resource.data.updatedAt == request.time)
         && validWarungEdit(request.resource.data, warungId, resource.data.get('photos', [])));

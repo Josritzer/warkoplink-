@@ -58,6 +58,6 @@ jobs:
       - name: Deploy Hosting only
         run: npx --yes firebase-tools deploy --only hosting --project sl-community-platform --non-interactive
 
-      - name: Deploy Firestore Rules and Indexes only when their source changes
+      - name: Deploy Firestore Rules and Indexes when explicitly selected
         if: inputs.deploy_firestore == true
         run: npx --yes firebase-tools deploy --only firestore:rules,firestore:indexes --project sl-community-platform --non-interactive

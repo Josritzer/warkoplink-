@@ -351,3 +351,5 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
   .event-rsvp-primary .button { width: 100%; padding-inline: 10px; }
   .event-calendar-actions .button { min-height: 40px; }
 }
+
+.warung-card-ambience { display: -webkit-box; margin: 0; overflow: hidden; color: var(--wl-text-muted); font-size: 12px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }

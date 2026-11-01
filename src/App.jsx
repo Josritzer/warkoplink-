@@ -21,6 +21,7 @@ import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
 import ProfileEditor from './profile/ProfileEditor.jsx';
 import NotificationCenter from './notifications/NotificationCenter.jsx';
+import MessagesPage from './messages/MessagesPage.jsx';
 import { extractMentionUsernames } from './notifications/notificationModel.js';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell } from 'lucide-react';
 import {
@@ -1071,11 +1072,15 @@ export default function App() {
         <nav className="sidebar-nav" aria-label="Navigasi utama">
           <button type="button" aria-label="Desktop: Beranda" className={section === 'Beranda' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Beranda'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Home size={18}/><span>Beranda</span></button>
           <button type="button" aria-label="Desktop: Cari Warkop" className={section === 'Cari Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Cari Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Compass size={18}/><span>Cari Warkop</span></button>
-          <button type="button" aria-label="Desktop: Obrolan" className={section === 'Obrolan' && topic === 'Semua' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={18}/><span>Obrolan</span></button>
+          <button type="button" aria-label="Desktop: Pesan" className={section === 'Pesan' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Pesan')}><MessageSquare size={18}/><span>Pesan</span></button>
           <button type="button" aria-label="Desktop: Notifikasi" className={section === 'Notifikasi' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Notifikasi')}><Bell size={18}/><span>Notifikasi</span>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 99 ? '99+' : notificationCount}</span>}</button>
-          <button type="button" aria-label="Desktop: Agenda & acara" className={section === 'Obrolan' && topic === 'Info & Acara' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={18}/><span>Agenda & acara</span></button>
-          <button type="button" aria-label="Desktop: Jual beli & jasa" className={section === 'Obrolan' && topic === 'Jual Beli & Jasa Lokal' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli & Jasa Lokal'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={18}/><span>Jual beli & jasa</span></button>
-          <button type="button" aria-label="Desktop: Ajukan Warkop" className={section === 'Daftarkan Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Daftarkan Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><ArrowUpRight size={18}/><span>Ajukan Warkop</span></button>
+          <button type="button" aria-label="Desktop: Akun" className={section === 'Akun' || section === 'Profil Anggota' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Akun')}><UserRound size={18}/><span>Akun</span></button>
+        </nav>
+        <p className="sidebar-label sidebar-secondary-label">JELAJAHI OBROLAN</p>
+        <nav className="sidebar-nav sidebar-secondary-nav" aria-label="Jelajahi obrolan">
+          <button type="button" aria-label="Buka Obrolan" className={section === 'Obrolan' && topic === 'Semua' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={18}/><span>Obrolan</span></button>
+          <button type="button" aria-label="Agenda & acara" className={section === 'Obrolan' && topic === 'Info & Acara' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={18}/><span>Agenda & acara</span></button>
+          <button type="button" aria-label="Jual beli & jasa" className={section === 'Obrolan' && topic === 'Jual Beli & Jasa Lokal' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli & Jasa Lokal'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={18}/><span>Jual beli & jasa</span></button>
           <button type="button" className="sidebar-nav-item" onClick={() => setNotice('Menu Tersimpan belum tersedia. Tidak ada daftar tersimpan yang dibuat-buat.') }><Heart size={18}/><span>Tersimpan</span><span className="sidebar-soon">Segera</span></button>
         </nav>
         <div className="sidebar-community-note"><span className="sidebar-note-icon"><MapPin size={16}/></span><div><b>Mulai dari Lamongan</b><p>Temukan warkop dan percakapan di sekitar komunitas lokal.</p></div></div>
@@ -1089,6 +1094,7 @@ export default function App() {
       {section === 'Panel Admin' && isAdmin ? <AdminPanel db={db} user={user} onNotice={setNotice}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
+      section === 'Pesan' ? <MessagesPage/> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
         <div className="reply-page-top">
           <button className="reply-page-back" type="button" onClick={() => navigateSection('Beranda')}>← Kembali ke beranda</button>
@@ -1186,10 +1192,9 @@ export default function App() {
     <nav className="bottom-nav" aria-label="Navigasi aplikasi">
       <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
       <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>
-      <button className={section === "Obrolan" ? "bottom-nav-item active" : "bottom-nav-item"} onClick={() => { navigateSection("Obrolan"); document.getElementById("community-feed")?.scrollIntoView({behavior:"smooth"}); }} aria-current={section === "Obrolan" ? "page" : undefined}><MessageCircle size={20}/><span>Obrolan</span></button>
-      <button className={section === 'Daftarkan Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} aria-label="Ajukan Warkop" onClick={() => navigateSection('Daftarkan Warkop')} aria-current={section === 'Daftarkan Warkop' ? 'page' : undefined}><Store size={20}/><span>Daftar</span></button>
-      <button className={section === 'Notifikasi' ? 'bottom-nav-item active' : 'bottom-nav-item'} aria-label="Notifikasi" onClick={() => navigateSection('Notifikasi')} aria-current={section === 'Notifikasi' ? 'page' : undefined}><span className="notification-nav-icon"><Bell size={20}/>{notificationCount > 0 && <i>{notificationCount > 9 ? '9+' : notificationCount}</i>}</span><span>Notifikasi</span></button>
-      <button className={section === 'Akun' || section === 'Profil Anggota' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => user ? openMemberProfile({ uid: user.uid, displayName: user.displayName || 'Anggota WarkopLink', photoURL: user.photoURL || '' }) : navigateSection('Akun')} aria-current={section === 'Akun' || section === 'Profil Anggota' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
+      <button className={section === 'Pesan' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Pesan')} aria-current={section === 'Pesan' ? 'page' : undefined}><MessageSquare size={20}/><span>Pesan</span></button>
+      <button className={section === 'Notifikasi' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Notifikasi')} aria-current={section === 'Notifikasi' ? 'page' : undefined}><span className="notification-nav-icon"><Bell size={20}/>{notificationCount > 0 && <i>{notificationCount > 9 ? '9+' : notificationCount}</i>}</span><span>Notifikasi</span></button>
+      <button className={section === 'Akun' || section === 'Profil Anggota' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Akun')} aria-current={section === 'Akun' || section === 'Profil Anggota' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
     </nav>
     <footer><span className="footer-brand"><Sparkles size={16}/> WARKOPLINK</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} WarkopLink Platform</small></footer>
   </div>;

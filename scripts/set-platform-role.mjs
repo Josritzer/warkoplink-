@@ -5,6 +5,7 @@
 import { applicationDefault, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { isAllowedPlatformBootstrapOwner } from './platform-role-guards.mjs';
 
 const projectId = 'sl-community-platform';
 const [uid, role, expectedEmail, actorOrBootstrap, confirmation] = process.argv.slice(2);
@@ -15,6 +16,10 @@ if (!uid || uid.length < 5 || uid.length > 128 || /\\s/.test(uid)
   || !allowedRoles.has(role) || !expectedEmail || !expectedEmail.includes('@')
   || confirmation !== '--apply' || (bootstrap && role !== 'super_admin') || (!bootstrap && !actorOrBootstrap)) {
   console.error('Argumen tidak valid. Lihat komentar pemakaian pada scripts/set-platform-role.mjs.');
+  process.exit(1);
+}
+if (bootstrap && !isAllowedPlatformBootstrapOwner(uid, expectedEmail)) {
+  console.error('Ditolak: bootstrap Super Admin hanya diizinkan untuk UID dan email pemilik WarkopLink yang telah ditetapkan.');
   process.exit(1);
 }
 if (process.env.GCLOUD_PROJECT && process.env.GCLOUD_PROJECT !== projectId) {

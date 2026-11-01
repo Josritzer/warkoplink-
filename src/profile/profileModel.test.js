@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeUsername, validateProfileDraft } from '../src/profile/profileModel.js';
+import { normalizeUsername, validateProfileDraft } from './profileModel.js';
 
 describe('normalizeUsername', () => {
   it('trims, removes one leading at-sign, and lowercases usernames', () => {

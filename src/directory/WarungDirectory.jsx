@@ -418,6 +418,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       <button type="button" className={category === 'newest' ? 'directory-category active' : 'directory-category'} aria-pressed={category === 'newest'} onClick={() => handleCategoryChange('newest')}><Sparkles size={16}/> Warkop Terbaru</button>
     </div>
     {category === 'popular' && <p className="directory-category-hint">Diurutkan dari jumlah pengikut nyata pada profil warkop. Peringkat mengikuti warkop yang sudah dimuat.</p>}
+    {category === 'popular' && !popularLoading && Object.keys(followerCounts).length > 0 && !Object.values(followerCounts).some((count) => count > 0) && <p className="directory-category-hint">Belum ada pengikut pada warkop yang dimuat. Peringkat sementara mengikuti nama sampai ada aktivitas nyata.</p>}
     {category === 'events' && <p className="directory-category-hint">Menampilkan acara terhubung ke warkop yang sedang berlangsung atau akan datang.</p>}
     {category === 'nearby' && <div className="directory-location-status">
       {userLocation
@@ -454,7 +455,11 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
             {openState === true ? <span className="warung-card-status is-open"><span/> Buka</span> : openState === false ? <span className="warung-card-status is-closed"><span/> Tutup</span> : null}
           </div>
           <p className="warung-card-address"><MapPin size={15}/>{item.address}</p>
-          {item.activeEvent && <div className="directory-event-badge"><CalendarDays size={14}/><span>{getEventLifecycle(item.activeEvent, now) === 'ongoing' ? 'SEDANG BERLANGSUNG' : 'AKAN DATANG'} · {String(item.activeEvent.eventKind || 'Acara warkop')}</span></div>}
+          {item.activeEvent && <>
+            <div className="directory-event-badge"><CalendarDays size={14}/><span>{getEventLifecycle(item.activeEvent, now) === 'ongoing' ? 'SEDANG BERLANGSUNG' : 'AKAN DATANG'} · {String(item.activeEvent.eventKind || 'Acara warkop')}</span></div>
+            <strong className="directory-event-title">{String(item.activeEvent.body || 'Acara warkop').split(/\\r?\\n/)[0].slice(0, 90)}</strong>
+            <time className="directory-event-time" dateTime={new Date(item.activeEvent.eventStartAt).toISOString()}>{new Date(item.activeEvent.eventStartAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</time>
+          </>}
           {category === 'popular' && Object.prototype.hasOwnProperty.call(followerCounts, item.id) && <small className="directory-ranking-meta"><Flame size={13}/> {followerCounts[item.id].toLocaleString('id-ID')} pengikut</small>}
           {category === 'nearby' && item.distanceKm !== null && <small className="directory-ranking-meta"><Navigation size={13}/> {item.distanceKm < 1 ? Math.round(item.distanceKm * 1000) + ' m' : item.distanceKm.toFixed(1) + ' km'} · perkiraan</small>}
           {highlights.length > 0 && <div className="facility-tags warung-card-highlights">{highlights.map((highlight, index) => <span key={`${highlight}-${index}`}>{highlight}</span>)}</div>}

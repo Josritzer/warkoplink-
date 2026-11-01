@@ -53,13 +53,19 @@ if (role === 'member') delete claims.platformRole;
 else claims.platformRole = role;
 
 await auth.setCustomUserClaims(uid, claims);
-await db.collection('platformRoleAudit').add({
-  targetUid: uid,
-  targetEmail: account.email,
-  previousRole,
-  newRole: role,
-  actorUid,
-  createdAt: FieldValue.serverTimestamp()
-});
+try {
+  await db.collection('platformRoleAudit').add({
+    targetUid: uid,
+    targetEmail: account.email,
+    previousRole,
+    newRole: role,
+    actorUid,
+    createdAt: FieldValue.serverTimestamp()
+  });
+} catch (error) {
+  // Best-effort rollback prevents a silent role change without its audit record.
+  await auth.setCustomUserClaims(uid, account.customClaims || {});
+  throw error;
+}
 console.log(`Role ${role} berhasil disetel untuk UID ${uid} di proyek ${projectId}.`);
 console.log('Catatan audit tersimpan. Minta pengguna keluar lalu masuk kembali agar token ID diperbarui.');

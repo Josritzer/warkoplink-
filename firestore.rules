@@ -2440,7 +2440,7 @@ service cloud.firestore {
 
   }
 }
-) && exists(/databases/$(database)/documents/usernames/$(request.resource.data.username)) && get(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == userId))
+) && existsAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)) && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == userId))
         && (!request.resource.data.keys().hasAny(['interests']) || (request.resource.data.interests is list && request.resource.data.interests.size() <= 8 && request.resource.data.interests.hasOnly(['Ngopi', 'Kuliner', 'Nobar', 'Gim', 'Musik', 'Komunitas', 'Kerja laptop', 'Acara lokal'])))
         && (!request.resource.data.keys().hasAny(['socialLinks']) || (request.resource.data.socialLinks is map && request.resource.data.socialLinks.keys().hasOnly(['instagram', 'tiktok', 'facebook', 'website'])));
       allow delete: if false;

@@ -36,6 +36,22 @@ if (!account.emailVerified) {
 }
 
 let actorUid = 'bootstrap';
+if (bootstrap) {
+  let pageToken;
+  do {
+    const page = await auth.listUsers(1000, pageToken);
+    const anotherSuperAdmin = page.users.find(user =>
+      user.uid !== uid && (
+        user.customClaims?.platformRole === 'super_admin' || user.customClaims?.admin === true
+      )
+    );
+    if (anotherSuperAdmin) {
+      console.error('Ditolak: Super Admin sudah ada. Gunakan ACTOR_UID Super Admin aktif, bukan mode bootstrap.');
+      process.exit(1);
+    }
+    pageToken = page.pageToken;
+  } while (pageToken);
+}
 if (!bootstrap) {
   actorUid = actorOrBootstrap;
   const actor = await auth.getUser(actorUid);

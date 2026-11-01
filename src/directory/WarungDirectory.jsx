@@ -457,7 +457,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
           <p className="warung-card-address"><MapPin size={15}/>{item.address}</p>
           {item.activeEvent && <>
             <div className="directory-event-badge"><CalendarDays size={14}/><span>{getEventLifecycle(item.activeEvent, now) === 'ongoing' ? 'SEDANG BERLANGSUNG' : 'AKAN DATANG'} · {String(item.activeEvent.eventKind || 'Acara warkop')}</span></div>
-            <strong className="directory-event-title">{String(item.activeEvent.body || 'Acara warkop').split(/\\r?\\n/)[0].slice(0, 90)}</strong>
+            <strong className="directory-event-title">{String(item.activeEvent.body || 'Acara warkop').split(/\r?\n/)[0].slice(0, 90)}</strong>
             <time className="directory-event-time" dateTime={new Date(item.activeEvent.eventStartAt).toISOString()}>{new Date(item.activeEvent.eventStartAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</time>
           </>}
           {category === 'popular' && Object.prototype.hasOwnProperty.call(followerCounts, item.id) && <small className="directory-ranking-meta"><Flame size={13}/> {followerCounts[item.id].toLocaleString('id-ID')} pengikut</small>}

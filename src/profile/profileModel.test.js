@@ -15,9 +15,16 @@ describe('validateProfileDraft', () => {
   });
 
   it('rejects usernames outside the 3–20 lowercase-safe character rule', () => {
-    for (const username of ['ab', 'with space', 'UPPERCASE', 'name.with.dot', 'a'.repeat(21)]) {
+    for (const username of ['ab', 'with space', 'name.with.dot', 'a'.repeat(21)]) {
       expect(validateProfileDraft({ ...valid, username }).ok).toBe(false);
     }
+  });
+
+  it('normalizes uppercase usernames before validating uniqueness format', () => {
+    expect(validateProfileDraft({ ...valid, username: 'KOPI_SENJA' })).toMatchObject({
+      ok: true,
+      value: { username: 'kopi_senja' },
+    });
   });
 
   it('rejects display names and bios beyond their limits', () => {
@@ -25,8 +32,8 @@ describe('validateProfileDraft', () => {
     expect(validateProfileDraft({ ...valid, bio: 'x'.repeat(161) }).ok).toBe(false);
   });
 
-  it('limits interests and rejects insecure social links', () => {
-    expect(validateProfileDraft({ ...valid, interests: Array(9).fill('Ngopi') }).ok).toBe(false);
+  it('limits unique interests and rejects insecure social links', () => {
+    expect(validateProfileDraft({ ...valid, interests: ['Ngopi', 'Nobar', 'Musik', 'Game', 'Kuliner', 'Bola', 'Motor', 'Film', 'Travel'] }).ok).toBe(false);
     expect(validateProfileDraft({ ...valid, socialLinks: { instagram: 'javascript:alert(1)' } }).ok).toBe(false);
     expect(validateProfileDraft({ ...valid, socialLinks: { instagram: 'https://instagram.com/example' } }).ok).toBe(true);
   });

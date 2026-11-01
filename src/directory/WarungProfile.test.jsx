@@ -12,7 +12,8 @@ vi.mock('firebase/firestore', () => ({
     state.warungNext = next;
     next({ id: 'warung-1', exists: () => true, data: () => ({
       name: 'Warkop Pojok', verificationStatus: 'verified', address: 'Jl. Merdeka, Lamongan',
-      coordinates: { lat: -7, lng: 112 }, facilities: ['Wi-Fi'], priceRange: 'hemat',
+      coordinates: { lat: -7, lng: 112 }, facilities: ['Wi-Fi'], priceRange: 'belum-diisi',
+      menuItems: ['Kopi', 'Teh'], specialties: ['Kopi racikan'], ambience: 'Santai untuk ngobrol',
       openingHours: { keterangan: '08.00–23.00' }
     }) });
     return vi.fn();
@@ -32,6 +33,10 @@ describe('WarungProfile', () => {
     render(<WarungProfile warungId="warung-1" db={{}} user={null} onBack={vi.fn()} onRequestAuth={vi.fn()} onNotice={vi.fn()} />);
     expect(await screen.findByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
     expect(screen.getByText('Jl. Merdeka, Lamongan')).toBeTruthy();
+    expect(screen.getByText('Menu utama')).toBeTruthy();
+    expect(screen.getByText('Kopi racikan')).toBeTruthy();
+    expect(screen.getByText('Santai untuk ngobrol')).toBeTruthy();
+    expect(screen.queryByText(/Kisaran harga:/)).toBeNull();
     expect(screen.getByText('3')).toBeTruthy();
   });
 

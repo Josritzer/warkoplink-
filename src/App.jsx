@@ -12,6 +12,7 @@ import {
 import { auth, db, firebaseConfigured } from './firebase.js';
 import AdminPanel from './AdminPanel.jsx';
 import { PLATFORM_ROLES, platformRoleFromClaims } from './auth/platformRoles.js';
+import { emailVerificationErrorMessage, refreshAccountVerification, sendAccountVerificationEmail } from './auth/emailVerification.js';
 import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
@@ -91,6 +92,8 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [installPrompt, setInstallPrompt] = useState(null);
   const [user, setUser] = useState(null);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verificationBusy, setVerificationBusy] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
@@ -258,6 +261,7 @@ export default function App() {
     if (!auth) return undefined;
     return onAuthStateChanged(auth, async (nextUser) => {
       setUser(nextUser);
+      setEmailVerified(Boolean(nextUser?.emailVerified));
       setIsSuperAdmin(false);
       setIsModerator(false);
       setAuthReady(true);
@@ -399,6 +403,46 @@ export default function App() {
     });
     return () => { cancelled = true; };
   }, [allPosts]);
+  async function handleResendVerification() {
+    const currentUser = auth?.currentUser;
+    if (!currentUser) {
+      setNotice('Sesi login tidak ditemukan. Silakan masuk kembali.');
+      return;
+    }
+    setVerificationBusy(true);
+    try {
+      const alreadyVerified = await refreshAccountVerification(currentUser);
+      setEmailVerified(alreadyVerified);
+      if (alreadyVerified) {
+        setNotice('Email akun Anda sudah terverifikasi.');
+        return;
+      }
+      await sendAccountVerificationEmail(currentUser);
+      setNotice(`Email verifikasi dikirim ke ${currentUser.email}. Periksa Kotak Masuk dan folder Spam.`);
+    } catch (error) {
+      setNotice(emailVerificationErrorMessage(error));
+    } finally {
+      setVerificationBusy(false);
+    }
+  }
+
+  async function handleRefreshVerificationStatus() {
+    const currentUser = auth?.currentUser;
+    if (!currentUser) return;
+    setVerificationBusy(true);
+    try {
+      const verified = await refreshAccountVerification(currentUser);
+      setEmailVerified(verified);
+      setNotice(verified
+        ? 'Berhasil! Email akun Anda sudah terverifikasi.'
+        : 'Status masih belum terverifikasi. Buka tautan terbaru dari email Firebase terlebih dahulu.');
+    } catch (error) {
+      setNotice(emailVerificationErrorMessage(error));
+    } finally {
+      setVerificationBusy(false);
+    }
+  }
+
   function openAuth(register) {
     setRegisterMode(register);
     setAuthError('');
@@ -443,9 +487,20 @@ export default function App() {
           // Akun sudah terbuat dan pengguna sudah masuk; profil akan dicoba lagi otomatis.
           profileSaved = false;
         }
+        let verificationSent = false;
+        try {
+          await sendAccountVerificationEmail(result.user);
+          verificationSent = true;
+        } catch (verificationError) {
+          console.warn('Email verifikasi belum terkirim:', verificationError?.code || 'unknown');
+        }
         setNotice(profileSaved
-          ? 'Akun berhasil dibuat. Selamat bergabung!'
-          : 'Akun berhasil dibuat, tetapi profil belum tersimpan. Kami akan mencoba lagi otomatis saat Anda masuk berikutnya.');
+          ? verificationSent
+            ? `Akun berhasil dibuat. Tautan verifikasi dikirim ke ${result.user.email}. Periksa Kotak Masuk dan folder Spam.`
+            : 'Akun berhasil dibuat, tetapi email verifikasi belum terkirim. Buka menu Akun untuk mencoba mengirim ulang.'
+          : verificationSent
+            ? 'Akun berhasil dibuat dan email verifikasi dikirim. Profil belum tersimpan; sistem akan mencoba menyimpannya kembali saat Anda masuk berikutnya.'
+            : 'Akun berhasil dibuat, tetapi profil dan email verifikasi belum selesai. Buka menu Akun untuk mencoba mengirim ulang email.');
       } else {
         await signInWithEmailAndPassword(auth, emailCheck.value, passwordCheck.value);
         setNotice('Berhasil masuk ke WarkopLink.');
@@ -1134,7 +1189,7 @@ export default function App() {
       section === 'Profil Anggota' && memberProfile ? <PublicUserProfile profile={memberProfile} db={db} currentUser={user} onBack={closeMemberProfile} onEditProfile={() => navigateSection('Akun')}/> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
-        {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article><section className="account-card profile-editor-card"><div className="account-details"><b>Edit profil komunitas</b><small>Atur nama tampilan, username, bio, lokasi, minat, dan tautan publik.</small></div><ProfileEditor user={user} db={db} onNotice={setNotice}/></section>{isPlatformStaff && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
+        {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className={`email-verification-panel ${emailVerified ? 'is-verified' : 'is-pending'}`} role="status" aria-live="polite"><div><b>{emailVerified ? 'Email terverifikasi' : 'Email belum terverifikasi'}</b><small>{emailVerified ? 'Alamat email akun ini sudah dikonfirmasi.' : 'Verifikasi email diperlukan untuk mengaktifkan hak Super Admin.'}</small></div>{!emailVerified && <div className="email-verification-actions"><button className="button button-quiet" type="button" onClick={handleResendVerification} disabled={verificationBusy}>{verificationBusy ? 'Memproses…' : 'Kirim ulang verifikasi'}</button><button className="button button-quiet" type="button" onClick={handleRefreshVerificationStatus} disabled={verificationBusy}>Saya sudah verifikasi</button></div>}</div><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article><section className="account-card profile-editor-card"><div className="account-details"><b>Edit profil komunitas</b><small>Atur nama tampilan, username, bio, lokasi, minat, dan tautan publik.</small></div><ProfileEditor user={user} db={db} onNotice={setNotice}/></section>{isPlatformStaff && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
           <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu warga menemukan dan mengenal warkop di Kabupaten Lamongan. Pendaftaran tetap gratis.</p></section> :

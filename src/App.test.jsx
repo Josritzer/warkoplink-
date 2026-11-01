@@ -17,6 +17,8 @@ vi.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: vi.fn(),
   signOut: vi.fn(),
   updateProfile: vi.fn(),
+  sendEmailVerification: vi.fn(),
+  reload: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -84,6 +86,8 @@ beforeEach(() => {
   fs.addDoc.mockResolvedValue({ id: 'new' });
   fs.writeBatch.mockImplementation(() => ({ set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) }));
   fbAuth.updateProfile.mockResolvedValue(undefined);
+  fbAuth.sendEmailVerification.mockResolvedValue(undefined);
+  fbAuth.reload.mockResolvedValue(undefined);
   fbAuth.signOut.mockResolvedValue(undefined);
   fbAuth.signInWithEmailAndPassword.mockResolvedValue({ user: fakeUser() });
   fbAuth.createUserWithEmailAndPassword.mockResolvedValue({ user: { uid: 'u1', email: 'sari@example.test' } });
@@ -310,7 +314,8 @@ describe('registrasi', () => {
     await fillAuth(user, dialog, { name: '  Sari  ', email: 'sari@example.test', password: 'rahasia1' });
     await user.click(within(dialog).getByRole('button', { name: 'Buat akun' }));
 
-    expect(await screen.findByText('Akun berhasil dibuat. Selamat bergabung!')).toBeTruthy();
+    expect(await screen.findByText(/Tautan verifikasi dikirim ke sari@example.test/)).toBeTruthy();
+    expect(fbAuth.sendEmailVerification).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }));
     expect(fbAuth.createUserWithEmailAndPassword).toHaveBeenCalledWith({ name: 'auth' }, 'sari@example.test', 'rahasia1');
     expect(fbAuth.updateProfile).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), { displayName: 'Sari' });
     expect(fs.setDoc).toHaveBeenCalledWith({ path: 'profiles/u1' }, {
@@ -328,7 +333,7 @@ describe('registrasi', () => {
     await fillAuth(user, dialog, { name: 'Sari', email: 'sari@example.test', password: 'rahasia1' });
     await user.click(within(dialog).getByRole('button', { name: 'Buat akun' }));
 
-    expect(await screen.findByText(/profil belum tersimpan/)).toBeTruthy();
+    expect(await screen.findByText(/Profil belum tersimpan/i)).toBeTruthy();
     expect(screen.queryByText(/Autentikasi gagal/)).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
   });

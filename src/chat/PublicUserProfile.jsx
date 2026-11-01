@@ -34,8 +34,11 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
             uid,
             displayName: data.displayName || fallbackProfile?.displayName || 'Anggota WarkopLink',
             photoURL: data.photoURL || '',
+            username: typeof data.username === 'string' ? data.username : '',
             bio: typeof data.bio === 'string' ? data.bio : '',
-            location: typeof data.location === 'string' ? data.location : ''
+            location: typeof data.location === 'string' ? data.location : '',
+            interests: Array.isArray(data.interests) ? data.interests : [],
+            socialLinks: data.socialLinks && typeof data.socialLinks === 'object' ? data.socialLinks : {}
           });
         } else {
           setProfile(fallbackProfile || { uid, displayName: 'Anggota WarkopLink', photoURL: '' });
@@ -72,7 +75,7 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
         </div>
         <div className="member-profile-name">
           <h1>{name}</h1>
-          <p>{isOwnProfile ? 'Ini profil Anda' : 'Anggota komunitas WarkopLink'}</p>
+          <p>{profile?.username ? '@' + profile.username : (isOwnProfile ? 'Ini profil Anda' : 'Anggota komunitas WarkopLink')}</p>
         </div>
         {isOwnProfile && <button type="button" className="button button-dark member-profile-edit-mobile" onClick={onEditProfile}><Pencil size={15}/> Edit profil</button>}
       </div>

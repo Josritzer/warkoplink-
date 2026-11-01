@@ -84,6 +84,49 @@ describe('postReports', () => {
   });
 });
 
+describe('member profiles and usernames', () => {
+  it('allows a member to reserve a username and update their profile atomically', async () => {
+    const db = asUser('alice');
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'usernames', 'alice_kopi'), {
+      uid: 'alice', username: 'alice_kopi', createdAt: serverTimestamp(),
+    });
+    batch.update(doc(db, 'profiles', 'alice'), {
+      username: 'alice_kopi', bio: 'Pecinta kopi', location: 'Maduran',
+      interests: ['Ngopi', 'Nobar'], socialLinks: { instagram: 'https://instagram.com/alice' },
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, 'publicProfiles', 'alice'), {
+      uid: 'alice', displayName: 'Alice', photoURL: '', username: 'alice_kopi',
+      bio: 'Pecinta kopi', location: 'Maduran', interests: ['Ngopi', 'Nobar'],
+      socialLinks: { instagram: 'https://instagram.com/alice' }, updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('prevents a member from reserving a username for another UID', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'usernames', 'bob_name'), {
+      uid: 'bob', username: 'bob_name', createdAt: serverTimestamp(),
+    }));
+  });
+
+  it('prevents a member from editing another member profile', async () => {
+    await assertFails(updateDoc(doc(asUser('alice'), 'profiles', 'bob'), {
+      bio: 'Changed by Alice', updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it('rejects malformed usernames and oversized profile fields', async () => {
+    const db = asUser('alice');
+    await assertFails(setDoc(doc(db, 'usernames', 'bad.name'), {
+      uid: 'alice', username: 'bad.name', createdAt: serverTimestamp(),
+    }));
+    await assertFails(updateDoc(doc(db, 'profiles', 'alice'), {
+      bio: 'x'.repeat(161), updatedAt: serverTimestamp(),
+    }));
+  });
+});
+
 describe('event RSVPs', () => {
   it('mengizinkan anggota menyimpan RSVP untuk acara dan mengubah statusnya sendiri', async () => {
     const db = asUser('alice');

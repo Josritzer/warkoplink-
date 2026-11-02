@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   collection, deleteDoc, doc, getCountFromServer, getDoc, onSnapshot, serverTimestamp, setDoc
 } from 'firebase/firestore';
@@ -70,6 +70,7 @@ export function CommunityGroupHeader({
   const [memberCount, setMemberCount] = useState(null);
   const [countStatus, setCountStatus] = useState('loading');
   const [busy, setBusy] = useState(false);
+  const membershipLock = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -103,12 +104,13 @@ export function CommunityGroupHeader({
   }, [db, community?.id, user?.uid, onMembershipChange]);
 
   async function toggleMembership() {
-    if (!community || !db || busy) return;
+    if (!community || !db || busy || membershipLock.current) return;
     if (!user?.uid) {
       onRequestAuth?.();
       onNotice?.('Masuk terlebih dahulu untuk bergabung dengan komunitas.');
       return;
     }
+    membershipLock.current = true;
     setBusy(true);
     const memberRef = doc(db, 'communities', community.id, 'members', user.uid);
     try {
@@ -129,6 +131,7 @@ export function CommunityGroupHeader({
     } catch {
       onNotice?.('Keanggotaan belum berhasil diperbarui. Periksa koneksi lalu coba lagi.');
     } finally {
+      membershipLock.current = false;
       setBusy(false);
     }
   }

@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 const state = vi.hoisted(() => ({
   memberExists: false,
+  reactionDocs: [],
+  usernameMap: {},
   setDoc: vi.fn(),
   deleteDoc: vi.fn(),
   addDoc: vi.fn(),
@@ -30,14 +32,25 @@ import ThematicGroupChat from './ThematicGroupChat.jsx';
 
 beforeEach(() => {
   state.memberExists = false;
+  state.reactionDocs = [];
+  state.usernameMap = {};
   state.setDoc.mockResolvedValue(undefined);
   state.deleteDoc.mockResolvedValue(undefined);
   state.addDoc.mockResolvedValue({ id: 'message-1' });
-  state.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ displayName: 'Alice' }) });
+  state.getDoc.mockImplementation((ref) => {
+    if (ref.path.startsWith('usernames/')) {
+      const username = ref.path.split('/')[1];
+      const uid = state.usernameMap[username];
+      return Promise.resolve({ exists: () => Boolean(uid), data: () => ({ uid, username }) });
+    }
+    return Promise.resolve({ exists: () => true, data: () => ({ displayName: 'Alice' }) });
+  });
   state.updateDoc.mockResolvedValue(undefined);
   state.onSnapshot.mockImplementation((ref, next) => {
     if (ref.path.endsWith('/members/alice')) {
-      next({ exists: () => state.memberExists });
+      next({ exists: () => state.memberExists, data: () => ({ lastReadAt: null }) });
+    } else if (ref.path.endsWith('/reactions')) {
+      next({ docs: state.reactionDocs.map((item) => ({ id: item.id, data: () => item.data })) });
     } else if (ref.path.endsWith('/messages')) {
       next({ docs: state.memberExists ? [{
         id: 'hello-1',
@@ -98,4 +111,33 @@ describe('thematic group conversation', () => {
       { senderUid: 'alice', senderName: 'Alice', text: 'Saya punya rekomendasi.', createdAt: 'server-time', replyToMessageId: 'hello-1' }
     ));
   });
+
+  it('lets a member add an emoji reaction to a message', async () => {
+    state.memberExists = true;
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Reaksi 👍 (0)' }));
+    await waitFor(() => expect(state.setDoc).toHaveBeenCalledWith(
+      { path: 'thematicGroups/pemilik-warkop/reactions/hello-1_alice' },
+      { messageId: 'hello-1', uid: 'alice', emoji: '👍', updatedAt: 'server-time' }
+    ));
+  });
+
+  it('stores parsed @username mentions and creates a notification for the mentioned member', async () => {
+    state.memberExists = true;
+    state.usernameMap = { budi: 'bob' };
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tulis pesan grup' }), { target: { value: 'Halo @budi, apa kabar?' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim pesan' }));
+    await waitFor(() => expect(state.addDoc).toHaveBeenCalledWith(
+      { path: 'thematicGroups/pemilik-warkop/messages' },
+      expect.objectContaining({ senderUid: 'alice', senderName: 'Alice', text: 'Halo @budi, apa kabar?', mentionedUsernames: ['budi'] })
+    ));
+    await waitFor(() => expect(state.setDoc).toHaveBeenCalledWith(
+      { path: 'notifications/group_mention_message-1_bob' },
+      expect.objectContaining({ recipientUid: 'bob', actorUid: 'alice', type: 'mention', groupId: 'pemilik-warkop', messageId: 'message-1', username: 'budi', readAt: null })
+    ));
+  });
+
 });

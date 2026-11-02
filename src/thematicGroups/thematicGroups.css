@@ -58,3 +58,17 @@
 .thematic-compose button{display:grid;width:40px;height:40px;flex:0 0 40px;place-items:center;border:0;border-radius:50%;background:var(--wl-primary);color:white}
 .thematic-compose button:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:620px){.conversation-hub-heading{display:block}.conversation-hub-heading p{margin-top:5px}.thematic-directory-item{gap:9px;padding:12px 0}.thematic-group-icon{width:40px;height:40px;flex-basis:40px;border-radius:13px}.thematic-group-copy h3{font-size:13px}.thematic-group-copy p{font-size:11px}.thematic-group-copy small{font-size:9px}.thematic-open-button{min-height:34px;padding:0 9px;font-size:10px}.thematic-chat-page{min-height:calc(100dvh - 150px);border-radius:14px}.thematic-message-list{max-height:none;min-height:300px}.thematic-compose{gap:6px;padding:8px}.thematic-compose-count{display:none}}
+
+.thematic-message-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:5px}
+.thematic-message-actions time{margin:0}
+.thematic-message-actions button{padding:0;border:0;background:transparent;color:var(--wl-primary);font-size:9px;font-weight:750}
+.thematic-reply-quote{display:grid;gap:3px;margin:0 0 7px;padding:6px 8px;border-left:3px solid var(--wl-primary);border-radius:5px;background:var(--wl-primary-tint)}
+.thematic-reply-quote small{color:var(--wl-primary);font-size:9px;font-weight:750}
+.thematic-reply-quote span{color:var(--wl-muted);font-size:10px;line-height:1.4;overflow-wrap:anywhere}
+.thematic-compose-wrap{border-top:1px solid var(--wl-line-soft);background:var(--wl-paper)}
+.thematic-compose-wrap .thematic-compose{border-top:0}
+.thematic-replying-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px 0}
+.thematic-replying-banner span{display:grid;min-width:0;gap:2px;padding-left:9px;border-left:3px solid var(--wl-primary)}
+.thematic-replying-banner b{color:var(--wl-primary);font-size:10px}
+.thematic-replying-banner small{max-width:100%;overflow:hidden;color:var(--wl-muted);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.thematic-replying-banner button{width:26px;height:26px;border:0;border-radius:50%;background:var(--wl-primary-tint);color:var(--wl-primary);font-size:18px;line-height:1}

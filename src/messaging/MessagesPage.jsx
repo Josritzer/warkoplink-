@@ -5,13 +5,13 @@ import {
 } from 'firebase/firestore';
 import { MessageCircle, Users, UserRound, Send, ArrowLeft, LoaderCircle } from 'lucide-react';
 import { conversationIdFor, messagePreview } from './messageModel.js';
+import { FILTER_TOPICS } from '../lib.js';
 
 const tabs = [
   { id: 'pribadi', label: 'Pribadi' },
   { id: 'komunitas', label: 'Komunitas' },
   { id: 'teman', label: 'Teman' }
 ];
-const topics = ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal'];
 const timeLabel = value => {
   const date = value?.toDate ? value.toDate() : value ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) return '';
@@ -153,7 +153,7 @@ export default function MessagesPage({
       {error&&<p className="message-error" role="alert">{error}</p>}
       {tab==='pribadi'&&<><div className="message-list-heading"><h3>Percakapan pribadi</h3><span>{conversations.length}</span></div>
         {loadingConversations?<p role="status">Memuat percakapan…</p>:conversations.length?<div className="message-conversation-list">{conversations.map(row=>{const uid=row.participantUids?.find(x=>x!==user.uid),profile=profiles[uid]||{uid,displayName:'Anggota WarkopLink'};return <button key={row.id} className="message-conversation-item" onClick={()=>{setSelectedFriend(profile);setSelectedId(row.id);}}><Avatar profile={profile}/><span className="message-conversation-copy"><b>{profile.displayName}</b><small>{row.lastMessagePreview||'Mulai percakapan'}</small></span><span className="message-conversation-meta"><time>{timeLabel(row.lastMessageAt)}</time>{row.unreadFor===user.uid&&<i aria-label="Pesan belum dibaca"/>}</span></button>;})}</div>:<div className="message-empty"><MessageCircle size={24}/><h3>Belum ada pesan pribadi</h3><p>Mulai percakapan dari daftar Teman yang saling mengikuti.</p><button className="button button-dark" onClick={()=>setTab('teman')}>Lihat Teman</button></div>}</>}
-      {tab==='komunitas'&&<div className="message-community"><div className="message-list-heading"><h3>Obrolan komunitas</h3><span>5 topik</span></div><p>Ruang diskusi publik tetap menggunakan Obrolan WarkopLink.</p>{topics.map(topic=><button key={topic} className="message-topic-item" onClick={()=>onOpenPublicChat?.(topic)}><span>{topic}</span><span>Jelajahi →</span></button>)}<button className="button button-dark message-community-cta" onClick={()=>onOpenPublicChat?.('Semua')}>Lihat semua obrolan komunitas</button></div>}
+      {tab==='komunitas'&&<div className="message-community"><div className="message-list-heading"><h3>Obrolan komunitas</h3><span>5 topik</span></div><p>Ruang diskusi publik tetap menggunakan Obrolan WarkopLink.</p>{FILTER_TOPICS.map(topic=><button key={topic} className="message-topic-item" onClick={()=>onOpenPublicChat?.(topic)}><span>{topic}</span><span>Jelajahi →</span></button>)}<button className="button button-dark message-community-cta" onClick={()=>onOpenPublicChat?.('Semua')}>Lihat semua obrolan komunitas</button></div>}
       {tab==='teman'&&<><div className="message-list-heading"><h3>Teman</h3><span>{friends.length}</span></div>{loadingFriends?<p role="status">Memuat teman…</p>:friends.length?<div className="message-friend-list">{friends.map(friend=><div className="message-friend-item" key={friend.uid}><button className="message-friend-profile" onClick={()=>onOpenMemberProfile?.(friend)}><Avatar profile={friend}/><span><b>{friend.displayName}</b><small>{friend.username?'@'+friend.username:'Saling mengikuti'}</small></span></button><button className="message-friend-action" onClick={()=>startChat(friend)} aria-label={'Kirim pesan kepada '+friend.displayName}><MessageCircle size={17}/><span>Pesan</span></button></div>)}</div>:<div className="message-empty"><Users size={24}/><h3>Teman muncul di sini saat kalian saling mengikuti</h3><p>Hanya follow dua arah yang dihitung sebagai teman. Status aktif tidak tersedia karena sistem presence belum tersedia.</p></div>}</>}
     </div>
   </section>;

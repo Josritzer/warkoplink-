@@ -826,7 +826,11 @@ describe('mutual follows and private conversations', () => {
 
   it('mengizinkan notifikasi teman hanya jika follow sudah dua arah', async () => {
     await seedFollows(true);
-    await assertSucceeds(setDoc(doc(asUser('alice'), 'notifications/friend-alice-bob'), {
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'notifications/friend_alice_bob_bob'), {
+      recipientUid: 'bob', actorUid: 'alice', type: 'friend', friendUid: 'alice',
+      createdAt: serverTimestamp(), readAt: null,
+    }));
+    await assertFails(setDoc(doc(asUser('alice'), 'notifications/friend-spam-copy'), {
       recipientUid: 'bob', actorUid: 'alice', type: 'friend', friendUid: 'alice',
       createdAt: serverTimestamp(), readAt: null,
     }));

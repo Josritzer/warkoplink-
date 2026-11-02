@@ -24,6 +24,8 @@ import WarungProfile from './directory/WarungProfile.jsx';
 import ProfileEditor from './profile/ProfileEditor.jsx';
 import NotificationCenter from './notifications/NotificationCenter.jsx';
 import MessagesPage from './messaging/MessagesPage.jsx';
+import { CommunityDirectory, CommunityGroupHeader, CommunityShortcuts } from './community/CommunityHub.jsx';
+import { isCommunityId } from './community/communityCatalog.js';
 import { extractMentionUsernames } from './notifications/notificationModel.js';
 import { renderMemberMentions } from './notifications/mentionText.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell } from 'lucide-react';
@@ -112,6 +114,15 @@ export default function App() {
   const [loadMoreError, setLoadMoreError] = useState('');
   const [postsStatus, setPostsStatus] = useState(() => db ? (readCachedPosts().length ? 'ready' : 'loading') : 'ready');
   const [postsRetry, setPostsRetry] = useState(0);
+  const [selectedCommunityId, setSelectedCommunityId] = useState('');
+  const [isCommunityMember, setIsCommunityMember] = useState(false);
+  const [communityPosts, setCommunityPosts] = useState([]);
+  const [olderCommunityPosts, setOlderCommunityPosts] = useState([]);
+  const [communityPostsStatus, setCommunityPostsStatus] = useState('idle');
+  const [communityLastPostDoc, setCommunityLastPostDoc] = useState(null);
+  const [communityHasMorePosts, setCommunityHasMorePosts] = useState(false);
+  const [communityLoadingMorePosts, setCommunityLoadingMorePosts] = useState(false);
+  const [communityLoadMoreError, setCommunityLoadMoreError] = useState('');
   const [publicAuthorProfiles, setPublicAuthorProfiles] = useState({});
   const [authOpen, setAuthOpen] = useState(false);
   const [registerMode, setRegisterMode] = useState(false);
@@ -307,7 +318,15 @@ export default function App() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (!db) return undefined;
+    if (!db || section === 'Grup Komunitas') {
+      setPosts([]);
+      setOlderPosts([]);
+      setLastPostDoc(null);
+      setHasMorePosts(false);
+      setLoadMoreError('');
+      setPostsStatus('ready');
+      return undefined;
+    }
     setPostsStatus(current => current === 'ready' && posts.length ? current : 'loading');
     setOlderPosts([]);
     setLastPostDoc(null);
@@ -327,13 +346,43 @@ export default function App() {
         // Cache opsional; feed tetap berjalan jika penyimpanan penuh/nonaktif.
       }
     }, () => setPostsStatus(current => current === 'ready' && posts.length ? current : 'error'));
-  }, [postsRetry]);
+  }, [section, postsRetry]);
+
+  useEffect(() => {
+    if (section !== 'Grup Komunitas' || !isCommunityId(selectedCommunityId) || !db) {
+      setCommunityPosts([]);
+      setOlderCommunityPosts([]);
+      setCommunityPostsStatus('idle');
+      setCommunityLastPostDoc(null);
+      setCommunityHasMorePosts(false);
+      return undefined;
+    }
+    setCommunityPostsStatus('loading');
+    setCommunityPosts([]);
+    setOlderCommunityPosts([]);
+    setCommunityLastPostDoc(null);
+    setCommunityHasMorePosts(false);
+    setCommunityLoadMoreError('');
+    const communityQuery = query(
+      collection(db, 'posts'),
+      where('communityId', '==', selectedCommunityId),
+      orderBy('createdAt', 'desc'),
+      limit(POSTS_LIMIT)
+    );
+    return onSnapshot(communityQuery, (snapshot) => {
+      const rows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter(isPublicPost);
+      setCommunityPosts(rows);
+      setCommunityLastPostDoc(snapshot.docs.at(-1) || null);
+      setCommunityHasMorePosts(snapshot.docs.length === POSTS_LIMIT);
+      setCommunityPostsStatus('ready');
+    }, () => setCommunityPostsStatus('error'));
+  }, [section, selectedCommunityId, postsRetry]);
 
   const allPosts = useMemo(() => {
     const unique = new Map();
-    [...posts, ...olderPosts].forEach((post) => { if (!unique.has(post.id)) unique.set(post.id, post); });
+    [...posts, ...olderPosts, ...communityPosts, ...olderCommunityPosts].forEach((post) => { if (!unique.has(post.id)) unique.set(post.id, post); });
     return [...unique.values()];
-  }, [posts, olderPosts]);
+  }, [posts, olderPosts, communityPosts, olderCommunityPosts]);
 
   // Profil publik menjadi sumber foto terbaru untuk postingan dan komentar lama.
   useEffect(() => {
@@ -366,6 +415,33 @@ export default function App() {
       setLoadMoreError('Belum bisa memuat obrolan lama. Periksa koneksi lalu coba lagi.');
     } finally {
       setLoadingMorePosts(false);
+    }
+  }
+
+  async function loadMoreCommunityPosts() {
+    if (!db || !communityLastPostDoc || communityLoadingMorePosts || !communityHasMorePosts || !isCommunityId(selectedCommunityId)) return;
+    setCommunityLoadingMorePosts(true);
+    setCommunityLoadMoreError('');
+    try {
+      const nextQuery = query(
+        collection(db, 'posts'),
+        where('communityId', '==', selectedCommunityId),
+        orderBy('createdAt', 'desc'),
+        startAfter(communityLastPostDoc),
+        limit(POSTS_LIMIT)
+      );
+      const snapshot = await getDocs(nextQuery);
+      const nextRows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter(isPublicPost);
+      setOlderCommunityPosts((current) => {
+        const seen = new Set([...communityPosts, ...current].map((post) => post.id));
+        return [...current, ...nextRows.filter((post) => !seen.has(post.id))];
+      });
+      setCommunityLastPostDoc(snapshot.docs.at(-1) || communityLastPostDoc);
+      setCommunityHasMorePosts(snapshot.docs.length === POSTS_LIMIT);
+    } catch {
+      setCommunityLoadMoreError('Diskusi lama belum dapat dimuat. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setCommunityLoadingMorePosts(false);
     }
   }
 
@@ -611,6 +687,10 @@ export default function App() {
       setNotice('Masuk atau buat akun terlebih dahulu untuk mengirim obrolan.');
       return;
     }
+    if (details.communityId && (!isCommunityId(details.communityId) || !isCommunityMember)) {
+      setNotice('Gabung dengan komunitas ini terlebih dahulu sebelum mengirim postingan.');
+      return false;
+    }
     const bodyCheck = validatePostBody(draft);
     if (!bodyCheck.ok) return setNotice(bodyCheck.error);
     const detailsCheck = validatePostDetails(composerTopic, details);
@@ -637,6 +717,7 @@ export default function App() {
         authorPhotoURL: user.photoURL || null,
         body: bodyCheck.value,
         topic: composerTopic,
+        ...(details.communityId ? { communityId: details.communityId } : {}),
         ...(details.postType?.trim() ? { postType: details.postType.trim() } : {}),
         ...(details.location?.trim() ? { location: details.location.trim() } : {}),
         ...(details.eventDate?.trim() ? { eventDate: details.eventDate.trim() } : {}),
@@ -1163,7 +1244,20 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
-  const visiblePosts = filterPosts(allPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
+  function openCommunity(communityId) {
+    if (!isCommunityId(communityId)) return;
+    setSelectedCommunityId(communityId);
+    setIsCommunityMember(false);
+    setSearch('');
+    setTopic('Semua');
+    setComposerOpen(false);
+    setDraft('');
+    navigateSection('Grup Komunitas');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  const feedPosts = section === 'Grup Komunitas' ? [...communityPosts, ...olderCommunityPosts] : allPosts;
+  const visiblePosts = filterPosts(feedPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
   const resolvedSelectedReplyPost = selectedReplyPost ? withPublicAuthorProfile(selectedReplyPost, publicAuthorProfiles[selectedReplyPost.authorId]) : null;
   const resolvedReplies = selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []).map(reply => withPublicAuthorProfile(reply, publicAuthorProfiles[reply.authorId])) : [];
   const activeCategory = composerTopic;
@@ -1171,7 +1265,16 @@ export default function App() {
     .filter(item => item.count > 0).sort((left, right) => right.count - left.count).slice(0, 4);
   const recentSidebarPosts = allPosts.slice(0, 3);
 
-  const communityChatPanel = <ChatPanel
+  const communityChatPanel = <>
+    {section === 'Beranda' && <CommunityShortcuts onSelectCommunity={openCommunity} onViewAll={() => navigateSection('Obrolan')}/>}
+    {section === 'Obrolan' && <CommunityDirectory onSelectCommunity={openCommunity}/>}
+    {section === 'Grup Komunitas' && <CommunityGroupHeader
+      db={db} user={user} communityId={selectedCommunityId} onBack={() => navigateSection('Obrolan')}
+      onNotice={setNotice} onRequestAuth={() => openAuth(false)} onMembershipChange={setIsCommunityMember}
+    />}
+    <ChatPanel
+    communityId={section === 'Grup Komunitas' ? selectedCommunityId : ''}
+    communityMember={isCommunityMember}
     readOnly={section === 'Beranda'} previewMode={section === 'Beranda'}
     onViewAllDiscussions={() => { navigateSection('Obrolan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
     onOpenDiscussion={() => { navigateSection('Obrolan'); setComposerOpen(true); window.scrollTo({ top: 0, behavior: 'auto' }); }}
@@ -1180,9 +1283,12 @@ export default function App() {
     topic={topic} setTopic={setTopic} composerTopic={composerTopic} setComposerTopic={setComposerTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
     openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
     activeCategory={activeCategory} handlePost={handlePost} posting={posting} verifiedWarungs={verifiedWarungs} ownVerifiedWarungs={verifiedWarungs.filter(warung => warung.ownerUid === user?.uid)}
-    postsStatus={postsStatus} setPostsRetry={setPostsRetry}
-    visiblePosts={visiblePosts} hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts}
-    loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
+    postsStatus={section === 'Grup Komunitas' ? communityPostsStatus : postsStatus} setPostsRetry={setPostsRetry}
+    visiblePosts={visiblePosts}
+    hasMorePosts={section === 'Grup Komunitas' ? communityHasMorePosts : hasMorePosts}
+    loadingMorePosts={section === 'Grup Komunitas' ? communityLoadingMorePosts : loadingMorePosts}
+    loadMoreError={section === 'Grup Komunitas' ? communityLoadMoreError : loadMoreError}
+    onLoadMorePosts={section === 'Grup Komunitas' ? loadMoreCommunityPosts : loadMorePosts}
     cardProps={{
       user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs, onOpenWarung: openWarungProfile,
       reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, onOpenProfile: openMemberProfile, onOpenMention: handleOpenMention,
@@ -1191,7 +1297,8 @@ export default function App() {
       handleReply, openReplyPage, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
       deletingPostId, handleDeletePost, onEditPost: handleEditPost
     }}
-  />;
+    />
+  </>;
 
   return <div className={section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>
     <header className="topbar app-header">

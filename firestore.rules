@@ -175,9 +175,16 @@ service cloud.firestore {
           + (beforeExists ? (afterExists ? 0 : -1) : 1);
     }
 
+    function isOfficialCommunityId(communityId) {
+      return communityId is string && communityId in [
+        'kopi-kuliner', 'sepak-bola-olahraga', 'bisnis-umkm', 'musik-hiburan',
+        'hobi-komunitas', 'warga-kegiatan-lokal', 'obrolan-santai'
+      ];
+    }
+
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
-        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'createdAt', 'reactions', 'totalReactions'])
+        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'communityId', 'createdAt', 'reactions', 'totalReactions'])
         && data.reactions is map
         && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
@@ -210,6 +217,10 @@ service cloud.firestore {
         && (!data.keys().hasAny(['workType']) || (data.workType is string && data.workType.size() <= 60))
         && (!data.keys().hasAny(['contact']) || (data.contact is string && data.contact.size() <= 240
           && (data.contact.matches('https://.*') || data.contact.matches('@[A-Za-z0-9_.]{2,40}'))))
+        && (!data.keys().hasAny(['communityId']) || (
+          isOfficialCommunityId(data.communityId)
+          && exists(/databases/$(database)/documents/communities/$(data.communityId)/members/$(request.auth.uid))
+        ))
         && data.createdAt == request.time;
     }
 
@@ -353,6 +364,21 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
       allow update: if false;
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Tujuh komunitas resmi bersifat terbuka. Anggota mengelola keanggotaannya sendiri;
+    // tidak ada dokumen admin atau moderator per grup.
+    match /communities/{communityId}/members/{memberUid} {
+      allow read: if isOfficialCommunityId(communityId);
+      allow create: if signedIn()
+        && isOfficialCommunityId(communityId)
+        && request.auth.uid == memberUid
+        && request.resource.data.keys().hasAll(['uid', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if signedIn() && request.auth.uid == memberUid;
     }
 
     match /posts/{postId} {

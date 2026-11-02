@@ -153,6 +153,10 @@ describe('navigasi utama dan halaman pesan', () => {
     const labels = within(nav).getAllByRole('button').map(button => button.textContent.trim());
     expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
     expect(within(nav).queryByRole('button', { name: /Daftar|Ajukan Warkop/ })).toBeNull();
+    const desktopNav = screen.getByRole('navigation', { name: 'Navigasi utama' });
+    expect(within(desktopNav).getAllByRole('button').map(button => button.textContent.trim()))
+      .toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
+    expect(screen.getByRole('button', { name: 'Obrolan' })).toBeTruthy();
   });
 
   it('menampilkan tab Pribadi, Komunitas, dan Teman dengan status fitur yang jujur', async () => {
@@ -164,11 +168,12 @@ describe('navigasi utama dan halaman pesan', () => {
     expect(screen.getByRole('tab', { name: 'Pribadi' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Komunitas' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
-    expect(screen.getByText(/fitur pertemanan dan pesan pribadi belum aktif/i)).toBeTruthy();
+    expect(screen.getByText(/fitur pertemanan dan pesan pribadi tersedia setelah Anda masuk/i)).toBeTruthy();
     await user.click(screen.getByRole('tab', { name: 'Komunitas' }));
-    expect(screen.getByText(/komunitas resmi dikelola oleh admin WarkopLink/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Obrolan komunitas' })).toBeTruthy();
+    expect(screen.getByLabelText('Kategori obrolan')).toBeTruthy();
     await user.click(screen.getByRole('tab', { name: 'Teman' }));
-    expect(screen.getByText(/hubungan saling mengikuti/i)).toBeTruthy();
+    expect(screen.getByText(/hubungan saling mengikuti akan ditampilkan sebagai teman/i)).toBeTruthy();
   });
 });
 
@@ -843,7 +848,6 @@ describe('notifikasi sementara dan unggah foto profil', () => {
     const { container } = render(<App />);
     emitAuth(fakeUser());
     await user.click(screen.getByRole('button', { name: 'Akun' }));
-    await user.click(await screen.findByRole('button', { name: 'Edit profil' }));
 
     media.uploadWarkopMedia.mockRejectedValueOnce(
       new Error('Firebase account is disabled or status is unknown')
@@ -860,17 +864,18 @@ describe('notifikasi sementara dan unggah foto profil', () => {
     expect(screen.queryByText(/Firebase account is disabled/)).toBeNull();
   });
 
-  it('menghilangkan notifikasi sementara setelah tiga detik', () => {
-    vi.useFakeTimers();
+  it('menghilangkan notifikasi sementara setelah tiga detik', async () => {
+    const user = userEvent.setup();
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /Tersimpan/ }));
-    const notice = 'Menu Tersimpan belum tersedia. Tidak ada daftar tersimpan yang dibuat-buat.';
+    emitAuth(null);
+    emitPosts([]);
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
+    const composerTrigger = await screen.findByRole('button', { name: /Masuk untuk mulai ngobrol/ });
+    vi.useFakeTimers();
+    fireEvent.click(composerTrigger);
+    const notice = 'Masuk untuk mulai berbagi obrolan.';
     expect(screen.getByText(notice)).toBeTruthy();
-
-    act(() => {
-      vi.advanceTimersByTime(3000);
-    });
-
+    act(() => { vi.advanceTimersByTime(3000); });
     expect(screen.queryByText(notice)).toBeNull();
   });
 });

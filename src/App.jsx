@@ -95,6 +95,9 @@ export default function App() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [messageTarget, setMessageTarget] = useState(null);
+  const [openConversationId, setOpenConversationId] = useState('');
+  const [messageInitialTab, setMessageInitialTab] = useState('pribadi');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
   const isPlatformStaff = isSuperAdmin || isModerator;
@@ -185,6 +188,13 @@ export default function App() {
     if (!url.searchParams.has('warung')) return;
     url.searchParams.delete('warung');
     window.history.replaceState(window.history.state, '', url);
+  }, [section]);
+
+  useEffect(() => {
+    if (section !== 'Pesan') {
+      setMessageTarget(null);
+      setOpenConversationId('');
+    }
   }, [section]);
 
   // Membuat dokumen profil jika akun Auth sudah ada tetapi profil belum tersimpan
@@ -284,8 +294,8 @@ export default function App() {
   useEffect(() => {
     if (!db || !user?.uid) { setNotificationCount(0); return undefined; }
     return onSnapshot(
-      query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), limit(50)),
-      snapshot => setNotificationCount(snapshot.docs.filter(item => item.data()?.readAt == null).length),
+      query(collection(db, 'notifications'), where('recipientUid', '==', user.uid)),
+      snapshot => setNotificationCount(snapshot.docs.filter(item => item.data().readAt == null).length),
       () => setNotificationCount(0)
     );
   }, [user?.uid]);
@@ -534,6 +544,22 @@ export default function App() {
   }
 
   async function handleOpenNotification(notification) {
+    if (notification?.type === 'message' && notification?.conversationId) {
+      setMessageTarget(null);
+      setOpenConversationId(notification.conversationId);
+      navigateSection('Pesan');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
+    if (notification?.type === 'friend' && notification?.actorUid) {
+      try {
+        const snapshot = await getDoc(doc(db, 'publicProfiles', notification.actorUid));
+        openMemberProfile({ uid: notification.actorUid, ...(snapshot.exists() ? snapshot.data() : {}), displayName: snapshot.data()?.displayName || 'Anggota WarkopLink' });
+      } catch {
+        openMemberProfile({ uid: notification.actorUid, displayName: 'Anggota WarkopLink' });
+      }
+      return;
+    }
     if (notification?.warungId) { openWarungProfile(notification.warungId); return; }
     if (!notification?.postId || !db) return;
     try {
@@ -1112,6 +1138,28 @@ export default function App() {
     .filter(item => item.count > 0).sort((left, right) => right.count - left.count).slice(0, 4);
   const recentSidebarPosts = allPosts.slice(0, 3);
 
+  const communityChatPanel = <ChatPanel
+    readOnly={section === 'Beranda'} previewMode={section === 'Beranda'}
+    onViewAllDiscussions={() => { setMessageInitialTab('komunitas'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
+    onOpenDiscussion={() => { navigateSection('Obrolan'); setComposerOpen(true); window.scrollTo({ top: 0, behavior: 'auto' }); }}
+    onOpenDirectory={() => navigateSection('Cari Warkop')}
+    user={user} db={db} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
+    topic={topic} setTopic={setTopic} composerTopic={composerTopic} setComposerTopic={setComposerTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
+    openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
+    activeCategory={activeCategory} handlePost={handlePost} posting={posting} verifiedWarungs={verifiedWarungs} ownVerifiedWarungs={verifiedWarungs.filter(warung => warung.ownerUid === user?.uid)}
+    postsStatus={postsStatus} setPostsRetry={setPostsRetry}
+    visiblePosts={visiblePosts} hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts}
+    loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
+    cardProps={{
+      user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs, onOpenWarung: openWarungProfile,
+      reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, onOpenProfile: openMemberProfile,
+      postReactions, reactionSummaries, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
+      handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
+      handleReply, openReplyPage, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
+      deletingPostId, handleDeletePost, onEditPost: handleEditPost
+    }}
+  />;
+
   return <div className={section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>
     <header className="topbar app-header">
       <a className="brand" href="#" onClick={e => { e.preventDefault(); navigateSection('Beranda'); }}>
@@ -1134,13 +1182,16 @@ export default function App() {
         <nav className="sidebar-nav" aria-label="Navigasi utama">
           <button type="button" aria-label="Desktop: Beranda" className={section === 'Beranda' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Beranda'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Home size={18}/><span>Beranda</span></button>
           <button type="button" aria-label="Desktop: Cari Warkop" className={section === 'Cari Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Cari Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Compass size={18}/><span>Cari Warkop</span></button>
-          <button type="button" aria-label="Desktop: Pesan" className={section === 'Pesan' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageSquare size={18}/><span>Pesan</span></button>
-          <button type="button" aria-label="Obrolan" className={section === 'Obrolan' && topic === 'Semua' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={18}/><span>Obrolan</span></button>
-          <button type="button" aria-label="Desktop: Notifikasi" className={section === 'Notifikasi' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Notifikasi')}><Bell size={18}/><span>Notifikasi</span>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 99 ? '99+' : notificationCount}</span>}</button>
-          <button type="button" aria-label="Desktop: Agenda & acara" className={section === 'Obrolan' && topic === 'Info & Acara' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={18}/><span>Agenda & acara</span></button>
-          <button type="button" aria-label="Desktop: Jual beli & jasa" className={section === 'Obrolan' && topic === 'Jual Beli & Jasa Lokal' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli & Jasa Lokal'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={18}/><span>Jual beli & jasa</span></button>
-                    <button type="button" className="sidebar-nav-item" onClick={() => setNotice('Menu Tersimpan belum tersedia. Tidak ada daftar tersimpan yang dibuat-buat.') }><Heart size={18}/><span>Tersimpan</span><span className="sidebar-soon">Segera</span></button>
+          <button type="button" aria-label="Desktop: Pesan" className={section === 'Pesan' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageSquare size={18}/><span>Pesan</span></button>
+          <button type="button" aria-label="Desktop: Notifikasi" className={section === 'Notifikasi' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Notifikasi')}><Bell size={18}/><span>Notifikasi</span>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}</button>
+          <button type="button" aria-label="Desktop: Akun" className={section === 'Akun' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Akun')}><UserRound size={18}/><span>Akun</span></button>
         </nav>
+        <div className="sidebar-secondary-nav" aria-label="Ruang komunitas">
+          <span className="sidebar-group-label">RUANG KOMUNITAS</span>
+          <button type="button" aria-label="Obrolan" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { setMessageInitialTab('komunitas'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={17}/><span>Obrolan</span></button>
+          <button type="button" aria-label="Desktop: Agenda & acara" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={17}/><span>Agenda & acara</span></button>
+          <button type="button" aria-label="Desktop: Jual beli & jasa" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli & Jasa Lokal'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={17}/><span>Jual beli & jasa</span></button>
+        </div>
         <div className="sidebar-community-note"><span className="sidebar-note-icon"><MapPin size={16}/></span><div><b>Mulai dari Lamongan</b><p>Temukan warkop dan percakapan di sekitar komunitas lokal.</p></div></div>
         <button type="button" className="sidebar-profile" onClick={() => user ? openMemberProfile({ uid: user.uid, displayName: user.displayName || 'Anggota WarkopLink', photoURL: user.photoURL || '' }) : navigateSection('Akun')}>
           <span className="sidebar-profile-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || 'W').slice(0,1).toUpperCase()}</span>
@@ -1151,7 +1202,7 @@ export default function App() {
       <main className="app-page-content">
       {section === 'Panel Admin' && isPlatformStaff ? <AdminPanel db={db} user={user} onNotice={setNotice} canVerifyWarungs={isSuperAdmin}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
-      section === 'Pesan' ? <MessagesPage onOpenPublicChat={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
+      section === 'Pesan' ? <MessagesPage db={db} user={user} communityContent={communityChatPanel} initialTab={messageInitialTab} initialConversationId={openConversationId} initialFriend={messageTarget} onOpenPublicChat={(selectedTopic) => { navigateSection('Obrolan'); setTopic(selectedTopic === 'Semua' ? 'Semua' : selectedTopic); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }} onOpenMemberProfile={openMemberProfile}/> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
         <div className="reply-page-top">
@@ -1186,7 +1237,7 @@ export default function App() {
           {replyDraft.length > 800 && <small className="reply-counter" aria-live="polite">{replyDraft.length}/1000</small>}
         </form>}
       </section> :
-      section === 'Profil Anggota' && memberProfile ? <PublicUserProfile profile={memberProfile} db={db} currentUser={user} onBack={closeMemberProfile} onEditProfile={() => navigateSection('Akun')}/> :
+      section === 'Profil Anggota' && memberProfile ? <PublicUserProfile profile={memberProfile} db={db} currentUser={user} onBack={closeMemberProfile} onEditProfile={() => navigateSection('Akun')} onStartMessage={(friend) => { setMessageTarget(friend); setOpenConversationId(''); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
         {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className={`email-verification-panel ${emailVerified ? 'is-verified' : 'is-pending'}`} role="status" aria-live="polite"><div><b>{emailVerified ? 'Email terverifikasi' : 'Email belum terverifikasi'}</b><small>{emailVerified ? 'Alamat email akun ini sudah dikonfirmasi.' : 'Verifikasi email diperlukan untuk mengaktifkan hak Super Admin.'}</small></div>{!emailVerified && <div className="email-verification-actions"><button className="button button-quiet" type="button" onClick={handleResendVerification} disabled={verificationBusy}>{verificationBusy ? 'Memproses…' : 'Kirim ulang verifikasi'}</button><button className="button button-quiet" type="button" onClick={handleRefreshVerificationStatus} disabled={verificationBusy}>Saya sudah verifikasi</button></div>}</div><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article><section className="account-card profile-editor-card"><div className="account-details"><b>Edit profil komunitas</b><small>Atur nama tampilan, username, bio, lokasi, minat, dan tautan publik.</small></div><ProfileEditor user={user} db={db} onNotice={setNotice}/></section>{isPlatformStaff && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
@@ -1196,27 +1247,7 @@ export default function App() {
       section === 'Profil Warkop' ? <WarungProfile warungId={selectedWarungId} db={db} user={user} onBack={() => navigateSection('Cari Warkop')} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
       (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={openWarungProfile} onRegister={() => navigateSection('Daftarkan Warkop')}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => navigateSection('Cari Warkop')}>Cari warkop</button></section> :
-      <ChatPanel
-        readOnly={section === 'Beranda'} previewMode={section === 'Beranda'}
-        onViewAllDiscussions={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}
-        onOpenDiscussion={() => { navigateSection('Obrolan'); setComposerOpen(true); window.scrollTo({ top: 0, behavior: 'auto' }); }}
-        onOpenDirectory={() => navigateSection('Cari Warkop')}
-        user={user} db={db} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
-        topic={topic} setTopic={setTopic} composerTopic={composerTopic} setComposerTopic={setComposerTopic} composerOpen={composerOpen} setComposerOpen={setComposerOpen}
-        openAuth={openAuth} setNotice={setNotice} draft={draft} setDraft={setDraft}
-        activeCategory={activeCategory} handlePost={handlePost} posting={posting} verifiedWarungs={verifiedWarungs} ownVerifiedWarungs={verifiedWarungs.filter(warung => warung.ownerUid === user?.uid)}
-        postsStatus={postsStatus} setPostsRetry={setPostsRetry}
-        visiblePosts={visiblePosts} hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts}
-         loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
-        cardProps={{
-          user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs, onOpenWarung: openWarungProfile,
-          reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, onOpenProfile: openMemberProfile,
-          postReactions, reactionSummaries, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
-          handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
-          handleReply, openReplyPage, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
-          deletingPostId, handleDeletePost, onEditPost: handleEditPost
-        }}
-      />}
+      communityChatPanel}
       {authOpen && <div className="modal-backdrop" role="presentation" onClick={() => setAuthOpen(false)}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={() => setAuthOpen(false)} aria-label="Tutup">×</button>
         <span className="brand-mark"><Sparkles size={20}/></span><h2 id="auth-title">{registerMode ? 'Gabung komunitas' : 'Selamat datang kembali'}</h2><p>{registerMode ? 'Buat akun untuk mulai terhubung.' : 'Masuk untuk ikut dalam percakapan.'}</p>
@@ -1250,9 +1281,9 @@ export default function App() {
     <nav className="bottom-nav" aria-label="Navigasi aplikasi">
       <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
       <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>
-      <button className={section === 'Pesan' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Pesan')} aria-current={section === 'Pesan' ? 'page' : undefined}><MessageSquare size={20}/><span>Pesan</span></button>
+      <button className={section === 'Pesan' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); }} aria-current={section === 'Pesan' ? 'page' : undefined}><MessageSquare size={20}/><span>Pesan</span></button>
       <button className={section === 'Notifikasi' ? 'bottom-nav-item active' : 'bottom-nav-item'} aria-label="Notifikasi" onClick={() => navigateSection('Notifikasi')} aria-current={section === 'Notifikasi' ? 'page' : undefined}><span className="notification-nav-icon"><Bell size={20}/>{notificationCount > 0 && <i>{notificationCount > 9 ? '9+' : notificationCount}</i>}</span><span>Notifikasi</span></button>
-      <button className={section === 'Akun' || section === 'Profil Anggota' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => user ? openMemberProfile({ uid: user.uid, displayName: user.displayName || 'Anggota WarkopLink', photoURL: user.photoURL || '' }) : navigateSection('Akun')} aria-current={section === 'Akun' || section === 'Profil Anggota' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
+      <button className={section === 'Akun' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Akun')} aria-current={section === 'Akun' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
     </nav>
     <footer><span className="footer-brand"><Sparkles size={16}/> WARKOPLINK</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} WarkopLink Platform</small></footer>
   </div>;

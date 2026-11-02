@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, MessageCircle, UserRound, Pencil, CalendarDays } from 'lucide-react';
-import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { friendNotificationId } from '../messaging/messageModel.js';
 import { isPublicPost } from '../lib.js';
 
 function postDate(value) {
@@ -9,13 +10,92 @@ function postDate(value) {
   return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
-export default function PublicUserProfile({ profile: fallbackProfile, db, currentUser, onBack, onEditProfile }) {
+export default function PublicUserProfile({ profile: fallbackProfile, db, currentUser, onBack, onEditProfile, onStartMessage }) {
   const uid = fallbackProfile?.uid || '';
   const [profile, setProfile] = useState(fallbackProfile || null);
   const [posts, setPosts] = useState([]);
   const [status, setStatus] = useState('loading');
   const [activeTab, setActiveTab] = useState('Postingan');
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isMutual, setIsMutual] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
+  const [followError, setFollowError] = useState('');
   const isOwnProfile = Boolean(currentUser?.uid && currentUser.uid === uid);
+
+  useEffect(() => {
+    if (!db || !currentUser?.uid || !uid || currentUser.uid === uid) {
+      setIsFollowing(false); setIsMutual(false); return undefined;
+    }
+    let outgoingExists = false;
+    let incomingExists = false;
+    const syncRelationship = () => {
+      setFollowError('');
+      setIsFollowing(outgoingExists);
+      setIsMutual(outgoingExists && incomingExists);
+    };
+    const outgoing = onSnapshot(doc(db, 'userFollows', `${currentUser.uid}_${uid}`), snapshot => {
+      outgoingExists = snapshot.exists();
+      syncRelationship();
+    }, () => { setFollowError('Status mengikuti belum dapat diperbarui.'); });
+    const incoming = onSnapshot(doc(db, 'userFollows', `${uid}_${currentUser.uid}`), snapshot => {
+      incomingExists = snapshot.exists();
+      syncRelationship();
+    }, () => { setFollowError('Status pertemanan belum dapat diperbarui.'); });
+    return () => { outgoing(); incoming(); };
+  }, [db, currentUser?.uid, uid]);
+
+  async function toggleFollow() {
+    if (!db || !currentUser?.uid || !uid || isOwnProfile || followBusy) return;
+    setFollowBusy(true);
+    setFollowError('');
+    const previousFollowing = isFollowing;
+    const previousMutual = isMutual;
+    const followRef = doc(db, 'userFollows', `${currentUser.uid}_${uid}`);
+    try {
+      if (isFollowing) {
+        await deleteDoc(followRef);
+        setIsFollowing(false);
+        setIsMutual(false);
+      } else {
+        await setDoc(followRef, {
+          followerUid: currentUser.uid,
+          followedUid: uid,
+          createdAt: serverTimestamp()
+        });
+        setIsFollowing(true);
+        try {
+          const reverse = await getDoc(doc(db, 'userFollows', `${uid}_${currentUser.uid}`));
+          setIsMutual(reverse.exists());
+          if (reverse.exists()) {
+            const notificationRef = doc(db, 'notifications', friendNotificationId(currentUser.uid, uid, uid));
+            try {
+              const notification = await getDoc(notificationRef);
+              if (!notification.exists()) {
+                await setDoc(notificationRef, {
+                  recipientUid: uid,
+                  actorUid: currentUser.uid,
+                  type: 'friend',
+                  friendUid: currentUser.uid,
+                  createdAt: serverTimestamp(),
+                  readAt: null
+                });
+              }
+            } catch {
+              setFollowError('Kalian sudah saling mengikuti, tetapi notifikasi belum berhasil dibuat.');
+            }
+          }
+        } catch {
+          setFollowError('Follow tersimpan, tetapi status pertemanan belum dapat diperiksa.');
+        }
+      }
+    } catch {
+      setIsFollowing(previousFollowing);
+      setIsMutual(previousMutual);
+      setFollowError('Perubahan ikuti belum berhasil disimpan. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setFollowBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!db || !uid) { setStatus('error'); return undefined; }
@@ -78,6 +158,12 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
           <p>{profile?.username ? '@' + profile.username : (isOwnProfile ? 'Ini profil Anda' : 'Anggota komunitas WarkopLink')}</p>
         </div>
         {isOwnProfile && <button type="button" className="button button-dark member-profile-edit-mobile" onClick={onEditProfile}><Pencil size={15}/> Edit profil</button>}
+        {!isOwnProfile && currentUser?.uid && <div className="member-profile-social-actions">
+          <button type="button" className={isFollowing ? 'button button-quiet' : 'button button-dark'} onClick={toggleFollow} disabled={followBusy}>{followBusy ? 'Memproses…' : isFollowing ? 'Mengikuti' : 'Ikuti'}</button>
+          {isMutual && <span className="member-friend-status">Teman</span>}
+          {isMutual && <button type="button" className="button button-quiet" onClick={() => onStartMessage?.(profile || fallbackProfile)}><MessageCircle size={15}/> Pesan</button>}
+          {followError && <small className="message-error" role="alert">{followError}</small>}
+        </div>}
       </div>
       <div className="member-profile-stats">
         <div><strong>{status === 'ready' ? posts.length : '—'}</strong><span>Postingan</span></div>

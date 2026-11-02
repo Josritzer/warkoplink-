@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, where, updateDoc, writeBatch } from 'firebase/firestore';
-import { Bell, CheckCheck, MessageCircle, AtSign, Heart, Store } from 'lucide-react';
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, where, updateDoc, writeBatch } from 'firebase/firestore';
+import { Bell, CheckCheck, MessageCircle, AtSign, Heart, Store, UserRound, MessageSquare } from 'lucide-react';
 import { isUnreadNotification, notificationLabel } from './notificationModel.js';
 import { relativePostTime } from '../chat/postTime.js';
 
-const ICONS = { mention: AtSign, comment: MessageCircle, reaction: Heart, follow: Store };
+const ICONS = { mention: AtSign, comment: MessageCircle, reaction: Heart, follow: Store, friend: UserRound, message: MessageSquare };
 
 export default function NotificationCenter({ db, user, onOpenNotification, onNotice }) {
   const [items, setItems] = useState([]);
@@ -15,8 +15,8 @@ export default function NotificationCenter({ db, user, onOpenNotification, onNot
   useEffect(() => {
     if (!db || !user?.uid) { setItems([]); setLoading(false); return undefined; }
     setLoading(true);
-    return onSnapshot(query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), orderBy('createdAt', 'desc'), limit(50)), snapshot => {
-      const own = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    return onSnapshot(query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), orderBy('createdAt', 'desc'), limit(100)), snapshot => {
+      const own = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
       setItems(own);
       setLoading(false);
     }, () => {
@@ -45,9 +45,18 @@ export default function NotificationCenter({ db, user, onOpenNotification, onNot
     if (!db || !items.length || !unreadCount || busy) return;
     setBusy(true);
     try {
-      const batch = writeBatch(db);
-      items.filter(isUnreadNotification).forEach(item => batch.update(doc(db, 'notifications', item.id), { readAt: serverTimestamp() }));
-      await batch.commit();
+      const recipientItems = await getDocs(query(
+        collection(db, 'notifications'),
+        where('recipientUid', '==', user.uid)
+      ));
+      const unread = { docs: recipientItems.docs.filter(item => isUnreadNotification(item.data())) };
+      for (let offset = 0; offset < unread.docs.length; offset += 450) {
+        const batch = writeBatch(db);
+        unread.docs.slice(offset, offset + 450).forEach(item => {
+          batch.update(doc(db, 'notifications', item.id), { readAt: serverTimestamp() });
+        });
+        await batch.commit();
+      }
     } catch {
       onNotice?.('Notifikasi belum berhasil ditandai dibaca. Coba lagi.');
     } finally { setBusy(false); }
@@ -77,6 +86,6 @@ export default function NotificationCenter({ db, user, onOpenNotification, onNot
           <span className="notification-copy"><b>{actor?.displayName || 'Anggota WarkopLink'}</b><span>{notificationLabel(item)}{item.username ? ` · @${item.username}` : ''}</span><small>{item.createdAt?.toDate ? relativePostTime(item.createdAt) : 'Baru saja'}</small></span>
           {isUnreadNotification(item) && <i aria-label="Belum dibaca"/>}
         </button>;
-      })}</div> : <div className="empty-state notification-empty"><span><Bell size={22}/></span><h3>Belum ada notifikasi</h3><p>Aktivitas seperti mention dan komentar akan muncul di sini.</p></div>}
+      })}</div> : <div className="empty-state notification-empty"><span><Bell size={22}/></span><h3>Belum ada notifikasi</h3><p>Pesan pribadi, komentar, mention, dan pertemanan baru akan muncul di sini.</p></div>}
   </section>;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, where, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, where, updateDoc, writeBatch } from 'firebase/firestore';
 import { Bell, CheckCheck, MessageCircle, AtSign, Heart, Store, UserRound, MessageSquare } from 'lucide-react';
 import { isUnreadNotification, notificationLabel } from './notificationModel.js';
 import { relativePostTime } from '../chat/postTime.js';
@@ -45,9 +45,18 @@ export default function NotificationCenter({ db, user, onOpenNotification, onNot
     if (!db || !items.length || !unreadCount || busy) return;
     setBusy(true);
     try {
-      const batch = writeBatch(db);
-      items.filter(isUnreadNotification).forEach(item => batch.update(doc(db, 'notifications', item.id), { readAt: serverTimestamp() }));
-      await batch.commit();
+      const unread = await getDocs(query(
+        collection(db, 'notifications'),
+        where('recipientUid', '==', user.uid),
+        where('readAt', '==', null)
+      ));
+      for (let offset = 0; offset < unread.docs.length; offset += 450) {
+        const batch = writeBatch(db);
+        unread.docs.slice(offset, offset + 450).forEach(item => {
+          batch.update(doc(db, 'notifications', item.id), { readAt: serverTimestamp() });
+        });
+        await batch.commit();
+      }
     } catch {
       onNotice?.('Notifikasi belum berhasil ditandai dibaca. Coba lagi.');
     } finally { setBusy(false); }

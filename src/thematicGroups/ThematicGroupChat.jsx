@@ -30,6 +30,7 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesError, setMessagesError] = useState('');
   const [draft, setDraft] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
   const [sending, setSending] = useState(false);
   const membershipLock = useRef(false);
 
@@ -114,6 +115,7 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
       if (isMember) {
         await deleteDoc(membershipRef);
         setMessages([]);
+        setReplyingTo(null);
         onNotice?.('Anda sudah keluar dari grup.');
       } else {
         await setDoc(membershipRef, {
@@ -142,13 +144,16 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
 
     setSending(true);
     try {
-      await addDoc(collection(db, 'thematicGroups', group.id, 'messages'), {
+      const messageData = {
         senderUid: user.uid,
         senderName: profileName,
         text,
         createdAt: serverTimestamp()
-      });
+      };
+      if (replyingTo?.id) messageData.replyToMessageId = replyingTo.id;
+      await addDoc(collection(db, 'thematicGroups', group.id, 'messages'), messageData);
       setDraft('');
+      setReplyingTo(null);
     } catch {
       onNotice?.('Pesan belum berhasil dikirim. Periksa koneksi lalu coba lagi.');
     } finally {
@@ -204,19 +209,35 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
               {!own && <span className="thematic-message-initial">{initials(message.senderName)}</span>}
               <div className="thematic-message-bubble">
                 {!own && <b>{message.senderName || 'Anggota WARKOPLINK'}</b>}
+                {message.replyToMessageId && (() => {
+                  const original = messages.find((item) => item.id === message.replyToMessageId);
+                  return <div className="thematic-reply-quote">
+                    <small>Membalas {original?.senderName || 'pesan sebelumnya'}</small>
+                    <span>{original?.text || 'Pesan yang dibalas tidak tersedia'}</span>
+                  </div>;
+                })()}
                 <p>{message.text}</p>
-                <time>{messageTime(message.createdAt)}</time>
+                <div className="thematic-message-actions">
+                  <time>{messageTime(message.createdAt)}</time>
+                  <button type="button" aria-label={`Balas pesan ${message.senderName || 'anggota'}`} onClick={() => setReplyingTo(message)}>Balas</button>
+                </div>
               </div>
             </article>
           </div>;
         })}
         {messagesError && <p className="thematic-chat-error" role="alert">{messagesError}</p>}
       </div>
-      <form className="thematic-compose" onSubmit={sendMessage}>
-        <label className="sr-only" htmlFor="thematic-message-input">Tulis pesan grup</label>
-        <input id="thematic-message-input" aria-label="Tulis pesan grup" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} placeholder="Tulis pesan…" disabled={sending}/>
-        <span className="thematic-compose-count">{draft.length}/2000</span>
-        <button type="submit" aria-label="Kirim pesan" disabled={!draft.trim() || sending || !profileName}>{sending ? '…' : <Send size={18}/>}</button>
+      <form className="thematic-compose-wrap" onSubmit={sendMessage}>
+        {replyingTo && <div className="thematic-replying-banner">
+          <span><b>Membalas {replyingTo.senderName || 'anggota'}</b><small>{String(replyingTo.text || '').slice(0, 110)}</small></span>
+          <button type="button" aria-label="Batalkan balasan" onClick={() => setReplyingTo(null)}>×</button>
+        </div>}
+        <div className="thematic-compose">
+          <label className="sr-only" htmlFor="thematic-message-input">Tulis pesan grup</label>
+          <input id="thematic-message-input" aria-label="Tulis pesan grup" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} placeholder="Tulis pesan…" disabled={sending}/>
+          <span className="thematic-compose-count">{draft.length}/2000</span>
+          <button type="submit" aria-label="Kirim pesan" disabled={!draft.trim() || sending || !profileName}>{sending ? '…' : <Send size={18}/>}</button>
+        </div>
       </form>
     </>}
   </section>;

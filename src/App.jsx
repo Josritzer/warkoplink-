@@ -762,7 +762,7 @@ export default function App() {
         } catch (error) {
           posterNotice += error?.name === 'AbortError'
             ? ' Postingan teks tetap terbit; unggahan video dibatalkan.'
-            : ` Postingan sudah terbit, tetapi video belum berhasil diunggah: ${photoUploadErrorMessage(error)}`;
+            : ` Postingan sudah terbit, tetapi video belum berhasil diunggah: ${photoUploadErrorMessage(error, 'Video belum berhasil diunggah. Periksa koneksi atau coba lagi.')}`;
         }
       }
       setDraft('');

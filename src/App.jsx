@@ -657,6 +657,10 @@ export default function App() {
   }
 
   async function handleOpenNotification(notification) {
+    if (notification?.type === 'mention' && notification?.groupId && notification?.messageId) {
+      openThematicGroup(notification.groupId);
+      return;
+    }
     if (notification?.type === 'message' && notification?.conversationId) {
       setMessageTarget(null);
       setOpenConversationId(notification.conversationId);
@@ -1279,7 +1283,7 @@ export default function App() {
   const communityChatPanel = <>
     {section === 'Beranda' && <CommunityShortcuts onSelectCommunity={openCommunity} onViewAll={() => navigateSection('Obrolan')}/>}
     {section === 'Obrolan' && <ConversationHub onSelectCommunity={openCommunity} onSelectThematicGroup={openThematicGroup}/>}
-    {section === 'Grup Tematik Chat' && <ThematicGroupChat db={db} user={user} groupId={selectedThematicGroupId} onBack={() => navigateSection('Obrolan')} onNotice={setNotice} onRequestAuth={() => openAuth(false)}/>}
+    {section === 'Grup Tematik Chat' && <ThematicGroupChat db={db} user={user} groupId={selectedThematicGroupId} onBack={() => navigateSection('Obrolan')} onNotice={setNotice} onRequestAuth={() => openAuth(false)} onOpenMention={handleOpenMention}/>}
     {section === 'Grup Komunitas' && <CommunityGroupHeader
       db={db} user={user} communityId={selectedCommunityId} onBack={() => navigateSection('Obrolan')}
       onNotice={setNotice} onRequestAuth={() => openAuth(false)} onMembershipChange={setIsCommunityMember}

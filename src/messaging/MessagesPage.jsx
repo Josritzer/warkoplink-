@@ -83,7 +83,7 @@ export default function MessagesPage({
   useEffect(() => {
     if (!db || !user?.uid) { setConversations([]); setLoadingConversations(false); return undefined; }
     setLoadingConversations(true);
-    return onSnapshot(query(collection(db,'conversations'),where('participantUids','array-contains',user.uid),limit(50)),async snap=>{
+    return onSnapshot(query(collection(db,'conversations'),where('participantUids','array-contains',user.uid),orderBy('lastMessageAt','desc'),limit(50)),async snap=>{
       const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.lastMessageAt?.toMillis?.()||0)-(a.lastMessageAt?.toMillis?.()||0));
       setConversations(rows);
       const ids=[...new Set(rows.map(x=>x.participantUids?.find(id=>id!==user.uid)).filter(Boolean))];

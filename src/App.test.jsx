@@ -203,10 +203,10 @@ describe('halaman publik', () => {
 
     await user.click(screen.getByRole('button', { name: /Lihat semua obrolan/ }));
     expect(screen.getByRole('heading', { name: 'Temukan komunitasmu.' })).toBeTruthy();
-    expect(screen.getByText('Kopi & Kuliner')).toBeTruthy();
+    expect(screen.getByText('Ngopi Bareng')).toBeTruthy();
 
     await user.click(screen.getAllByRole('button', { name: 'Buka komunitas' })[0]);
-    expect(await screen.findByRole('heading', { name: 'Kopi & Kuliner' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Ngopi Bareng' })).toBeTruthy();
     expect(screen.getByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeTruthy();
   });
 

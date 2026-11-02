@@ -97,6 +97,7 @@ export default function App() {
   const [notificationCount, setNotificationCount] = useState(0);
   const [messageTarget, setMessageTarget] = useState(null);
   const [openConversationId, setOpenConversationId] = useState('');
+  const [messageInitialTab, setMessageInitialTab] = useState('pribadi');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
   const isPlatformStaff = isSuperAdmin || isModerator;
@@ -1152,8 +1153,8 @@ export default function App() {
         <nav className="sidebar-nav" aria-label="Navigasi utama">
           <button type="button" aria-label="Desktop: Beranda" className={section === 'Beranda' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Beranda'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Home size={18}/><span>Beranda</span></button>
           <button type="button" aria-label="Desktop: Cari Warkop" className={section === 'Cari Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Cari Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Compass size={18}/><span>Cari Warkop</span></button>
-          <button type="button" aria-label="Desktop: Pesan" className={section === 'Pesan' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageSquare size={18}/><span>Pesan</span></button>
-          <button type="button" aria-label="Obrolan" className={section === 'Obrolan' && topic === 'Semua' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={18}/><span>Obrolan</span></button>
+          <button type="button" aria-label="Desktop: Pesan" className={section === 'Pesan' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageSquare size={18}/><span>Pesan</span></button>
+          <button type="button" aria-label="Obrolan" className={section === 'Obrolan' && topic === 'Semua' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setMessageInitialTab('komunitas'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={18}/><span>Obrolan</span></button>
           <button type="button" aria-label="Desktop: Notifikasi" className={section === 'Notifikasi' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Notifikasi')}><Bell size={18}/><span>Notifikasi</span>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 99 ? '99+' : notificationCount}</span>}</button>
           <button type="button" aria-label="Desktop: Agenda & acara" className={section === 'Obrolan' && topic === 'Info & Acara' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={18}/><span>Agenda & acara</span></button>
           <button type="button" aria-label="Desktop: Jual beli & jasa" className={section === 'Obrolan' && topic === 'Jual Beli & Jasa Lokal' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli & Jasa Lokal'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={18}/><span>Jual beli & jasa</span></button>
@@ -1169,7 +1170,7 @@ export default function App() {
       <main className="app-page-content">
       {section === 'Panel Admin' && isPlatformStaff ? <AdminPanel db={db} user={user} onNotice={setNotice} canVerifyWarungs={isSuperAdmin}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
-      section === 'Pesan' ? <MessagesPage db={db} user={user} initialTab="pribadi" initialConversationId={openConversationId} initialFriend={messageTarget} onOpenPublicChat={(selectedTopic) => { navigateSection('Obrolan'); setTopic(selectedTopic === 'Semua' ? 'Semua' : selectedTopic); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }} onOpenMemberProfile={openMemberProfile}/> :
+      section === 'Pesan' ? <MessagesPage db={db} user={user} initialTab={messageInitialTab} initialConversationId={openConversationId} initialFriend={messageTarget} onOpenPublicChat={(selectedTopic) => { navigateSection('Obrolan'); setTopic(selectedTopic === 'Semua' ? 'Semua' : selectedTopic); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }} onOpenMemberProfile={openMemberProfile}/> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
         <div className="reply-page-top">
@@ -1216,7 +1217,7 @@ export default function App() {
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Wilayah awal: Lamongan</h3><p>Fokus pada Kabupaten Lamongan, lalu diperluas bertahap.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => navigateSection('Cari Warkop')}>Cari warkop</button></section> :
       <ChatPanel
         readOnly={section === 'Beranda'} previewMode={section === 'Beranda'}
-        onViewAllDiscussions={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}
+        onViewAllDiscussions={() => { setMessageInitialTab('komunitas'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
         onOpenDiscussion={() => { navigateSection('Obrolan'); setComposerOpen(true); window.scrollTo({ top: 0, behavior: 'auto' }); }}
         onOpenDirectory={() => navigateSection('Cari Warkop')}
         user={user} db={db} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}

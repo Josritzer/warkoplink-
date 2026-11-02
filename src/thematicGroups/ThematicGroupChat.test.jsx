@@ -280,6 +280,10 @@ describe('thematic group conversation', () => {
     fireEvent.click(screen.getByRole('button', { name: /Lihat 4 anggota.*Gas Ngopi/ }));
     expect(screen.getByText('Citra')).toBeTruthy();
     expect(screen.getByText('Eka')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Lihat foto profil 4 anggota.*Gas Ngopi/ }));
+    expect(screen.queryByRole('group', { name: 'Anggota yang bereaksi: Gas Ngopi' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Lihat foto profil 4 anggota.*Gas Ngopi/ }));
+    expect(screen.getByRole('group', { name: 'Anggota yang bereaksi: Gas Ngopi' })).toBeTruthy();
     expect(document.querySelector('.thematic-reaction-item button.thematic-reaction-trigger')).toBeTruthy();
   });
 

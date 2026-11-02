@@ -9,14 +9,14 @@ describe('official WarkopLink communities', () => {
   });
 
   it('recognizes only the seven official community IDs', () => {
-    expect(isCommunityId('kopi-kuliner')).toBe(true);
-    expect(isCommunityId('obrolan-santai')).toBe(true);
+    expect(isCommunityId('ngopi-bareng')).toBe(true);
+    expect(isCommunityId('komunitas-aktivitas')).toBe(true);
     expect(isCommunityId('buat-grup-sendiri')).toBe(false);
     expect(isCommunityId('')).toBe(false);
   });
 
   it('looks up the official group by its stable ID', () => {
-    expect(getCommunityById('bisnis-umkm')?.name).toBe('Bisnis & UMKM');
+    expect(getCommunityById('tanya-warkop')?.name).toBe('Tanya Warkop');
     expect(getCommunityById('unknown')).toBeNull();
   });
 });

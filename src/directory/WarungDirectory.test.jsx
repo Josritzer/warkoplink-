@@ -74,6 +74,8 @@ describe('kartu direktori warkop', () => {
     expect(screen.getByRole('button', { name: /Warkop Terbaru/ }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByRole('button', { name: 'Hapus filter' })).toBeNull();
     expect(screen.queryByLabelText('Filter kisaran harga')).toBeNull();
+    expect(screen.getByPlaceholderText('Cari nama, alamat, menu, menu spesial, fasilitas…')).toBeTruthy();
+    expect(screen.getByText('Baru ditambahkan')).toBeTruthy();
   });
 
   it('menampilkan acara yang masih berlangsung pada kategori event', async () => {

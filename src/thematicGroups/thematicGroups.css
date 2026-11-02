@@ -981,3 +981,79 @@
   .thematic-loading span { animation: none; }
   .thematic-message-list { scroll-behavior: auto; }
 }
+
+
+/* Premium Glass conversation layer: translucent surfaces, not opaque cards. */
+.thematic-chat-page {
+  background: color-mix(in srgb, var(--wl-paper) 78%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  backdrop-filter: blur(22px) saturate(145%);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .09), inset 0 1px 0 rgba(255, 255, 255, .24);
+}
+
+.thematic-chat-header,
+.thematic-compose-wrap,
+.thematic-compose {
+  background: color-mix(in srgb, var(--wl-paper) 82%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+.thematic-message-bubble {
+  position: relative;
+  background: color-mix(in srgb, var(--wl-paper) 84%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 5px 18px rgba(15, 23, 42, .055), inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+
+.thematic-message.own .thematic-message-bubble {
+  background: color-mix(in srgb, var(--wl-primary-tint) 86%, transparent);
+}
+
+.thematic-reaction-picker {
+  background: color-mix(in srgb, var(--wl-paper) 78%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, .16), inset 0 1px 0 rgba(255, 255, 255, .32);
+}
+
+.thematic-reaction-row.is-open .thematic-reaction-picker {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(100% + 7px);
+  left: 8px;
+}
+
+.thematic-message.own .thematic-reaction-row.is-open .thematic-reaction-picker {
+  right: 8px;
+  left: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .thematic-message-actions {
+    opacity: 0;
+    transition: opacity .16s ease;
+  }
+
+  .thematic-message:hover .thematic-message-actions,
+  .thematic-message:focus-within .thematic-message-actions {
+    opacity: 1;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .thematic-add-reaction {
+    display: none !important;
+  }
+
+  .thematic-reaction-row.is-open .thematic-reaction-picker {
+    left: 4px;
+    max-width: calc(100vw - 40px);
+  }
+
+  .thematic-message.own .thematic-reaction-row.is-open .thematic-reaction-picker {
+    right: 4px;
+    left: auto;
+  }
+}

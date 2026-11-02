@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const state = vi.hoisted(() => ({
   memberExists: false,
@@ -168,6 +168,40 @@ describe('thematic group conversation', () => {
     render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" targetMessageId="older-mentioned-message" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
     expect(await screen.findByText('Pesan mention lama')).toBeTruthy();
     expect(screen.queryByText('Mulai percakapan pertama')).toBeNull();
+  });
+
+  it('opens the compact reaction picker only after a mobile long press', async () => {
+    state.memberExists = true;
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'Pilih reaksi' })).toBeNull();
+
+    vi.useFakeTimers();
+    try {
+      const message = screen.getByText('Selamat datang!').closest('article');
+      fireEvent.touchStart(message);
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(screen.getByRole('group', { name: 'Pilih reaksi' })).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('cancels the mobile reaction picker when the finger moves before the hold completes', async () => {
+    state.memberExists = true;
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+
+    vi.useFakeTimers();
+    try {
+      const message = screen.getByText('Selamat datang!').closest('article');
+      fireEvent.touchStart(message);
+      fireEvent.touchMove(message);
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(screen.queryByRole('group', { name: 'Pilih reaksi' })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('lets a member add an emoji reaction to a message', async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Compass, MessageCircle, Send } from 'lucide-react';
 import { collection, doc, endAt, getDoc, getDocs, limit, orderBy, query, startAt } from 'firebase/firestore';
 import { FILTER_TOPICS, MAX_POST_LENGTH, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
@@ -24,6 +24,8 @@ export default function ChatPanel(props) {
   const [eventPosterFile, setEventPosterFile] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
   const [videoPreview, setVideoPreview] = useState('');
+  const [videoProgress, setVideoProgress] = useState(0);
+  const videoUploadController = useRef(null);
   const [eventWarungId, setEventWarungId] = useState('');
   const [eventPosterPreview, setEventPosterPreview] = useState('');
   const [price, setPrice] = useState('');
@@ -90,7 +92,7 @@ export default function ChatPanel(props) {
       <div className="topic-scroll-wrap"><div className="topic-list" aria-label="Kategori obrolan">{FILTER_TOPICS.map(name => <button key={name} type="button" onClick={() => setTopic(name)} aria-pressed={topic === name} className={topic === name ? 'topic selected' : 'topic'}>{name}</button>)}</div><span className="topic-scroll-hint" aria-hidden="true">›</span></div>
     </>}
     {communityId && !communityMember && !readOnly && <div className="community-post-gate" role="status"><b>Ruang diskusi terbuka untuk dibaca.</b><span>Gabung komunitas untuk mulai membuat postingan dan ikut berdiskusi.</span></div>}
-    {readOnly ? <div className="feed-readonly-note"><span>Beranda · cuplikan 3 obrolan terbaru</span>{previewMode && <button className="button button-quiet" type="button" onClick={onViewAllDiscussions}>Lihat semua obrolan <MessageCircle size={14}/></button>}</div> : communityId && !communityMember ? null : <form className={composerOpen ? "composer composer-expanded" : "composer composer-collapsed"} onSubmit={async event => { const posted = await handlePost(event, { communityId, topic: category, postType, location, eventDate, eventStartAt, eventEndAt, eventKind, eventCapacity, eventPosterFile, eventWarungId, videoFile, price, workType, contact }); if (posted) { setEventPosterFile(null); setEventWarungId(""); } }} aria-busy={posting}>
+    {readOnly ? <div className="feed-readonly-note"><span>Beranda · cuplikan 3 obrolan terbaru</span>{previewMode && <button className="button button-quiet" type="button" onClick={onViewAllDiscussions}>Lihat semua obrolan <MessageCircle size={14}/></button>}</div> : communityId && !communityMember ? null : <form className={composerOpen ? "composer composer-expanded" : "composer composer-collapsed"} onSubmit={async event => { videoUploadController.current = new AbortController(); setVideoProgress(0); const posted = await handlePost(event, { communityId, topic: category, postType, location, eventDate, eventStartAt, eventEndAt, eventKind, eventCapacity, eventPosterFile, eventWarungId, videoFile, videoSignal: videoUploadController.current.signal, onVideoProgress: setVideoProgress, price, workType, contact }); videoUploadController.current = null; if (posted) { setEventPosterFile(null); setEventWarungId(""); setVideoFile(null); setVideoProgress(0); } }} aria-busy={posting}>
       {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice("Masuk untuk mulai berbagi obrolan."); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><span>{user ? "Ayo ngobrol…" : "Masuk untuk mulai ngobrol…"}</span></button> : <>
         <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || "Anggota komunitas"}</b><small>Posting ke <strong>{category}</strong></small></div></div>
         {communityId
@@ -160,6 +162,11 @@ export default function ChatPanel(props) {
         {showPrice && <label className="composer-field">Harga (opsional)<input value={price} onChange={event => setPrice(event.target.value)} maxLength={60} placeholder="Contoh: Rp50.000, bisa nego"/></label>}
         {showWorkType && <label className="composer-field">Tipe kerja (opsional)<input value={workType} onChange={event => setWorkType(event.target.value)} maxLength={60} placeholder="Penuh waktu, paruh waktu, shift"/></label>}
         {showContact && <label className="composer-field">Kontak aman (opsional)<input value={contact} onChange={event => setContact(event.target.value)} maxLength={240} placeholder="https://… atau @akun"/></label>}
+        {posting && videoFile && <div className="video-upload-progress" role="status" aria-live="polite">
+          <div><span>Mengunggah video…</span><strong>{videoProgress}%</strong></div>
+          <progress max="100" value={videoProgress} aria-label="Progres unggah video"/>
+          <button className="button button-quiet" type="button" onClick={() => videoUploadController.current?.abort()}>Batalkan unggahan video</button>
+        </div>}
         <div className="composer-bottom"><small id="composer-character-count" className="char-count" aria-live="polite">{draft.length}/{MAX_POST_LENGTH}</small><button className="button button-quiet" type="button" onClick={() => { setComposerOpen(false); setDraft(""); setLocation(''); setEventDate(''); setEventStartAt(''); setEventEndAt(''); setEventKind('Nobar'); setEventCapacity(''); setEventPosterFile(null); setEventWarungId(''); setPrice(''); setWorkType(''); setContact(''); }} disabled={posting}>Batal</button><button className="button button-dark" type="submit" disabled={posting || !draft.trim()} aria-busy={posting}>{posting ? "Mengirim…" : "Kirim"} <Send size={16}/></button></div>
       </>}
     </form>}

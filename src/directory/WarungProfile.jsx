@@ -273,7 +273,6 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       <section className="warung-profile-info-block"><h3>Suasana</h3>
         {warung.ambience ? <p>{warung.ambience}</p> : <p className="profile-empty-hint">Suasana belum dideskripsikan. Lihat foto warkop atau kunjungi langsung untuk mengenalnya.</p>}
       </section>
-      {warung.priceRange && warung.priceRange !== 'belum-diisi' && <p><strong>Kisaran harga:</strong> {warung.priceRange}</p>}
       <section className="warung-profile-info-block"><h3>Fasilitas</h3>
         {(Array.isArray(warung.facilities) && warung.facilities.length > 0) ? <div className="facility-tags">{warung.facilities.map((facility) => <span key={facility}>{facility}</span>)}</div> : <p className="profile-empty-hint">Fasilitas belum dicantumkan. Tanyakan langsung kepada warkop sebelum berkunjung.</p>}
       </section>

@@ -687,7 +687,7 @@ describe('direktori dan pendaftaran warkop', () => {
     expect(screen.getByLabelText('Menu utama, pisahkan dengan koma')).toBeTruthy();
     expect(screen.getByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     expect(screen.getByLabelText('Suasana warkop')).toBeTruthy();
-    expect(screen.getByLabelText('Kisaran harga (opsional)').required).toBe(false);
+    expect(screen.queryByLabelText('Kisaran harga (opsional)')).toBeNull();
   });
 
   it('menunjukkan penyebab foto gagal dan cara melanjutkan pendaftaran tersimpan', async () => {

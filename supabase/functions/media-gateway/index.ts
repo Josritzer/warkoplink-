@@ -147,7 +147,7 @@ async function authorizeResource(token: string, uid: string, request: ReturnType
       throw new Error("Post ownership check failed");
     }
     const maxDuration = await videoDurationLimit(token, uid, post);
-    const maxBytes = maxDuration === 180 ? 50 * 1024 * 1024 : 25 * 1024 * 1024;
+    const maxBytes = maxDuration === 180 ? 50_000_000 : 25_000_000;
     if (request.size > maxBytes) throw new Error(maxDuration === 180 ? "Video size exceeds the 50 MiB warkop limit" : "Video size exceeds the 25 MiB member limit");
     return post;
   }
@@ -464,7 +464,7 @@ async function handler(request: Request): Promise<Response> {
     const message = error instanceof Error ? error.message : "Media operation failed";
     // Safe diagnostics only: never log Firebase tokens, request bodies, email, or UID.
     console.error("[media-gateway] request failed", JSON.stringify({ stage, action, message }));
-    const status = /token|Firebase account|ownership|status check|not found|quota|slot|unsupported|invalid|size|signature|animated|dimensions|too many|not supported/i.test(message) ? 400 : 502;
+    const status = /token|Firebase account|ownership|status check|not found|quota|slot|unsupported|invalid|size|signature|animated|dimensions|too many|not supported|video|duration|1080p/i.test(message) ? 400 : 502;
     return response({ error: message }, status, origin);
   }
 }

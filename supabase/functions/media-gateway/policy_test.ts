@@ -2,6 +2,7 @@ import { assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
   MAX_IMAGE_BYTES,
   MAX_VIDEO_BYTES,
+  videoDurationForAccount,
   parseMp4Metadata,
   normalizeUploadRequest,
   parseFirestoreDocument,
@@ -117,4 +118,12 @@ Deno.test("extracts MP4 duration and dimensions from bounded metadata", () => {
 Deno.test("rejects malformed or oversized MP4 metadata", () => {
   assertEquals(parseMp4Metadata(new TextEncoder().encode("not a video")), null);
   assertEquals(parseMp4Metadata(new Uint8Array(8)), null);
+});
+
+
+Deno.test("applies the approved feed-video duration tiers", () => {
+  assertEquals(videoDurationForAccount({ verifiedWarkopOwner: false, thematicGroupMember: false }), 30);
+  assertEquals(videoDurationForAccount({ verifiedWarkopOwner: false, thematicGroupMember: true }), 60);
+  assertEquals(videoDurationForAccount({ verifiedWarkopOwner: true, thematicGroupMember: false }), 180);
+  assertEquals(videoDurationForAccount({ verifiedWarkopOwner: true, thematicGroupMember: true }), 180);
 });

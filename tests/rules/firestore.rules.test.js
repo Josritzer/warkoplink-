@@ -496,6 +496,13 @@ describe('warungs — direktori aman tahap awal', () => {
       nameNormalized: 'warkop pojok baru',
       updatedAt: serverTimestamp(),
     }));
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'warungs/warkop-edit-ok'), {
+      regionCode: 'id-jawa-timur-kota-surabaya',
+      provinceName: 'Jawa Timur',
+      regencyName: 'Kota Surabaya',
+      address: 'Jl. Tunjungan, Surabaya',
+      updatedAt: serverTimestamp(),
+    }));
   });
 
   it('pemilik hanya dapat menambahkan foto warkop dari bucket media dan slot miliknya', async () => {

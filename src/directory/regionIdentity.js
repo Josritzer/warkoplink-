@@ -1,23 +1,36 @@
-const slugify = (value) => String(value || '')
-  .normalize('NFKD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .toLowerCase()
-  .trim()
-  .replace(/[^a-z0-9]+/g, '-')
-  .replace(/^-+|-+$/g, '');
+const cleanName = (value, field) => {
+  const name = String(value || '').trim().replace(/\\s+/g, ' ');
+  if (name.length < 2 || name.length > 100) throw new Error(`Nama ${field} harus 2–100 karakter.`);
+  return name;
+};
 
-export function buildRegionIdentity(provinceName, regencyName) {
-  const province = String(provinceName || '').trim().replace(/\s+/g, ' ');
-  const regency = String(regencyName || '').trim().replace(/\s+/g, ' ');
-  if (province.length < 2 || province.length > 80 || regency.length < 2 || regency.length > 80) {
-    throw new Error('Nama provinsi dan kabupaten/kota harus 2–80 karakter.');
+export function buildRegionIdentity(selection) {
+  if (!selection || typeof selection !== 'object') throw new Error('Pilih wilayah dari daftar resmi.');
+
+  const provinceCode = String(selection.provinceCode || '');
+  const regencyCode = String(selection.regencyCode || '');
+  const districtCode = String(selection.districtCode || '');
+  const villageCode = String(selection.villageCode || '');
+
+  if (!/^\\d{2}$/.test(provinceCode)
+    || !/^\\d{2}\\.\\d{2}$/.test(regencyCode)
+    || !/^\\d{2}\\.\\d{2}\\.\\d{2}$/.test(districtCode)
+    || !/^\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{4}$/.test(villageCode)
+    || !regencyCode.startsWith(`${provinceCode}.`)
+    || !districtCode.startsWith(`${regencyCode}.`)
+    || !villageCode.startsWith(`${districtCode}.`)) {
+    throw new Error('Kode wilayah tidak sesuai dengan urutan administrasi resmi.');
   }
-  const provinceSlug = slugify(province);
-  const regencySlug = slugify(regency);
-  if (!provinceSlug || !regencySlug) throw new Error('Nama wilayah tidak valid.');
+
   return {
-    regionCode: `id-${provinceSlug}-${regencySlug}`,
-    provinceName: province,
-    regencyName: regency,
+    regionCode: villageCode,
+    provinceCode,
+    provinceName: cleanName(selection.provinceName, 'provinsi'),
+    regencyCode,
+    regencyName: cleanName(selection.regencyName, 'kabupaten/kota'),
+    districtCode,
+    districtName: cleanName(selection.districtName, 'kecamatan'),
+    villageCode,
+    villageName: cleanName(selection.villageName, 'desa/kelurahan'),
   };
 }

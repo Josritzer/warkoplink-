@@ -80,3 +80,36 @@ Deno.test("uses server-controlled UUID object paths scoped to the authenticated 
   assertThrows(() => mediaObjectPath("bad/uid", "avatar", "x", id));
   assertThrows(() => mediaObjectPath("u1", "warung", "../other", id, 0));
 });
+
+
+Deno.test("accepts bounded MP4 video uploads without changing image limits", () => {
+  assertEquals(normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 25 * 1024 * 1024 }).mediaType, "video");
+  assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/quicktime", size: 1024 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 50 * 1024 * 1024 + 1 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "../other", contentType: "video/mp4", size: 1024 }));
+  assertEquals(MAX_IMAGE_BYTES, 2 * 1024 * 1024);
+});
+
+Deno.test("uses a dedicated MP4 object path for feed videos", () => {
+  const id = "a12b4567-89ab-4cde-8fab-1234567890ab";
+  assertEquals(mediaObjectPath("user_1", "video", "post_1", id), `posts/post_1/${id}.mp4`);
+});
+
+Deno.test("extracts MP4 duration and dimensions from bounded metadata", () => {
+  const metadata = new Uint8Array([
+    // ftyp
+    0,0,0,16, 102,116,121,112, 105,115,111,109, 0,0,2,0,
+    // moov -> mvhd (version 0, timescale 1000, duration 45000 ms)
+    0,0,0,108, 109,111,111,118,
+    0,0,0,20, 109,118,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,3,232, 0,0,175,200,
+    // tkhd (version 0, width 1920, height 1080, 16.16 fixed point)
+    0,0,0,84, 116,107,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1,
+    ...new Array(60).fill(0), 7,128,0,0, 4,56,0,0
+  ]);
+  assertEquals(parseMp4Metadata(metadata), { durationSeconds: 45, width: 1920, height: 1080 });
+});
+
+Deno.test("rejects malformed or oversized MP4 metadata", () => {
+  assertEquals(parseMp4Metadata(new TextEncoder().encode("not a video")), null);
+  assertEquals(parseMp4Metadata(new Uint8Array(8)), null);
+});

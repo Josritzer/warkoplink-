@@ -84,4 +84,18 @@ describe('thematic group conversation', () => {
       { senderUid: 'alice', senderName: 'Alice', text: 'Ada rekomendasi kopi?', createdAt: 'server-time' }
     ));
   });
+
+  it('lets a member reply to a specific message with a visible quote', async () => {
+    state.memberExists = true;
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Balas pesan Budi' }));
+    expect(screen.getByText('Membalas Budi')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tulis pesan grup' }), { target: { value: 'Saya punya rekomendasi.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim pesan' }));
+    await waitFor(() => expect(state.addDoc).toHaveBeenCalledWith(
+      { path: 'thematicGroups/pemilik-warkop/messages' },
+      { senderUid: 'alice', senderName: 'Alice', text: 'Saya punya rekomendasi.', createdAt: 'server-time', replyToMessageId: 'hello-1' }
+    ));
+  });
 });

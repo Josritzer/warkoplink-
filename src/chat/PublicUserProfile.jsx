@@ -19,6 +19,7 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
   const [isFollowing, setIsFollowing] = useState(false);
   const [isMutual, setIsMutual] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
+  const [followError, setFollowError] = useState('');
   const isOwnProfile = Boolean(currentUser?.uid && currentUser.uid === uid);
 
   useEffect(() => {
@@ -38,6 +39,9 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
   async function toggleFollow() {
     if (!db || !currentUser?.uid || !uid || isOwnProfile || followBusy) return;
     setFollowBusy(true);
+    setFollowError('');
+    const previousFollowing = isFollowing;
+    const previousMutual = isMutual;
     const followRef = doc(db, 'userFollows', `${currentUser.uid}_${uid}`);
     try {
       if (isFollowing) {
@@ -57,7 +61,8 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
         }
       }
     } catch {
-      setIsFollowing(false); setIsMutual(false);
+      setIsFollowing(previousFollowing); setIsMutual(previousMutual);
+      setFollowError('Perubahan ikuti belum berhasil disimpan. Periksa koneksi lalu coba lagi.');
     } finally { setFollowBusy(false); }
   }
 
@@ -125,6 +130,7 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
         {!isOwnProfile && currentUser?.uid && <div className="member-profile-social-actions">
           <button type="button" className={isFollowing ? 'button button-quiet' : 'button button-dark'} onClick={toggleFollow} disabled={followBusy}>{followBusy ? 'Memproses…' : isMutual ? 'Teman' : isFollowing ? 'Mengikuti' : 'Ikuti'}</button>
           {isMutual && <button type="button" className="button button-quiet" onClick={() => onStartMessage?.(profile || fallbackProfile)}><MessageCircle size={15}/> Pesan</button>}
+          {followError && <small className="message-error" role="alert">{followError}</small>}
         </div>}
       </div>
       <div className="member-profile-stats">

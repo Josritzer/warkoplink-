@@ -95,6 +95,8 @@ export default function App() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [messageTarget, setMessageTarget] = useState(null);
+  const [openConversationId, setOpenConversationId] = useState('');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
   const isPlatformStaff = isSuperAdmin || isModerator;
@@ -534,6 +536,22 @@ export default function App() {
   }
 
   async function handleOpenNotification(notification) {
+    if (notification?.type === 'message' && notification?.conversationId) {
+      setMessageTarget(null);
+      setOpenConversationId(notification.conversationId);
+      navigateSection('Pesan');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
+    if (notification?.type === 'friend' && notification?.actorUid) {
+      try {
+        const snapshot = await getDoc(doc(db, 'publicProfiles', notification.actorUid));
+        openMemberProfile({ uid: notification.actorUid, ...(snapshot.exists() ? snapshot.data() : {}), displayName: snapshot.data()?.displayName || 'Anggota WarkopLink' });
+      } catch {
+        openMemberProfile({ uid: notification.actorUid, displayName: 'Anggota WarkopLink' });
+      }
+      return;
+    }
     if (notification?.warungId) { openWarungProfile(notification.warungId); return; }
     if (!notification?.postId || !db) return;
     try {
@@ -1151,7 +1169,7 @@ export default function App() {
       <main className="app-page-content">
       {section === 'Panel Admin' && isPlatformStaff ? <AdminPanel db={db} user={user} onNotice={setNotice} canVerifyWarungs={isSuperAdmin}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
-      section === 'Pesan' ? <MessagesPage onOpenPublicChat={() => { navigateSection('Obrolan'); setTopic('Semua'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
+      section === 'Pesan' ? <MessagesPage db={db} user={user} initialTab="pribadi" initialConversationId={openConversationId} initialFriend={messageTarget} onOpenPublicChat={(selectedTopic) => { navigateSection('Obrolan'); setTopic(selectedTopic === 'Semua' ? 'Semua' : selectedTopic); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }} onOpenMemberProfile={openMemberProfile}/> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
         <div className="reply-page-top">
@@ -1186,7 +1204,7 @@ export default function App() {
           {replyDraft.length > 800 && <small className="reply-counter" aria-live="polite">{replyDraft.length}/1000</small>}
         </form>}
       </section> :
-      section === 'Profil Anggota' && memberProfile ? <PublicUserProfile profile={memberProfile} db={db} currentUser={user} onBack={closeMemberProfile} onEditProfile={() => navigateSection('Akun')}/> :
+      section === 'Profil Anggota' && memberProfile ? <PublicUserProfile profile={memberProfile} db={db} currentUser={user} onBack={closeMemberProfile} onEditProfile={() => navigateSection('Akun')} onStartMessage={(friend) => { setMessageTarget(friend); setOpenConversationId(''); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
         {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className={`email-verification-panel ${emailVerified ? 'is-verified' : 'is-pending'}`} role="status" aria-live="polite"><div><b>{emailVerified ? 'Email terverifikasi' : 'Email belum terverifikasi'}</b><small>{emailVerified ? 'Alamat email akun ini sudah dikonfirmasi.' : 'Verifikasi email diperlukan untuk mengaktifkan hak Super Admin.'}</small></div>{!emailVerified && <div className="email-verification-actions"><button className="button button-quiet" type="button" onClick={handleResendVerification} disabled={verificationBusy}>{verificationBusy ? 'Memproses…' : 'Kirim ulang verifikasi'}</button><button className="button button-quiet" type="button" onClick={handleRefreshVerificationStatus} disabled={verificationBusy}>Saya sudah verifikasi</button></div>}</div><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article><section className="account-card profile-editor-card"><div className="account-details"><b>Edit profil komunitas</b><small>Atur nama tampilan, username, bio, lokasi, minat, dan tautan publik.</small></div><ProfileEditor user={user} db={db} onNotice={setNotice}/></section>{isPlatformStaff && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :

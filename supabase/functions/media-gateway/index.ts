@@ -10,6 +10,7 @@ import {
   normalizeUploadRequest,
   parseFirestoreDocument,
   parseMp4Metadata,
+  videoDurationForAccount,
 } from "./policy.ts";
 
 const PROJECT_ID = "sl-community-platform";
@@ -184,9 +185,9 @@ async function isVerifiedWarkopOwner(token: string, uid: string, post: Resource)
 }
 
 async function videoDurationLimit(token: string, uid: string, post: Resource): Promise<number> {
-  if (await isVerifiedWarkopOwner(token, uid, post)) return 180;
-  if (await isThematicGroupMember(token, uid)) return 60;
-  return 30;
+  const verifiedWarkopOwner = await isVerifiedWarkopOwner(token, uid, post);
+  const thematicGroupMember = verifiedWarkopOwner ? false : await isThematicGroupMember(token, uid);
+  return videoDurationForAccount({ verifiedWarkopOwner, thematicGroupMember });
 }
 
 async function authorizeResource(token: string, uid: string, request: ReturnType<typeof normalizeUploadRequest>): Promise<Resource> {

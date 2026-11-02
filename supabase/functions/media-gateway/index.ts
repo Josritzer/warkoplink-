@@ -316,6 +316,28 @@ async function removeAvatar(token: string, uid: string) {
   return { removed: true };
 }
 
+
+async function removeVideo(token: string, uid: string, postId: unknown) {
+  if (typeof postId !== "string" || !/^[A-Za-z0-9_-]{1,150}$/.test(postId)) throw new Error("Invalid post identifier");
+  const post = await getResource(token, "posts", postId);
+  if (!post || post.data.authorId !== uid) throw new Error("Post ownership check failed");
+  const videoUrl = typeof post.data.videoURL === "string" ? post.data.videoURL : "";
+  if (!videoUrl) return { removed: true };
+  let path: string;
+  try {
+    const parsed = new URL(videoUrl);
+    const prefix = `/storage/v1/object/public/${BUCKET_VIDEO_PUBLIC}/`;
+    if (parsed.hostname !== "klikvxuronunonymmiqv.supabase.co" || !parsed.pathname.startsWith(prefix)) throw new Error("Invalid video reference");
+    path = decodeURIComponent(parsed.pathname.slice(prefix.length));
+  } catch {
+    throw new Error("Invalid video reference");
+  }
+  if (!path.startsWith(`posts/${postId}/`) || path.includes("..")) throw new Error("Invalid video ownership path");
+  const { error } = await admin.storage.from(BUCKET_VIDEO_PUBLIC).remove([path]);
+  if (error) throw new Error("Could not remove feed video");
+  return { removed: true };
+}
+
 function isOwnMediaUrl(url: string | null): string | null {
   if (!url) return null;
   try {

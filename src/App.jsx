@@ -754,6 +754,13 @@ export default function App() {
           posterNotice = ` Acara sudah terbit, tetapi poster belum berhasil diunggah: ${photoUploadErrorMessage(error)}`;
         }
       }
+      if (details.videoFile) {
+        try {
+          await uploadWarkopMedia({ user, mediaType: 'video', resourceId: postRef.id, file: details.videoFile });
+        } catch (error) {
+          posterNotice += ` Postingan sudah terbit, tetapi video belum berhasil diunggah: ${photoUploadErrorMessage(error)}`;
+        }
+      }
       setDraft('');
       setNotice(posterNotice ? `Obrolan berhasil dipublikasikan.${posterNotice}` : 'Obrolan berhasil dipublikasikan.');
       return true;

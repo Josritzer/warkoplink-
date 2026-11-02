@@ -165,3 +165,9 @@ export async function removeWarkopAvatar(user) {
   const result = await gatewayRequest(user, { action: "removeAvatar" });
   return result.media;
 }
+
+export async function removeWarkopPostVideo(user, postId) {
+  if (!user?.getIdToken || !postId) throw new Error("Silakan masuk untuk menghapus video.");
+  const result = await gatewayRequest(user, { action: "removeVideo", postId });
+  return result.media;
+}

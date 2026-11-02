@@ -224,19 +224,40 @@ service cloud.firestore {
         && data.createdAt == request.time;
     }
 
-    function validWarungRegion(data) {
-      return data.regionCode is string && data.regionCode.size() <= 100
-        && (
-          (data.regionCode == 'lamongan-kab' && !data.keys().hasAny(['provinceName', 'regencyName']))
-          || (
-            data.regionCode.matches('^id-[a-z0-9-]{3,90}$')
-            && data.keys().hasAll(['provinceName', 'regencyName'])
-            && data.provinceName is string && data.provinceName.size() >= 2 && data.provinceName.size() <= 80
-            && data.regencyName is string && data.regencyName.size() >= 2 && data.regencyName.size() <= 80
-          )
-        );
+    function validOfficialWarungRegion(data) {
+      return data.keys().hasAll([
+          'regionCode', 'provinceCode', 'provinceName', 'regencyCode', 'regencyName',
+          'districtCode', 'districtName', 'villageCode', 'villageName'
+        ])
+        && data.regionCode == data.villageCode
+        && data.provinceCode is string && data.provinceCode.matches('^[0-9]{2}$')
+        && data.regencyCode is string && data.regencyCode.matches('^[0-9]{2}[.][0-9]{2}$')
+        && data.regencyCode.matches('^' + data.provinceCode + '[.][0-9]{2}$')
+        && data.districtCode is string && data.districtCode.matches('^[0-9]{2}[.][0-9]{2}[.][0-9]{2}$')
+        && data.districtCode.matches('^' + data.regencyCode + '[.][0-9]{2}$')
+        && data.villageCode is string && data.villageCode.matches('^[0-9]{2}[.][0-9]{2}[.][0-9]{2}[.][0-9]{4}$')
+        && data.villageCode.matches('^' + data.districtCode + '[.][0-9]{4}$')
+        && data.provinceName is string && data.provinceName.size() >= 2 && data.provinceName.size() <= 100
+        && data.regencyName is string && data.regencyName.size() >= 2 && data.regencyName.size() <= 100
+        && data.districtName is string && data.districtName.size() >= 2 && data.districtName.size() <= 100
+        && data.villageName is string && data.villageName.size() >= 2 && data.villageName.size() <= 100;
     }
 
+    // Format lama tetap dapat diedit pemilik, tetapi tidak diterima untuk pendaftaran baru.
+    function validWarungRegion(data) {
+      return validOfficialWarungRegion(data)
+        || (data.regionCode == 'lamongan-kab' && !data.keys().hasAny([
+          'provinceCode', 'provinceName', 'regencyCode', 'regencyName',
+          'districtCode', 'districtName', 'villageCode', 'villageName'
+        ]))
+        || (
+          data.regionCode is string && data.regionCode.matches('^id-[a-z0-9-]{3,90}$')
+          && data.keys().hasAll(['provinceName', 'regencyName'])
+          && data.provinceName is string && data.provinceName.size() >= 2 && data.provinceName.size() <= 80
+          && data.regencyName is string && data.regencyName.size() >= 2 && data.regencyName.size() <= 80
+          && !data.keys().hasAny(['provinceCode', 'regencyCode', 'districtCode', 'districtName', 'villageCode', 'villageName'])
+        );
+    }
     function validWarung(data) {
       return data.keys().hasAll([
           'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
@@ -245,7 +266,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
-          'regionCode', 'provinceName', 'regencyName', 'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos',
+          'regionCode', 'provinceCode', 'provinceName', 'regencyCode', 'regencyName', 'districtCode', 'districtName', 'villageCode', 'villageName', 'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos',
           'verificationStatus', 'createdAt', 'updatedAt'
         ])
         && data.name is string && data.name.size() >= 2 && data.name.size() <= 100
@@ -257,7 +278,7 @@ service cloud.firestore {
         && data.coordinates.lat is number && data.coordinates.lat >= -90 && data.coordinates.lat <= 90
         && data.coordinates.lng is number && data.coordinates.lng >= -180 && data.coordinates.lng <= 180
         && data.address is string && data.address.size() >= 5 && data.address.size() <= 300
-        && validWarungRegion(data)
+        && validOfficialWarungRegion(data)
         && data.facilities is list && data.facilities.size() <= 20
         && (!data.keys().hasAny(['menuItems']) || (data.menuItems is list && data.menuItems.size() <= 30))
         && (!data.keys().hasAny(['specialties']) || (data.specialties is list && data.specialties.size() <= 15))
@@ -521,7 +542,7 @@ service cloud.firestore {
         && request.resource.data.verificationStatus == resource.data.verificationStatus
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'name', 'nameNormalized', 'coordinates', 'address', 'regionCode', 'provinceName', 'regencyName',
+          'name', 'nameNormalized', 'coordinates', 'address', 'regionCode', 'provinceCode', 'provinceName', 'regencyCode', 'regencyName', 'districtCode', 'districtName', 'villageCode', 'villageName',
           'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
         && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos']) || request.resource.data.updatedAt == request.time)

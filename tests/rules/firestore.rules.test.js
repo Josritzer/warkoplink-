@@ -401,7 +401,11 @@ const validWarung = (overrides = {}) => ({
   ownerUid: 'alice',
   coordinates: { lat: -7.0, lng: 112.2 },
   address: 'Jl. Contoh No. 12, Lamongan',
-  regionCode: 'lamongan-kab',
+  regionCode: '35.24.10.2007',
+  provinceCode: '35', provinceName: 'Jawa Timur',
+  regencyCode: '35.24', regencyName: 'Kabupaten Lamongan',
+  districtCode: '35.24.10', districtName: 'Maduran',
+  villageCode: '35.24.10.2007', villageName: 'Maduran',
   facilities: ['wifi', 'parkir'],
   priceRange: 'hemat',
   openingHours: { senin: '08:00-22:00' },
@@ -427,20 +431,30 @@ describe('warungs — direktori aman tahap awal', () => {
   });
 
 
-  it('pemilik boleh mendaftarkan warkop di wilayah nasional dengan identitas wilayah terstruktur', async () => {
+  it('pemilik dapat mendaftarkan warkop dengan kode wilayah resmi empat tingkat', async () => {
     await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warkop-surabaya'), validWarung({
       address: 'Jl. Tunjungan, Surabaya',
-      regionCode: 'id-jawa-timur-kota-surabaya',
-      provinceName: 'Jawa Timur',
-      regencyName: 'Kota Surabaya',
+      regionCode: '31.74.06.1001',
+      provinceCode: '31', provinceName: 'DKI Jakarta',
+      regencyCode: '31.74', regencyName: 'Kota Administrasi Jakarta Selatan',
+      districtCode: '31.74.06', districtName: 'Cilandak',
+      villageCode: '31.74.06.1001', villageName: 'Cipete Selatan',
     })));
   });
 
-  it('menolak identitas wilayah nasional yang tidak sesuai format', async () => {
+  it('menolak slug wilayah bebas untuk pendaftaran baru', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-slug'), validWarung({
+      regionCode: 'id-jawa-timur-kabupaten-lamongan',
+    })));
+  });
+
+  it('menolak kode wilayah yang tidak cocok dengan hierarki induknya', async () => {
     await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-invalid-region'), validWarung({
-      regionCode: 'wilayah-sembarang',
-      provinceName: 'Jawa Timur',
-      regencyName: 'Kota Surabaya',
+      regionCode: '35.24.10.2007',
+      provinceCode: '35', provinceName: 'Jawa Timur',
+      regencyCode: '35.24', regencyName: 'Kabupaten Lamongan',
+      districtCode: '35.24.11', districtName: 'Sambeng',
+      villageCode: '35.24.10.2007', villageName: 'Maduran',
     })));
   });
 
@@ -497,10 +511,12 @@ describe('warungs — direktori aman tahap awal', () => {
       updatedAt: serverTimestamp(),
     }));
     await assertSucceeds(updateDoc(doc(asUser('alice'), 'warungs/warkop-edit-ok'), {
-      regionCode: 'id-jawa-timur-kota-surabaya',
-      provinceName: 'Jawa Timur',
-      regencyName: 'Kota Surabaya',
-      address: 'Jl. Tunjungan, Surabaya',
+      regionCode: '31.74.06.1001',
+      provinceCode: '31', provinceName: 'DKI Jakarta',
+      regencyCode: '31.74', regencyName: 'Kota Administrasi Jakarta Selatan',
+      districtCode: '31.74.06', districtName: 'Cilandak',
+      villageCode: '31.74.06.1001', villageName: 'Cipete Selatan',
+      address: 'Jl. Cilandak, Jakarta Selatan',
       updatedAt: serverTimestamp(),
     }));
   });

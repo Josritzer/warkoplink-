@@ -5,6 +5,15 @@ import userEvent from '@testing-library/user-event';
 
 const state = vi.hoisted(() => ({ authCallback: null, snapshotNext: null, snapshotError: null, warungsSnapshots: [], postSubscriptions: [] }));
 
+vi.mock('./directory/OfficialRegionPicker.jsx', () => ({
+  default: ({ onChange }) => <button type="button" onClick={() => onChange({
+    provinceCode: '35', provinceName: 'Jawa Timur',
+    regencyCode: '35.24', regencyName: 'Kabupaten Lamongan',
+    districtCode: '35.24.10', districtName: 'Maduran',
+    villageCode: '35.24.10.2007', villageName: 'Maduran',
+  })}>Pilih wilayah resmi (uji)</button>,
+}));
+
 vi.mock('./firebase.js', () => ({ auth: { name: 'auth' }, db: { name: 'db' }, firebaseConfigured: true }));
 vi.mock('./media/uploadWarkopMedia.js', async (importOriginal) => {
   const actual = await importOriginal();
@@ -676,8 +685,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
-    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
@@ -693,9 +701,11 @@ describe('direktori dan pendaftaran warkop', () => {
       nameNormalized: 'warkop pojok',
       ownerUid: 'u1',
       coordinates: { lat: -7.0001, lng: 112.281 },
-      regionCode: 'id-jawa-timur-kabupaten-lamongan',
-      provinceName: 'Jawa Timur',
-      regencyName: 'Kabupaten Lamongan',
+      regionCode: '35.24.10.2007',
+      provinceCode: '35', provinceName: 'Jawa Timur',
+      regencyCode: '35.24', regencyName: 'Kabupaten Lamongan',
+      districtCode: '35.24.10', districtName: 'Maduran',
+      villageCode: '35.24.10.2007', villageName: 'Maduran',
       facilities: ['wi-fi', 'parkir'],
       menuItems: ['Kopi', 'teh', 'mi instan'],
       specialties: ['Kopi racikan', 'mi nyemek'],
@@ -715,8 +725,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
-    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
@@ -735,8 +744,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
-    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
@@ -758,8 +766,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
-    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
@@ -778,8 +785,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
-    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '200');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112');
@@ -794,8 +800,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Tes');
-    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
-    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');

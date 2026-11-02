@@ -90,7 +90,7 @@ Deno.test("accepts bounded MP4 video uploads without changing image limits", () 
   assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 50_000_000 + 1 }));
   assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "../other", contentType: "video/mp4", size: 1024 }));
   assertEquals(MAX_IMAGE_BYTES, 2 * 1024 * 1024);
-  assertEquals(MAX_VIDEO_BYTES, 50 * 1024 * 1024);
+  assertEquals(MAX_VIDEO_BYTES, 50_000_000);
 });
 
 Deno.test("uses a dedicated MP4 object path for feed videos", () => {
@@ -103,11 +103,11 @@ Deno.test("extracts MP4 duration and dimensions from bounded metadata", () => {
     // ftyp
     0,0,0,16, 102,116,121,112, 105,115,111,109, 0,0,2,0,
     // moov -> mvhd (version 0, timescale 1000, duration 45000 ms)
-    0,0,0,124, 109,111,111,118,
+    0,0,0,128, 109,111,111,118,
     0,0,0,28, 109,118,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,3,232, 0,0,175,200,
     // tkhd (version 0, width 1920, height 1080, 16.16 fixed point)
-    0,0,0,88, 116,107,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1,
-    ...new Array(52).fill(0), 7,128,0,0, 4,56,0,0,
+    0,0,0,92, 116,107,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1,
+    ...new Array(56).fill(0), 7,128,0,0, 4,56,0,0,
     // empty but structurally valid media-data box for the metadata fixture
     0,0,0,8, 109,100,97,116
   ]);

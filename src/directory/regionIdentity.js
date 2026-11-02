@@ -1,5 +1,5 @@
 const cleanName = (value, field) => {
-  const name = String(value || '').trim().replace(/\\s+/g, ' ');
+  const name = String(value || '').trim().split(' ').filter(Boolean).join(' ');
   if (name.length < 2 || name.length > 100) throw new Error(`Nama ${field} harus 2–100 karakter.`);
   return name;
 };
@@ -12,10 +12,10 @@ export function buildRegionIdentity(selection) {
   const districtCode = String(selection.districtCode || '');
   const villageCode = String(selection.villageCode || '');
 
-  if (!/^\\d{2}$/.test(provinceCode)
-    || !/^\\d{2}\\.\\d{2}$/.test(regencyCode)
-    || !/^\\d{2}\\.\\d{2}\\.\\d{2}$/.test(districtCode)
-    || !/^\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{4}$/.test(villageCode)
+  if (!/^[0-9]{2}$/.test(provinceCode)
+    || !/^[0-9]{2}[.][0-9]{2}$/.test(regencyCode)
+    || !/^[0-9]{2}[.][0-9]{2}[.][0-9]{2}$/.test(districtCode)
+    || !/^[0-9]{2}[.][0-9]{2}[.][0-9]{2}[.][0-9]{4}$/.test(villageCode)
     || !regencyCode.startsWith(`${provinceCode}.`)
     || !districtCode.startsWith(`${regencyCode}.`)
     || !villageCode.startsWith(`${districtCode}.`)) {

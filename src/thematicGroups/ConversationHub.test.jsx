@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 afterEach(() => cleanup());
-import ConversationHub from './ConversationHub.jsx';
+import ConversationHub, { ThematicGroupDirectory } from './ConversationHub.jsx';
 
 describe('Obrolan directory', () => {
   it('opens on the seven thematic group rooms', () => {
@@ -18,6 +18,25 @@ describe('Obrolan directory', () => {
     render(<ConversationHub onSelectCommunity={vi.fn()} onSelectThematicGroup={onSelectThematicGroup}/>);
     fireEvent.click(screen.getByRole('button', { name: 'Buka grup Pemilik Warkop' }));
     expect(onSelectThematicGroup).toHaveBeenCalledWith('pemilik-warkop');
+  });
+
+  it('filters thematic rooms by group name or topic', () => {
+    render(<ThematicGroupDirectory onSelectGroup={vi.fn()}/>);
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari grup tematik' }), { target: { value: 'lowongan' } });
+    expect(screen.getByRole('button', { name: 'Buka grup Info Pekerjaan' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Buka grup Pemilik Warkop' })).toBeNull();
+  });
+
+  it('shows recent message preview and an unread marker for a member room', () => {
+    render(<ThematicGroupDirectory groupActivity={{ 'pemilik-warkop': {
+      joined: true,
+      lastMessage: 'Ada pemasok kopi baru.',
+      lastMessageAt: { toDate: () => new Date('2026-11-02T09:00:00Z') },
+      unread: true
+    }}}/>);
+    expect(screen.getByText('Ada pemasok kopi baru.')).toBeTruthy();
+    expect(screen.getByText('Belum dibaca')).toBeTruthy();
+    expect(screen.getByText('Anggota')).toBeTruthy();
   });
 
   it('keeps the seven existing communities available in a separate tab', () => {

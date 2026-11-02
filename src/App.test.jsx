@@ -219,7 +219,7 @@ describe('halaman publik', () => {
     expect(screen.getAllByRole('button', { name: /Buka komunitas/ })).toHaveLength(7);
 
     await user.click(screen.getByRole('button', { name: /Lihat semua obrolan/ }));
-    expect(screen.getByRole('heading', { name: 'Temukan grup yang sesuai.' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Grup Tematik' })).toBeTruthy();
     expect(screen.getByText('Pemilik Warkop')).toBeTruthy();
     expect(screen.getByText('Jaringan Warga')).toBeTruthy();
     await user.click(screen.getByRole('tab', { name: 'Komunitas' }));

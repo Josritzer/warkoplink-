@@ -3,7 +3,7 @@ import {
   addDoc, collection, deleteDoc, doc, getDoc, limit, onSnapshot,
   orderBy, query, serverTimestamp, setDoc, updateDoc
 } from 'firebase/firestore';
-import { ArrowLeft, LogOut, Send, Users } from 'lucide-react';
+import { ArrowLeft, Info, LogOut, Send, SmilePlus, Users, X } from 'lucide-react';
 import { getThematicGroupById } from './thematicGroupCatalog.js';
 import { extractMentionUsernames } from '../notifications/notificationModel.js';
 import { renderMemberMentions } from '../notifications/mentionText.jsx';
@@ -24,10 +24,18 @@ function messageDate(value) {
   return date ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(date) : '';
 }
 
+function messageLoadError(error) {
+  if (error?.code === 'permission-denied') return 'Akses percakapan ditolak. Pastikan Anda masih menjadi anggota grup.';
+  if (error?.code === 'unavailable' || error?.code === 'deadline-exceeded') return 'Koneksi ke layanan pesan terganggu. Periksa internet lalu coba lagi.';
+  return 'Pesan grup belum dapat dimuat. Periksa koneksi lalu coba lagi.';
+}
+
 export default function ThematicGroupChat({ db, user, groupId, targetMessageId = '', onBack, onNotice, onRequestAuth, onOpenMention }) {
   const group = getThematicGroupById(groupId);
   const [isMember, setIsMember] = useState(false);
   const [membershipLoading, setMembershipLoading] = useState(true);
+  const [membershipError, setMembershipError] = useState('');
+  const [membershipRetry, setMembershipRetry] = useState(0);
   const [membershipBusy, setMembershipBusy] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [messages, setMessages] = useState([]);
@@ -35,14 +43,21 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
   const [reactions, setReactions] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesError, setMessagesError] = useState('');
+  const [messagesRetry, setMessagesRetry] = useState(0);
   const [draft, setDraft] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
+  const [reactionMenuMessageId, setReactionMenuMessageId] = useState('');
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [sending, setSending] = useState(false);
   const membershipLock = useRef(false);
+  const messageListRef = useRef(null);
+  const lastRenderedMessageCount = useRef(0);
+  const composeRef = useRef(null);
 
   useEffect(() => {
     let active = true;
     setIsMember(false);
+    setMembershipError('');
     setMembershipLoading(Boolean(db && group && user?.uid));
     if (!db || !group || !user?.uid) {
       setMembershipLoading(false);
@@ -58,10 +73,10 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
       if (!active) return;
       setIsMember(false);
       setMembershipLoading(false);
-      setMessagesError('Status keanggotaan belum dapat dimuat. Periksa koneksi lalu coba lagi.');
+      setMembershipError('Status keanggotaan belum dapat dimuat. Periksa koneksi lalu coba lagi.');
     });
     return () => { active = false; unsubscribe(); };
-  }, [db, group?.id, user?.uid]);
+  }, [db, group?.id, user?.uid, membershipRetry]);
 
   useEffect(() => {
     let active = true;
@@ -113,13 +128,27 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
       setMessages(nextMessages);
       setMessagesLoading(false);
       updateDoc(membershipRef, { lastReadAt: serverTimestamp() }).catch(() => {});
-    }, () => {
+    }, (error) => {
       if (!active) return;
       setMessagesLoading(false);
-      setMessagesError('Pesan grup belum dapat dimuat. Periksa koneksi lalu coba lagi.');
+      setMessagesError(messageLoadError(error));
     });
     return () => { active = false; unsubscribe(); };
-  }, [db, group?.id, user?.uid, isMember]);
+  }, [db, group?.id, user?.uid, isMember, messagesRetry]);
+
+  useEffect(() => {
+    lastRenderedMessageCount.current = 0;
+    if (messageListRef.current) messageListRef.current.scrollTop = 0;
+  }, [group?.id]);
+
+  useEffect(() => {
+    const list = messageListRef.current;
+    if (!list || !messages.length) return;
+    const distanceFromBottom = list.scrollHeight - list.scrollTop - list.clientHeight;
+    const shouldFollow = lastRenderedMessageCount.current === 0 || distanceFromBottom < 140;
+    lastRenderedMessageCount.current = messages.length;
+    if (shouldFollow) requestAnimationFrame(() => { list.scrollTop = list.scrollHeight; });
+  }, [messages]);
 
   useEffect(() => {
     let active = true;
@@ -189,6 +218,8 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
       });
     } catch {
       onNotice?.('Reaksi belum berhasil disimpan. Coba lagi.');
+    } finally {
+      setReactionMenuMessageId('');
     }
   }
 
@@ -215,6 +246,8 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
       const savedMessage = await addDoc(collection(db, 'thematicGroups', group.id, 'messages'), messageData);
       setDraft('');
       setReplyingTo(null);
+      setReactionMenuMessageId('');
+      if (composeRef.current) composeRef.current.style.height = 'auto';
       if (mentionedUsernames.length) {
         const notifications = await Promise.allSettled(mentionedUsernames.map(async (username) => {
           const usernameSnapshot = await getDoc(doc(db, 'usernames', username));
@@ -255,19 +288,31 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
       <span className="thematic-group-icon thematic-chat-avatar"><Users size={22}/></span>
       <div className="thematic-chat-title">
         <h1>{group.name}</h1>
-        <small>Grup Tematik · Percakapan bersama</small>
+        <small>Grup tematik · Percakapan bersama</small>
       </div>
-      {user?.uid && !membershipLoading && <button type="button" className="thematic-leave-button" onClick={toggleMembership} disabled={membershipBusy || !isMember} aria-label="Keluar grup" title="Keluar grup"><LogOut size={17}/></button>}
+      <button type="button" className="thematic-info-button" onClick={() => setShowGroupInfo((current) => !current)} aria-label="Info grup" aria-expanded={showGroupInfo}><Info size={19}/></button>
     </header>
 
-    <div className="thematic-chat-about">
-      <b>Tentang grup</b>
-      <p>{group.description}</p>
-      <small>Semua anggota memiliki hak yang sama. Anda bebas bergabung dan keluar kapan saja.</small>
-    </div>
+    {showGroupInfo && <aside className="thematic-chat-about" aria-label="Info grup">
+      <div className="thematic-chat-about-copy">
+        <b>Tentang grup</b>
+        <p>{group.description}</p>
+        <small>Semua anggota memiliki hak yang sama. Anda bebas bergabung dan keluar kapan saja.</small>
+      </div>
+      <div className="thematic-chat-info-actions">
+        {user?.uid && !membershipLoading && isMember && <button type="button" className="thematic-leave-button" onClick={toggleMembership} disabled={membershipBusy}>
+          <LogOut size={15}/>{membershipBusy ? 'Memproses…' : 'Keluar grup'}
+        </button>}
+        <button type="button" className="thematic-close-info" onClick={() => setShowGroupInfo(false)} aria-label="Tutup info grup"><X size={17}/></button>
+      </div>
+    </aside>}
 
-    {membershipLoading && <p className="thematic-chat-status" role="status">Memeriksa keanggotaan…</p>}
-    {!membershipLoading && !isMember && <div className="thematic-join-panel">
+    {membershipLoading && <p className="thematic-chat-status" role="status">Memeriksa akses grup…</p>}
+    {!membershipLoading && membershipError && <div className="thematic-access-error" role="alert">
+      <p>{membershipError}</p>
+      <button type="button" className="thematic-retry-button" onClick={() => setMembershipRetry((value) => value + 1)}>Coba lagi</button>
+    </div>}
+    {!membershipLoading && !membershipError && !isMember && <div className="thematic-join-panel">
       <Users size={26}/>
       <h2>Gabung untuk ikut percakapan</h2>
       <p>Riwayat grup tetap tersimpan. Jika bergabung kembali, Anda dapat membaca pesan sebelumnya.</p>
@@ -277,18 +322,23 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
     </div>}
 
     {isMember && <>
-      <div className="thematic-message-list" aria-label="Pesan grup" aria-live="polite" aria-busy={messagesLoading}>
-        {messagesLoading && <p className="thematic-chat-status" role="status">Memuat percakapan…</p>}
+      <div ref={messageListRef} className="thematic-message-list" aria-label="Pesan grup" aria-live="polite" aria-busy={messagesLoading}>
+        {messagesLoading && <div className="thematic-loading" role="status"><span/><span/><small>Memuat percakapan…</small></div>}
         {!messagesLoading && !visibleMessages.length && <div className="thematic-chat-empty">
           <Users size={26}/>
           <b>Mulai percakapan pertama</b>
-          <p>Sapa anggota lain dan mulai berbagi pengalaman.</p>
+          <p>Sapa anggota lain dan mulai berbagi pengalaman. Pesan baru akan muncul di sini.</p>
         </div>}
         {visibleMessages.map((message, index) => {
           const own = message.senderUid === user?.uid;
           const previous = visibleMessages[index - 1];
           const date = messageDate(message.createdAt);
           const showDate = date && date !== messageDate(previous?.createdAt);
+          const messageReactions = GROUP_REACTION_EMOJIS.map((emoji) => {
+            const matching = reactions.filter((item) => item.messageId === message.id && item.emoji === emoji);
+            return { emoji, matching, mine: matching.some((item) => item.uid === user?.uid) };
+          });
+          const showReactionPicker = reactionMenuMessageId === message.id;
           return <div key={message.id} className="thematic-message-group">
             {showDate && <div className="thematic-date-divider"><span>{date}</span></div>}
             <article id={`thematic-message-${message.id}`} data-message-id={message.id} className={`thematic-message ${own ? 'own' : ''} ${message.id === targetMessageId ? 'is-targeted' : ''}`.trim()}>
@@ -306,21 +356,21 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
                 <div className="thematic-message-actions">
                   <time>{messageTime(message.createdAt)}</time>
                   <button type="button" aria-label={`Balas pesan ${message.senderName || 'anggota'}`} onClick={() => setReplyingTo(message)}>Balas</button>
+                  <button type="button" className="thematic-add-reaction" aria-label={`Pilih reaksi pesan ${message.senderName || 'anggota'}`} aria-expanded={showReactionPicker} onClick={() => setReactionMenuMessageId((current) => current === message.id ? '' : message.id)}><SmilePlus size={15}/></button>
                 </div>
-                <div className="thematic-reaction-row" aria-label="Reaksi pesan">
-                  {GROUP_REACTION_EMOJIS.map((emoji) => {
-                    const matching = reactions.filter((item) => item.messageId === message.id && item.emoji === emoji);
-                    const mine = matching.some((item) => item.uid === user?.uid);
-                    return <button key={emoji} type="button" className={mine ? 'is-selected' : ''} aria-pressed={mine} aria-label={`Reaksi ${emoji} (${matching.length})`} onClick={() => toggleReaction(message.id, emoji)}>
-                      <span>{emoji}</span>{matching.length > 0 && <small>{matching.length}</small>}
-                    </button>;
-                  })}
-                </div>
+                {(messageReactions.some((item) => item.matching.length) || showReactionPicker) && <div className={`thematic-reaction-row ${showReactionPicker ? 'is-open' : ''}`}>
+                  {messageReactions.filter((item) => item.matching.length).map(({ emoji, matching, mine }) => <button key={emoji} type="button" className={mine ? 'is-selected' : ''} aria-pressed={mine} aria-label={`Reaksi ${emoji} (${matching.length})`} onClick={() => toggleReaction(message.id, emoji)}>
+                    <span>{emoji}</span><small>{matching.length}</small>
+                  </button>)}
+                  {showReactionPicker && <div className="thematic-reaction-picker" role="group" aria-label="Pilih reaksi">
+                    {messageReactions.map(({ emoji, matching, mine }) => <button key={emoji} type="button" className={mine ? 'is-selected' : ''} aria-pressed={mine} aria-label={`Reaksi ${emoji} (${matching.length})`} onClick={() => toggleReaction(message.id, emoji)}>{emoji}</button>)}
+                  </div>}
+                </div>}
               </div>
             </article>
           </div>;
         })}
-        {messagesError && <p className="thematic-chat-error" role="alert">{messagesError}</p>}
+        {messagesError && <div className="thematic-chat-error" role="alert"><p>{messagesError}</p><button type="button" onClick={() => setMessagesRetry((value) => value + 1)}>Coba lagi</button></div>}
       </div>
       <form className="thematic-compose-wrap" onSubmit={sendMessage}>
         {replyingTo && <div className="thematic-replying-banner">
@@ -329,7 +379,16 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
         </div>}
         <div className="thematic-compose">
           <label className="sr-only" htmlFor="thematic-message-input">Tulis pesan grup</label>
-          <input id="thematic-message-input" aria-label="Tulis pesan grup" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} placeholder="Tulis pesan…" disabled={sending}/>
+          <textarea ref={composeRef} id="thematic-message-input" aria-label="Tulis pesan grup" value={draft} onChange={(event) => {
+            setDraft(event.target.value);
+            event.target.style.height = 'auto';
+            event.target.style.height = `${Math.min(event.target.scrollHeight, 112)}px`;
+          }} onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }
+          }} maxLength={2000} rows={1} enterKeyHint="send" placeholder="Tulis pesan…" disabled={sending}/>
           <span className="thematic-compose-count">{draft.length}/2000</span>
           <button type="submit" aria-label="Kirim pesan" disabled={!draft.trim() || sending || !profileName}>{sending ? '…' : <Send size={18}/>}</button>
         </div>

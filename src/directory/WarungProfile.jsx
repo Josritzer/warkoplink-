@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { collection, deleteDoc, doc, getCountFromServer, getDoc, limit, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { ArrowLeft, MapPin, ShieldCheck, Store, Users, UserPlus, UserRoundCheck, Clock, CalendarDays, Share2 } from 'lucide-react';
 import { ACTIVITY_OPTIONS } from './directoryFilters.js';
+import { buildGoogleMapsDirectionsUrl } from './mapLocation.js';
 import { uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { validateImageFile } from '../media/imagePolicy.js';
 
@@ -276,7 +277,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       <section className="warung-profile-info-block"><h3>Fasilitas</h3>
         {(Array.isArray(warung.facilities) && warung.facilities.length > 0) ? <div className="facility-tags">{warung.facilities.map((facility) => <span key={facility}>{facility}</span>)}</div> : <p className="profile-empty-hint">Fasilitas belum dicantumkan. Tanyakan langsung kepada warkop sebelum berkunjung.</p>}
       </section>
-      {Number.isFinite(warung.coordinates?.lat) && Number.isFinite(warung.coordinates?.lng) && <a className="warung-map-link" href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(warung.coordinates.lat + ',' + warung.coordinates.lng)} target="_blank" rel="noopener noreferrer">Lihat lokasi di peta ↗</a>}
+      {buildGoogleMapsDirectionsUrl(warung.coordinates?.lat, warung.coordinates?.lng) && <a className="warung-map-link" href={buildGoogleMapsDirectionsUrl(warung.coordinates.lat, warung.coordinates.lng)} target="_blank" rel="noopener noreferrer">Navigasi dengan Google Maps ↗</a>}
     </div>
     <section className="warung-profile-events" aria-labelledby="warung-profile-events-title">
       <h2 id="warung-profile-events-title">Acara dari warkop ini</h2>

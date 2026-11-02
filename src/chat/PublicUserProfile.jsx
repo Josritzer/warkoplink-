@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, MessageCircle, UserRound, Pencil, CalendarDays } from 'lucide-react';
-import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { friendNotificationId } from '../messaging/messageModel.js';
 import { isPublicPost } from '../lib.js';
 
 function postDate(value) {
@@ -9,13 +10,57 @@ function postDate(value) {
   return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
-export default function PublicUserProfile({ profile: fallbackProfile, db, currentUser, onBack, onEditProfile }) {
+export default function PublicUserProfile({ profile: fallbackProfile, db, currentUser, onBack, onEditProfile, onStartMessage }) {
   const uid = fallbackProfile?.uid || '';
   const [profile, setProfile] = useState(fallbackProfile || null);
   const [posts, setPosts] = useState([]);
   const [status, setStatus] = useState('loading');
   const [activeTab, setActiveTab] = useState('Postingan');
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isMutual, setIsMutual] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
   const isOwnProfile = Boolean(currentUser?.uid && currentUser.uid === uid);
+
+  useEffect(() => {
+    if (!db || !currentUser?.uid || !uid || currentUser.uid === uid) {
+      setIsFollowing(false); setIsMutual(false); return undefined;
+    }
+    let active = true;
+    Promise.all([
+      getDoc(doc(db, 'userFollows', `${currentUser.uid}_${uid}`)),
+      getDoc(doc(db, 'userFollows', `${uid}_${currentUser.uid}`))
+    ]).then(([outgoing, incoming]) => {
+      if (active) { setIsFollowing(outgoing.exists()); setIsMutual(outgoing.exists() && incoming.exists()); }
+    }).catch(() => { if (active) { setIsFollowing(false); setIsMutual(false); } });
+    return () => { active = false; };
+  }, [db, currentUser?.uid, uid]);
+
+  async function toggleFollow() {
+    if (!db || !currentUser?.uid || !uid || isOwnProfile || followBusy) return;
+    setFollowBusy(true);
+    const followRef = doc(db, 'userFollows', `${currentUser.uid}_${uid}`);
+    try {
+      if (isFollowing) {
+        await deleteDoc(followRef);
+        setIsFollowing(false); setIsMutual(false);
+      } else {
+        await setDoc(followRef, { followerUid: currentUser.uid, followedUid: uid, createdAt: serverTimestamp() });
+        setIsFollowing(true);
+        const reverse = await getDoc(doc(db, 'userFollows', `${uid}_${currentUser.uid}`));
+        setIsMutual(reverse.exists());
+        if (reverse.exists()) {
+          const notificationRef = doc(db, 'notifications', friendNotificationId(currentUser.uid, uid, uid));
+          const notification = await getDoc(notificationRef);
+          if (!notification.exists()) {
+            await setDoc(notificationRef, { recipientUid: uid, actorUid: currentUser.uid, type: 'friend', friendUid: currentUser.uid, createdAt: serverTimestamp(), readAt: null });
+          }
+        }
+      }
+    } catch {
+      // Hubungan tetap ditentukan oleh dokumen follow; kegagalan tidak boleh dipresentasikan sebagai berhasil.
+      setIsFollowing(false); setIsMutual(false);
+    } finally { setFollowBusy(false); }
+  }
 
   useEffect(() => {
     if (!db || !uid) { setStatus('error'); return undefined; }
@@ -78,6 +123,10 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
           <p>{profile?.username ? '@' + profile.username : (isOwnProfile ? 'Ini profil Anda' : 'Anggota komunitas WarkopLink')}</p>
         </div>
         {isOwnProfile && <button type="button" className="button button-dark member-profile-edit-mobile" onClick={onEditProfile}><Pencil size={15}/> Edit profil</button>}
+        {!isOwnProfile && currentUser?.uid && <div className="member-profile-social-actions">
+          <button type="button" className={isFollowing ? 'button button-quiet' : 'button button-dark'} onClick={toggleFollow} disabled={followBusy}>{followBusy ? 'Memproses…' : isMutual ? 'Teman' : isFollowing ? 'Mengikuti' : 'Ikuti'}</button>
+          {isMutual && <button type="button" className="button button-quiet" onClick={() => onStartMessage?.(profile || fallbackProfile)}><MessageCircle size={15}/> Pesan</button>}
+        </div>}
       </div>
       <div className="member-profile-stats">
         <div><strong>{status === 'ready' ? posts.length : '—'}</strong><span>Postingan</span></div>

@@ -1372,3 +1372,7 @@
     transition: none;
   }
 }
+
+.thematic-reaction-trigger[aria-label*="Bintang"] span {
+  filter: drop-shadow(0 1px 3px rgba(214, 160, 44, .42));
+}

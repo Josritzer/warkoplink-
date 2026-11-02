@@ -134,6 +134,25 @@ describe('thematic group conversation', () => {
     expect(target.closest('[data-message-id="older-mentioned-message"]')?.className).toContain('is-targeted');
   });
 
+  it('does not show the empty-chat prompt when only a notification target is loaded', async () => {
+    state.memberExists = true;
+    state.onSnapshot.mockImplementation((ref, next) => {
+      if (ref.path.endsWith('/members/alice')) next({ exists: () => true, data: () => ({ lastReadAt: null }) });
+      else if (ref.path.endsWith('/reactions')) next({ docs: [] });
+      else if (ref.path.endsWith('/messages')) next({ docs: [] });
+      return vi.fn();
+    });
+    state.getDoc.mockImplementation((ref) => ref.path.endsWith('/messages/older-mentioned-message')
+      ? Promise.resolve({ exists: () => true, id: 'older-mentioned-message', data: () => ({
+          senderUid: 'bob', senderName: 'Budi', text: 'Pesan mention lama',
+          createdAt: { toDate: () => new Date('2026-11-01T08:00:00Z') }
+        }) })
+      : Promise.resolve({ exists: () => true, data: () => ({ displayName: 'Alice' }) }));
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" targetMessageId="older-mentioned-message" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Pesan mention lama')).toBeTruthy();
+    expect(screen.queryByText('Mulai percakapan pertama')).toBeNull();
+  });
+
   it('lets a member add an emoji reaction to a message', async () => {
     state.memberExists = true;
     render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);

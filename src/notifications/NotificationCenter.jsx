@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, where, updateDoc, writeBatch } from 'firebase/firestore';
-import { Bell, CheckCheck, MessageCircle, AtSign, Heart, Store } from 'lucide-react';
+import { Bell, CheckCheck, MessageCircle, AtSign, Heart, Store, UserRound, MessageSquare } from 'lucide-react';
 import { isUnreadNotification, notificationLabel } from './notificationModel.js';
 import { relativePostTime } from '../chat/postTime.js';
 
-const ICONS = { mention: AtSign, comment: MessageCircle, reaction: Heart, follow: Store };
+const ICONS = { mention: AtSign, comment: MessageCircle, reaction: Heart, follow: Store, friend: UserRound, message: MessageSquare };
 
 export default function NotificationCenter({ db, user, onOpenNotification, onNotice }) {
   const [items, setItems] = useState([]);
@@ -77,6 +77,6 @@ export default function NotificationCenter({ db, user, onOpenNotification, onNot
           <span className="notification-copy"><b>{actor?.displayName || 'Anggota WarkopLink'}</b><span>{notificationLabel(item)}{item.username ? ` · @${item.username}` : ''}</span><small>{item.createdAt?.toDate ? relativePostTime(item.createdAt) : 'Baru saja'}</small></span>
           {isUnreadNotification(item) && <i aria-label="Belum dibaca"/>}
         </button>;
-      })}</div> : <div className="empty-state notification-empty"><span><Bell size={22}/></span><h3>Belum ada notifikasi</h3><p>Aktivitas seperti mention dan komentar akan muncul di sini.</p></div>}
+      })}</div> : <div className="empty-state notification-empty"><span><Bell size={22}/></span><h3>Belum ada notifikasi</h3><p>Pesan pribadi, komentar, mention, dan pertemanan baru akan muncul di sini.</p></div>}
   </section>;
 }

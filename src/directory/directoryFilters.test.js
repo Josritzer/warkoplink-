@@ -16,6 +16,19 @@ describe('directoryFilters', () => {
     expect(filterWarungs(items)).toHaveLength(3);
   });
 
+
+  it('mencari warkop berdasarkan kabupaten/kota dan provinsi', () => {
+    const national = [{
+      id: 'surabaya',
+      name: 'Kopi Kota',
+      address: 'Jl. Tunjungan',
+      provinceName: 'Jawa Timur',
+      regencyName: 'Kota Surabaya',
+    }];
+    expect(filterWarungs(national, { search: 'surabaya' }).map((item) => item.id)).toEqual(['surabaya']);
+    expect(filterWarungs(national, { search: 'jawa timur' }).map((item) => item.id)).toEqual(['surabaya']);
+  });
+
   it('menyaring berdasarkan kata kunci pada nama, alamat, dan fasilitas', () => {
     expect(filterWarungs(items, { search: 'babat' }).map((i) => i.id)).toEqual(['3']);
     expect(filterWarungs(items, { search: 'parkir' }).map((i) => i.id)).toEqual(['1']);

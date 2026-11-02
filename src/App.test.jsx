@@ -864,13 +864,15 @@ describe('notifikasi sementara dan unggah foto profil', () => {
     expect(screen.queryByText(/Firebase account is disabled/)).toBeNull();
   });
 
-  it('menghilangkan notifikasi sementara setelah tiga detik', () => {
-    vi.useFakeTimers();
+  it('menghilangkan notifikasi sementara setelah tiga detik', async () => {
+    const user = userEvent.setup();
     render(<App />);
     emitAuth(null);
     emitPosts([]);
-    fireEvent.click(screen.getByRole('button', { name: 'Obrolan' }));
-    fireEvent.click(screen.getByRole('button', { name: /Masuk untuk mulai ngobrol/ }));
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
+    const composerTrigger = await screen.findByRole('button', { name: /Masuk untuk mulai ngobrol/ });
+    vi.useFakeTimers();
+    fireEvent.click(composerTrigger);
     const notice = 'Masuk untuk mulai berbagi obrolan.';
     expect(screen.getByText(notice)).toBeTruthy();
     act(() => { vi.advanceTimersByTime(3000); });

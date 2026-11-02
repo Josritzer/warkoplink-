@@ -38,6 +38,7 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
   const [membershipRetry, setMembershipRetry] = useState(0);
   const [membershipBusy, setMembershipBusy] = useState(false);
   const [profileName, setProfileName] = useState('');
+  const [publicProfiles, setPublicProfiles] = useState({});
   const [messages, setMessages] = useState([]);
   const [targetMessage, setTargetMessage] = useState(null);
   const [reactions, setReactions] = useState([]);
@@ -106,6 +107,26 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
       .catch(() => { if (active) setProfileName(''); });
     return () => { active = false; };
   }, [db, user?.uid]);
+
+  // Keep group-message avatars synchronized with the public profile source used by the feed.
+  useEffect(() => {
+    if (!db || !isMember) {
+      setPublicProfiles({});
+      return undefined;
+    }
+    const senderIds = [...new Set([user?.uid, ...messages.map((message) => message.senderUid)]
+      .filter((uid) => typeof uid === 'string' && uid))];
+    if (!senderIds.length) return undefined;
+    const unsubscribers = senderIds.map((uid) => onSnapshot(
+      doc(db, 'publicProfiles', uid),
+      (snapshot) => setPublicProfiles((current) => ({
+        ...current,
+        [uid]: snapshot.exists() ? snapshot.data() : null
+      })),
+      () => setPublicProfiles((current) => ({ ...current, [uid]: null }))
+    ));
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [db, isMember, user?.uid, messages.map((message) => message.senderUid).join('|')]);
 
   useEffect(() => {
     let active = true;
@@ -358,7 +379,11 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
           return <div key={message.id} className="thematic-message-group">
             {showDate && <div className="thematic-date-divider"><span>{date}</span></div>}
             <article id={`thematic-message-${message.id}`} data-message-id={message.id} className={`thematic-message ${own ? 'own' : ''} ${message.id === targetMessageId ? 'is-targeted' : ''}`.trim()} onTouchStart={() => startReactionPress(message.id)} onTouchEnd={cancelReactionPress} onTouchMove={cancelReactionPress} onTouchCancel={cancelReactionPress}>
-              {!own && <span className="thematic-message-initial">{initials(message.senderName)}</span>}
+              {!own && <span className="thematic-message-avatar" aria-label={publicProfiles[message.senderUid]?.photoURL ? `Foto profil ${message.senderName || 'anggota'}` : `Avatar ${message.senderName || 'anggota'}`}>
+                {publicProfiles[message.senderUid]?.photoURL
+                  ? <img src={publicProfiles[message.senderUid].photoURL} alt={`Foto profil ${message.senderName || 'anggota'}`} loading="lazy" referrerPolicy="no-referrer"/>
+                  : <span className="thematic-message-initial">{initials(message.senderName)}</span>}
+              </span>}
               <div className="thematic-message-bubble">
                 {!own && <b>{message.senderName || 'Anggota WARKOPLINK'}</b>}
                 {message.replyToMessageId && (() => {
@@ -383,6 +408,11 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
                   </div>}
                 </div>}
               </div>
+              {own && <span className="thematic-message-avatar" aria-label={publicProfiles[user?.uid]?.photoURL ? 'Foto profil Anda' : 'Avatar Anda'}>
+                {publicProfiles[user?.uid]?.photoURL
+                  ? <img src={publicProfiles[user.uid].photoURL} alt="Foto profil Anda" loading="lazy" referrerPolicy="no-referrer"/>
+                  : <span className="thematic-message-initial">{initials(profileName || user?.displayName)}</span>}
+              </span>}
             </article>
           </div>;
         })}

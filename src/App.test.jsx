@@ -302,7 +302,7 @@ describe('halaman publik', () => {
     await screen.findByText('Halo semuanya');
 
     await user.click(screen.getByRole('button', { name: 'Desktop: Jual beli & jasa' }));
-    expect(screen.getByRole('button', { name: 'Jual Beli & Jasa Lokal' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Jual Beli' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByText('Halo semuanya')).toBeNull();
     expect(screen.queryByText('Berapa harga layanan?')).toBeNull();
     expect(screen.queryByText('Usul fitur baru')).toBeNull();
@@ -550,11 +550,11 @@ describe('membuat postingan', () => {
     await act(async () => { resolvePost(); });
   });
 
-  it('lima kategori final tersedia sebagai tab feed', async () => {
+  it('tujuh kategori final tersedia sebagai tab feed', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
-    for (const category of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']) {
+    for (const category of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas']) {
       expect(screen.getByRole('button', { name: category })).toBeTruthy();
     }
     expect(screen.queryByRole('combobox', { name: 'Kategori obrolan' })).toBeNull();

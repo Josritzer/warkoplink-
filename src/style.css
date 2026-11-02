@@ -801,3 +801,5 @@
 .community-post-gate span{color:var(--wl-muted)}
 @media(min-width:700px){.community-directory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.community-shortcut{flex-basis:124px}.community-directory-card{padding:16px}}
 @media(max-width:420px){.community-group-identity{align-items:flex-start;flex-wrap:wrap}.community-group-copy{flex-basis:calc(100% - 74px)}.community-membership-button{margin-left:71px}.community-directory-grid{gap:8px}.community-directory-card{padding:11px}.community-shortcut{flex-basis:104px}}
+
+.post-meta .post-community-label{background:var(--wl-primary-tint);color:var(--wl-primary);font-weight:750}

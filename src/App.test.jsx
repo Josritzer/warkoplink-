@@ -164,11 +164,12 @@ describe('navigasi utama dan halaman pesan', () => {
     expect(screen.getByRole('tab', { name: 'Pribadi' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Komunitas' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
-    expect(screen.getByText(/fitur pertemanan dan pesan pribadi belum aktif/i)).toBeTruthy();
+    expect(screen.getByText(/fitur pertemanan dan pesan pribadi tersedia setelah Anda masuk/i)).toBeTruthy();
     await user.click(screen.getByRole('tab', { name: 'Komunitas' }));
-    expect(screen.getByText(/komunitas resmi dikelola oleh admin WarkopLink/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Obrolan komunitas' })).toBeTruthy();
+    expect(screen.getByLabelText('Kategori obrolan')).toBeTruthy();
     await user.click(screen.getByRole('tab', { name: 'Teman' }));
-    expect(screen.getByText(/hubungan saling mengikuti/i)).toBeTruthy();
+    expect(screen.getByText(/hubungan saling mengikuti akan ditampilkan sebagai teman/i)).toBeTruthy();
   });
 });
 

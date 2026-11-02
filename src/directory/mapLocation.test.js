@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getMapInitialView, parseMapCoordinates } from './mapLocation.js';
+import { buildGoogleMapsDirectionsUrl, getMapInitialView, parseMapCoordinates } from './mapLocation.js';
 
 describe('koordinat pemilih lokasi warkop', () => {
   it('membaca koordinat valid yang sudah diisi pengguna', () => {
@@ -19,5 +19,21 @@ describe('koordinat pemilih lokasi warkop', () => {
 
   it('memulai dari wilayah Lamongan jika koordinat belum tersedia', () => {
     expect(getMapInitialView('', '')).toEqual({ center: [-7, 112.28], zoom: 12 });
+  });
+
+  it('membuka Google Maps ke rute menuju koordinat warkop yang sama', () => {
+    const destination = buildGoogleMapsDirectionsUrl('-7.123456', '112.654321');
+    const url = new URL(destination);
+    expect(url.origin + url.pathname).toBe('https://www.google.com/maps/dir/');
+    expect(url.searchParams.get('api')).toBe('1');
+    expect(url.searchParams.get('destination')).toBe('-7.123456,112.654321');
+    expect(url.searchParams.get('travelmode')).toBe('driving');
+    expect(url.searchParams.get('dir_action')).toBe('navigate');
+  });
+
+  it('tidak membuat tautan Google Maps jika koordinat tidak valid', () => {
+    expect(buildGoogleMapsDirectionsUrl('', '')).toBeNull();
+    expect(buildGoogleMapsDirectionsUrl('-91', '112')).toBeNull();
+    expect(buildGoogleMapsDirectionsUrl('-7', '181')).toBeNull();
   });
 });

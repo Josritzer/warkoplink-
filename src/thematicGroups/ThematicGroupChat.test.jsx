@@ -130,7 +130,7 @@ describe('thematic group conversation', () => {
       return Promise.resolve({ exists: () => true, data: () => ({ displayName: 'Alice' }) });
     });
     render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" targetMessageId="older-mentioned-message" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
-    const target = await screen.findByText('Informasi khusus untuk @alice');
+    const target = await screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === 'Informasi khusus untuk @alice');
     expect(target.closest('[data-message-id="older-mentioned-message"]')?.className).toContain('is-targeted');
   });
 

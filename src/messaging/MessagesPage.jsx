@@ -99,8 +99,8 @@ export default function MessagesPage({
   useEffect(() => {
     if (!db || !selectedId || !conversation || !user?.uid) { setMessages([]); setLoadingMessages(false); return undefined; }
     setLoadingMessages(true);
-    return onSnapshot(query(collection(db,'conversations',selectedId,'messages'),orderBy('createdAt','asc'),limit(100)),snap=>{
-      setMessages(snap.docs.map(d=>({id:d.id,...d.data()})));setLoadingMessages(false);
+    return onSnapshot(query(collection(db,'conversations',selectedId,'messages'),orderBy('createdAt','desc'),limit(100)),snap=>{
+      setMessages(snap.docs.map(d=>({id:d.id,...d.data()})).reverse());setLoadingMessages(false);
       if(conversation.unreadFor===user.uid) updateDoc(doc(db,'conversations',selectedId),{unreadFor:''}).catch(()=>{});
     },()=>{setLoadingMessages(false);setError('Pesan belum dapat dimuat. Coba lagi.');});
   },[db,selectedId,conversation?.unreadFor,user?.uid]);

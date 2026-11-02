@@ -32,6 +32,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Validate isolated Firebase preview configuration
+        id: preview_config
         env:
           FIREBASE_PREVIEW_PROJECT_ID: ${{ vars.FIREBASE_PREVIEW_PROJECT_ID }}
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY_PREVIEW }}
@@ -43,26 +44,35 @@ jobs:
           FIREBASE_PREVIEW_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_PREVIEW_SERVICE_ACCOUNT }}
         run: |
           set -euo pipefail
-          if [[ -z "$FIREBASE_PREVIEW_PROJECT_ID" || "$FIREBASE_PREVIEW_PROJECT_ID" == "sl-community-platform" ]]; then
-            echo "::error::FIREBASE_PREVIEW_PROJECT_ID wajib menunjuk proyek Firebase pengujian terpisah, bukan proyek produksi."
+          if [[ "$FIREBASE_PREVIEW_PROJECT_ID" == "sl-community-platform" ]]; then
+            echo "::error::Preview dilarang memakai proyek Firebase produksi."
             exit 1
+          fi
+          if [[ -z "$FIREBASE_PREVIEW_PROJECT_ID" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Preview dilewati aman: proyek Firebase pengujian belum disiapkan."
+            exit 0
           fi
           for key in VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_APP_ID VITE_FIREBASE_MESSAGING_SENDER_ID VITE_FIREBASE_STORAGE_BUCKET FIREBASE_PREVIEW_SERVICE_ACCOUNT; do
             if [[ -z "${!key:-}" ]]; then
-              echo "::error::Konfigurasi preview belum lengkap: $key"
-              exit 1
+              echo "configured=false" >> "$GITHUB_OUTPUT"
+              echo "::notice::Preview dilewati aman: konfigurasi pengujian belum lengkap ($key)."
+              exit 0
             fi
           done
           if [[ "$VITE_FIREBASE_PROJECT_ID" != "$FIREBASE_PREVIEW_PROJECT_ID" ]]; then
             echo "::error::Build Firebase project ID tidak cocok dengan proyek preview."
             exit 1
           fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
           echo "Preview target verified: $FIREBASE_PREVIEW_PROJECT_ID"
 
       - name: Install dependencies
+        if: steps.preview_config.outputs.configured == 'true'
         run: npm install --no-audit --no-fund
 
       - name: Build against the isolated preview Firebase project
+        if: steps.preview_config.outputs.configured == 'true'
         env:
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY_PREVIEW }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN_PREVIEW }}
@@ -83,23 +93,27 @@ jobs:
           npm run build
 
       - name: Authenticate to the isolated Firebase project
+        if: steps.preview_config.outputs.configured == 'true'
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.FIREBASE_PREVIEW_SERVICE_ACCOUNT }}
 
       - name: Deploy Firestore rules and indexes to preview project only
+        if: steps.preview_config.outputs.configured == 'true'
         env:
           FIREBASE_PREVIEW_PROJECT_ID: ${{ vars.FIREBASE_PREVIEW_PROJECT_ID }}
         run: |
           npx --yes firebase-tools deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PREVIEW_PROJECT_ID" --non-interactive
 
       - name: Publish temporary Hosting preview
+        if: steps.preview_config.outputs.configured == 'true'
         env:
           FIREBASE_PREVIEW_PROJECT_ID: ${{ vars.FIREBASE_PREVIEW_PROJECT_ID }}
         run: |
           npx --yes firebase-tools hosting:channel:deploy "pr-${{ github.event.pull_request.number }}" --project "$FIREBASE_PREVIEW_PROJECT_ID" --expires 7d --non-interactive
 
       - name: Report isolated preview target
+        if: steps.preview_config.outputs.configured == 'true'
         if: success()
         run: |
           echo "Preview deployed only to Firebase test project: ${{ vars.FIREBASE_PREVIEW_PROJECT_ID }}"

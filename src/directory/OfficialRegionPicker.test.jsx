@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import OfficialRegionPicker from './OfficialRegionPicker.jsx';
+import OfficialRegionPicker, { clearOfficialRegionCache } from './OfficialRegionPicker.jsx';
 
 const responses = {
   'provinces.json': [{ id: '35', name: 'Jawa Timur' }],
@@ -11,6 +11,7 @@ const responses = {
 
 afterEach(() => {
   cleanup();
+  clearOfficialRegionCache();
   vi.unstubAllGlobals();
 });
 

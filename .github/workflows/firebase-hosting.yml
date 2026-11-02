@@ -1,6 +1,10 @@
-name: Build and manually deploy WarkopLink
+name: Build and automatically deploy WarkopLink
 
 on:
+  workflow_run:
+    workflows: ["Community app CI"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       confirm_production_deploy:
@@ -18,10 +22,13 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_production_deploy == true) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout exact successful main commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -51,13 +58,15 @@ jobs:
           retention-days: 1
 
   deploy:
-    if: ${{ inputs.confirm_production_deploy == true }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_production_deploy == true) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     needs: build
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Checkout repository
+      - name: Checkout exact successful main commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Download Hosting build artifact
         uses: actions/download-artifact@v4

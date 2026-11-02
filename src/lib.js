@@ -1,3 +1,5 @@
+import { COMMUNITY_GROUPS } from './community/communityCatalog.js';
+
 // Logika murni (tanpa Firebase/React) agar mudah diuji dan konsisten dengan firestore.rules.
 
 export const MAX_POST_LENGTH = 2000;
@@ -7,7 +9,7 @@ export const PASSWORD_MIN = 6;
 export const FALLBACK_AUTHOR_NAME = 'Anggota';
 
 // Satu sumber kategori utama untuk feed, komunitas, dan formulir posting.
-export const POST_TOPICS = ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas'];
+export const POST_TOPICS = COMMUNITY_GROUPS.map(({ name }) => name);
 export const FILTER_TOPICS = ['Semua', ...POST_TOPICS];
 export const POST_SUBTYPES = {
   'Ngopi Bareng': ['Cari teman ngopi', 'Ajakan ngopi', 'Cerita suasana warkop'],

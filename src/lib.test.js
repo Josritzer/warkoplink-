@@ -1,3 +1,4 @@
+import { COMMUNITY_GROUPS } from './community/communityCatalog.js';
 import { describe, expect, it } from 'vitest';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, displayTopic, filterPosts,
@@ -44,6 +45,7 @@ describe('validatePostBody', () => {
 describe('kategori', () => {
   it('menyediakan tujuh kategori utama yang sama dengan komunitas resmi', () => {
     expect(POST_TOPICS).toEqual(['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas']);
+    expect(POST_TOPICS).toEqual(COMMUNITY_GROUPS.map(({ name }) => name));
     expect(FILTER_TOPICS).toEqual(['Semua', ...POST_TOPICS]);
     expect(validateTopic('Ngopi Bareng')).toBe(true);
     expect(validateTopic('Semua')).toBe(false);

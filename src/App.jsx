@@ -758,9 +758,11 @@ export default function App() {
       }
       if (details.videoFile) {
         try {
-          await uploadWarkopMedia({ user, mediaType: 'video', resourceId: postRef.id, file: details.videoFile });
+          await uploadWarkopMedia({ user, mediaType: 'video', resourceId: postRef.id, file: details.videoFile, onProgress: details.onVideoProgress, signal: details.videoSignal });
         } catch (error) {
-          posterNotice += ` Postingan sudah terbit, tetapi video belum berhasil diunggah: ${photoUploadErrorMessage(error)}`;
+          posterNotice += error?.name === 'AbortError'
+            ? ' Postingan teks tetap terbit; unggahan video dibatalkan.'
+            : ` Postingan sudah terbit, tetapi video belum berhasil diunggah: ${photoUploadErrorMessage(error)}`;
         }
       }
       setDraft('');

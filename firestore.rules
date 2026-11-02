@@ -182,6 +182,34 @@ service cloud.firestore {
       ];
     }
 
+    function isOfficialThematicGroupId(groupId) {
+      return groupId is string && groupId in [
+        'pemilik-warkop', 'pelaku-umkm', 'info-pekerjaan', 'event-nobar',
+        'komunitas-olahraga', 'kreator-lokal', 'jaringan-warga'
+      ];
+    }
+
+    function thematicGroupMemberPath(groupId, memberUid) {
+      return /databases/$(database)/documents/thematicGroups/$(groupId)/members/$(memberUid);
+    }
+
+    function isThematicGroupMember(groupId) {
+      return signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && exists(thematicGroupMemberPath(groupId, request.auth.uid));
+    }
+
+    function validThematicGroupReply(groupId, data) {
+      return !data.keys().hasAny(['replyToMessageId'])
+        || (data.replyToMessageId is string
+          && exists(/databases/$(database)/documents/thematicGroups/$(groupId)/messages/$(data.replyToMessageId)));
+    }
+
+    function validThematicGroupMentions(data) {
+      return !data.keys().hasAny(['mentionedUsernames'])
+        || (data.mentionedUsernames is list && data.mentionedUsernames.size() <= 10);
+    }
+
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
         && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'communityId', 'createdAt', 'reactions', 'totalReactions'])
@@ -413,6 +441,69 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
       allow update: if false;
       allow delete: if signedIn() && request.auth.uid == memberUid;
+    }
+
+    // Grup Tematik: keanggotaan mandiri, tanpa peran admin/moderator khusus.
+    // Riwayat pesan tetap tersimpan; akses pesan hanya aktif selama pengguna menjadi anggota.
+    match /thematicGroups/{groupId}/members/{memberUid} {
+      allow read: if signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && request.auth.uid == memberUid;
+      allow create: if signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && request.auth.uid == memberUid
+        && request.resource.data.keys().hasAll(['uid', 'joinedAt', 'lastReadAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'joinedAt', 'lastReadAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.joinedAt == request.time
+        && request.resource.data.lastReadAt == request.time;
+      allow update: if signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && request.auth.uid == memberUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastReadAt'])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.joinedAt == resource.data.joinedAt
+        && request.resource.data.lastReadAt == request.time;
+      allow delete: if signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && request.auth.uid == memberUid;
+    }
+
+    match /thematicGroups/{groupId}/messages/{messageId} {
+      allow read: if isThematicGroupMember(groupId);
+      allow create: if isThematicGroupMember(groupId)
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && request.resource.data.keys().hasAll(['senderUid', 'senderName', 'text', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['senderUid', 'senderName', 'text', 'createdAt', 'replyToMessageId', 'mentionedUsernames'])
+        && request.resource.data.senderUid == request.auth.uid
+        && request.resource.data.senderName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 1
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.createdAt == request.time
+        && validThematicGroupReply(groupId, request.resource.data)
+        && validThematicGroupMentions(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /thematicGroups/{groupId}/reactions/{reactionId} {
+      allow read: if isThematicGroupMember(groupId);
+      allow create: if isThematicGroupMember(groupId)
+        && request.resource.data.keys().hasAll(['messageId', 'uid', 'emoji', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['messageId', 'uid', 'emoji', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && reactionId == request.resource.data.messageId + '_' + request.auth.uid
+        && exists(/databases/$(database)/documents/thematicGroups/$(groupId)/messages/$(request.resource.data.messageId))
+        && request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '🔥']
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isThematicGroupMember(groupId)
+        && request.auth.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emoji', 'updatedAt'])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.messageId == resource.data.messageId
+        && request.resource.data.emoji in ['👍', '❤️', '😂', '😮', '😢', '🔥']
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isThematicGroupMember(groupId) && request.auth.uid == resource.data.uid;
     }
 
     match /posts/{postId} {
@@ -663,7 +754,7 @@ service cloud.firestore {
     function validNotification(data) {
       return signedIn()
         && data.keys().hasAll(['recipientUid', 'actorUid', 'type', 'createdAt', 'readAt'])
-        && data.keys().hasOnly(['recipientUid', 'actorUid', 'type', 'postId', 'replyId', 'username', 'warungId', 'friendUid', 'conversationId', 'messageId', 'createdAt', 'readAt'])
+        && data.keys().hasOnly(['recipientUid', 'actorUid', 'type', 'postId', 'replyId', 'username', 'warungId', 'friendUid', 'conversationId', 'messageId', 'groupId', 'createdAt', 'readAt'])
         && data.recipientUid is string
         && data.recipientUid != request.auth.uid
         && data.actorUid == request.auth.uid
@@ -687,6 +778,18 @@ service cloud.firestore {
                 && get(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId)).data.authorId == request.auth.uid
                 && validMentionText(get(/databases/$(database)/documents/posts/$(data.postId)/replies/$(data.replyId)).data.body, data.username))
             ))
+          || (data.type == 'mention'
+            && data.groupId is string
+            && isOfficialThematicGroupId(data.groupId)
+            && data.messageId is string
+            && exists(/databases/$(database)/documents/thematicGroups/$(data.groupId)/messages/$(data.messageId))
+            && get(/databases/$(database)/documents/thematicGroups/$(data.groupId)/messages/$(data.messageId)).data.senderUid == request.auth.uid
+            && get(/databases/$(database)/documents/thematicGroups/$(data.groupId)/messages/$(data.messageId)).data.mentionedUsernames is list
+            && data.username is string
+            && data.username in get(/databases/$(database)/documents/thematicGroups/$(data.groupId)/messages/$(data.messageId)).data.mentionedUsernames
+            && exists(/databases/$(database)/documents/usernames/$(data.username))
+            && get(/databases/$(database)/documents/usernames/$(data.username)).data.uid == data.recipientUid
+            && validMentionText(get(/databases/$(database)/documents/thematicGroups/$(data.groupId)/messages/$(data.messageId)).data.text, data.username))
           || (data.type == 'comment'
             && data.postId is string
             && exists(/databases/$(database)/documents/posts/$(data.postId))

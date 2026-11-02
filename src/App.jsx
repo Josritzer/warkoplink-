@@ -24,8 +24,11 @@ import WarungProfile from './directory/WarungProfile.jsx';
 import ProfileEditor from './profile/ProfileEditor.jsx';
 import NotificationCenter from './notifications/NotificationCenter.jsx';
 import MessagesPage from './messaging/MessagesPage.jsx';
-import { CommunityDirectory, CommunityGroupHeader, CommunityShortcuts } from './community/CommunityHub.jsx';
+import { CommunityGroupHeader, CommunityShortcuts } from './community/CommunityHub.jsx';
 import { isCommunityId } from './community/communityCatalog.js';
+import ConversationHub from './thematicGroups/ConversationHub.jsx';
+import ThematicGroupChat from './thematicGroups/ThematicGroupChat.jsx';
+import { isThematicGroupId } from './thematicGroups/thematicGroupCatalog.js';
 import { extractMentionUsernames } from './notifications/notificationModel.js';
 import { renderMemberMentions } from './notifications/mentionText.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell } from 'lucide-react';
@@ -115,6 +118,8 @@ export default function App() {
   const [postsStatus, setPostsStatus] = useState(() => db ? (readCachedPosts().length ? 'ready' : 'loading') : 'ready');
   const [postsRetry, setPostsRetry] = useState(0);
   const [selectedCommunityId, setSelectedCommunityId] = useState('');
+  const [selectedThematicGroupId, setSelectedThematicGroupId] = useState('');
+  const [selectedThematicMessageId, setSelectedThematicMessageId] = useState('');
   const [isCommunityMember, setIsCommunityMember] = useState(false);
   const [communityPosts, setCommunityPosts] = useState([]);
   const [olderCommunityPosts, setOlderCommunityPosts] = useState([]);
@@ -653,6 +658,10 @@ export default function App() {
   }
 
   async function handleOpenNotification(notification) {
+    if (notification?.type === 'mention' && notification?.groupId && notification?.messageId) {
+      openThematicGroup(notification.groupId, notification.messageId);
+      return;
+    }
     if (notification?.type === 'message' && notification?.conversationId) {
       setMessageTarget(null);
       setOpenConversationId(notification.conversationId);
@@ -1256,6 +1265,14 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
+  function openThematicGroup(groupId, messageId = '') {
+    if (!isThematicGroupId(groupId)) return;
+    setSelectedThematicGroupId(groupId);
+    setSelectedThematicMessageId(messageId || '');
+    navigateSection('Grup Tematik Chat');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
   const feedPosts = section === 'Grup Komunitas' ? [...communityPosts, ...olderCommunityPosts] : allPosts;
   const visiblePosts = filterPosts(feedPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
   const resolvedSelectedReplyPost = selectedReplyPost ? withPublicAuthorProfile(selectedReplyPost, publicAuthorProfiles[selectedReplyPost.authorId]) : null;
@@ -1267,12 +1284,13 @@ export default function App() {
 
   const communityChatPanel = <>
     {section === 'Beranda' && <CommunityShortcuts onSelectCommunity={openCommunity} onViewAll={() => navigateSection('Obrolan')}/>}
-    {section === 'Obrolan' && <CommunityDirectory onSelectCommunity={openCommunity}/>}
+    {section === 'Obrolan' && <ConversationHub db={db} user={user} onSelectCommunity={openCommunity} onSelectThematicGroup={openThematicGroup}/>}
+    {section === 'Grup Tematik Chat' && <ThematicGroupChat db={db} user={user} groupId={selectedThematicGroupId} targetMessageId={selectedThematicMessageId} onBack={() => navigateSection('Obrolan')} onNotice={setNotice} onRequestAuth={() => openAuth(false)} onOpenMention={handleOpenMention}/>}
     {section === 'Grup Komunitas' && <CommunityGroupHeader
       db={db} user={user} communityId={selectedCommunityId} onBack={() => navigateSection('Obrolan')}
       onNotice={setNotice} onRequestAuth={() => openAuth(false)} onMembershipChange={setIsCommunityMember}
     />}
-    <ChatPanel
+    {section !== 'Grup Tematik Chat' && <ChatPanel
     communityId={section === 'Grup Komunitas' ? selectedCommunityId : ''}
     communityMember={isCommunityMember}
     readOnly={section === 'Beranda'} previewMode={section === 'Beranda'}
@@ -1297,7 +1315,7 @@ export default function App() {
       handleReply, openReplyPage, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
       deletingPostId, handleDeletePost, onEditPost: handleEditPost
     }}
-    />
+    />}
   </>;
 
   return <div className={section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>

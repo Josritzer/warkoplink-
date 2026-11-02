@@ -648,7 +648,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(searchInput, '  WARKOP   POJOK  ');
     expect(screen.getByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
     await user.clear(searchInput);
-    expect(screen.getByRole('link', { name: 'Lihat lokasi di peta' }).getAttribute('href')).toContain('query=-7.0001%2C112.281');
+    expect(screen.getByRole('link', { name: 'Navigasi ke Warkop Pojok dengan Google Maps' }).getAttribute('href')).toContain('destination=-7.0001%2C112.281');
     await user.type(screen.getByRole('textbox', { name: 'Cari warkop' }), 'wifi');
     expect(screen.getByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
     await user.clear(screen.getByRole('textbox', { name: 'Cari warkop' }));

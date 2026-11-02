@@ -152,7 +152,7 @@ export default function ChatPanel(props) {
           <input aria-label="Video obrolan MP4" type="file" accept="video/mp4,.mp4" disabled={posting} onChange={event => {
             const file = event.target.files?.[0] || null;
             if (file && file.type !== 'video/mp4') { setNotice('Pilih video MP4.'); setVideoFile(null); event.target.value = ''; return; }
-            if (file && (!Number.isSafeInteger(file.size) || file.size < 1 || file.size > 50 * 1024 * 1024)) { setNotice('Ukuran video maksimal 50 MB.'); setVideoFile(null); event.target.value = ''; return; }
+            if (file && (!Number.isSafeInteger(file.size) || file.size < 1 || file.size > 50_000_000)) { setNotice('Ukuran video maksimal 50 MB.'); setVideoFile(null); event.target.value = ''; return; }
             setVideoFile(file);
           }} />
         </label>

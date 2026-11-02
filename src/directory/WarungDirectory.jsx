@@ -457,7 +457,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
             {openState === true ? <span className="warung-card-status is-open"><span/> Buka</span> : openState === false ? <span className="warung-card-status is-closed"><span/> Tutup</span> : null}
           </div>
           <p className="warung-card-address"><MapPin size={15}/>{item.address}</p>
-          {(item.regencyName || item.provinceName) && <small className="directory-card-signal">{[item.regencyName, item.provinceName].filter(Boolean).join(", ")}</small>}
+          {(item.regencyName || item.provinceName) && <small className="directory-card-signal">{[item.villageName, item.districtName, item.regencyName, item.provinceName].filter(Boolean).join(", ")}</small>}
           {discoveryCategory === 'popular' && Number.isFinite(followerCounts[item.id]) && <small className="directory-card-signal">♥ {followerCounts[item.id]} pengikut</small>}
           {discoveryCategory === 'nearby' && Number.isFinite(distance) && <small className="directory-card-signal"><MapPin size={13}/> ±{distance < 10 ? distance.toFixed(1) : Math.round(distance)} km · garis lurus</small>}
           {discoveryCategory === 'events' && event && <div className="directory-event-signal"><b>{new Date(event.eventStartAt || event.eventDate).getTime() <= now.getTime() && event.eventEndAt && new Date(event.eventEndAt).getTime() >= now.getTime() ? 'SEDANG BERLANGSUNG' : 'AKAN DATANG'}</b><span>{event.eventKind || 'Acara warkop'} · {event.body?.split('\n')[0] || 'Lihat detail acara'}</span></div>}

@@ -51,6 +51,18 @@ afterEach(() => {
 });
 
 describe('kartu direktori warkop', () => {
+
+  it('mengutamakan menu spesial dan tidak meminta kisaran harga saat pendaftaran', async () => {
+    render(<WarungDirectory mode="register" user={{ uid: 'owner-1' }} db={{}} {...callbacks} />);
+    fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Warkop Maduran' } });
+    fireEvent.change(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), { target: { value: 'Desa Maduran, Kecamatan Maduran, Lamongan' } });
+    fireEvent.change(screen.getByLabelText('Lintang (latitude)'), { target: { value: '-7.05' } });
+    fireEvent.change(screen.getByLabelText('Bujur (longitude)'), { target: { value: '112.30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
+    expect(screen.queryByText(/Kisaran harga/)).toBeNull();
+  });
+
   it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {
     fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);

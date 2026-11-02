@@ -193,6 +193,23 @@ describe('halaman publik', () => {
     expect(screen.queryByText('Memuat obrolan…')).toBeNull();
   });
 
+  it('menampilkan pintasan tujuh komunitas di Beranda dan pusat grup di Obrolan', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    emitPosts([]);
+    expect(screen.getByRole('heading', { name: 'Komunitas' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Buka komunitas/ })).toHaveLength(7);
+
+    await user.click(screen.getByRole('button', { name: /Lihat semua obrolan/ }));
+    expect(screen.getByRole('heading', { name: 'Temukan komunitasmu.' })).toBeTruthy();
+    expect(screen.getByText('Kopi & Kuliner')).toBeTruthy();
+
+    await user.click(screen.getAllByRole('button', { name: 'Buka komunitas' })[0]);
+    expect(await screen.findByRole('heading', { name: 'Kopi & Kuliner' })).toBeTruthy();
+    expect(screen.getByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeTruthy();
+  });
+
   it('menampilkan daftar postingan dari Firestore', async () => {
     render(<App />);
     emitAuth(null);

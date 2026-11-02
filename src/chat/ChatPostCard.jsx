@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { renderMemberMentions } from '../notifications/mentionText.jsx';
+import { getCommunityById } from '../community/communityCatalog.js';
 
 const EMOJIS = ["👍","👏","🙌","💪","🤝","💯","❤️","🥰","😍","😘","💖","💕","😂","🤣","😆","😹","😅","🤪","😮","😲","🤯","🤩","🥳","✨","😢","😭","🥺","😔","💔","🫂","😡","🤬","😤","🙄","😠","👎"];
 const PRIMARY_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
@@ -208,6 +209,7 @@ export default function ChatPostCard({
   }
 
   const category = displayTopic(post.topic);
+  const community = getCommunityById(post.communityId);
   const linkedWarung = post.warungId ? verifiedWarungs.find(warung => warung.id === post.warungId) : null;
   const eventStart = post.eventStartAt ? new Date(post.eventStartAt) : null;
   const validEventStart = eventStart && !Number.isNaN(eventStart.getTime());
@@ -235,7 +237,7 @@ export default function ChatPostCard({
     <div className="post-content">
       <div className="post-head">
         <div className="post-meta">
-          <button type="button" className="post-author-profile" onClick={() => onOpenProfile?.({ uid: post.authorId, displayName: post.authorName, photoURL: post.authorPhotoURL })}>{post.authorName || 'Anggota SL'}</button><span className="post-category-label">{category}</span>
+          <button type="button" className="post-author-profile" onClick={() => onOpenProfile?.({ uid: post.authorId, displayName: post.authorName, photoURL: post.authorPhotoURL })}>{post.authorName || 'Anggota SL'}</button><span className="post-category-label">{category}</span>{community && <span className="post-community-label">{community.name}</span>}
           <small title={post.createdAt?.toDate?.()?.toLocaleString('id-ID') || ''}>{relativePostTime(post.createdAt)}</small>
         </div>
         <div className="post-menu-wrap">

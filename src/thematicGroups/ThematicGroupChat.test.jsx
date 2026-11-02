@@ -223,10 +223,10 @@ describe('thematic group conversation', () => {
     render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
     expect(await screen.findByText('Selamat datang!')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Pilih reaksi pesan Budi' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Reaksi 👍 (0)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Reaksi Gas Ngopi ☕ \(0\)/ }));
     await waitFor(() => expect(state.setDoc).toHaveBeenCalledWith(
       { path: 'thematicGroups/pemilik-warkop/reactions/hello-1_alice' },
-      { messageId: 'hello-1', uid: 'alice', emoji: '👍', updatedAt: 'server-time' }
+      { messageId: 'hello-1', uid: 'alice', emoji: '☕', updatedAt: 'server-time' }
     ));
   });
 

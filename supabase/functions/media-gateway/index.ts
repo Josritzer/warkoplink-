@@ -146,6 +146,9 @@ async function authorizeResource(token: string, uid: string, request: ReturnType
     if (!post || post.data.authorId !== uid || post.data.deleting === true) {
       throw new Error("Post ownership check failed");
     }
+    const maxDuration = await videoDurationLimit(token, uid, post);
+    const maxBytes = maxDuration === 180 ? 50 * 1024 * 1024 : 25 * 1024 * 1024;
+    if (request.size > maxBytes) throw new Error(maxDuration === 180 ? "Video size exceeds the 50 MiB warkop limit" : "Video size exceeds the 25 MiB member limit");
     return post;
   }
   if (request.mediaType === "warung") {

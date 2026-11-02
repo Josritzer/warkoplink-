@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  collection, deleteDoc, doc, getCountFromServer, getDoc, onSnapshot, serverTimestamp, setDoc
+  collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, setDoc
 } from 'firebase/firestore';
 import {
-  ArrowLeft, ArrowRight, Bike, Coffee, MessagesSquare, Music, Store, Trophy, Users
+  ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarDays, Coffee, MessageCircleQuestion, ShoppingBag, Users, Wrench
 } from 'lucide-react';
 import { COMMUNITY_GROUPS, getCommunityById } from './communityCatalog.js';
 
 const COMMUNITY_ICONS = {
   coffee: Coffee,
-  trophy: Trophy,
-  store: Store,
-  music: Music,
-  bike: Bike,
-  users: Users,
-  messages: MessagesSquare
+  question: MessageCircleQuestion,
+  calendar: CalendarDays,
+  briefcase: BriefcaseBusiness,
+  shopping: ShoppingBag,
+  wrench: Wrench,
+  users: Users
 };
 
 function CommunityIcon({ name, size = 22 }) {
@@ -46,7 +46,7 @@ export function CommunityShortcuts({ onSelectCommunity, onViewAll }) {
 export function CommunityDirectory({ onSelectCommunity }) {
   return <section className="community-directory" aria-labelledby="community-directory-title">
     <div className="community-section-heading">
-      <div><span className="eyebrow">KOMUNITAS RESMI WARKOPLINK</span><h2 id="community-directory-title">Temukan komunitasmu.</h2><p>Tujuh ruang terbuka untuk berbagi minat dan mengenal warga Lamongan.</p></div>
+      <div><span className="eyebrow">KOMUNITAS RESMI WARKOPLINK</span><h2 id="community-directory-title">Temukan komunitasmu.</h2><p>Tujuh ruang terbuka untuk berbagi minat dengan anggota dari seluruh Indonesia.</p></div>
       <span className="community-total">7 komunitas</span>
     </div>
     <div className="community-directory-grid">
@@ -67,8 +67,6 @@ export function CommunityGroupHeader({
 }) {
   const community = getCommunityById(communityId);
   const [isMember, setIsMember] = useState(false);
-  const [memberCount, setMemberCount] = useState(null);
-  const [countStatus, setCountStatus] = useState('loading');
   const [busy, setBusy] = useState(false);
   const membershipLock = useRef(false);
 
@@ -76,17 +74,7 @@ export function CommunityGroupHeader({
     let active = true;
     setIsMember(false);
     onMembershipChange?.(false);
-    setMemberCount(null);
-    setCountStatus(db && community ? 'loading' : 'error');
     if (!db || !community) return undefined;
-
-    getCountFromServer(collection(db, 'communities', community.id, 'members'))
-      .then((snapshot) => {
-        if (!active) return;
-        setMemberCount(snapshot.data().count);
-        setCountStatus('ready');
-      })
-      .catch(() => { if (active) setCountStatus('error'); });
 
     if (!user?.uid) return () => { active = false; };
     const memberRef = doc(db, 'communities', community.id, 'members', user.uid);
@@ -119,13 +107,11 @@ export function CommunityGroupHeader({
         await deleteDoc(memberRef);
         setIsMember(false);
         onMembershipChange?.(false);
-        setMemberCount((current) => current === null ? null : Math.max(0, current - 1));
         onNotice?.('Anda sudah keluar dari komunitas.');
       } else {
         await setDoc(memberRef, { uid: user.uid, createdAt: serverTimestamp() });
         setIsMember(true);
         onMembershipChange?.(true);
-        setMemberCount((current) => current === null ? 1 : current + 1);
         onNotice?.('Berhasil bergabung dengan komunitas. Selamat berdiskusi!');
       }
     } catch {
@@ -146,7 +132,7 @@ export function CommunityGroupHeader({
         <span className="eyebrow">KOMUNITAS RESMI WARKOPLINK</span>
         <h2 id="community-group-title">{community.name}</h2>
         <p>{community.description}</p>
-        <small>{countStatus === 'ready' ? `${memberCount} anggota` : countStatus === 'loading' ? 'Memuat jumlah anggota…' : 'Jumlah anggota belum tersedia'}</small>
+        <small>Terbuka untuk semua anggota WARKOPLINK</small>
       </div>
       <button type="button" className={isMember ? 'community-membership-button is-member' : 'community-membership-button'} onClick={toggleMembership} disabled={busy || !db}>
         {busy ? 'Memproses…' : isMember ? 'Keluar komunitas' : 'Gabung komunitas'}

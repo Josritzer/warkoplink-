@@ -67,7 +67,7 @@ export default function LeafletLocationPicker({ latitude, longitude, onChange })
       });
       map = L.map(mapElement.current, { scrollWheelZoom: false }).setView(initial.center, initial.zoom);
       mapRef.current = map;
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
       }).addTo(map);

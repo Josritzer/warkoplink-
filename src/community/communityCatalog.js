@@ -1,45 +1,45 @@
 export const COMMUNITY_GROUPS = [
   {
-    id: 'kopi-kuliner',
-    name: 'Kopi & Kuliner',
-    description: 'Ngobrol soal kopi, makanan, menu andalan, dan tempat nongkrong.',
+    id: 'ngopi-bareng',
+    name: 'Ngopi Bareng',
+    description: 'Temukan teman ngopi, berbagi cerita, dan mengatur pertemuan.',
     icon: 'coffee'
   },
   {
-    id: 'sepak-bola-olahraga',
-    name: 'Sepak Bola & Olahraga',
-    description: 'Sepak bola, futsal, badminton, olahraga, dan kabar pertandingan.',
-    icon: 'trophy'
+    id: 'tanya-warkop',
+    name: 'Tanya Warkop',
+    description: 'Tanya rekomendasi tempat, menu, fasilitas, dan pengalaman berkunjung.',
+    icon: 'question'
   },
   {
-    id: 'bisnis-umkm',
-    name: 'Bisnis & UMKM',
-    description: 'Usaha lokal, promosi produk, peluang, dan pengalaman berbisnis.',
-    icon: 'store'
+    id: 'info-acara',
+    name: 'Info & Acara',
+    description: 'Bagikan informasi, agenda, nobar, dan kegiatan yang akan datang.',
+    icon: 'calendar'
   },
   {
-    id: 'musik-hiburan',
-    name: 'Musik & Hiburan',
-    description: 'Musik, film, hiburan, kreativitas, dan game ringan.',
-    icon: 'music'
+    id: 'loker',
+    name: 'Loker',
+    description: 'Temukan dan bagikan informasi lowongan kerja.',
+    icon: 'briefcase'
   },
   {
-    id: 'hobi-komunitas',
-    name: 'Hobi & Komunitas',
-    description: 'Temukan teman dengan hobi dan minat yang sama.',
-    icon: 'bike'
+    id: 'jual-beli',
+    name: 'Jual Beli',
+    description: 'Tempat berbagi penawaran barang dan kebutuhan jual beli.',
+    icon: 'shopping'
   },
   {
-    id: 'warga-kegiatan-lokal',
-    name: 'Warga & Kegiatan Lokal',
-    description: 'Informasi warga, kegiatan desa, acara, dan aktivitas sosial.',
+    id: 'jasa-lokal',
+    name: 'Jasa Lokal',
+    description: 'Temukan dan promosikan jasa serta keahlian lokal.',
+    icon: 'wrench'
+  },
+  {
+    id: 'komunitas-aktivitas',
+    name: 'Komunitas & Aktivitas',
+    description: 'Berkumpul berdasarkan hobi, minat, dan aktivitas bersama.',
     icon: 'users'
-  },
-  {
-    id: 'obrolan-santai',
-    name: 'Obrolan Santai',
-    description: 'Cerita sehari-hari, pengalaman, dan percakapan bebas.',
-    icon: 'messages'
   }
 ];
 

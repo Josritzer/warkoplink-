@@ -442,6 +442,12 @@ describe('warungs — direktori aman tahap awal', () => {
     })));
   });
 
+  it('menolak slug wilayah bebas untuk pendaftaran baru', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-slug'), validWarung({
+      regionCode: 'id-jawa-timur-kabupaten-lamongan',
+    })));
+  });
+
   it('menolak kode wilayah yang tidak cocok dengan hierarki induknya', async () => {
     await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-invalid-region'), validWarung({
       regionCode: '35.24.10.2007',

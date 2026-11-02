@@ -156,6 +156,58 @@ describe('event RSVPs', () => {
   });
 });
 
+describe('official community membership', () => {
+  it('anggota dapat bergabung dan keluar dari komunitas resmi miliknya sendiri', async () => {
+    const db = asUser('alice');
+    const membership = doc(db, 'communities', 'kopi-kuliner', 'members', 'alice');
+    await assertSucceeds(setDoc(membership, { uid: 'alice', createdAt: serverTimestamp() }));
+    await assertSucceeds(getDoc(membership));
+    await assertSucceeds(deleteDoc(membership));
+  });
+
+  it('keanggotaan publik dapat dibaca tetapi tidak dapat diubah atau dihapus oleh orang lain', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'communities/kopi-kuliner/members/alice'), {
+        uid: 'alice', createdAt: Timestamp.now()
+      });
+    });
+    await assertSucceeds(getDocs(collection(asAnon(), 'communities', 'kopi-kuliner', 'members')));
+    await assertFails(updateDoc(doc(asUser('bob'), 'communities', 'kopi-kuliner', 'members', 'alice'), {
+      uid: 'bob'
+    }));
+    await assertFails(deleteDoc(doc(asUser('bob'), 'communities', 'kopi-kuliner', 'members', 'alice')));
+  });
+
+  it('menolak bergabung atas nama pengguna lain atau ke grup yang tidak resmi', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'communities', 'kopi-kuliner', 'members', 'bob'), {
+      uid: 'bob', createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(asUser('alice'), 'communities', 'grup-buatan-sendiri', 'members', 'alice'), {
+      uid: 'alice', createdAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(asUser('alice'), 'communities', 'kopi-kuliner', 'members', 'alice'), {
+      uid: 'alice', createdAt: serverTimestamp(), role: 'admin'
+    }));
+  });
+
+  it('hanya anggota yang sudah bergabung dapat membuat postingan khusus grup', async () => {
+    const aliceDb = asUser('alice');
+    await assertFails(createPost(aliceDb, validPost({ communityId: 'kopi-kuliner' })));
+    await assertSucceeds(setDoc(doc(aliceDb, 'communities', 'kopi-kuliner', 'members', 'alice'), {
+      uid: 'alice', createdAt: serverTimestamp()
+    }));
+    await assertSucceeds(createPost(aliceDb, validPost({ communityId: 'kopi-kuliner' })));
+    await assertFails(createPost(asUser('bob'), validPost({
+      authorId: 'bob', authorName: 'Bob', communityId: 'kopi-kuliner'
+    })));
+    await assertFails(createPost(aliceDb, validPost({ communityId: 'grup-buatan-sendiri' })));
+  });
+
+  it('posting umum lama tetap dapat dibuat tanpa communityId', async () => {
+    await assertSucceeds(createPost(asUser('alice'), validPost()));
+  });
+});
+
 describe('posts', () => {
   it('menerima penghitung reaksi hanya bersama dokumen reaksi pengguna', async () => {
     const db = asUser('alice');

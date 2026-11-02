@@ -128,8 +128,8 @@ export default function ChatPostCard({
   const rsvpLock = useRef(false);
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(post.body || '');
-  const [editTopic, setEditTopic] = useState(displayTopic(post.topic));
-  const [editType, setEditType] = useState(post.postType || POST_SUBTYPES[displayTopic(post.topic)]?.[0] || '');
+  const [editTopic, setEditTopic] = useState(displayTopic(post.topic, post.postType));
+  const [editType, setEditType] = useState(post.postType || POST_SUBTYPES[displayTopic(post.topic, post.postType)]?.[0] || '');
   const [editLocation, setEditLocation] = useState(post.location || '');
   const [editDate, setEditDate] = useState(post.eventDate || '');
   const [editEventStartAt, setEditEventStartAt] = useState(post.eventStartAt || '');
@@ -142,7 +142,7 @@ export default function ChatPostCard({
   const [editContact, setEditContact] = useState(post.contact || '');
 
   useEffect(() => {
-    if (!db || displayTopic(post.topic) !== 'Info & Acara') return undefined;
+    if (!db || displayTopic(post.topic, post.postType) !== 'Info & Acara') return undefined;
     const attendeesQuery = query(collection(db, 'posts', post.id, 'eventRsvps'), where('status', '==', 'going'));
     const stopCount = onSnapshot(attendeesQuery, snapshot => setRsvpCount(snapshot.size), () => setRsvpCount(0));
     if (!user?.uid) {
@@ -208,7 +208,7 @@ export default function ChatPostCard({
     await openReplyPage(post);
   }
 
-  const category = displayTopic(post.topic);
+  const category = displayTopic(post.topic, post.postType);
   const community = getCommunityById(post.communityId);
   const linkedWarung = post.warungId ? verifiedWarungs.find(warung => warung.id === post.warungId) : null;
   const eventStart = post.eventStartAt ? new Date(post.eventStartAt) : null;

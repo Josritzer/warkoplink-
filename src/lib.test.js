@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts,
+  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, displayTopic, filterPosts,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails, validateTopic
 } from './lib.js';
 
@@ -56,6 +56,7 @@ describe('kategori', () => {
     expect(canonicalTopic('Ide & Saran')).toBe('Info & Acara');
     expect(canonicalTopic('Jual Beli & Jasa Lokal', 'Jual barang')).toBe('Jual Beli');
     expect(canonicalTopic('Jual Beli & Jasa Lokal', 'Tawarkan jasa')).toBe('Jasa Lokal');
+    expect(displayTopic('Jual Beli & Jasa Lokal', 'Tawarkan jasa')).toBe('Jasa Lokal');
     expect(filterPosts([{ topic: 'Tanya Jawab', body: 'wifi' }], 'Tanya Warkop', '')).toHaveLength(1);
     expect(filterPosts([{ topic: 'Jual Beli & Jasa Lokal', postType: 'Tawarkan jasa' }], 'Jasa Lokal', '')).toHaveLength(1);
   });

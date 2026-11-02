@@ -29,8 +29,8 @@ export function canonicalTopic(topic, postType = '') {
   if (topic === 'Jual Beli & Jasa Lokal') return /jasa|promosi usaha/i.test(String(postType)) ? 'Jasa Lokal' : 'Jual Beli';
   return LEGACY_TOPIC_MAP[topic] || 'Ngopi Bareng';
 }
-export function displayTopic(topic) {
-  return canonicalTopic(topic);
+export function displayTopic(topic, postType = '') {
+  return canonicalTopic(topic, postType);
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

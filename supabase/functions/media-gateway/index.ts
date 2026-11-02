@@ -172,8 +172,8 @@ async function authorizeResource(token: string, uid: string, request: ReturnType
   return post;
 }
 
-async function cleanExpiredPending(uid: string): Promise<void> {
-  const { data, error } = await admin.storage.from(BUCKET_PENDING).list(`pending/${uid}`, {
+async function cleanExpiredPending(uid: string, bucket = BUCKET_PENDING): Promise<void> {
+  const { data, error } = await admin.storage.from(bucket).list(`pending/${uid}`, {
     limit: 100,
     sortBy: { column: "created_at", order: "asc" },
   });
@@ -183,7 +183,7 @@ async function cleanExpiredPending(uid: string): Promise<void> {
     const created = Date.parse(item.created_at || item.updated_at || "");
     return Number.isFinite(created) && created < cutoff && item.id;
   }).map((item) => `pending/${uid}/${item.name}`);
-  if (expired.length) await admin.storage.from(BUCKET_PENDING).remove(expired);
+  if (expired.length) await admin.storage.from(bucket).remove(expired);
 }
 
 async function cleanOrphanedPublicMedia(
@@ -328,9 +328,9 @@ function isOwnMediaUrl(url: string | null): string | null {
 async function initUpload(token: string, uid: string, body: Record<string, unknown>) {
   const request = normalizeUploadRequest(body);
   await authorizeResource(token, uid, request);
-  await cleanExpiredPending(uid);
-  await cleanOrphanedPublicMedia(token, uid, request);
   const pendingBucket = request.mediaType === "video" ? BUCKET_VIDEO_PENDING : BUCKET_PENDING;
+  await cleanExpiredPending(uid, pendingBucket);
+  await cleanOrphanedPublicMedia(token, uid, request);
   const { data: active, error: listError } = await admin.storage.from(pendingBucket).list(`pending/${uid}`, { limit: 100 });
   if (listError) throw new Error("Could not inspect pending uploads");
   if ((active || []).filter((item) => item.id).length >= 3) throw new Error("Too many pending uploads; finish or retry an existing upload");

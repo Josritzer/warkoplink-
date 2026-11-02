@@ -97,14 +97,14 @@ describe('community group posting access', () => {
   };
 
   it('keeps group discussions readable but hides the composer until the user joins', () => {
-    render(<ChatPanel {...sharedProps} communityId="kopi-kuliner" communityMember={false}/>);
+    render(<ChatPanel {...sharedProps} communityId="ngopi-bareng" communityMember={false}/>);
     expect(screen.getByText(/Ruang diskusi terbuka untuk dibaca/)).toBeTruthy();
     expect(screen.getByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Ayo ngobrol/ })).toBeNull();
   });
 
   it('shows the composer after membership becomes active', () => {
-    render(<ChatPanel {...sharedProps} communityId="kopi-kuliner" communityMember/>);
+    render(<ChatPanel {...sharedProps} communityId="ngopi-bareng" communityMember/>);
     expect(screen.getByRole('button', { name: /Ayo ngobrol/ })).toBeTruthy();
     expect(screen.queryByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeNull();
   });

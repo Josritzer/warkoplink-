@@ -55,12 +55,36 @@ describe('kartu direktori warkop', () => {
   it('mengutamakan menu spesial dan tidak meminta kisaran harga saat pendaftaran', async () => {
     render(<WarungDirectory mode="register" user={{ uid: 'owner-1' }} db={{}} {...callbacks} />);
     fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Warkop Maduran' } });
-    fireEvent.change(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), { target: { value: 'Desa Maduran, Kecamatan Maduran, Lamongan' } });
+    fireEvent.change(screen.getByLabelText('Provinsi'), { target: { value: 'Jawa Timur' } });
+    fireEvent.change(screen.getByLabelText('Kabupaten/Kota'), { target: { value: 'Lamongan' } });
+    fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Desa Maduran, Kecamatan Maduran, Lamongan' } });
     fireEvent.change(screen.getByLabelText('Lintang (latitude)'), { target: { value: '-7.05' } });
     fireEvent.change(screen.getByLabelText('Bujur (longitude)'), { target: { value: '112.30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     expect(screen.queryByText(/Kisaran harga/)).toBeNull();
+  });
+
+  it('menerima pendaftaran dari provinsi dan kabupaten/kota selain Lamongan', async () => {
+    render(<WarungDirectory mode="register" user={{ uid: 'owner-2' }} db={{}} {...callbacks} />);
+    fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Kopi Surabaya' } });
+    fireEvent.change(screen.getByLabelText('Provinsi'), { target: { value: 'Jawa Timur' } });
+    fireEvent.change(screen.getByLabelText('Kabupaten/Kota'), { target: { value: 'Kota Surabaya' } });
+    fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Jl. Tunjungan, Surabaya' } });
+    fireEvent.change(screen.getByLabelText('Lintang (latitude)'), { target: { value: '-7.25' } });
+    fireEvent.change(screen.getByLabelText('Bujur (longitude)'), { target: { value: '112.75' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
+    firestore.addDoc.mockResolvedValueOnce({ id: 'new-warkop-surabaya' });
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    await waitFor(() => expect(firestore.addDoc).toHaveBeenCalledOnce());
+    expect(firestore.addDoc.mock.calls[0][1]).toMatchObject({
+      regionCode: 'id-jawa-timur-kota-surabaya',
+      provinceName: 'Jawa Timur',
+      regencyName: 'Kota Surabaya',
+      verificationStatus: 'pending',
+    });
   });
 
   it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {

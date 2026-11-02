@@ -5,6 +5,7 @@ import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, LocateFixed } from 'lucide-react';
 import { ACTIVITY_OPTIONS, collectFacilities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, sortWarungsForDiscovery } from './directoryFilters.js';
 import LeafletLocationPicker from './LeafletLocationPicker.jsx';
+import { buildRegionIdentity } from './regionIdentity.js';
 
 class WarungFormValidationError extends Error {
   constructor(message) {
@@ -37,6 +38,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [now, setNow] = useState(() => new Date());
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [provinceName, setProvinceName] = useState('');
+  const [regencyName, setRegencyName] = useState('');
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [facilities, setFacilities] = useState('');
@@ -194,6 +197,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     setFormError('');
     if (registrationStep === 1) {
       if (name.trim().length < 2 || name.trim().length > 100) return setFormError('Nama warkop harus 2–100 karakter.');
+      if (provinceName.trim().length < 2 || provinceName.trim().length > 80) return setFormError('Nama provinsi harus 2–80 karakter.');
+      if (regencyName.trim().length < 2 || regencyName.trim().length > 80) return setFormError('Nama kabupaten/kota harus 2–80 karakter.');
       if (address.trim().length < 5 || address.trim().length > 300) return setFormError('Alamat harus 5–300 karakter.');
       const latitude = Number(lat);
       const longitude = Number(lng);
@@ -254,9 +259,11 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       if (!warungId) {
         const cleanName = name.trim();
         const cleanAddress = address.trim();
+        const region = buildRegionIdentity(provinceName, regencyName);
         const latitude = Number(lat);
         const longitude = Number(lng);
         if (cleanName.length < 2 || cleanName.length > 100) throw new WarungFormValidationError('Nama warkop harus 2–100 karakter.');
+        if (region.provinceName.length < 2 || region.regencyName.length < 2) throw new WarungFormValidationError('Lengkapi provinsi dan kabupaten/kota.');
         if (cleanAddress.length < 5 || cleanAddress.length > 300) throw new WarungFormValidationError('Alamat harus 5–300 karakter.');
         if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) throw new WarungFormValidationError('Masukkan koordinat lintang atau bujur yang valid.');
         const facilityList = [...new Set(facilities.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))];
@@ -264,7 +271,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         const warungRef = await addDoc(collection(db, 'warungs'), {
           name: cleanName, nameNormalized: cleanName.toLowerCase(), ownerUid: user.uid,
           coordinates: { lat: latitude, lng: longitude }, address: cleanAddress,
-          regionCode: 'lamongan-kab', facilities: facilityList, activities: [],
+          ...region, facilities: facilityList, activities: [],
           menuItems: menuItems.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 30),
           specialties: specialties.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 15),
           ambience: ambience.trim().slice(0, 240), priceRange: 'belum-diisi',
@@ -285,7 +292,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       }
       setIncompleteWarungId('');
       setSelectedPhotos([]);
-      setName(''); setAddress(''); setLat(''); setLng(''); setFacilities('');
+      setName(''); setAddress(''); setProvinceName(''); setRegencyName(''); setLat(''); setLng(''); setFacilities('');
       setMenuItems(''); setSpecialties(''); setAmbience('');
       setHours('');
       setRegistrationStep(1);
@@ -344,14 +351,16 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       <form className="warung-form" onSubmit={handleRegister}>
         {registrationStep === 1 && <>
           <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>
-          <label>Alamat lengkap di Kabupaten Lamongan<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa, kecamatan"/></label>
+          <label>Provinsi<input value={provinceName} onChange={(e) => setProvinceName(e.target.value)} maxLength={80} required placeholder="Contoh: Jawa Timur"/></label>
+          <label>Kabupaten/Kota<input value={regencyName} onChange={(e) => setRegencyName(e.target.value)} maxLength={80} required placeholder="Contoh: Kabupaten Lamongan atau Kota Surabaya"/></label>
+          <label>Alamat lengkap<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa/kelurahan, kecamatan"/></label>
           <div className="coordinate-fields">
             <label>Lintang (latitude)<input type="text" inputMode="decimal" autoComplete="off" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="Contoh: -7.0001" aria-describedby="latitude-help"/></label>
             <label>Bujur (longitude)<input type="text" inputMode="decimal" autoComplete="off" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="Contoh: 112.2810" aria-describedby="longitude-help"/></label>
           </div>
           <LeafletLocationPicker latitude={lat} longitude={lng} onChange={(nextLat, nextLng) => { setLat(nextLat); setLng(nextLng); }} />
           <button className="button button-quiet warung-location-button" type="button" onClick={handleUseCurrentLocation} disabled={locating}><LocateFixed size={17}/>{locating ? 'Mencari lokasi…' : 'Gunakan Lokasi Saya'}</button>
-          <div className="coordinate-help"><small id="latitude-help">Lintang: angka utara/selatan, untuk Lamongan biasanya diawali -7.</small><small id="longitude-help">Bujur: angka timur/barat, untuk Lamongan biasanya diawali 112.</small><small>GPS mengisi koordinat perangkat. Periksa dan sesuaikan titik agar tepat di lokasi warkop.</small></div>
+          <div className="coordinate-help"><small id="latitude-help">Lintang: koordinat utara/selatan lokasi warkop.</small><small id="longitude-help">Bujur: koordinat timur/barat lokasi warkop.</small><small>GPS mengisi koordinat perangkat. Periksa dan sesuaikan titik agar tepat di lokasi warkop.</small></div>
         </>}
         {registrationStep === 2 && <>
           <label>Menu utama, pisahkan dengan koma<input value={menuItems} onChange={(e) => setMenuItems(e.target.value)} maxLength={600} placeholder="Kopi, teh, mi instan, nasi goreng"/></label>
@@ -362,7 +371,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         </>}
         {registrationStep === 3 && <>
           <p className="form-hint">Periksa kembali data warkop sebelum dikirim. Foto dapat ditambahkan sekarang atau menyusul.</p>
-          <div className="warung-registration-summary"><strong>{name}</strong><span>{address}</span><span>Koordinat: {lat}, {lng}</span>{menuItems.trim() && <span>Menu: {menuItems}</span>}{specialties.trim() && <span>Menu spesial: {specialties}</span>}</div>
+          <div className="warung-registration-summary"><strong>{name}</strong><span>{regencyName}, {provinceName}</span><span>{address}</span><span>Koordinat: {lat}, {lng}</span>{menuItems.trim() && <span>Menu: {menuItems}</span>}{specialties.trim() && <span>Menu spesial: {specialties}</span>}</div>
           <label>Foto warkop (maksimal 5, JPG/PNG/WebP, 2 MiB per foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={Boolean(incompleteWarungId)} onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
           {selectedPhotos.length > 0 && <p className="form-hint">{selectedPhotos.length} foto dipilih. {incompleteWarungId ? 'Pilihan foto dikunci sampai unggahan selesai.' : ''}</p>}
         </>}
@@ -401,8 +410,8 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   }
   return <section className="content-section explore-section">
     <span className="eyebrow">DIREKTORI WARKOP</span>
-    <h2>Cari warkop di Lamongan.</h2>
-    <p>Temukan warkop yang ramai, punya acara, dekat dengan lokasi, atau baru bergabung. Semua hasil hanya menampilkan warkop terverifikasi.</p>
+    <h2>Cari warkop di seluruh Indonesia.</h2>
+    <p>Temukan warkop di berbagai daerah, lihat menu spesial, aktivitas, dan lokasi. Semua hasil hanya menampilkan warkop terverifikasi.</p>
     <div className="directory-discovery-tabs" role="group" aria-label="Kategori direktori">
       <button type="button" className={discoveryCategory === 'popular' ? 'active' : ''} aria-pressed={discoveryCategory === 'popular'} onClick={() => selectDiscoveryCategory('popular')}><span>♥</span><b>Populer</b><small>Paling diikuti</small></button>
       <button type="button" className={discoveryCategory === 'events' ? 'active' : ''} aria-pressed={discoveryCategory === 'events'} onClick={() => selectDiscoveryCategory('events')}><span>◷</span><b>Ada Event Sekarang</b><small>Sedang berlangsung & akan datang</small></button>
@@ -446,6 +455,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
             {openState === true ? <span className="warung-card-status is-open"><span/> Buka</span> : openState === false ? <span className="warung-card-status is-closed"><span/> Tutup</span> : null}
           </div>
           <p className="warung-card-address"><MapPin size={15}/>{item.address}</p>
+          {(item.regencyName || item.provinceName) && <small className="directory-card-signal">{[item.regencyName, item.provinceName].filter(Boolean).join(", ")}</small>}
           {discoveryCategory === 'popular' && Number.isFinite(followerCounts[item.id]) && <small className="directory-card-signal">♥ {followerCounts[item.id]} pengikut</small>}
           {discoveryCategory === 'nearby' && Number.isFinite(distance) && <small className="directory-card-signal"><MapPin size={13}/> ±{distance < 10 ? distance.toFixed(1) : Math.round(distance)} km · garis lurus</small>}
           {discoveryCategory === 'events' && event && <div className="directory-event-signal"><b>{new Date(event.eventStartAt || event.eventDate).getTime() <= now.getTime() && event.eventEndAt && new Date(event.eventEndAt).getTime() >= now.getTime() ? 'SEDANG BERLANGSUNG' : 'AKAN DATANG'}</b><span>{event.eventKind || 'Acara warkop'} · {event.body?.split('\n')[0] || 'Lihat detail acara'}</span></div>}

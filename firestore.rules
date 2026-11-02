@@ -755,7 +755,18 @@ service cloud.firestore {
 
     match /notifications/{notificationId} {
       allow read: if signedIn() && resource.data.recipientUid == request.auth.uid;
-      allow create: if validNotification(request.resource.data);
+      allow create: if validNotification(request.resource.data)
+        && (
+          request.resource.data.type != 'friend'
+          || (request.resource.data.actorUid < request.resource.data.recipientUid
+            && notificationId == 'friend_' + request.resource.data.actorUid + '_' + request.resource.data.recipientUid + '_' + request.resource.data.recipientUid)
+          || (request.resource.data.recipientUid < request.resource.data.actorUid
+            && notificationId == 'friend_' + request.resource.data.recipientUid + '_' + request.resource.data.actorUid + '_' + request.resource.data.recipientUid)
+        )
+        && (
+          request.resource.data.type != 'message'
+          || notificationId == 'message_' + request.resource.data.messageId
+        );
       allow update: if signedIn()
         && resource.data.recipientUid == request.auth.uid
         && resource.data.readAt == null

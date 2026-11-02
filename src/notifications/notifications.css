@@ -17,3 +17,6 @@
 .notification-nav-icon{position:relative;display:inline-flex}
 .notification-nav-icon i{position:absolute;right:-9px;top:-7px;min-width:15px;height:15px;padding:0 3px;border-radius:9px;background:var(--wl-primary-bright);color:#fff;font-size:9px;font-style:normal;line-height:15px}
 @media(max-width:620px){.notification-heading{align-items:flex-start}.notification-heading .button{padding:9px 10px;font-size:10px;white-space:nowrap}.notification-item{gap:10px;padding:13px 2px}.notification-icon{width:36px;height:36px;flex-basis:36px}.bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}.bottom-nav-item{min-width:0;font-size:clamp(8px,2.5vw,10px);gap:3px;white-space:nowrap}.bottom-nav-item span{white-space:nowrap}.bottom-nav-item svg{width:17px;height:17px;flex:0 0 17px}}
+
+.member-mention{display:inline;padding:0;border:0;background:transparent;color:var(--wl-primary);font:inherit;font-weight:700;cursor:pointer;text-decoration:none;text-underline-offset:3px}
+.member-mention:hover,.member-mention:focus-visible{text-decoration:underline}

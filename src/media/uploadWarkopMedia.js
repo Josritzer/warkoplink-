@@ -171,3 +171,51 @@ export async function removeWarkopPostVideo(user, postId) {
   const result = await gatewayRequest(user, { action: "removeVideo", postId });
   return result.media;
 }
+
+export async function createVideoThumbnailDataUrl(file) {
+  if (!file || typeof document === "undefined" || typeof URL.createObjectURL !== "function") return "";
+  const video = document.createElement("video");
+  const objectUrl = URL.createObjectURL(file);
+  return await new Promise(resolve => {
+    let settled = false;
+    const finish = value => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+      resolve(value || "");
+    };
+    const timer = setTimeout(() => finish(""), 9000);
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.onloadedmetadata = () => {
+      if (!Number.isFinite(video.duration) || video.duration <= 0 || !video.videoWidth || !video.videoHeight) return finish("");
+      try { video.currentTime = Math.min(1, video.duration / 3); } catch { finish(""); }
+    };
+    video.onerror = () => finish("");
+    video.onseeked = () => {
+      try {
+        const width = Math.min(480, video.videoWidth);
+        const height = Math.max(1, Math.round(width * video.videoHeight / video.videoWidth));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) return finish("");
+        context.drawImage(video, 0, 0, width, height);
+        canvas.toBlob(blob => {
+          if (!blob || blob.size > 110_000) return finish("");
+          const reader = new FileReader();
+          reader.onload = () => finish(typeof reader.result === "string" ? reader.result : "");
+          reader.onerror = () => finish("");
+          reader.readAsDataURL(blob);
+        }, "image/jpeg", 0.68);
+      } catch { finish(""); }
+    };
+    video.src = objectUrl;
+  });
+}
+

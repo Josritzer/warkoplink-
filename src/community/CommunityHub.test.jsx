@@ -68,7 +68,7 @@ describe('official community navigation', () => {
 });
 
 describe('community membership', () => {
-  it('shows the real member count and lets a signed-in member join', async () => {
+  it('lets a signed-in member join without reading public member counts', async () => {
     const onMembershipChange = vi.fn();
     render(<CommunityGroupHeader
       db={{}} user={{ uid: 'user-1' }} communityId="ngopi-bareng"

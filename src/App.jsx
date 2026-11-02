@@ -119,6 +119,7 @@ export default function App() {
   const [postsRetry, setPostsRetry] = useState(0);
   const [selectedCommunityId, setSelectedCommunityId] = useState('');
   const [selectedThematicGroupId, setSelectedThematicGroupId] = useState('');
+  const [selectedThematicMessageId, setSelectedThematicMessageId] = useState('');
   const [isCommunityMember, setIsCommunityMember] = useState(false);
   const [communityPosts, setCommunityPosts] = useState([]);
   const [olderCommunityPosts, setOlderCommunityPosts] = useState([]);
@@ -658,7 +659,7 @@ export default function App() {
 
   async function handleOpenNotification(notification) {
     if (notification?.type === 'mention' && notification?.groupId && notification?.messageId) {
-      openThematicGroup(notification.groupId);
+      openThematicGroup(notification.groupId, notification.messageId);
       return;
     }
     if (notification?.type === 'message' && notification?.conversationId) {
@@ -1264,9 +1265,10 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
-  function openThematicGroup(groupId) {
+  function openThematicGroup(groupId, messageId = '') {
     if (!isThematicGroupId(groupId)) return;
     setSelectedThematicGroupId(groupId);
+    setSelectedThematicMessageId(messageId || '');
     navigateSection('Grup Tematik Chat');
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
@@ -1283,7 +1285,7 @@ export default function App() {
   const communityChatPanel = <>
     {section === 'Beranda' && <CommunityShortcuts onSelectCommunity={openCommunity} onViewAll={() => navigateSection('Obrolan')}/>}
     {section === 'Obrolan' && <ConversationHub db={db} user={user} onSelectCommunity={openCommunity} onSelectThematicGroup={openThematicGroup}/>}
-    {section === 'Grup Tematik Chat' && <ThematicGroupChat db={db} user={user} groupId={selectedThematicGroupId} onBack={() => navigateSection('Obrolan')} onNotice={setNotice} onRequestAuth={() => openAuth(false)} onOpenMention={handleOpenMention}/>}
+    {section === 'Grup Tematik Chat' && <ThematicGroupChat db={db} user={user} groupId={selectedThematicGroupId} targetMessageId={selectedThematicMessageId} onBack={() => navigateSection('Obrolan')} onNotice={setNotice} onRequestAuth={() => openAuth(false)} onOpenMention={handleOpenMention}/>}
     {section === 'Grup Komunitas' && <CommunityGroupHeader
       db={db} user={user} communityId={selectedCommunityId} onBack={() => navigateSection('Obrolan')}
       onNotice={setNotice} onRequestAuth={() => openAuth(false)} onMembershipChange={setIsCommunityMember}

@@ -60,4 +60,31 @@ describe("unggah foto warkop", () => {
       "Foto profil belum berhasil dihapus. Coba lagi beberapa saat."
     )).toBe("Foto profil belum berhasil dihapus. Coba lagi beberapa saat.");
   });
+
+  it("accepts MP4 as the only feed-video format and validates the declared size", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false, status: 400, json: async () => ({ error: "Post not found" })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("crypto", { randomUUID: () => "123e4567-e89b-12d3-a456-426614174000" });
+    await expect(uploadWarkopMedia({
+      user: { getIdToken: vi.fn().mockResolvedValue("firebase-id-token") },
+      mediaType: "video",
+      resourceId: "post-1",
+      file: { type: "video/quicktime", size: 1024 }
+    })).rejects.toThrow("Format video belum didukung. Pilih MP4.");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects feed videos larger than 50 MiB before network upload", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(uploadWarkopMedia({
+      user: { getIdToken: vi.fn().mockResolvedValue("firebase-id-token") },
+      mediaType: "video",
+      resourceId: "post-1",
+      file: { type: "video/mp4", size: 50 * 1024 * 1024 + 1 }
+    })).rejects.toThrow("Ukuran video maksimal 50 MiB.");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

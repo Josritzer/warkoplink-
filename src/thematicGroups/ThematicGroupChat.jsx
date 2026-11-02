@@ -279,14 +279,14 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
     {isMember && <>
       <div className="thematic-message-list" aria-label="Pesan grup" aria-live="polite" aria-busy={messagesLoading}>
         {messagesLoading && <p className="thematic-chat-status" role="status">Memuat percakapan…</p>}
-        {!messagesLoading && !messages.length && <div className="thematic-chat-empty">
+        {!messagesLoading && !visibleMessages.length && <div className="thematic-chat-empty">
           <Users size={26}/>
           <b>Mulai percakapan pertama</b>
           <p>Sapa anggota lain dan mulai berbagi pengalaman.</p>
         </div>}
         {visibleMessages.map((message, index) => {
           const own = message.senderUid === user?.uid;
-          const previous = messages[index - 1];
+          const previous = visibleMessages[index - 1];
           const date = messageDate(message.createdAt);
           const showDate = date && date !== messageDate(previous?.createdAt);
           return <div key={message.id} className="thematic-message-group">

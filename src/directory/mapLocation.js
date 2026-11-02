@@ -12,3 +12,16 @@ export function getMapInitialView(latitude, longitude) {
     ? { center: coordinates, zoom: 16 }
     : { center: [-7, 112.28], zoom: 12 };
 }
+
+export function buildGoogleMapsDirectionsUrl(latitude, longitude) {
+  const coordinates = parseMapCoordinates(latitude, longitude);
+  if (!coordinates) return null;
+
+  const parameters = new URLSearchParams({
+    api: '1',
+    destination: coordinates.join(','),
+    travelmode: 'driving',
+    dir_action: 'navigate',
+  });
+  return `https://www.google.com/maps/dir/?${parameters.toString()}`;
+}

@@ -5,6 +5,15 @@ import { auth } from '../firebase.js';
 import { validateProfileDraft } from './profileModel.js';
 
 const INTEREST_OPTIONS = ['Ngopi', 'Kuliner', 'Nobar', 'Gim', 'Musik', 'Komunitas', 'Kerja laptop', 'Acara lokal'];
+function socialUrlError(value) {
+  const urlText = String(value || '').trim();
+  if (!urlText) return '';
+  try {
+    const url = new URL(urlText);
+    if (url.protocol !== 'https:' || !url.hostname || url.username || url.password) return 'Gunakan tautan HTTPS yang valid.';
+    return '';
+  } catch { return 'Masukkan URL lengkap, misalnya https://instagram.com/username.'; }
+}
 const SOCIAL_FIELDS = [
   ['instagram', 'Instagram', 'https://instagram.com/username'],
   ['tiktok', 'TikTok', 'https://tiktok.com/@username'],
@@ -13,7 +22,7 @@ const SOCIAL_FIELDS = [
 ];
 const EMPTY_DRAFT = { displayName: '', username: '', bio: '', location: '', interests: [], socialLinks: { instagram: '', tiktok: '', facebook: '', website: '' } };
 
-export default function ProfileEditor({ user, db, onNotice, onBack, onPhotoChange, onPhotoRemove, photoUploading = false }) {
+export default function ProfileEditor({ user, db, onNotice, onBack, onPhotoChange, onPhotoRemove, photoUploading = false, onDirtyChange }) {
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [savedUsername, setSavedUsername] = useState('');
   const [loading, setLoading] = useState(true);
@@ -53,6 +62,8 @@ export default function ProfileEditor({ user, db, onNotice, onBack, onPhotoChang
     load();
     return () => { active = false; };
   }, [db, user?.uid]);
+
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
 
   useEffect(() => {
     const handleBeforeUnload = event => {
@@ -95,7 +106,10 @@ export default function ProfileEditor({ user, db, onNotice, onBack, onPhotoChang
       else if (/Bio/.test(message)) errors.bio = message;
       else if (/Lokasi/.test(message)) errors.location = message;
       else if (/minat/.test(message)) errors.interests = message;
-      else errors.socialLinks = message;
+      else {
+        errors.socialLinks = message;
+        for (const [key] of SOCIAL_FIELDS) if (socialUrlError(draft.socialLinks[key])) errors[key] = socialUrlError(draft.socialLinks[key]);
+      }
       setFieldErrors(errors);
       onNotice?.(message);
       return;
@@ -167,7 +181,7 @@ export default function ProfileEditor({ user, db, onNotice, onBack, onPhotoChang
     </section>
     <section className="profile-editor-section">
       <div className="profile-section-heading"><h3>Tautan media sosial</h3><p>Opsional · tautan akan terlihat di profil publik.</p></div>
-      <div className="profile-editor-fields">{SOCIAL_FIELDS.map(([key, label, placeholder]) => <label key={key}>{label}<input type="url" inputMode="url" autoComplete="url" placeholder={placeholder} value={draft.socialLinks[key] || ''} onChange={event => setDraft(current => ({ ...current, socialLinks: { ...current.socialLinks, [key]: event.target.value } }))} aria-invalid={Boolean(fieldErrors.socialLinks)} /></label>)}</div>
+      <div className="profile-editor-fields">{SOCIAL_FIELDS.map(([key, label, placeholder]) => <label key={key}>{label}<input type="url" inputMode="url" autoComplete="url" placeholder={placeholder} value={draft.socialLinks[key] || ''} onChange={event => { setDraft(current => ({ ...current, socialLinks: { ...current.socialLinks, [key]: event.target.value } })); setFieldErrors(current => ({ ...current, [key]: '' })); }} aria-invalid={Boolean(fieldErrors[key])} />{socialUrlError(draft.socialLinks[key]) && <small className="profile-field-error">{socialUrlError(draft.socialLinks[key])}</small>}</label>)}</div>
       {fieldErrors.socialLinks && <small className="profile-field-error">{fieldErrors.socialLinks}</small>}
     </section>
     <div className="profile-editor-actions"><button className="button button-quiet" type="button" onClick={requestBack}>Kembali</button><button className="button button-dark" type="submit" disabled={saving || !dirty}>{saving ? 'Menyimpan…' : 'Simpan perubahan'}</button></div>

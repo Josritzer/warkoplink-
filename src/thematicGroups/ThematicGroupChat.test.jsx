@@ -6,6 +6,7 @@ const state = vi.hoisted(() => ({
   reactionDocs: [],
   messageFailuresRemaining: 0,
   usernameMap: {},
+  publicProfiles: {},
   setDoc: vi.fn(),
   deleteDoc: vi.fn(),
   addDoc: vi.fn(),
@@ -36,6 +37,7 @@ beforeEach(() => {
   state.reactionDocs = [];
   state.messageFailuresRemaining = 0;
   state.usernameMap = {};
+  state.publicProfiles = { bob: { uid: 'bob', displayName: 'Budi', photoURL: 'https://cdn.example/budi.webp' } };
   state.setDoc.mockResolvedValue(undefined);
   state.deleteDoc.mockResolvedValue(undefined);
   state.addDoc.mockResolvedValue({ id: 'message-1' });
@@ -49,7 +51,11 @@ beforeEach(() => {
   });
   state.updateDoc.mockResolvedValue(undefined);
   state.onSnapshot.mockImplementation((ref, next, error) => {
-    if (ref.path.endsWith('/members/alice')) {
+    if (ref.path.startsWith('publicProfiles/')) {
+      const uid = ref.path.split('/')[1];
+      const profile = state.publicProfiles[uid];
+      next({ exists: () => Boolean(profile), data: () => profile || {} });
+    } else if (ref.path.endsWith('/members/alice')) {
       next({ exists: () => state.memberExists, data: () => ({ lastReadAt: null }) });
     } else if (ref.path.endsWith('/reactions')) {
       next({ docs: state.reactionDocs.map((item) => ({ id: item.id, data: () => item.data })) });
@@ -103,6 +109,14 @@ describe('thematic group conversation', () => {
       { path: 'thematicGroups/pemilik-warkop/messages' },
       { senderUid: 'alice', senderName: 'Alice', text: 'Ada rekomendasi kopi?', createdAt: 'server-time' }
     ));
+  });
+
+  it('shows the latest public profile photo beside existing group messages', async () => {
+    state.memberExists = true;
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    await waitFor(() => expect(document.querySelector('.thematic-message-avatar img')?.getAttribute('src')).toBe('https://cdn.example/budi.webp'));
+    expect(document.querySelector('.thematic-message-avatar img')?.getAttribute('alt')).toBe('Foto profil Budi');
   });
 
   it('offers a retry when the message listener fails and recovers when retried', async () => {

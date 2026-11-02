@@ -35,8 +35,8 @@ export default function ChatPanel(props) {
   const [nudgeDismissed, setNudgeDismissed] = useState(() => { try { return window.localStorage.getItem('warkoplink:composer-nudge-dismissed:v1') === '1'; } catch { return false; } });
   const startStory = () => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi cerita.'); return; } setComposerTopic('Ngopi Bareng'); setPostType(POST_SUBTYPES['Ngopi Bareng']?.[0] || ''); setTopic('Semua'); if (onOpenDiscussion) onOpenDiscussion(); else setComposerOpen(true); setNotice('Ceritakan suasana warkop hari ini di obrolan komunitas.'); };
   const dismissNudge = () => { setNudgeDismissed(true); try { window.localStorage.setItem('warkoplink:composer-nudge-dismissed:v1', '1'); } catch {} };
-  const mentionMatch = draft.match(/(^|[^a-z0-9_])@([a-z0-9_]*)$/i);
-  const mentionQuery = mentionMatch?.[2]?.toLocaleLowerCase('id-ID') || '';
+  const mentionMatch = draft.match(/(^|[^a-z0-9_])@([^@]*)$/i);
+  const mentionQuery = mentionMatch?.[2]?.trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID') || '';
   const mentionSuggestions = mentionMatch
     ? verifiedWarungs.filter(warung => String(warung.name || warung.nameNormalized || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID').startsWith(mentionQuery)).slice(0, 5)
     : [];
@@ -90,13 +90,13 @@ export default function ChatPanel(props) {
         <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={event => setDraft(event.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ceritakan hal yang ingin dibagikan… Gunakan @username untuk menyebut anggota" rows={3} aria-describedby="composer-character-count"/>
         {memberMentionSuggestions.length > 0 && <div className="mention-suggestions member-mention-suggestions" role="listbox" aria-label="Anggota WarkopLink">
           <small>Sebut anggota</small>
-          {memberMentionSuggestions.map(member => <button key={member.uid} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/(^|[^a-z0-9_])@([a-z0-9_]*)$/i, (_, prefix) => `${prefix}@${member.username} `))}>
+          {memberMentionSuggestions.map(member => <button key={member.uid} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/(^|[^a-z0-9_])@([^@]*)$/i, (_, prefix) => `${prefix}@${member.username} `))}>
             <span className="mention-suggestion-mark">@</span><span><b>{member.displayName}</b><small>@{member.username}</small></span>
           </button>)}
         </div>}
         {mentionSuggestions.length > 0 && <div className="mention-suggestions" role="listbox" aria-label="Warkop terverifikasi">
           <small>Sebut warkop terverifikasi</small>
-          {mentionSuggestions.map(warung => <button key={warung.id} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/@([^@]*)$/, `@${warung.name} `))}>
+          {mentionSuggestions.map(warung => <button key={warung.id} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/(^|[^a-z0-9_])@([^@]*)$/i, (_, prefix) => `${prefix}@${warung.name} `))}>
             <span className="mention-suggestion-mark">@</span><span><b>{warung.name}</b><small>{warung.address || 'Profil warkop terverifikasi'}</small></span>
           </button>)}
         </div>}

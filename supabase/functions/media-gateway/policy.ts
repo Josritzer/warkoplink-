@@ -1,5 +1,5 @@
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
-export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 50_000_000;
 export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 export const MEDIA_TYPES = new Set(["avatar", "warung", "event", "video"]);
 
@@ -27,7 +27,7 @@ export function normalizeUploadRequest(input: Record<string, unknown>): MediaUpl
   if (!allowedType) return fail(isVideo ? "Unsupported video type" : "Unsupported image type");
   const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
   if (typeof input.size !== "number" || !Number.isSafeInteger(input.size) || input.size < 1 || input.size > maxBytes) {
-    return fail(isVideo ? "Video size must be between 1 byte and 50 MiB" : "Image size must be between 1 byte and 2 MiB");
+    return fail(isVideo ? "Video size must be between 1 byte and 50 MB" : "Image size must be between 1 byte and 2 MiB");
   }
   const resourceId = typeof input.resourceId === "string" ? input.resourceId.trim() : "";
   if (mediaType !== "avatar" && (!resourceId || resourceId.length > 150 || !/^[A-Za-z0-9_-]+$/.test(resourceId))) {

@@ -89,3 +89,8 @@
  .message-friend-action{padding:7px 8px}
 }
 @media(prefers-reduced-motion:reduce){.messages-page *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+.sidebar-secondary-nav{display:grid;gap:3px;margin-top:16px;padding-top:13px;border-top:1px solid var(--wl-border)}
+.sidebar-group-label{padding:0 10px 5px;color:var(--wl-muted);font-size:9px;font-weight:800;letter-spacing:.12em}
+.sidebar-nav-item-secondary{min-height:38px;font-size:11px;font-weight:650;color:var(--wl-muted)}
+.sidebar-nav-item-secondary>svg{width:16px;height:16px}

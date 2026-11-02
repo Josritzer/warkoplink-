@@ -1,7 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ChatPanel from './ChatPanel.jsx';
 const mentionFirestore = vi.hoisted(() => ({ getDocs: vi.fn(), getDoc: vi.fn() }));
+
+afterEach(() => cleanup());
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((db, path) => ({ path })),
   doc: vi.fn((db, collectionName, id) => ({ path: `${collectionName}/${id}` })),

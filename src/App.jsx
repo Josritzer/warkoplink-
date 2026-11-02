@@ -25,6 +25,7 @@ import ProfileEditor from './profile/ProfileEditor.jsx';
 import NotificationCenter from './notifications/NotificationCenter.jsx';
 import MessagesPage from './messaging/MessagesPage.jsx';
 import { extractMentionUsernames } from './notifications/notificationModel.js';
+import { renderMemberMentions } from './notifications/mentionText.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts, isPublicPost,
@@ -537,10 +538,37 @@ export default function App() {
     }));
     const recipients = [...new Map(mappings.filter(item => item?.uid && item.uid !== user.uid)
       .map(item => [item.uid, item])).values()];
-    await Promise.all(recipients.map(({ username, uid }) => setDoc(doc(collection(db, 'notifications')), {
-      recipientUid: uid, actorUid: user.uid, type: 'mention', postId, username,
-      ...(replyId ? { replyId } : {}), createdAt: serverTimestamp(), readAt: null
-    })));
+    await Promise.all(recipients.map(async ({ username, uid }) => {
+      const notificationId = `mention_${postId}_${replyId || 'post'}_${uid}`;
+      try {
+        await setDoc(doc(db, 'notifications', notificationId), {
+          recipientUid: uid, actorUid: user.uid, type: 'mention', postId, username,
+          ...(replyId ? { replyId } : {}), createdAt: serverTimestamp(), readAt: null
+        });
+      } catch (error) {
+        // ID deterministik + aturan create-only membuat kiriman ulang tidak menggandakan notifikasi.
+        // Firestore menolak penulisan kedua sebagai permission-denied; itu berarti dokumen sudah ada.
+        if (error?.code !== 'permission-denied') throw error;
+      }
+    }));
+  }
+
+  async function handleOpenMention(username) {
+    if (!db || !username) return;
+    try {
+      const usernameSnapshot = await getDoc(doc(db, 'usernames', username));
+      if (!usernameSnapshot.exists()) { setNotice('Akun yang disebut tidak ditemukan.'); return; }
+      const uid = usernameSnapshot.data()?.uid;
+      if (!uid) { setNotice('Profil anggota belum tersedia.'); return; }
+      const profileSnapshot = await getDoc(doc(db, 'publicProfiles', uid));
+      openMemberProfile({
+        uid,
+        ...(profileSnapshot.exists() ? profileSnapshot.data() : {}),
+        displayName: profileSnapshot.exists() ? profileSnapshot.data()?.displayName || 'Anggota WarkopLink' : 'Anggota WarkopLink'
+      });
+    } catch {
+      setNotice('Profil anggota belum dapat dibuka. Coba lagi.');
+    }
   }
 
   async function handleOpenNotification(notification) {
@@ -1152,7 +1180,7 @@ export default function App() {
     loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
     cardProps={{
       user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs, onOpenWarung: openWarungProfile,
-      reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, onOpenProfile: openMemberProfile,
+      reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, onOpenProfile: openMemberProfile, onOpenMention: handleOpenMention,
       postReactions, reactionSummaries, handleReactPost, likeCounts, replyCounts, expandedReplies, likedPosts,
       handleLikePost, openReplies, closeReplies, repliesByPost, replyingPostId, replyDraft, setReplyDraft,
       handleReply, openReplyPage, handleReportPost, reporting, deleteConfirmId, setDeleteConfirmId,
@@ -1213,7 +1241,7 @@ export default function App() {
           <button type="button" className="reply-original-avatar reply-profile-link" aria-label={`Lihat profil ${resolvedSelectedReplyPost.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: resolvedSelectedReplyPost.authorId, displayName: resolvedSelectedReplyPost.authorName, photoURL: resolvedSelectedReplyPost.authorPhotoURL })}>{resolvedSelectedReplyPost.authorPhotoURL ? <img src={resolvedSelectedReplyPost.authorPhotoURL} alt="" loading="lazy"/> : String(resolvedSelectedReplyPost.authorName || 'A').slice(0,1).toUpperCase()}</button>
           <div className="reply-original-body">
             <div className="reply-original-meta"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: resolvedSelectedReplyPost.authorId, displayName: resolvedSelectedReplyPost.authorName, photoURL: resolvedSelectedReplyPost.authorPhotoURL })}>{resolvedSelectedReplyPost.authorName || 'Anggota SL'}</button><span>{resolvedSelectedReplyPost.topic || 'Obrolan Umum'}</span><small>{relativePostTime(resolvedSelectedReplyPost.createdAt)}</small></div>
-            <p>{resolvedSelectedReplyPost.body}</p>
+            <p>{renderMemberMentions(resolvedSelectedReplyPost.body, handleOpenMention)}</p>
           </div>
         </article> : <p>Obrolan tidak ditemukan. Kembali ke beranda untuk memilih obrolan.</p>}
         <div className="reply-thread-list" aria-label="Komentar dan balasan">
@@ -1225,7 +1253,7 @@ export default function App() {
               : (selectedReplyPost ? resolvedReplies : []).map(reply => <article className={reply.pending ? 'reply-page-item is-pending' : 'reply-page-item'} key={reply.id}>
                   <button type="button" className="reply-page-avatar reply-profile-link" aria-label={`Lihat profil ${reply.authorName || 'Anggota'}`} onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: reply.authorPhotoURL })}>{reply.authorPhotoURL ? <img src={reply.authorPhotoURL} alt="" loading="lazy"/> : String(reply.authorName || 'A').slice(0,1).toUpperCase()}</button>
                   <div className="reply-page-main">
-                    <div className="reply-bubble"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: reply.authorPhotoURL })}>{reply.authorName || 'Anggota komunitas'}</button><p>{reply.body}</p></div>
+                    <div className="reply-bubble"><button type="button" className="reply-profile-name" onClick={() => openMemberProfile({ uid: reply.authorId, displayName: reply.authorName, photoURL: reply.authorPhotoURL })}>{reply.authorName || 'Anggota komunitas'}</button><p>{renderMemberMentions(reply.body, handleOpenMention)}</p></div>
                     <small>{reply.pending ? 'Mengirim…' : reply.createdAt?.toDate?.() ? relativePostTime(reply.createdAt) : 'Baru saja'}</small>
                   </div>
                 </article>)}

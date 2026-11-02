@@ -5,6 +5,7 @@ import { displayTopic, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
 import { createPortal } from 'react-dom';
 import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { db } from '../firebase.js';
+import { renderMemberMentions } from '../notifications/mentionText.jsx';
 
 const EMOJIS = ["👍","👏","🙌","💪","🤝","💯","❤️","🥰","😍","😘","💖","💕","😂","🤣","😆","😹","😅","🤪","😮","😲","🤯","🤩","🥳","✨","😢","😭","🥺","😔","💔","🫂","😡","🤬","😤","🙄","😠","👎"];
 const PRIMARY_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
@@ -104,7 +105,7 @@ function renderWarungMentions(body, warungs = [], onOpenWarung) {
 }
 // Tampilan satu status; state dan operasi tetap dimiliki App agar data tersinkron antarpengguna.
 export default function ChatPostCard({
-  post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs = [], onOpenWarung, onOpenProfile,
+  post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs = [], onOpenWarung, onOpenProfile, onOpenMention,
   reportingPostId, setReportingPostId, reportReason, setReportReason, sharePost, postReactions,
   reactionSummaries, handleReactPost, likeCounts, replyCounts, likedPosts, handleLikePost,
   openReplyPage,
@@ -276,7 +277,7 @@ export default function ChatPostCard({
         <label>Tipe kerja<input aria-label="Edit tipe kerja" value={editWorkType} onChange={event => setEditWorkType(event.target.value)} maxLength={60}/></label>
         <label>Kontak (HTTPS atau @akun)<input aria-label="Edit kontak" value={editContact} onChange={event => setEditContact(event.target.value)} maxLength={240}/></label>
         <div className="report-form-actions"><button className="button button-dark" type="submit">Simpan perubahan</button><button className="button button-quiet" type="button" onClick={() => setEditing(false)}>Batal</button></div>
-      </form> : <p>{renderWarungMentions(post.body, verifiedWarungs, onOpenWarung)}</p>}
+      </form> : <p>{renderMemberMentions(renderWarungMentions(post.body, verifiedWarungs, onOpenWarung), onOpenMention)}</p>}
       {!editing && category === 'Info & Acara' && post.warungId && <div className="event-organizer">
         <button type="button" className="event-organizer-link" onClick={() => onOpenWarung?.(post.warungId)} aria-label={`Lihat profil warkop ${linkedWarung?.name || 'penyelenggara'}`}>
           <span className="event-organizer-avatar">{linkedWarung?.photos?.[0] ? <img src={linkedWarung.photos[0]} alt="" loading="lazy"/> : <Store size={17}/>}</span>

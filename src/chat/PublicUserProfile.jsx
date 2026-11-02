@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, MessageCircle, UserRound, Pencil, CalendarDays } from 'lucide-react';
-import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { friendNotificationId } from '../messaging/messageModel.js';
 import { isPublicPost } from '../lib.js';
 
@@ -26,14 +26,21 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
     if (!db || !currentUser?.uid || !uid || currentUser.uid === uid) {
       setIsFollowing(false); setIsMutual(false); return undefined;
     }
-    let active = true;
-    Promise.all([
-      getDoc(doc(db, 'userFollows', `${currentUser.uid}_${uid}`)),
-      getDoc(doc(db, 'userFollows', `${uid}_${currentUser.uid}`))
-    ]).then(([outgoing, incoming]) => {
-      if (active) { setIsFollowing(outgoing.exists()); setIsMutual(outgoing.exists() && incoming.exists()); }
-    }).catch(() => { if (active) { setIsFollowing(false); setIsMutual(false); } });
-    return () => { active = false; };
+    let outgoingExists = false;
+    let incomingExists = false;
+    const syncRelationship = () => {
+      setIsFollowing(outgoingExists);
+      setIsMutual(outgoingExists && incomingExists);
+    };
+    const outgoing = onSnapshot(doc(db, 'userFollows', `${currentUser.uid}_${uid}`), snapshot => {
+      outgoingExists = snapshot.exists();
+      syncRelationship();
+    }, () => { setFollowError('Status mengikuti belum dapat diperbarui.'); });
+    const incoming = onSnapshot(doc(db, 'userFollows', `${uid}_${currentUser.uid}`), snapshot => {
+      incomingExists = snapshot.exists();
+      syncRelationship();
+    }, () => { setFollowError('Status pertemanan belum dapat diperbarui.'); });
+    return () => { outgoing(); incoming(); };
   }, [db, currentUser?.uid, uid]);
 
   async function toggleFollow() {

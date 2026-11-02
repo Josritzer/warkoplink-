@@ -867,14 +867,13 @@ describe('notifikasi sementara dan unggah foto profil', () => {
   it('menghilangkan notifikasi sementara setelah tiga detik', () => {
     vi.useFakeTimers();
     render(<App />);
+    emitAuth(null);
+    emitPosts([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Obrolan' }));
     fireEvent.click(screen.getByRole('button', { name: /Masuk untuk mulai ngobrol/ }));
-    const notice = 'Masuk untuk mulai berbagi cerita.';
+    const notice = 'Masuk untuk mulai berbagi obrolan.';
     expect(screen.getByText(notice)).toBeTruthy();
-
-    act(() => {
-      vi.advanceTimersByTime(3000);
-    });
-
+    act(() => { vi.advanceTimersByTime(3000); });
     expect(screen.queryByText(notice)).toBeNull();
   });
 });

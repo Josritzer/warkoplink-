@@ -47,6 +47,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [facilities, setFacilities] = useState('');
+  const [selectedActivities, setSelectedActivities] = useState([]);
   const [menuItems, setMenuItems] = useState('');
   const [specialties, setSpecialties] = useState('');
   const [ambience, setAmbience] = useState('');
@@ -274,7 +275,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         const warungRef = await addDoc(collection(db, 'warungs'), {
           name: cleanName, nameNormalized: cleanName.toLowerCase(), ownerUid: user.uid,
           coordinates: { lat: latitude, lng: longitude }, address: cleanAddress,
-          ...region, facilities: facilityList, activities: [],
+          ...region, facilities: facilityList, activities: selectedActivities,
           menuItems: menuItems.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 30),
           specialties: specialties.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 15),
           ambience: ambience.trim().slice(0, 240), priceRange: 'belum-diisi',
@@ -296,6 +297,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setIncompleteWarungId('');
       setSelectedPhotos([]);
       setName(''); setAddress(''); setRegionSelection(null); setLat(''); setLng(''); setFacilities('');
+      setSelectedActivities([]);
       setMenuItems(''); setSpecialties(''); setAmbience('');
       setHours('');
       setRegistrationStep(1);
@@ -368,12 +370,13 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
           <label>Menu utama, pisahkan dengan koma<input value={menuItems} onChange={(e) => setMenuItems(e.target.value)} maxLength={600} placeholder="Kopi, teh, mi instan, nasi goreng"/></label>
           <label>Menu spesial, pisahkan dengan koma<input value={specialties} onChange={(e) => setSpecialties(e.target.value)} maxLength={400} placeholder="Kopi racikan, mi nyemek, pisang goreng"/></label>
           <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
+          <fieldset className="warung-activity-options"><legend>Aktivitas warkop</legend><p className="form-hint">Pilih kegiatan yang memang tersedia di warkop Anda.</p><div className="facility-filter-list">{ACTIVITY_OPTIONS.map((activity) => <label className="facility-chip" key={activity.value}><input type="checkbox" checked={selectedActivities.includes(activity.value)} onChange={() => setSelectedActivities((current) => current.includes(activity.value) ? current.filter((value) => value !== activity.value) : [...current, activity.value])}/>{activity.label}</label>)}</div></fieldset>
           <label>Suasana warkop<textarea value={ambience} onChange={(e) => setAmbience(e.target.value)} maxLength={240} rows={2} placeholder="Santai, cocok untuk ngobrol atau kerja ringan"/></label>
           <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>
         </>}
         {registrationStep === 3 && <>
           <p className="form-hint">Periksa kembali data warkop sebelum dikirim. Foto dapat ditambahkan sekarang atau menyusul.</p>
-          <div className="warung-registration-summary"><strong>{name}</strong><span>{[villageName, districtName, regencyName, provinceName].filter(Boolean).join(', ')}</span><span>{address}</span><span>Koordinat: {lat}, {lng}</span>{menuItems.trim() && <span>Menu: {menuItems}</span>}{specialties.trim() && <span>Menu spesial: {specialties}</span>}</div>
+          <div className="warung-registration-summary"><strong>{name}</strong><span>{[villageName, districtName, regencyName, provinceName].filter(Boolean).join(', ')}</span><span>{address}</span><span>Koordinat: {lat}, {lng}</span>{menuItems.trim() && <span>Menu: {menuItems}</span>}{specialties.trim() && <span>Menu spesial: {specialties}</span>}{selectedActivities.length > 0 && <span>Aktivitas: {selectedActivities.map((value) => ACTIVITY_OPTIONS.find((item) => item.value === value)?.label || value).join(', ')}</span>}</div>
           <label>Foto warkop (maksimal 5, JPG/PNG/WebP, 2 MiB per foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={Boolean(incompleteWarungId)} onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
           {selectedPhotos.length > 0 && <p className="form-hint">{selectedPhotos.length} foto dipilih. {incompleteWarungId ? 'Pilihan foto dikunci sampai unggahan selesai.' : ''}</p>}
         </>}

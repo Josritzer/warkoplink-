@@ -4,7 +4,11 @@ export const ACTIVITY_OPTIONS = [
   { value: 'komunitas', label: 'Komunitas' },
   { value: 'gim', label: 'Gim' },
   { value: 'kerja-laptop', label: 'Bekerja dengan laptop' },
-  { value: 'acara', label: 'Acara' }
+  { value: 'acara', label: 'Acara' },
+  { value: 'olahraga', label: 'Olahraga' },
+  { value: 'hobi', label: 'Hobi' },
+  { value: 'musik', label: 'Musik / live music' },
+  { value: 'ngopi-bareng', label: 'Ngopi bareng' }
 ];
 
 export const ACTIVITY_LABELS = Object.fromEntries(ACTIVITY_OPTIONS.map(({ value, label }) => [value, label]));

@@ -740,6 +740,26 @@ describe('direktori dan pendaftaran warkop', () => {
     expect(screen.queryByLabelText('Kisaran harga (opsional)')).toBeNull();
   });
 
+  it('menyimpan aktivitas warkop yang dipilih untuk filter direktori', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
+    await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Aktivitas');
+    await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
+    await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
+    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+    await user.click(screen.getByLabelText('Nobar'));
+    await user.click(screen.getByLabelText('Olahraga'));
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(screen.getByText(/Aktivitas: Nobar, Olahraga/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    await waitFor(() => expect(fs.addDoc).toHaveBeenCalledWith({ path: 'warungs' }, expect.objectContaining({ activities: ['nobar', 'olahraga'] })));
+  });
+
   it('menunjukkan penyebab foto gagal dan cara melanjutkan pendaftaran tersimpan', async () => {
     const user = userEvent.setup();
     media.uploadWarkopMedia.mockRejectedValueOnce(new Error('Invalid or expired Firebase ID token'));

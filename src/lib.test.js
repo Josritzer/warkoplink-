@@ -42,8 +42,8 @@ describe('validatePostBody', () => {
 });
 
 describe('kategori', () => {
-  it('hanya menyediakan lima kategori utama final', () => {
-    expect(POST_TOPICS).toEqual(['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']);
+  it('menyediakan tujuh kategori utama yang sama dengan komunitas resmi', () => {
+    expect(POST_TOPICS).toEqual(['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas']);
     expect(FILTER_TOPICS).toEqual(['Semua', ...POST_TOPICS]);
     expect(validateTopic('Ngopi Bareng')).toBe(true);
     expect(validateTopic('Semua')).toBe(false);
@@ -54,7 +54,10 @@ describe('kategori', () => {
     expect(canonicalTopic('Tanya Jawab')).toBe('Tanya Warkop');
     expect(canonicalTopic('Info Layanan')).toBe('Info & Acara');
     expect(canonicalTopic('Ide & Saran')).toBe('Info & Acara');
+    expect(canonicalTopic('Jual Beli & Jasa Lokal', 'Jual barang')).toBe('Jual Beli');
+    expect(canonicalTopic('Jual Beli & Jasa Lokal', 'Tawarkan jasa')).toBe('Jasa Lokal');
     expect(filterPosts([{ topic: 'Tanya Jawab', body: 'wifi' }], 'Tanya Warkop', '')).toHaveLength(1);
+    expect(filterPosts([{ topic: 'Jual Beli & Jasa Lokal', postType: 'Tawarkan jasa' }], 'Jasa Lokal', '')).toHaveLength(1);
   });
   it('memvalidasi detail opsional dan kontak aman', () => {
     expect(validatePostDetails('Loker', { workType: 'Paruh waktu', contact: 'https://example.com' }).ok).toBe(true);

@@ -6,15 +6,17 @@ export const DISPLAY_NAME_MAX = 60;
 export const PASSWORD_MIN = 6;
 export const FALLBACK_AUTHOR_NAME = 'Anggota';
 
-// Kategori baru adalah satu-satunya kategori utama yang dapat dipublikasikan.
-export const POST_TOPICS = ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal'];
+// Satu sumber kategori utama untuk feed, komunitas, dan formulir posting.
+export const POST_TOPICS = ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas'];
 export const FILTER_TOPICS = ['Semua', ...POST_TOPICS];
 export const POST_SUBTYPES = {
-  'Ngopi Bareng': ['Cari teman ngopi', 'Cari teman hobi', 'Ajakan kegiatan'],
-  'Tanya Warkop': ['Wi-Fi & fasilitas', 'Rekomendasi warkop', 'Pertanyaan komunitas'],
+  'Ngopi Bareng': ['Cari teman ngopi', 'Ajakan ngopi', 'Cerita suasana warkop'],
+  'Tanya Warkop': ['Tanya menu', 'Tanya fasilitas', 'Rekomendasi warkop'],
   'Info & Acara': ['Info lokal', 'Acara komunitas', 'Promo warkop'],
   'Loker': ['Lowongan kerja', 'Cari pekerja', 'Paruh waktu / shift'],
-  'Jual Beli & Jasa Lokal': ['Jual barang', 'Cari barang', 'Tawarkan jasa', 'Promosi usaha']
+  'Jual Beli': ['Jual barang', 'Cari barang', 'Barter'],
+  'Jasa Lokal': ['Tawarkan jasa', 'Cari jasa', 'Promosi usaha lokal'],
+  'Komunitas & Aktivitas': ['Cari komunitas', 'Ajakan olahraga / hobi', 'Kegiatan warga']
 };
 const LEGACY_TOPIC_MAP = {
   'Obrolan Umum': 'Ngopi Bareng',
@@ -22,8 +24,10 @@ const LEGACY_TOPIC_MAP = {
   'Info Layanan': 'Info & Acara',
   'Ide & Saran': 'Info & Acara'
 };
-export function canonicalTopic(topic) {
-  return POST_TOPICS.includes(topic) ? topic : LEGACY_TOPIC_MAP[topic] || 'Ngopi Bareng';
+export function canonicalTopic(topic, postType = '') {
+  if (POST_TOPICS.includes(topic)) return topic;
+  if (topic === 'Jual Beli & Jasa Lokal') return /jasa|promosi usaha/i.test(String(postType)) ? 'Jasa Lokal' : 'Jual Beli';
+  return LEGACY_TOPIC_MAP[topic] || 'Ngopi Bareng';
 }
 export function displayTopic(topic) {
   return canonicalTopic(topic);
@@ -71,7 +75,7 @@ export function validateTopic(topic) {
 }
 
 export function validatePostDetails(topic, details = {}) {
-  if (!validateTopic(topic)) return { ok: false, error: 'Pilih salah satu dari lima kategori yang tersedia.' };
+  if (!validateTopic(topic)) return { ok: false, error: 'Pilih salah satu dari tujuh kategori yang tersedia.' };
   const limits = { postType: 80, location: 160, eventDate: 40, price: 60, workType: 60, contact: 240 };
   for (const [key, max] of Object.entries(limits)) {
     if (String(details[key] ?? '').trim().length > max) return { ok: false, error: 'Detail posting terlalu panjang.' };
@@ -91,7 +95,7 @@ export function authorNameFor(user) {
 export function filterPosts(posts, topic, search) {
   const needle = String(search ?? '').trim().toLowerCase();
   return posts.filter((post) => {
-    if (topic && topic !== 'Semua' && canonicalTopic(post.topic) !== topic) return false;
+    if (topic && topic !== 'Semua' && canonicalTopic(post.topic, post.postType) !== topic) return false;
     if (!needle) return true;
     return (
       String(post.body ?? '').toLowerCase().includes(needle) ||

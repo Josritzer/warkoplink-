@@ -200,6 +200,7 @@ describe('official community membership', () => {
       uid: 'alice', createdAt: serverTimestamp()
     }));
     await assertSucceeds(createPost(aliceDb, validPost({ communityId: 'ngopi-bareng' })));
+    await assertFails(createPost(aliceDb, validPost({ communityId: 'ngopi-bareng', topic: 'Jasa Lokal' })));
     await assertFails(createPost(asUser('bob'), validPost({
       authorId: 'bob', authorName: 'Bob', communityId: 'ngopi-bareng'
     })));
@@ -262,7 +263,7 @@ describe('posts', () => {
   });
 
   it('semua kategori yang diizinkan diterima', async () => {
-    for (const [index, topic] of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal'].entries()) {
+    for (const [index, topic] of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas'].entries()) {
       const uid = `topic-user-${index}`;
       await env.withSecurityRulesDisabled(async (ctx) => {
         await setDoc(doc(ctx.firestore(), `profiles/${uid}`), {
@@ -273,9 +274,11 @@ describe('posts', () => {
     }
   });
 
-  it('kategori di luar daftar ditolak', async () => {
+  it('kategori di luar daftar ditolak dan jenis posting harus sesuai kategori', async () => {
     await assertFails(createPost(asUser('alice'), validPost({ topic: 'Lainnya' })));
     await assertFails(createPost(asUser('alice'), validPost({ topic: 'Tanya Jawab' })));
+    await assertFails(createPost(asUser('alice'), validPost({ topic: 'Jasa Lokal', postType: 'Jual barang' })));
+    await assertSucceeds(createPost(asUser('alice'), validPost({ topic: 'Jasa Lokal', postType: 'Tawarkan jasa' })));
   });
 
   it('isi tepat 2000 karakter diterima, 2001 ditolak, kosong ditolak', async () => {

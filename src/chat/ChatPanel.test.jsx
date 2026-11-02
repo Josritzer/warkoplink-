@@ -108,6 +108,15 @@ describe('community group posting access', () => {
     expect(screen.getByRole('button', { name: /Ayo ngobrol/ })).toBeTruthy();
     expect(screen.queryByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeNull();
   });
+
+  it('locks the posting category to the selected official community', async () => {
+    const setComposerTopic = vi.fn();
+    render(<ChatPanel {...sharedProps} setComposerTopic={setComposerTopic} composerOpen communityId="jasa-lokal" communityMember/>);
+    await waitFor(() => expect(setComposerTopic).toHaveBeenCalledWith('Jasa Lokal'));
+    expect(screen.getByText('Postingan ini otomatis masuk ke komunitas Jasa Lokal.')).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: 'Kategori posting' })).toBeNull();
+    expect(screen.getByRole('combobox', { name: 'Jenis posting' })).toBeTruthy();
+  });
 });
 
 describe('ChatPanel homepage layout', () => {

@@ -700,11 +700,12 @@ export default function App() {
       setNotice('Gabung dengan komunitas ini terlebih dahulu sebelum mengirim postingan.');
       return false;
     }
+    const postTopic = details.communityId ? (details.topic || composerTopic) : composerTopic;
     const bodyCheck = validatePostBody(draft);
     if (!bodyCheck.ok) return setNotice(bodyCheck.error);
-    const detailsCheck = validatePostDetails(composerTopic, details);
+    const detailsCheck = validatePostDetails(postTopic, details);
     if (!detailsCheck.ok) return setNotice(detailsCheck.error);
-    if (details.eventWarungId && (composerTopic !== 'Info & Acara' || !verifiedWarungs.some(warung => warung.id === details.eventWarungId && warung.ownerUid === user.uid))) {
+    if (details.eventWarungId && (postTopic !== 'Info & Acara' || !verifiedWarungs.some(warung => warung.id === details.eventWarungId && warung.ownerUid === user.uid))) {
       setNotice('Pilih warkop terverifikasi milik akun Anda untuk mengaitkan acara.');
       return false;
     }
@@ -725,16 +726,16 @@ export default function App() {
         authorName: authorNameFor(user),
         authorPhotoURL: user.photoURL || null,
         body: bodyCheck.value,
-        topic: composerTopic,
+        topic: postTopic,
         ...(details.communityId ? { communityId: details.communityId } : {}),
         ...(details.postType?.trim() ? { postType: details.postType.trim() } : {}),
         ...(details.location?.trim() ? { location: details.location.trim() } : {}),
         ...(details.eventDate?.trim() ? { eventDate: details.eventDate.trim() } : {}),
-        ...(composerTopic === 'Info & Acara' && details.eventStartAt ? { eventStartAt: details.eventStartAt } : {}),
-        ...(composerTopic === 'Info & Acara' && details.eventEndAt ? { eventEndAt: details.eventEndAt } : {}),
-        ...(composerTopic === 'Info & Acara' ? { eventKind: String(details.eventKind || 'Lainnya').slice(0, 40) } : {}),
-        ...(composerTopic === 'Info & Acara' && details.eventCapacity && Number(details.eventCapacity) > 0 ? { eventCapacity: Math.min(10000, Math.floor(Number(details.eventCapacity))) } : {}),
-        ...(composerTopic === 'Info & Acara' && details.eventWarungId ? { warungId: details.eventWarungId } : {}),
+        ...(postTopic === 'Info & Acara' && details.eventStartAt ? { eventStartAt: details.eventStartAt } : {}),
+        ...(postTopic === 'Info & Acara' && details.eventEndAt ? { eventEndAt: details.eventEndAt } : {}),
+        ...(postTopic === 'Info & Acara' ? { eventKind: String(details.eventKind || 'Lainnya').slice(0, 40) } : {}),
+        ...(postTopic === 'Info & Acara' && details.eventCapacity && Number(details.eventCapacity) > 0 ? { eventCapacity: Math.min(10000, Math.floor(Number(details.eventCapacity))) } : {}),
+        ...(postTopic === 'Info & Acara' && details.eventWarungId ? { warungId: details.eventWarungId } : {}),
         ...(details.price?.trim() ? { price: details.price.trim() } : {}),
         ...(details.workType?.trim() ? { workType: details.workType.trim() } : {}),
         ...(details.contact?.trim() ? { contact: details.contact.trim() } : {}),
@@ -746,7 +747,7 @@ export default function App() {
       try { await createMentionNotifications(bodyCheck.value, postRef.id); }
       catch { mentionNotice = ' Mention belum dapat dikirim ke semua akun yang ditandai.'; }
       let posterNotice = mentionNotice;
-      if (composerTopic === 'Info & Acara' && details.eventPosterFile) {
+      if (postTopic === 'Info & Acara' && details.eventPosterFile) {
         try {
           await uploadWarkopMedia({ user, mediaType: 'event', resourceId: postRef.id, file: details.eventPosterFile });
         } catch (error) {
@@ -1348,7 +1349,7 @@ export default function App() {
           <span className="sidebar-group-label">RUANG KOMUNITAS</span>
           <button type="button" aria-label="Obrolan" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={17}/><span>Obrolan</span></button>
           <button type="button" aria-label="Desktop: Agenda & acara" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={17}/><span>Agenda & acara</span></button>
-          <button type="button" aria-label="Desktop: Jual beli & jasa" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli & Jasa Lokal'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={17}/><span>Jual beli & jasa</span></button>
+          <button type="button" aria-label="Desktop: Jual beli & jasa" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={17}/><span>Jual beli</span></button>
         </div>
         <div className="sidebar-community-note"><span className="sidebar-note-icon"><MapPin size={16}/></span><div><b>Jangkauan Indonesia</b><p>Mulai dari Lamongan, terhubung dengan warkop dan komunitas dari berbagai daerah.</p></div></div>
         <button type="button" className="sidebar-profile" onClick={() => user ? openMemberProfile({ uid: user.uid, displayName: user.displayName || 'Anggota WarkopLink', photoURL: user.photoURL || '' }) : navigateSection('Akun')}>

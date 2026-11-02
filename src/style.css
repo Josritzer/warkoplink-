@@ -803,3 +803,10 @@
 @media(max-width:420px){.community-group-identity{align-items:flex-start;flex-wrap:wrap}.community-group-copy{flex-basis:calc(100% - 74px)}.community-membership-button{margin-left:71px}.community-directory-grid{gap:8px}.community-directory-card{padding:11px}.community-shortcut{flex-basis:104px}}
 
 .post-meta .post-community-label{background:var(--wl-primary-tint);color:var(--wl-primary);font-weight:750}
+
+
+/* Aktivitas warkop terhubung ke filter komunitas tanpa mengubah data lama. */
+.warung-activity-options{display:grid;gap:8px;border:0;padding:0;margin:0;min-width:0}
+.warung-activity-options legend{font-size:12px;font-weight:700;color:var(--wl-ink);padding:0}
+.warung-activity-options .facility-chip{display:inline-flex;align-items:center;gap:8px}
+.warung-activity-options input[type=checkbox]{width:auto;min-height:0;margin:0;accent-color:var(--wl-primary)}

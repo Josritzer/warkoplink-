@@ -210,6 +210,26 @@ service cloud.firestore {
         || (data.mentionedUsernames is list && data.mentionedUsernames.size() <= 10);
     }
 
+    function validCommunityTopic(communityId, topic) {
+      return (communityId == 'ngopi-bareng' && topic == 'Ngopi Bareng')
+        || (communityId == 'tanya-warkop' && topic == 'Tanya Warkop')
+        || (communityId == 'info-acara' && topic == 'Info & Acara')
+        || (communityId == 'loker' && topic == 'Loker')
+        || (communityId == 'jual-beli' && topic == 'Jual Beli')
+        || (communityId == 'jasa-lokal' && topic == 'Jasa Lokal')
+        || (communityId == 'komunitas-aktivitas' && topic == 'Komunitas & Aktivitas');
+    }
+
+    function validPostType(topic, postType) {
+      return (topic == 'Ngopi Bareng' && postType in ['Cari teman ngopi', 'Ajakan ngopi', 'Cerita suasana warkop'])
+        || (topic == 'Tanya Warkop' && postType in ['Tanya menu', 'Tanya fasilitas', 'Rekomendasi warkop'])
+        || (topic == 'Info & Acara' && postType in ['Info lokal', 'Acara komunitas', 'Promo warkop', 'Acara Warkop'])
+        || (topic == 'Loker' && postType in ['Lowongan kerja', 'Cari pekerja', 'Paruh waktu / shift'])
+        || (topic == 'Jual Beli' && postType in ['Jual barang', 'Cari barang', 'Barter'])
+        || (topic == 'Jasa Lokal' && postType in ['Tawarkan jasa', 'Cari jasa', 'Promosi usaha lokal', 'Promosi usaha'])
+        || (topic == 'Komunitas & Aktivitas' && postType in ['Cari komunitas', 'Ajakan olahraga / hobi', 'Kegiatan warga']);
+    }
+
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
         && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'communityId', 'createdAt', 'reactions', 'totalReactions'])
@@ -233,8 +253,8 @@ service cloud.firestore {
         && data.body is string
         && data.body.size() >= 1
         && data.body.size() <= 2000
-        && data.topic in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']
-        && (!data.keys().hasAny(['postType']) || (data.postType is string && data.postType.size() <= 80))
+        && data.topic in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas']
+        && (!data.keys().hasAny(['postType']) || (data.postType is string && data.postType.size() <= 80 && validPostType(data.topic, data.postType)))
         && (!data.keys().hasAny(['location']) || (data.location is string && data.location.size() <= 160))
         && (!data.keys().hasAny(['eventDate']) || (data.eventDate is string && data.eventDate.size() <= 40))
         && (!data.keys().hasAny(['eventStartAt']) || (data.eventStartAt is string && data.eventStartAt.size() <= 40))
@@ -247,6 +267,7 @@ service cloud.firestore {
           && (data.contact.matches('https://.*') || data.contact.matches('@[A-Za-z0-9_.]{2,40}'))))
         && (!data.keys().hasAny(['communityId']) || (
           isOfficialCommunityId(data.communityId)
+          && validCommunityTopic(data.communityId, data.topic)
           && exists(/databases/$(database)/documents/communities/$(data.communityId)/members/$(request.auth.uid))
         ))
         && data.createdAt == request.time;
@@ -311,7 +332,7 @@ service cloud.firestore {
         && (!data.keys().hasAny(['menuItems']) || (data.menuItems is list && data.menuItems.size() <= 30))
         && (!data.keys().hasAny(['specialties']) || (data.specialties is list && data.specialties.size() <= 15))
         && (!data.keys().hasAny(['ambience']) || (data.ambience is string && data.ambience.size() <= 240))
-        && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
+        && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 9 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara', 'olahraga', 'hobi', 'musik', 'ngopi-bareng'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
         && data.photos is list && data.photos.size() == 0
@@ -351,7 +372,7 @@ service cloud.firestore {
         && (!data.keys().hasAny(['menuItems']) || (data.menuItems is list && data.menuItems.size() <= 30))
         && (!data.keys().hasAny(['specialties']) || (data.specialties is list && data.specialties.size() <= 15))
         && (!data.keys().hasAny(['ambience']) || (data.ambience is string && data.ambience.size() <= 240))
-        && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 5 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara'])))
+        && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 9 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara', 'olahraga', 'hobi', 'musik', 'ngopi-bareng'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
         && data.openingHours is map
         && validWarungPhotoList(data.photos, warungId, oldPhotos);
@@ -527,10 +548,16 @@ service cloud.firestore {
             && (!request.resource.data.keys().hasAny(['eventStatus']) || request.resource.data.eventStatus in ['scheduled', 'cancelled'])
             && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['eventPhotoURL']) || (request.resource.data.eventPhotoURL is string && request.resource.data.eventPhotoURL.size() <= 2048 && resource.data.get('warungId', '') is string && get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.ownerUid == request.auth.uid && get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.verificationStatus == 'verified' && request.resource.data.eventPhotoURL.matches('https://klikvxuronunonymmiqv[.]supabase[.]co/storage/v1/object/public/warkoplink-media/events/' + postId + '/[0-9a-f-]{36}[.]webp')))
             && (
-              request.resource.data.get('topic', '') in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']
+              request.resource.data.get('topic', '') in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas']
               || (request.resource.data.get('topic', '') == resource.data.get('topic', '')
-                && resource.data.get('topic', '') in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran'])
+                && resource.data.get('topic', '') in ['Obrolan Umum', 'Tanya Jawab', 'Info Layanan', 'Ide & Saran', 'Jual Beli & Jasa Lokal'])
             )
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['topic', 'postType'])
+              || !request.resource.data.keys().hasAny(['postType'])
+              || validPostType(request.resource.data.get('topic', ''), request.resource.data.get('postType', '')))
+            && (!resource.data.keys().hasAny(['communityId'])
+              || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['topic'])
+              || validCommunityTopic(resource.data.communityId, request.resource.data.get('topic', resource.data.get('topic', ''))))
           )
           || (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting'])

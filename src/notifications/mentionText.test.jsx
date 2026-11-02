@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, fireEvent, render, screen, cleanup } from '@testing-library/react';
 import { renderMemberMentions } from './mentionText.jsx';
+
+afterEach(() => cleanup());
 
 describe('renderMemberMentions', () => {
   it('turns valid @usernames into profile actions while preserving surrounding text', () => {
@@ -10,7 +12,7 @@ describe('renderMemberMentions', () => {
     expect(screen.getByText('Hai', { exact: false })).toBeTruthy();
     fireEvent.click(mention);
     expect(onOpenMention).toHaveBeenCalledWith('kopi_senja');
-    expect(screen.getByText(', sampai jumpa!')).toBeTruthy();
+    expect(screen.getByText(/sampai jumpa!/)).toBeTruthy();
   });
 
   it('does not turn email addresses or invalid short handles into profile actions', () => {

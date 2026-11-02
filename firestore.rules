@@ -521,7 +521,7 @@ service cloud.firestore {
         && request.resource.data.verificationStatus == resource.data.verificationStatus
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'name', 'nameNormalized', 'coordinates', 'address', 'regionCode',
+          'name', 'nameNormalized', 'coordinates', 'address', 'regionCode', 'provinceName', 'regencyName',
           'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
         && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos']) || request.resource.data.updatedAt == request.time)

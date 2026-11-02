@@ -187,6 +187,23 @@ describe('thematic group conversation', () => {
     }
   });
 
+  it('cancels the mobile reaction picker when the finger moves before the hold completes', async () => {
+    state.memberExists = true;
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+
+    vi.useFakeTimers();
+    try {
+      const message = screen.getByText('Selamat datang!').closest('article');
+      fireEvent.touchStart(message);
+      fireEvent.touchMove(message);
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(screen.queryByRole('group', { name: 'Pilih reaksi' })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('lets a member add an emoji reaction to a message', async () => {
     state.memberExists = true;
     render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);

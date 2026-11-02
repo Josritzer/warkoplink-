@@ -65,6 +65,7 @@ function versionedPhotoURL(value) {
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('warkoplink:theme') === 'dark');
+  const [profileEditorDirty, setProfileEditorDirty] = useState(false);
   const [section, setSection] = useState(() => { const params = new URLSearchParams(window.location.search); return params.get('member') ? 'Profil Anggota' : params.get('warung') ? 'Profil Warkop' : 'Beranda'; });
   const [selectedWarungId, setSelectedWarungId] = useState(() => new URLSearchParams(window.location.search).get('warung') || '');
   const [memberProfile, setMemberProfile] = useState(() => { const uid = new URLSearchParams(window.location.search).get('member') || ''; return uid ? { uid, displayName: 'Anggota WarkopLink' } : null; });
@@ -133,8 +134,12 @@ export default function App() {
   const reactionLocks = useRef(new Set());
 
   const navigateSection = useCallback((nextSection) => {
+    if (section === 'Edit Profil' && profileEditorDirty) {
+      if (!window.confirm('Perubahan profil belum disimpan. Tetap tinggalkan halaman?')) return;
+      setProfileEditorDirty(false);
+    }
     runViewTransition(() => flushSync(() => setSection(nextSection)));
-  }, []);
+  }, [section, profileEditorDirty]);
 
   // Notifikasi sementara tidak boleh terus menutupi konten atau navigasi.
   useEffect(() => {
@@ -1268,7 +1273,7 @@ export default function App() {
       section === 'Profil Anggota' && memberProfile ? <PublicUserProfile profile={memberProfile} db={db} currentUser={user} onBack={closeMemberProfile} onEditProfile={() => navigateSection('Akun')} onStartMessage={(friend) => { setMessageTarget(friend); setOpenConversationId(''); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}/> :
       section === 'Edit Profil' ? <section className="content-section profile-edit-page">
         <header className="profile-edit-header"><button type="button" className="profile-back-button" onClick={() => navigateSection('Akun')} aria-label="Kembali ke Akun">←</button><div><span className="eyebrow">PENGATURAN AKUN</span><h2>Edit Profil</h2></div></header>
-        <ProfileEditor user={user} db={db} onNotice={setNotice} onBack={() => navigateSection('Akun')} onPhotoChange={handleProfilePhotoChange} onPhotoRemove={handleRemoveProfilePhoto} photoUploading={photoUploading}/>
+        <ProfileEditor user={user} db={db} onNotice={setNotice} onBack={() => navigateSection('Akun')} onPhotoChange={handleProfilePhotoChange} onPhotoRemove={handleRemoveProfilePhoto} photoUploading={photoUploading} onDirtyChange={setProfileEditorDirty}/>
       </section> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>

@@ -104,6 +104,30 @@ function renderWarungMentions(body, warungs = [], onOpenWarung) {
   if (cursor < text.length) parts.push(text.slice(cursor));
   return parts.length ? parts : text;
 }
+
+function FeedVideo({ post }) {
+  const videoRef = useRef(null);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || typeof IntersectionObserver !== "function") return undefined;
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= 0.55);
+      if (visible) {
+        video.muted = true;
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    }, { threshold: [0, 0.55, 1] });
+    observer.observe(video);
+    return () => { observer.disconnect(); video.pause(); };
+  }, [post.videoURL]);
+  return <div className="feed-video-frame">
+    <video ref={videoRef} src={post.videoURL} poster={post.videoThumbnailURL || undefined}
+      controls playsInline preload="metadata" muted aria-label="Video obrolan WarkopLink" />
+  </div>;
+}
+
 // Tampilan satu status; state dan operasi tetap dimiliki App agar data tersinkron antarpengguna.
 export default function ChatPostCard({
   post, user, relativePostTime, openPostMenuId, setOpenPostMenuId, openAuth, setNotice, verifiedWarungs = [], onOpenWarung, onOpenProfile, onOpenMention,
@@ -288,6 +312,7 @@ export default function ChatPostCard({
         </button>
       </div>}
       {!editing && post.eventPhotoURL && <div className="event-post-image"><img src={post.eventPhotoURL} alt={`Poster acara ${post.eventKind || "warkop"}`} loading="lazy" /></div>}
+      {!editing && post.videoURL && <FeedVideo post={post} />}
       {!editing && metaItems.length > 0 && <div className="post-detail-row" aria-label="Detail posting">
         {metaItems.map(item => <span key={item.label}><span aria-hidden="true">{item.icon}</span>{item.label}</span>)}
       </div>}

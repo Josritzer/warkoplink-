@@ -540,13 +540,16 @@ export default function App() {
       .map(item => [item.uid, item])).values()];
     await Promise.all(recipients.map(async ({ username, uid }) => {
       const notificationId = `mention_${postId}_${replyId || 'post'}_${uid}`;
-      const notificationRef = doc(db, 'notifications', notificationId);
-      const existing = await getDoc(notificationRef);
-      if (existing.exists()) return;
-      await setDoc(notificationRef, {
-        recipientUid: uid, actorUid: user.uid, type: 'mention', postId, username,
-        ...(replyId ? { replyId } : {}), createdAt: serverTimestamp(), readAt: null
-      });
+      try {
+        await setDoc(doc(db, 'notifications', notificationId), {
+          recipientUid: uid, actorUid: user.uid, type: 'mention', postId, username,
+          ...(replyId ? { replyId } : {}), createdAt: serverTimestamp(), readAt: null
+        });
+      } catch (error) {
+        // ID deterministik + aturan create-only membuat kiriman ulang tidak menggandakan notifikasi.
+        // Firestore menolak penulisan kedua sebagai permission-denied; itu berarti dokumen sudah ada.
+        if (error?.code !== 'permission-denied') throw error;
+      }
     }));
   }
 

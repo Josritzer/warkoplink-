@@ -1123,3 +1123,123 @@ describe('peran platform', () => {
     await assertSucceeds(getDoc(doc(asSuperAdmin(), 'verificationAudit/audit-seed')));
   });
 });
+
+
+describe('thematic group membership and chat', () => {
+  const memberRef = (db, groupId, uid) => doc(db, 'thematicGroups', groupId, 'members', uid);
+  const messageRef = (db, groupId, messageId) => doc(db, 'thematicGroups', groupId, 'messages', messageId);
+  const joinGroup = (db, groupId = 'pemilik-warkop', uid = 'alice') => setDoc(
+    memberRef(db, groupId, uid),
+    { uid, joinedAt: serverTimestamp(), lastReadAt: serverTimestamp() }
+  );
+  const validGroupMessage = (overrides = {}) => ({
+    senderUid: 'alice',
+    senderName: 'Alice',
+    text: 'Halo, teman-teman warkop!',
+    createdAt: serverTimestamp(),
+    ...overrides,
+  });
+
+  it('anggota dapat bergabung, memperbarui penanda baca sendiri, dan keluar', async () => {
+    const db = asUser('alice');
+    const membership = memberRef(db, 'pemilik-warkop', 'alice');
+    await assertSucceeds(joinGroup(db));
+    await assertSucceeds(getDoc(membership));
+    await assertSucceeds(updateDoc(membership, { lastReadAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(membership));
+  });
+
+  it('menolak grup tidak resmi, identitas anggota palsu, dan field peran admin', async () => {
+    const db = asUser('alice');
+    await assertFails(joinGroup(db, 'grup-buatan-sendiri'));
+    await assertFails(setDoc(memberRef(db, 'pemilik-warkop', 'bob'), {
+      uid: 'bob', joinedAt: serverTimestamp(), lastReadAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(memberRef(db, 'pemilik-warkop', 'alice'), {
+      uid: 'alice', joinedAt: serverTimestamp(), lastReadAt: serverTimestamp(), role: 'admin'
+    }));
+  });
+
+  it('dokumen keanggotaan hanya dapat dibaca pemiliknya dan daftar UID tidak terbuka', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/members/alice'), {
+        uid: 'alice', joinedAt: Timestamp.now(), lastReadAt: Timestamp.now()
+      });
+    });
+    await assertSucceeds(getDoc(memberRef(asUser('alice'), 'pemilik-warkop', 'alice')));
+    await assertFails(getDoc(memberRef(asUser('bob'), 'pemilik-warkop', 'alice')));
+    await assertFails(getDocs(collection(asUser('bob'), 'thematicGroups', 'pemilik-warkop', 'members')));
+    await assertFails(deleteDoc(memberRef(asUser('bob'), 'pemilik-warkop', 'alice')));
+  });
+
+  it('hanya anggota yang bergabung dapat membaca riwayat pesan', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/messages/old-message'), {
+        senderUid: 'alice', senderName: 'Alice', text: 'Riwayat lama', createdAt: Timestamp.now()
+      });
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/members/alice'), {
+        uid: 'alice', joinedAt: Timestamp.now(), lastReadAt: Timestamp.now()
+      });
+    });
+    await assertSucceeds(getDoc(messageRef(asUser('alice'), 'pemilik-warkop', 'old-message')));
+    await assertFails(getDoc(messageRef(asUser('bob'), 'pemilik-warkop', 'old-message')));
+    await assertFails(getDoc(messageRef(asAnon(), 'pemilik-warkop', 'old-message')));
+  });
+
+  it('anggota dapat mengirim pesan teks dengan identitas dan waktu server yang valid', async () => {
+    const db = asUser('alice');
+    await joinGroup(db);
+    await assertSucceeds(setDoc(messageRef(db, 'pemilik-warkop', 'message-1'), validGroupMessage()));
+  });
+
+  it('menolak pesan dari nonanggota, penyamaran UID/nama, pesan kosong, dan pesan terlalu panjang', async () => {
+    const aliceDb = asUser('alice');
+    await joinGroup(aliceDb);
+    await assertFails(setDoc(messageRef(asUser('bob'), 'pemilik-warkop', 'not-member'), validGroupMessage({
+      senderUid: 'bob', senderName: 'Bob'
+    })));
+    await assertFails(setDoc(messageRef(aliceDb, 'pemilik-warkop', 'spoof-uid'), validGroupMessage({ senderUid: 'bob' })));
+    await assertFails(setDoc(messageRef(aliceDb, 'pemilik-warkop', 'spoof-name'), validGroupMessage({ senderName: 'Bob' })));
+    await assertFails(setDoc(messageRef(aliceDb, 'pemilik-warkop', 'empty'), validGroupMessage({ text: '' })));
+    await assertFails(setDoc(messageRef(aliceDb, 'pemilik-warkop', 'too-long'), validGroupMessage({ text: 'x'.repeat(2001) })));
+  });
+
+  it('menolak timestamp palsu dan field tambahan pada pesan', async () => {
+    const db = asUser('alice');
+    await joinGroup(db);
+    await assertFails(setDoc(messageRef(db, 'pemilik-warkop', 'fake-time'), validGroupMessage({
+      createdAt: Timestamp.fromMillis(1000)
+    })));
+    await assertFails(setDoc(messageRef(db, 'pemilik-warkop', 'extra-field'), validGroupMessage({
+      isAdmin: true
+    })));
+  });
+
+  it('riwayat pesan tetap tersedia setelah anggota keluar lalu bergabung kembali', async () => {
+    const db = asUser('alice');
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/messages/old-message'), {
+        senderUid: 'alice', senderName: 'Alice', text: 'Pesan sebelum keluar', createdAt: Timestamp.now()
+      });
+    });
+    await joinGroup(db);
+    await assertSucceeds(getDoc(messageRef(db, 'pemilik-warkop', 'old-message')));
+    await assertSucceeds(deleteDoc(memberRef(db, 'pemilik-warkop', 'alice')));
+    await assertFails(getDoc(messageRef(db, 'pemilik-warkop', 'old-message')));
+    await joinGroup(db);
+    await assertSucceeds(getDoc(messageRef(db, 'pemilik-warkop', 'old-message')));
+  });
+
+  it('pesan yang sudah terkirim tidak dapat diubah atau dihapus oleh anggota', async () => {
+    const db = asUser('alice');
+    await joinGroup(db);
+    const message = messageRef(db, 'pemilik-warkop', 'message-immutable');
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/messages/message-immutable'), {
+        senderUid: 'alice', senderName: 'Alice', text: 'Pesan tetap', createdAt: Timestamp.now()
+      });
+    });
+    await assertFails(updateDoc(message, { text: 'Diubah' }));
+    await assertFails(deleteDoc(message));
+  });
+});

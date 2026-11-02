@@ -419,8 +419,8 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
                     const detailsKey = `${message.id}:${emoji}`;
                     const showDetails = reactionDetailsKey === detailsKey;
                     return <div className="thematic-reaction-item" key={emoji}>
-                      <button type="button" className={`thematic-reaction-trigger ${mine ? 'is-selected' : ''}`} aria-pressed={mine} aria-label={`Reaksi ${label} ${emoji} (${matching.length})`} onClick={() => toggleReaction(message.id, emoji)}><span>{emoji}</span><small>{matching.length}</small></button>
-                      <button type="button" className="thematic-reaction-people" aria-expanded={showDetails} aria-label={`Lihat ${matching.length} anggota yang bereaksi dengan ${label}`} onClick={() => setReactionDetailsKey((current) => current === detailsKey ? '' : detailsKey)}>
+                      <button type="button" className={`thematic-reaction-trigger ${mine ? 'is-selected' : ''}`} aria-expanded={showDetails} aria-label={`Lihat ${matching.length} anggota yang bereaksi dengan ${label}`} onClick={() => setReactionDetailsKey((current) => current === detailsKey ? '' : detailsKey)}><span>{emoji}</span><small>{matching.length}</small></button>
+                      <button type="button" className="thematic-reaction-people" aria-expanded={showDetails} aria-label={`Lihat foto profil ${matching.length} anggota yang bereaksi dengan ${label}`} onClick={() => setReactionDetailsKey((current) => current === detailsKey ? '' : detailsKey)}>
                         <span className="thematic-reaction-avatar-stack">
                           {matching.slice(0, 3).map((item) => {
                             const profile = publicProfiles[item.uid];

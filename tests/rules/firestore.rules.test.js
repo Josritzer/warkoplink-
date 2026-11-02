@@ -1242,4 +1242,35 @@ describe('thematic group membership and chat', () => {
     await assertFails(updateDoc(message, { text: 'Diubah' }));
     await assertFails(deleteDoc(message));
   });
+
+  it('anggota dapat membalas pesan yang ada di grup yang sama', async () => {
+    const db = asUser('alice');
+    await joinGroup(db);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/messages/original-message'), {
+        senderUid: 'bob', senderName: 'Bob', text: 'Ada rekomendasi kopi?', createdAt: Timestamp.now()
+      });
+    });
+    await assertSucceeds(setDoc(messageRef(db, 'pemilik-warkop', 'reply-message'), validGroupMessage({
+      text: 'Saya punya rekomendasi.',
+      replyToMessageId: 'original-message'
+    })));
+  });
+
+  it('menolak balasan ke pesan yang tidak ada atau berada di grup lain', async () => {
+    const db = asUser('alice');
+    await joinGroup(db);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pelaku-umkm/messages/foreign-message'), {
+        senderUid: 'bob', senderName: 'Bob', text: 'Pesan grup lain', createdAt: Timestamp.now()
+      });
+    });
+    await assertFails(setDoc(messageRef(db, 'pemilik-warkop', 'missing-reply'), validGroupMessage({
+      replyToMessageId: 'message-yang-tidak-ada'
+    })));
+    await assertFails(setDoc(messageRef(db, 'pemilik-warkop', 'foreign-reply'), validGroupMessage({
+      replyToMessageId: 'foreign-message'
+    })));
+  });
+
 });

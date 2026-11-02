@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const firestoreState = vi.hoisted(() => ({
@@ -22,6 +22,16 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 import { CommunityDirectory, CommunityGroupHeader, CommunityShortcuts } from './CommunityHub.jsx';
+
+beforeEach(() => {
+  firestoreState.getDoc.mockResolvedValue({ exists: () => firestoreState.memberExists });
+  firestoreState.setDoc.mockResolvedValue(undefined);
+  firestoreState.deleteDoc.mockResolvedValue(undefined);
+  firestoreState.onSnapshot.mockImplementation((ref, next) => {
+    if (ref.path.endsWith('/members/user-1')) next({ exists: () => firestoreState.memberExists });
+    return vi.fn();
+  });
+});
 
 afterEach(() => {
   cleanup();
@@ -53,7 +63,7 @@ describe('official community navigation', () => {
     expect(screen.getByRole('heading', { name: 'Temukan komunitasmu.' })).toBeTruthy();
     expect(screen.getByText('Sepak Bola & Olahraga')).toBeTruthy();
     expect(screen.getByText('Bisnis & UMKM')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Buka komunitas' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Buka komunitas' })[0]);
     expect(onSelectCommunity).toHaveBeenCalledWith('kopi-kuliner');
   });
 });

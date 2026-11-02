@@ -95,3 +95,4 @@
 .sidebar-nav-item-secondary{min-height:38px;font-size:11px;font-weight:650;color:var(--wl-muted)}
 .sidebar-nav-item-secondary>svg{width:16px;height:16px}
 .member-friend-status{display:inline-flex;align-items:center;min-height:36px;padding:7px 10px;border:1px solid var(--wl-line-soft);border-radius:10px;background:var(--wl-primary-tint);color:var(--wl-primary);font-size:11px;font-weight:800}
+.message-presence-note{margin:0 0 8px;color:var(--wl-muted);font-size:10px;line-height:1.5}

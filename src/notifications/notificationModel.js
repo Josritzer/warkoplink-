@@ -9,6 +9,8 @@ export function notificationLabel(notification = {}) {
   if (notification.type === 'comment') return 'mengomentari obrolan Anda';
   if (notification.type === 'reaction') return 'memberi reaksi pada obrolan Anda';
   if (notification.type === 'follow') return 'mulai mengikuti warkop Anda';
+  if (notification.type === 'friend') return 'sekarang menjadi teman Anda karena kalian saling mengikuti';
+  if (notification.type === 'message') return 'mengirim pesan pribadi kepada Anda';
   return 'mengirim notifikasi';
 }
 

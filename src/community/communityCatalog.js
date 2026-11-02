@@ -52,3 +52,7 @@ export function isCommunityId(value) {
 export function getCommunityById(value) {
   return COMMUNITY_GROUPS.find((community) => community.id === value) || null;
 }
+
+export function getCommunityTopicById(value) {
+  return getCommunityById(value)?.name || null;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COMMUNITY_GROUPS, getCommunityById, isCommunityId } from './communityCatalog.js';
+import { COMMUNITY_GROUPS, getCommunityById, getCommunityTopicById, isCommunityId } from './communityCatalog.js';
 
 describe('official WarkopLink communities', () => {
   it('defines exactly seven official groups with unique stable IDs', () => {
@@ -17,6 +17,8 @@ describe('official WarkopLink communities', () => {
 
   it('looks up the official group by its stable ID', () => {
     expect(getCommunityById('tanya-warkop')?.name).toBe('Tanya Warkop');
+    expect(getCommunityTopicById('komunitas-aktivitas')).toBe('Komunitas & Aktivitas');
+    expect(getCommunityTopicById('unknown')).toBeNull();
     expect(getCommunityById('unknown')).toBeNull();
   });
 });

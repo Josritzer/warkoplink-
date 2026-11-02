@@ -78,14 +78,15 @@ describe('directoryFilters', () => {
 
   it('memfilter aktivitas berdasarkan field eksplisit dan menggabungkan filter', () => {
     const withActivities = [
-      { id: 'a', name: 'Warkop Bola', activities: ['nobar', 'komunitas'] },
+      { id: 'a', name: 'Warkop Bola', activities: ['nobar', 'komunitas', 'olahraga'] },
       { id: 'b', name: 'Kopi Laptop', activities: ['kerja-laptop'], facilities: ['Wi-Fi'] },
       { id: 'c', name: 'Warung Gim', activities: ['gim'] }
     ];
     expect(filterWarungs(withActivities, { activities: ['nobar'] }).map((item) => item.id)).toEqual(['a']);
+    expect(filterWarungs(withActivities, { activities: ['olahraga'] }).map((item) => item.id)).toEqual(['a']);
     expect(filterWarungs(withActivities, { activities: ['komunitas', 'nobar'] }).map((item) => item.id)).toEqual(['a']);
     expect(filterWarungs(withActivities, { activities: ['nobar'], search: 'laptop' })).toEqual([]);
-    expect(collectActivities(withActivities).map((item) => item.key)).toEqual(['nobar', 'komunitas', 'gim', 'kerja-laptop']);
+    expect(collectActivities(withActivities).map((item) => item.key)).toEqual(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'olahraga']);
   });
 
   it('menentukan status buka dari jadwal WIB yang valid dan mendukung lintas tengah malam', () => {

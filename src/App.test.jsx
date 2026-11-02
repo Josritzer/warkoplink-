@@ -302,7 +302,7 @@ describe('halaman publik', () => {
     await screen.findByText('Halo semuanya');
 
     await user.click(screen.getByRole('button', { name: 'Desktop: Jual beli & jasa' }));
-    expect(screen.getByRole('button', { name: 'Jual Beli & Jasa Lokal' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Jual Beli' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByText('Halo semuanya')).toBeNull();
     expect(screen.queryByText('Berapa harga layanan?')).toBeNull();
     expect(screen.queryByText('Usul fitur baru')).toBeNull();
@@ -550,11 +550,11 @@ describe('membuat postingan', () => {
     await act(async () => { resolvePost(); });
   });
 
-  it('lima kategori final tersedia sebagai tab feed', async () => {
+  it('tujuh kategori final tersedia sebagai tab feed', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
-    for (const category of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli & Jasa Lokal']) {
+    for (const category of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas']) {
       expect(screen.getByRole('button', { name: category })).toBeTruthy();
     }
     expect(screen.queryByRole('combobox', { name: 'Kategori obrolan' })).toBeNull();
@@ -738,6 +738,26 @@ describe('direktori dan pendaftaran warkop', () => {
     expect(screen.getByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     expect(screen.getByLabelText('Suasana warkop')).toBeTruthy();
     expect(screen.queryByLabelText('Kisaran harga (opsional)')).toBeNull();
+  });
+
+  it('menyimpan aktivitas warkop yang dipilih untuk filter direktori', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
+    await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Aktivitas');
+    await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
+    await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
+    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+    await user.click(screen.getByLabelText('Nobar'));
+    await user.click(screen.getByLabelText('Olahraga'));
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(screen.getByText(/Aktivitas: Nobar, Olahraga/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    await waitFor(() => expect(fs.addDoc).toHaveBeenCalledWith({ path: 'warungs' }, expect.objectContaining({ activities: ['nobar', 'olahraga'] })));
   });
 
   it('menunjukkan penyebab foto gagal dan cara melanjutkan pendaftaran tersimpan', async () => {

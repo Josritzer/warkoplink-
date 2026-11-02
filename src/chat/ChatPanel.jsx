@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Compass, MessageCircle, Send } from 'lucide-react';
 import { collection, doc, endAt, getDoc, getDocs, limit, orderBy, query, startAt } from 'firebase/firestore';
 import { FILTER_TOPICS, MAX_POST_LENGTH, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
+import { getCommunityTopicById } from '../community/communityCatalog.js';
 import ChatPostCard from './ChatPostCard.jsx';
 import { validateImageFile } from '../media/imagePolicy.js';
 
@@ -59,11 +60,17 @@ export default function ChatPanel(props) {
       .catch(() => { if (active) setMemberMentionSuggestions([]); });
     return () => { active = false; };
   }, [db, mentionMatch?.[0], mentionQuery, user?.uid]);
-  const category = composerTopic || POST_TOPICS[0];
-  const showDate = category === 'Info & Acara' || category === 'Ngopi Bareng';
-  const showPrice = category === 'Jual Beli & Jasa Lokal';
+  const communityTopic = getCommunityTopicById(communityId);
+  const category = communityTopic || composerTopic || POST_TOPICS[0];
+  useEffect(() => {
+    if (!communityTopic) return;
+    setComposerTopic(communityTopic);
+    setPostType(POST_SUBTYPES[communityTopic]?.[0] || '');
+  }, [communityTopic, setComposerTopic]);
+  const showDate = ['Info & Acara', 'Ngopi Bareng', 'Komunitas & Aktivitas'].includes(category);
+  const showPrice = category === 'Jual Beli';
   const showWorkType = category === 'Loker';
-  const showContact = category === 'Jual Beli & Jasa Lokal' || category === 'Loker';
+  const showContact = ['Jual Beli', 'Jasa Lokal', 'Loker'].includes(category);
   const displayedPosts = previewMode ? visiblePosts.slice(0, 3) : visiblePosts;
 
   return <section className="content-section" id="community-feed">
@@ -75,14 +82,16 @@ export default function ChatPanel(props) {
       <div className="topic-scroll-wrap"><div className="topic-list" aria-label="Kategori obrolan">{FILTER_TOPICS.map(name => <button key={name} type="button" onClick={() => setTopic(name)} aria-pressed={topic === name} className={topic === name ? 'topic selected' : 'topic'}>{name}</button>)}</div><span className="topic-scroll-hint" aria-hidden="true">›</span></div>
     </>}
     {communityId && !communityMember && !readOnly && <div className="community-post-gate" role="status"><b>Ruang diskusi terbuka untuk dibaca.</b><span>Gabung komunitas untuk mulai membuat postingan dan ikut berdiskusi.</span></div>}
-    {readOnly ? <div className="feed-readonly-note"><span>Beranda · cuplikan 3 obrolan terbaru</span>{previewMode && <button className="button button-quiet" type="button" onClick={onViewAllDiscussions}>Lihat semua obrolan <MessageCircle size={14}/></button>}</div> : communityId && !communityMember ? null : <form className={composerOpen ? "composer composer-expanded" : "composer composer-collapsed"} onSubmit={async event => { const posted = await handlePost(event, { communityId, postType, location, eventDate, eventStartAt, eventEndAt, eventKind, eventCapacity, eventPosterFile, eventWarungId, price, workType, contact }); if (posted) { setEventPosterFile(null); setEventWarungId(""); } }} aria-busy={posting}>
+    {readOnly ? <div className="feed-readonly-note"><span>Beranda · cuplikan 3 obrolan terbaru</span>{previewMode && <button className="button button-quiet" type="button" onClick={onViewAllDiscussions}>Lihat semua obrolan <MessageCircle size={14}/></button>}</div> : communityId && !communityMember ? null : <form className={composerOpen ? "composer composer-expanded" : "composer composer-collapsed"} onSubmit={async event => { const posted = await handlePost(event, { communityId, topic: category, postType, location, eventDate, eventStartAt, eventEndAt, eventKind, eventCapacity, eventPosterFile, eventWarungId, price, workType, contact }); if (posted) { setEventPosterFile(null); setEventWarungId(""); } }} aria-busy={posting}>
       {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice("Masuk untuk mulai berbagi obrolan."); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><span>{user ? "Ayo ngobrol…" : "Masuk untuk mulai ngobrol…"}</span></button> : <>
-        <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || "Anggota komunitas"}</b><small>Posting ke <strong>{activeCategory}</strong></small></div></div>
-        <label className="composer-field">Kategori utama
-          <select aria-label="Kategori posting" value={category} onChange={event => { setComposerTopic(event.target.value); setPostType(POST_SUBTYPES[event.target.value]?.[0] || ''); if (event.target.value !== 'Info & Acara') { setEventPosterFile(null); setEventWarungId(''); } }}>
-            {POST_TOPICS.map(item => <option key={item} value={item}>{item}</option>)}
-          </select>
-        </label>
+        <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || "Anggota komunitas"}</b><small>Posting ke <strong>{category}</strong></small></div></div>
+        {communityId
+          ? <div className="composer-field community-fixed-category"><span>Kategori utama</span><strong>{category}</strong><small>Postingan ini otomatis masuk ke komunitas {category}.</small></div>
+          : <label className="composer-field">Kategori utama
+            <select aria-label="Kategori posting" value={category} onChange={event => { setComposerTopic(event.target.value); setPostType(POST_SUBTYPES[event.target.value]?.[0] || ''); if (event.target.value !== 'Info & Acara') { setEventPosterFile(null); setEventWarungId(''); } }}>
+              {POST_TOPICS.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>}
         <label className="composer-field">Jenis posting
           <select aria-label="Jenis posting" value={postType} onChange={event => setPostType(event.target.value)}>
             {(POST_SUBTYPES[category] || []).map(item => <option key={item} value={item}>{item}</option>)}

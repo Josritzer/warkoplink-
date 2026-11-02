@@ -211,7 +211,7 @@ describe('halaman publik', () => {
 
     await user.click(screen.getByRole('button', { name: /Lihat semua obrolan/ }));
     expect(screen.getByRole('heading', { name: 'Temukan komunitasmu.' })).toBeTruthy();
-    expect(screen.getByText('Ngopi Bareng')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Ngopi Bareng' })).toBeTruthy();
 
     await user.click(screen.getAllByRole('button', { name: 'Buka komunitas' })[0]);
     expect(await screen.findByRole('heading', { name: 'Ngopi Bareng' })).toBeTruthy();

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-const state = vi.hoisted(() => ({ authCallback: null, snapshotNext: null, snapshotError: null, warungsSnapshots: [] }));
+const state = vi.hoisted(() => ({ authCallback: null, snapshotNext: null, snapshotError: null, warungsSnapshots: [], postSubscriptions: [] }));
 
 vi.mock('./firebase.js', () => ({ auth: { name: 'auth' }, db: { name: 'db' }, firebaseConfigured: true }));
 vi.mock('./media/uploadWarkopMedia.js', async (importOriginal) => {
@@ -34,16 +34,23 @@ vi.mock('firebase/firestore', () => ({
   onSnapshot: vi.fn((q, next, error) => {
     // Simpan callback feed/direktori saja; subscription likes/replies tidak boleh menimpa helper tes.
     const path = q?.args?.[0]?.path ?? q?.path;
+    let unsubscribe = vi.fn();
     if (path === 'posts') {
-      state.snapshotNext = next;
-      state.snapshotError = error;
+      const isCommunityQuery = q?.args?.some((argument) => argument?.where?.[0] === 'communityId');
+      const subscription = { kind: isCommunityQuery ? 'community' : 'global', active: true };
+      state.postSubscriptions.push(subscription);
+      unsubscribe = vi.fn(() => { subscription.active = false; });
+      if (!isCommunityQuery) {
+        state.snapshotNext = next;
+        state.snapshotError = error;
+      }
     }
     if (path === 'warungs') {
       state.warungsSnapshots.push({ query: q, next, error });
       state.snapshotNext = next;
       state.snapshotError = error;
     }
-    return vi.fn();
+    return unsubscribe;
   }),
   orderBy: vi.fn(),
   query: vi.fn((...args) => ({ args })),
@@ -76,6 +83,7 @@ const POSTS = [
 
 beforeEach(() => {
   state.warungsSnapshots = [];
+  state.postSubscriptions = [];
   window.localStorage.clear();
   vi.clearAllMocks();
   fs.getDoc.mockResolvedValue({ exists: () => true, data: () => ({}) });
@@ -208,6 +216,10 @@ describe('halaman publik', () => {
     await user.click(screen.getAllByRole('button', { name: 'Buka komunitas' })[0]);
     expect(await screen.findByRole('heading', { name: 'Ngopi Bareng' })).toBeTruthy();
     expect(screen.getByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeTruthy();
+    await waitFor(() => {
+      expect(state.postSubscriptions.filter((item) => item.active && item.kind === 'global')).toHaveLength(0);
+      expect(state.postSubscriptions.filter((item) => item.active && item.kind === 'community')).toHaveLength(1);
+    });
   });
 
   it('menampilkan daftar postingan dari Firestore', async () => {

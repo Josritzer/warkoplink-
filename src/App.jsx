@@ -318,7 +318,15 @@ export default function App() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (!db) return undefined;
+    if (!db || section === 'Grup Komunitas') {
+      setPosts([]);
+      setOlderPosts([]);
+      setLastPostDoc(null);
+      setHasMorePosts(false);
+      setLoadMoreError('');
+      setPostsStatus('ready');
+      return undefined;
+    }
     setPostsStatus(current => current === 'ready' && posts.length ? current : 'loading');
     setOlderPosts([]);
     setLastPostDoc(null);
@@ -338,7 +346,7 @@ export default function App() {
         // Cache opsional; feed tetap berjalan jika penyimpanan penuh/nonaktif.
       }
     }, () => setPostsStatus(current => current === 'ready' && posts.length ? current : 'error'));
-  }, [postsRetry]);
+  }, [section, postsRetry]);
 
   useEffect(() => {
     if (section !== 'Grup Komunitas' || !isCommunityId(selectedCommunityId) || !db) {

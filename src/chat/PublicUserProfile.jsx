@@ -159,7 +159,8 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
         </div>
         {isOwnProfile && <button type="button" className="button button-dark member-profile-edit-mobile" onClick={onEditProfile}><Pencil size={15}/> Edit profil</button>}
         {!isOwnProfile && currentUser?.uid && <div className="member-profile-social-actions">
-          <button type="button" className={isFollowing ? 'button button-quiet' : 'button button-dark'} onClick={toggleFollow} disabled={followBusy}>{followBusy ? 'Memproses…' : isMutual ? 'Teman' : isFollowing ? 'Mengikuti' : 'Ikuti'}</button>
+          <button type="button" className={isFollowing ? 'button button-quiet' : 'button button-dark'} onClick={toggleFollow} disabled={followBusy}>{followBusy ? 'Memproses…' : isFollowing ? 'Mengikuti' : 'Ikuti'}</button>
+          {isMutual && <span className="member-friend-status">Teman</span>}
           {isMutual && <button type="button" className="button button-quiet" onClick={() => onStartMessage?.(profile || fallbackProfile)}><MessageCircle size={15}/> Pesan</button>}
           {followError && <small className="message-error" role="alert">{followError}</small>}
         </div>}

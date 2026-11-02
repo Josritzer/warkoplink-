@@ -5,6 +5,10 @@ import {
 } from 'firebase/firestore';
 import { ArrowLeft, LogOut, Send, Users } from 'lucide-react';
 import { getThematicGroupById } from './thematicGroupCatalog.js';
+import { extractMentionUsernames } from '../notifications/notificationModel.js';
+import { renderMemberMentions } from '../notifications/mentionText.jsx';
+
+const GROUP_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
 function initials(value) {
   return String(value || 'A').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
@@ -20,13 +24,14 @@ function messageDate(value) {
   return date ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(date) : '';
 }
 
-export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice, onRequestAuth }) {
+export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice, onRequestAuth, onOpenMention }) {
   const group = getThematicGroupById(groupId);
   const [isMember, setIsMember] = useState(false);
   const [membershipLoading, setMembershipLoading] = useState(true);
   const [membershipBusy, setMembershipBusy] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [messages, setMessages] = useState([]);
+  const [reactions, setReactions] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesError, setMessagesError] = useState('');
   const [draft, setDraft] = useState('');
@@ -69,6 +74,21 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
       .catch(() => { if (active) setProfileName(''); });
     return () => { active = false; };
   }, [db, user?.uid]);
+
+  useEffect(() => {
+    let active = true;
+    setReactions([]);
+    if (!db || !group || !user?.uid || !isMember) return undefined;
+    const unsubscribe = onSnapshot(
+      collection(db, 'thematicGroups', group.id, 'reactions'),
+      (snapshot) => {
+        if (!active) return;
+        setReactions(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      },
+      () => { if (active) setMessagesError('Reaksi belum dapat dimuat.'); }
+    );
+    return () => { active = false; unsubscribe(); };
+  }, [db, group?.id, user?.uid, isMember]);
 
   useEffect(() => {
     let active = true;
@@ -115,6 +135,7 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
       if (isMember) {
         await deleteDoc(membershipRef);
         setMessages([]);
+        setReactions([]);
         setReplyingTo(null);
         onNotice?.('Anda sudah keluar dari grup.');
       } else {
@@ -133,6 +154,23 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
     }
   }
 
+  async function toggleReaction(messageId, emoji) {
+    if (!db || !user?.uid || !isMember) return;
+    const reactionRef = doc(db, 'thematicGroups', group.id, 'reactions', `${messageId}_${user.uid}`);
+    const current = reactions.find((item) => item.messageId === messageId && item.uid === user.uid);
+    try {
+      if (current?.emoji === emoji) await deleteDoc(reactionRef);
+      else await setDoc(reactionRef, {
+        messageId,
+        uid: user.uid,
+        emoji,
+        updatedAt: serverTimestamp()
+      });
+    } catch {
+      onNotice?.('Reaksi belum berhasil disimpan. Coba lagi.');
+    }
+  }
+
   async function sendMessage(event) {
     event.preventDefault();
     const text = draft.trim();
@@ -144,16 +182,39 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
 
     setSending(true);
     try {
+      const mentionedUsernames = extractMentionUsernames(text);
       const messageData = {
         senderUid: user.uid,
         senderName: profileName,
         text,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        ...(mentionedUsernames.length ? { mentionedUsernames } : {})
       };
       if (replyingTo?.id) messageData.replyToMessageId = replyingTo.id;
-      await addDoc(collection(db, 'thematicGroups', group.id, 'messages'), messageData);
+      const savedMessage = await addDoc(collection(db, 'thematicGroups', group.id, 'messages'), messageData);
       setDraft('');
       setReplyingTo(null);
+      if (mentionedUsernames.length) {
+        const notifications = await Promise.allSettled(mentionedUsernames.map(async (username) => {
+          const usernameSnapshot = await getDoc(doc(db, 'usernames', username));
+          if (!usernameSnapshot.exists()) return;
+          const recipientUid = usernameSnapshot.data()?.uid;
+          if (!recipientUid || recipientUid === user.uid) return;
+          await setDoc(doc(db, 'notifications', `group_mention_${savedMessage.id}_${recipientUid}`), {
+            recipientUid,
+            actorUid: user.uid,
+            type: 'mention',
+            groupId: group.id,
+            messageId: savedMessage.id,
+            username,
+            createdAt: serverTimestamp(),
+            readAt: null
+          });
+        }));
+        if (notifications.some((result) => result.status === 'rejected' && result.reason?.code !== 'permission-denied')) {
+          onNotice?.('Pesan terkirim, tetapi sebagian notifikasi mention belum dapat dikirim.');
+        }
+      }
     } catch {
       onNotice?.('Pesan belum berhasil dikirim. Periksa koneksi lalu coba lagi.');
     } finally {
@@ -216,10 +277,19 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
                     <span>{original?.text || 'Pesan yang dibalas tidak tersedia'}</span>
                   </div>;
                 })()}
-                <p>{message.text}</p>
+                <p>{renderMemberMentions(message.text, onOpenMention)}</p>
                 <div className="thematic-message-actions">
                   <time>{messageTime(message.createdAt)}</time>
                   <button type="button" aria-label={`Balas pesan ${message.senderName || 'anggota'}`} onClick={() => setReplyingTo(message)}>Balas</button>
+                </div>
+                <div className="thematic-reaction-row" aria-label="Reaksi pesan">
+                  {GROUP_REACTION_EMOJIS.map((emoji) => {
+                    const matching = reactions.filter((item) => item.messageId === message.id && item.emoji === emoji);
+                    const mine = matching.some((item) => item.uid === user?.uid);
+                    return <button key={emoji} type="button" className={mine ? 'is-selected' : ''} aria-pressed={mine} aria-label={`Reaksi ${emoji} (${matching.length})`} onClick={() => toggleReaction(message.id, emoji)}>
+                      <span>{emoji}</span>{matching.length > 0 && <small>{matching.length}</small>}
+                    </button>;
+                  })}
                 </div>
               </div>
             </article>

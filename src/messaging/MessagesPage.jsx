@@ -23,7 +23,7 @@ function Avatar({ profile }) {
 
 export default function MessagesPage({
   db, user, onOpenPublicChat, onOpenMemberProfile, initialTab = 'pribadi',
-  initialConversationId = ''
+  initialConversationId = '', initialFriend = null
 }) {
   const [tab, setTab] = useState(initialTab);
   const [friends, setFriends] = useState([]);
@@ -41,6 +41,21 @@ export default function MessagesPage({
 
   useEffect(() => setTab(initialTab), [initialTab]);
   useEffect(() => { if (initialConversationId) setSelectedId(initialConversationId); }, [initialConversationId]);
+
+  useEffect(() => {
+    if (!db || !user?.uid || !initialFriend?.uid) return undefined;
+    let active = true;
+    const id = conversationIdFor(user.uid, initialFriend.uid);
+    setTab('pribadi');
+    setSelectedFriend(initialFriend);
+    setSelectedId('');
+    getDoc(doc(db, 'conversations', id)).then(snapshot => {
+      if (active && snapshot.exists()) setSelectedId(id);
+    }).catch(() => {
+      if (active) setError('Percakapan belum dapat diperiksa. Coba lagi.');
+    });
+    return () => { active = false; };
+  }, [db, user?.uid, initialFriend?.uid]);
 
   useEffect(() => {
     if (!db || !user?.uid) { setFriends([]); setLoadingFriends(false); return undefined; }

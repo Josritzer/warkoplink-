@@ -3,6 +3,16 @@ export const MAX_VIDEO_BYTES = 50_000_000;
 export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 export const MEDIA_TYPES = new Set(["avatar", "warung", "event", "video"]);
 
+export function videoDurationForAccount(access: {
+  verifiedWarkopOwner: boolean;
+  thematicGroupMember: boolean;
+}): number {
+  if (access.verifiedWarkopOwner) return 180;
+  if (access.thematicGroupMember) return 60;
+  return 30;
+}
+
+
 export type MediaUploadRequest = {
   mediaType: "avatar" | "warung" | "event" | "video";
   resourceId?: string;

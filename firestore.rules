@@ -229,7 +229,15 @@ service cloud.firestore {
         && (
           (data.regionCode == 'lamongan-kab' && !data.keys().hasAny(['provinceName', 'regencyName']))
           || (
-            data.regionCode.matches('^id-[a-z0-9-]{3,90}
+            data.regionCode.matches('^id-[a-z0-9-]{3,90}$')
+            && data.keys().hasAll(['provinceName', 'regencyName'])
+            && data.provinceName is string && data.provinceName.size() >= 2 && data.provinceName.size() <= 80
+            && data.regencyName is string && data.regencyName.size() >= 2 && data.regencyName.size() <= 80
+          )
+        );
+    }
+
+    function validWarung(data) {
       return data.keys().hasAll([
           'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
           'regionCode', 'facilities', 'priceRange', 'openingHours', 'photos',

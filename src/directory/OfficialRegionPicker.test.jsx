@@ -62,6 +62,6 @@ describe('OfficialRegionPicker', () => {
   it('menampilkan pesan saat sumber data wilayah tidak tersedia', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, json: async () => ({}) })));
     render(<OfficialRegionPicker onChange={vi.fn()} />);
-    expect(await screen.findByRole('alert')).toHaveTextContent(/Data provinsi gagal dimuat/);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Data provinsi gagal dimuat/);
   });
 });

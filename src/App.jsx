@@ -190,6 +190,13 @@ export default function App() {
     window.history.replaceState(window.history.state, '', url);
   }, [section]);
 
+  useEffect(() => {
+    if (section !== 'Pesan') {
+      setMessageTarget(null);
+      setOpenConversationId('');
+    }
+  }, [section]);
+
   // Membuat dokumen profil jika akun Auth sudah ada tetapi profil belum tersimpan
   // (misalnya pembuatan profil gagal saat registrasi). Aman dipanggil berulang.
   const ensureProfile = useCallback(async (currentUser) => {

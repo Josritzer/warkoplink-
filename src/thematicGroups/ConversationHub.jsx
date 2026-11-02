@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import {
   Briefcase, BriefcaseBusiness, CalendarDays, Camera, Dumbbell, Store, Users
 } from 'lucide-react';
 import { CommunityDirectory } from '../community/CommunityHub.jsx';
 import { THEMATIC_GROUPS } from './thematicGroupCatalog.js';
+import { isGroupUnread } from './groupUnread.js';
 
 const GROUP_ICONS = {
   store: Store,
@@ -20,7 +22,7 @@ function GroupIcon({ name }) {
   return <Icon size={23} aria-hidden="true"/>;
 }
 
-export function ThematicGroupDirectory({ onSelectGroup }) {
+export function ThematicGroupDirectory({ onSelectGroup, unreadGroups = {} }) {
   return <section className="thematic-directory" aria-labelledby="thematic-directory-title">
     <div className="community-section-heading">
       <div>
@@ -38,16 +40,47 @@ export function ThematicGroupDirectory({ onSelectGroup }) {
           <p>{group.description}</p>
           <small>Ruang percakapan · Anggota bebas bergabung dan keluar</small>
         </div>
-        <button type="button" className="thematic-open-button" onClick={() => onSelectGroup?.(group.id)} aria-label={`Buka grup ${group.name}`}>
-          Buka grup
-        </button>
+        <div className="thematic-directory-actions">
+          {unreadGroups[group.id] && <span className="thematic-unread-badge" aria-label="Ada pesan belum dibaca"><i/>Pesan baru</span>}
+          <button type="button" className="thematic-open-button" onClick={() => onSelectGroup?.(group.id)} aria-label={`Buka grup ${group.name}`}>
+            Buka grup
+          </button>
+        </div>
       </article>)}
     </div>
   </section>;
 }
 
-export default function ConversationHub({ onSelectCommunity, onSelectThematicGroup }) {
+export default function ConversationHub({ db, user, onSelectCommunity, onSelectThematicGroup }) {
   const [activeTab, setActiveTab] = useState('thematic');
+  const [unreadGroups, setUnreadGroups] = useState({});
+
+  useEffect(() => {
+    let active = true;
+    setUnreadGroups({});
+    if (!db || !user?.uid) return undefined;
+    Promise.all(THEMATIC_GROUPS.map(async (group) => {
+      try {
+        const membership = await getDoc(doc(db, 'thematicGroups', group.id, 'members', user.uid));
+        if (!membership.exists()) return null;
+        const latestSnapshot = await getDocs(query(
+          collection(db, 'thematicGroups', group.id, 'messages'),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        ));
+        const latestMessage = latestSnapshot.docs[0]?.data();
+        return latestMessage && isGroupUnread(membership.data()?.lastReadAt, latestMessage.createdAt)
+          ? group.id
+          : null;
+      } catch {
+        return null;
+      }
+    })).then((results) => {
+      if (!active) return;
+      setUnreadGroups(Object.fromEntries(results.filter(Boolean).map((id) => [id, true])));
+    });
+    return () => { active = false; };
+  }, [db, user?.uid]);
 
   return <section className="conversation-hub" aria-label="Pusat obrolan">
     <div className="conversation-hub-heading">
@@ -60,7 +93,7 @@ export default function ConversationHub({ onSelectCommunity, onSelectThematicGro
     </div>
     <div role="tabpanel" className="conversation-hub-panel">
       {activeTab === 'thematic'
-        ? <ThematicGroupDirectory onSelectGroup={onSelectThematicGroup}/>
+        ? <ThematicGroupDirectory onSelectGroup={onSelectThematicGroup} unreadGroups={unreadGroups}/>
         : <CommunityDirectory onSelectCommunity={onSelectCommunity}/>}
     </div>
   </section>;

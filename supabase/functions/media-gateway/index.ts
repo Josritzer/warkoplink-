@@ -135,6 +135,60 @@ async function patchResource(
   return { data, updateTime: document.updateTime, name: document.name };
 }
 
+async function isThematicGroupMember(token: string, uid: string): Promise<boolean> {
+  const checks = THEMATIC_GROUP_IDS.map(async (groupId) => {
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/thematicGroups/${groupId}/members/${uid}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (response.status === 404) return false;
+    if (!response.ok) throw new Error("Thematic group membership check failed");
+    return true;
+  });
+  return (await Promise.all(checks)).some(Boolean);
+}
+
+async function isVerifiedWarkopOwner(token: string, uid: string, post: Resource): Promise<boolean> {
+  if (typeof post.data.warungId === "string") {
+    const linkedWarung = await getResource(token, "warungs", post.data.warungId);
+    if (linkedWarung?.data.ownerUid === uid && linkedWarung.data.verificationStatus === "verified") return true;
+  }
+  const response = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: "warungs" }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: "ownerUid" },
+              op: "EQUAL",
+              value: { stringValue: uid },
+            },
+          },
+          limit: 20,
+        },
+      }),
+      signal: AbortSignal.timeout(8_000),
+    },
+  );
+  if (!response.ok) throw new Error("Verified warkop ownership check failed");
+  const rows = await response.json();
+  return Array.isArray(rows) && rows.some((row) => {
+    const data = parseFirestoreDocument(row?.document);
+    return data?.ownerUid === uid && data?.verificationStatus === "verified";
+  });
+}
+
+async function videoDurationLimit(token: string, uid: string, post: Resource): Promise<number> {
+  if (await isVerifiedWarkopOwner(token, uid, post)) return 180;
+  if (await isThematicGroupMember(token, uid)) return 60;
+  return 30;
+}
+
 async function authorizeResource(token: string, uid: string, request: ReturnType<typeof normalizeUploadRequest>): Promise<Resource> {
   if (request.mediaType === "avatar") {
     const profile = await getResource(token, "profiles", uid);

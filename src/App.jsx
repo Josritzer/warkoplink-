@@ -17,7 +17,7 @@ import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
-import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
+import { uploadWarkopMedia, removeWarkopAvatar, removeWarkopPostVideo, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
@@ -827,7 +827,9 @@ export default function App() {
     if (!user || !db || !post?.id || post.authorId !== user.uid || deletingPostId) return;
     setDeletingPostId(post.id);
     try {
-      await deleteOwnPost(db, post.id);
+      await deleteOwnPost(db, post.id, async () => {
+        if (post.videoURL) await removeWarkopPostVideo(user, post.id);
+      });
       setDeleteConfirmId('');
       setOpenPostMenuId('');
       setNotice('Obrolan Anda berhasil dihapus.');

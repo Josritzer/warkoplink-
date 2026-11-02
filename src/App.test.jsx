@@ -162,9 +162,12 @@ describe('navigasi utama dan halaman pesan', () => {
   it('hanya menampilkan tab Pribadi dan Teman; diskusi komunitas tetap di halaman Obrolan', async () => {
     const user = userEvent.setup();
     render(<App />);
+    emitAuth(fakeUser());
     const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
     await user.click(within(nav).getByRole('button', { name: 'Pesan' }));
     expect(screen.getByRole('heading', { name: 'Pesan' })).toBeTruthy();
+    expect(fs.where).toHaveBeenCalledWith('participantUids', 'array-contains', 'u1');
+    expect(fs.orderBy).not.toHaveBeenCalledWith('lastMessageAt', 'desc');
     expect(screen.getByRole('tab', { name: 'Pribadi' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
     expect(screen.queryByRole('tab', { name: 'Komunitas' })).toBeNull();

@@ -824,6 +824,16 @@ describe('mutual follows and private conversations', () => {
     await assertFails(batch.commit());
   });
 
+  it('menolak duplikasi notifikasi pesan dengan ID dokumen yang tidak stabil', async () => {
+    await seedFollows(true);
+    const { batch, conversationId, messageRef } = await createConversationAndMessage();
+    await assertSucceeds(batch.commit());
+    await assertFails(setDoc(doc(asUser('alice'), 'notifications/message-duplicate'), {
+      recipientUid: 'bob', actorUid: 'alice', type: 'message',
+      conversationId, messageId: messageRef.id, createdAt: serverTimestamp(), readAt: null,
+    }));
+  });
+
   it('mengizinkan notifikasi teman hanya jika follow sudah dua arah', async () => {
     await seedFollows(true);
     await assertSucceeds(setDoc(doc(asUser('alice'), 'notifications/friend_alice_bob_bob'), {

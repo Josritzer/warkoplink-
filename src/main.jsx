@@ -22,3 +22,4 @@ import './mobile-layout-safety.css';
 createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>
 );
+import './thematicGroups/thematicGroups.css';

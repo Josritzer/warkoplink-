@@ -426,6 +426,24 @@ describe('warungs — direktori aman tahap awal', () => {
     })));
   });
 
+
+  it('pemilik boleh mendaftarkan warkop di wilayah nasional dengan identitas wilayah terstruktur', async () => {
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warkop-surabaya'), validWarung({
+      address: 'Jl. Tunjungan, Surabaya',
+      regionCode: 'id-jawa-timur-kota-surabaya',
+      provinceName: 'Jawa Timur',
+      regencyName: 'Kota Surabaya',
+    })));
+  });
+
+  it('menolak identitas wilayah nasional yang tidak sesuai format', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/warkop-invalid-region'), validWarung({
+      regionCode: 'wilayah-sembarang',
+      provinceName: 'Jawa Timur',
+      regencyName: 'Kota Surabaya',
+    })));
+  });
+
   it('pengunjung anonim tidak boleh mendaftarkan warkop', async () => {
     await assertFails(setDoc(doc(asAnon(), 'warungs/warkop-anon'), validWarung({ ownerUid: 'alice' })));
   });

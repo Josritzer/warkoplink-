@@ -87,7 +87,7 @@ Deno.test("uses server-controlled UUID object paths scoped to the authenticated 
 Deno.test("accepts bounded MP4 video uploads without changing image limits", () => {
   assertEquals(normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 25 * 1024 * 1024 }).mediaType, "video");
   assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/quicktime", size: 1024 }));
-  assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 50 * 1024 * 1024 + 1 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 50_000_000 + 1 }));
   assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "../other", contentType: "video/mp4", size: 1024 }));
   assertEquals(MAX_IMAGE_BYTES, 2 * 1024 * 1024);
   assertEquals(MAX_VIDEO_BYTES, 50 * 1024 * 1024);

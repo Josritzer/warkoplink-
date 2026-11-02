@@ -92,7 +92,7 @@ describe('ChatPostCard', () => {
 
   it('labels posts published inside an official community', () => {
     render(<ChatPostCard {...props({ post: { ...props().post, communityId: 'ngopi-bareng' } })} />);
-    expect(screen.getByText('Ngopi Bareng')).toBeTruthy();
+    expect(screen.getByText('Ngopi Bareng', { selector: '.post-community-label' })).toBeTruthy();
   });
 
   it('shows old topic labels through compatibility mapping', () => {

@@ -112,6 +112,28 @@ describe('thematic group conversation', () => {
     ));
   });
 
+  it('loads and highlights an older message opened from a mention notification', async () => {
+    state.memberExists = true;
+    state.getDoc.mockImplementation((ref) => {
+      if (ref.path === 'thematicGroups/pemilik-warkop/messages/older-mentioned-message') {
+        return Promise.resolve({
+          exists: () => true,
+          id: 'older-mentioned-message',
+          data: () => ({
+            senderUid: 'bob',
+            senderName: 'Budi',
+            text: 'Informasi khusus untuk @alice',
+            createdAt: { toDate: () => new Date('2026-11-01T08:00:00Z') }
+          })
+        });
+      }
+      return Promise.resolve({ exists: () => true, data: () => ({ displayName: 'Alice' }) });
+    });
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" targetMessageId="older-mentioned-message" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    const target = await screen.findByText('Informasi khusus untuk @alice');
+    expect(target.closest('[data-message-id="older-mentioned-message"]')?.className).toContain('is-targeted');
+  });
+
   it('lets a member add an emoji reaction to a message', async () => {
     state.memberExists = true;
     render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);

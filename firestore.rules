@@ -537,7 +537,7 @@ service cloud.firestore {
         && resource.data.get('authorId', '') == request.auth.uid
         && (
           (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'location', 'postType', 'eventPhotoURL'])
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'location', 'postType', 'eventPhotoURL', 'videoURL'])
             && request.resource.data.get('body', '') is string
             && request.resource.data.get('body', '').size() >= 1
             && request.resource.data.get('body', '').size() <= 2000
@@ -547,6 +547,7 @@ service cloud.firestore {
             && (!request.resource.data.keys().hasAny(['eventCapacity']) || (request.resource.data.eventCapacity is number && request.resource.data.eventCapacity >= 1 && request.resource.data.eventCapacity <= 10000))
             && (!request.resource.data.keys().hasAny(['eventStatus']) || request.resource.data.eventStatus in ['scheduled', 'cancelled'])
             && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['eventPhotoURL']) || (request.resource.data.eventPhotoURL is string && request.resource.data.eventPhotoURL.size() <= 2048 && resource.data.get('warungId', '') is string && get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.ownerUid == request.auth.uid && get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.verificationStatus == 'verified' && request.resource.data.eventPhotoURL.matches('https://klikvxuronunonymmiqv[.]supabase[.]co/storage/v1/object/public/warkoplink-media/events/' + postId + '/[0-9a-f-]{36}[.]webp')))
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['videoURL']) || (request.resource.data.videoURL is string && request.resource.data.videoURL.size() <= 2048 && request.resource.data.videoURL.matches('https://klikvxuronunonymmiqv[.]supabase[.]co/storage/v1/object/public/warkoplink-video/posts/' + postId + '/[0-9a-f-]{36}[.]mp4')))
             && (
               request.resource.data.get('topic', '') in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas']
               || (request.resource.data.get('topic', '') == resource.data.get('topic', '')

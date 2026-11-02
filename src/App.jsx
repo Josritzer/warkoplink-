@@ -17,7 +17,7 @@ import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
-import { uploadWarkopMedia, removeWarkopAvatar, removeWarkopPostVideo, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
+import { uploadWarkopMedia, removeWarkopAvatar, removeWarkopPostVideo, createVideoThumbnailDataUrl, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
@@ -721,6 +721,7 @@ export default function App() {
         return;
       }
       const postRef = doc(collection(db, 'posts'));
+      const videoThumbnailURL = details.videoFile ? await createVideoThumbnailDataUrl(details.videoFile).catch(() => '') : '';
       await setDoc(postRef, {
         authorId: user.uid,
         authorName: authorNameFor(user),
@@ -739,6 +740,7 @@ export default function App() {
         ...(details.price?.trim() ? { price: details.price.trim() } : {}),
         ...(details.workType?.trim() ? { workType: details.workType.trim() } : {}),
         ...(details.contact?.trim() ? { contact: details.contact.trim() } : {}),
+        ...(videoThumbnailURL ? { videoThumbnailURL } : {}),
         createdAt: serverTimestamp(),
         reactions: { ...EMPTY_REACTIONS },
         totalReactions: 0

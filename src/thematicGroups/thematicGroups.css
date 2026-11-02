@@ -72,3 +72,9 @@
 .thematic-replying-banner b{color:var(--wl-primary);font-size:10px}
 .thematic-replying-banner small{max-width:100%;overflow:hidden;color:var(--wl-muted);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
 .thematic-replying-banner button{width:26px;height:26px;border:0;border-radius:50%;background:var(--wl-primary-tint);color:var(--wl-primary);font-size:18px;line-height:1}
+
+.thematic-reaction-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.thematic-reaction-row button{display:inline-flex;width:auto;height:25px;min-width:28px;align-items:center;justify-content:center;gap:3px;padding:0 6px;border:1px solid var(--wl-line-soft);border-radius:999px;background:var(--wl-paper);color:var(--wl-muted);font-size:12px}
+.thematic-reaction-row button.is-selected{border-color:var(--wl-primary);background:var(--wl-primary-tint);color:var(--wl-primary)}
+.thematic-reaction-row button small{font-size:9px;font-weight:750}
+.thematic-message-bubble .member-mention{display:inline;padding:0;border:0;background:transparent;color:var(--wl-primary);font:inherit;font-weight:750;text-decoration:none;cursor:pointer}

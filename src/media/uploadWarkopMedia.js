@@ -2,7 +2,9 @@ const SUPABASE_URL = "https://klikvxuronunonymmiqv.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_K3saFbvwwpNWfzF_i5jxow_lQiOXa4Q";
 const MEDIA_GATEWAY_URL = `${SUPABASE_URL}/functions/v1/media-gateway`;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ALLOWED_VIDEO_TYPES = new Set(["video/mp4"]);
 
 const RETRYABLE_HTTP_STATUSES = new Set([408, 429, 502, 503, 504]);
 const USER_FACING_UPLOAD_ERRORS = new Map([
@@ -26,6 +28,12 @@ const USER_FACING_UPLOAD_ERRORS = new Map([
   ["Could not create signed upload", "Izin unggah foto belum bisa dibuat. Coba lagi sebentar."],
   ["Uploaded file not found; retry upload", "Foto belum sampai ke server. Tekan tombol lanjutkan unggah foto untuk mencoba lagi."],
   ["Could not publish validated image", "Server belum dapat memproses foto. Coba lagi sebentar."],
+  ["Unsupported video type", "Format video belum didukung. Pilih MP4."],
+  ["Video size must be between 1 byte and 50 MiB", "Ukuran video harus lebih dari 0 dan maksimal 50 MiB."],
+  ["Video size exceeds the 25 MiB member limit", "Ukuran video anggota maksimal 25 MB."],
+  ["Video size exceeds the 50 MiB warkop limit", "Ukuran video warkop maksimal 50 MB."],
+  ["Invalid MP4 metadata or video dimensions exceed 1080p", "Video tidak valid atau resolusinya melebihi 1080p. Gunakan MP4 maksimal 1080p."],
+  ["Could not publish validated video", "Server belum dapat memproses video. Coba lagi sebentar."],
   ["Silakan masuk dan pilih foto terlebih dahulu.", "Silakan masuk dan pilih foto terlebih dahulu."],
   ["Pilih foto JPG, PNG, atau WebP.", "Pilih foto JPG, PNG, atau WebP."],
   ["Ukuran foto maksimal 2 MiB.", "Ukuran foto maksimal 2 MiB."],
@@ -86,10 +94,14 @@ function signedUploadUrl(bucket, path, token) {
  * The server owns all resource authorization and final public URL assignment.
  */
 export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, file }) {
-  if (!user?.getIdToken || !file) throw new Error("Silakan masuk dan pilih foto terlebih dahulu.");
-  if (!ALLOWED_TYPES.has(file.type)) throw new Error("Pilih foto JPG, PNG, atau WebP.");
-  if (!Number.isSafeInteger(file.size) || file.size < 1 || file.size > MAX_IMAGE_BYTES) {
-    throw new Error("Ukuran foto maksimal 2 MiB.");
+  if (!user?.getIdToken || !file) throw new Error("Silakan masuk dan pilih foto atau video terlebih dahulu.");
+  const isVideo = mediaType === "video";
+  if (isVideo ? !ALLOWED_VIDEO_TYPES.has(file.type) : !ALLOWED_TYPES.has(file.type)) {
+    throw new Error(isVideo ? "Format video belum didukung. Pilih MP4." : "Pilih foto JPG, PNG, atau WebP.");
+  }
+  const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (!Number.isSafeInteger(file.size) || file.size < 1 || file.size > maxBytes) {
+    throw new Error(isVideo ? "Ukuran video maksimal 50 MiB." : "Ukuran foto maksimal 2 MiB.");
   }
   const uploadId = crypto.randomUUID();
   const payload = {
@@ -143,7 +155,7 @@ export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, fil
 
   return retry(async () => {
     const result = await gatewayRequest(user, { ...payload, action: "finalize" });
-    if (!result.media?.url) throw new Error("Foto belum berhasil diproses.");
+    if (!result.media?.url) throw new Error(isVideo ? "Video belum berhasil diproses." : "Foto belum berhasil diproses.");
     return result.media;
   });
 }

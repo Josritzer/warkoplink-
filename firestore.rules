@@ -177,8 +177,8 @@ service cloud.firestore {
 
     function isOfficialCommunityId(communityId) {
       return communityId is string && communityId in [
-        'kopi-kuliner', 'sepak-bola-olahraga', 'bisnis-umkm', 'musik-hiburan',
-        'hobi-komunitas', 'warga-kegiatan-lokal', 'obrolan-santai'
+        'ngopi-bareng', 'tanya-warkop', 'info-acara', 'loker',
+        'jual-beli', 'jasa-lokal', 'komunitas-aktivitas'
       ];
     }
 
@@ -369,7 +369,7 @@ service cloud.firestore {
     // Tujuh komunitas resmi bersifat terbuka. Anggota mengelola keanggotaannya sendiri;
     // tidak ada dokumen admin atau moderator per grup.
     match /communities/{communityId}/members/{memberUid} {
-      allow read: if isOfficialCommunityId(communityId);
+      allow read: if signedIn() && request.auth.uid == memberUid;
       allow create: if signedIn()
         && isOfficialCommunityId(communityId)
         && request.auth.uid == memberUid

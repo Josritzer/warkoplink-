@@ -1,9 +1,10 @@
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-export const MEDIA_TYPES = new Set(["avatar", "warung", "event"]);
+export const MEDIA_TYPES = new Set(["avatar", "warung", "event", "video"]);
 
 export type MediaUploadRequest = {
-  mediaType: "avatar" | "warung" | "event";
+  mediaType: "avatar" | "warung" | "event" | "video";
   resourceId?: string;
   slot?: number;
   contentType: string;
@@ -29,7 +30,7 @@ export function normalizeUploadRequest(input: Record<string, unknown>): MediaUpl
   if (mediaType !== "avatar" && (!resourceId || resourceId.length > 150 || resourceId.includes("/"))) {
     return fail("Invalid resource identifier");
   }
-  if (mediaType === "avatar" && input.slot !== undefined) {
+  if (mediaType === "video" && input.slot !== undefined) {\n    return fail("Video does not accept a slot");\n  }\n  if (mediaType === "avatar" && input.slot !== undefined) {
     return fail("Avatar does not accept a slot");
   }
   if (mediaType === "warung" && (!Number.isInteger(input.slot) || (input.slot as number) < 0 || (input.slot as number) > 4)) {
@@ -64,7 +65,52 @@ export function validateImageBytes(bytes: Uint8Array, contentType: string): bool
   return false;
 }
 
-function decodeValue(value: any): any {
+
+/** Reads only MP4 container metadata; media is still kept private until this succeeds. */
+export function parseMp4Metadata(bytes: Uint8Array): { durationSeconds: number; width: number; height: number } | null {
+  if (!(bytes instanceof Uint8Array) || bytes.length < 32 || bytes.length > MAX_VIDEO_BYTES) return null;
+  const text = (start: number, length: number) => String.fromCharCode(...bytes.slice(start, start + length));
+  const readU32 = (offset: number) => offset >= 0 && offset + 4 <= bytes.length
+    ? new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(offset)
+    : 0;
+  if (text(4, 4) !== "ftyp") return null;
+
+  const findBox = (type: string) => {
+    for (let offset = 4; offset + 8 <= bytes.length; offset++) {
+      if (text(offset, 4) === type) return offset;
+    }
+    return -1;
+  };
+  const mvhd = findBox("mvhd");
+  const tkhd = findBox("tkhd");
+  if (mvhd < 0 || tkhd < 0) return null;
+
+  const version = bytes[mvhd + 4];
+  let timescale = 0;
+  let duration = 0;
+  if (version === 0) {
+    timescale = readU32(mvhd + 16);
+    duration = readU32(mvhd + 20);
+  } else if (version === 1) {
+    timescale = readU32(mvhd + 20);
+    if (tkhd + 8 <= bytes.length) {
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      duration = Number(view.getBigUint64(mvhd + 24));
+    }
+  } else return null;
+
+  const tkhdSize = readU32(tkhd - 4);
+  if (tkhdSize < 16 || tkhd - 4 + tkhdSize > bytes.length) return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const width = Math.floor(view.getUint32(tkhd - 4 + tkhdSize - 8) / 65536);
+  const height = Math.floor(view.getUint32(tkhd - 4 + tkhdSize - 4) / 65536);
+  const durationSeconds = duration / timescale;
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 180 ||
+      !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
+      width > 1920 || height > 1080) return null;
+  return { durationSeconds, width, height };
+}
+\nfunction decodeValue(value: any): any {
   if (!value || typeof value !== "object") return undefined;
   if ("stringValue" in value) return value.stringValue;
   if ("integerValue" in value) return Number(value.integerValue);
@@ -100,7 +146,7 @@ export function mediaObjectPath(uid: string, mediaType: string, resourceId: stri
   }
   if (mediaType === "avatar") return `profiles/${uid}/${uploadId}.webp`;
   if (mediaType === "warung" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `warungs/${resourceId}/${slot}/${uploadId}.webp`;
-  if (mediaType === "event" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `events/${resourceId}/${uploadId}.webp`;
+  if (mediaType === "event" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `events/${resourceId}/${uploadId}.webp`;\n  if (mediaType === "video" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `posts/${resourceId}/${uploadId}.mp4`;
   return fail("Unsupported media category");
 }
 

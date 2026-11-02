@@ -287,8 +287,8 @@ export default function App() {
   useEffect(() => {
     if (!db || !user?.uid) { setNotificationCount(0); return undefined; }
     return onSnapshot(
-      query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), limit(50)),
-      snapshot => setNotificationCount(snapshot.docs.filter(item => item.data()?.readAt == null).length),
+      query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), where('readAt', '==', null)),
+      snapshot => setNotificationCount(snapshot.size),
       () => setNotificationCount(0)
     );
   }, [user?.uid]);

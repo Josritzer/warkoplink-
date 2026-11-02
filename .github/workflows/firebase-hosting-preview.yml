@@ -114,7 +114,6 @@ jobs:
 
       - name: Report isolated preview target
         if: steps.preview_config.outputs.configured == 'true'
-        if: success()
         run: |
           echo "Preview deployed only to Firebase test project: ${{ vars.FIREBASE_PREVIEW_PROJECT_ID }}"
           echo "Channel: pr-${{ github.event.pull_request.number }}"

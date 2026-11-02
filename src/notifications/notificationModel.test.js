@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractMentionUsernames, isUnreadNotification, notificationLabel } from './notificationModel.js';
+import { extractMentionUsernames, filterNotifications, isUnreadNotification, notificationLabel } from './notificationModel.js';
 
 describe('extractMentionUsernames', () => {
   it('extracts unique case-insensitive usernames from message text', () => {
@@ -29,5 +29,17 @@ describe('notification presentation', () => {
   it('treats null readAt as unread and a timestamp as read', () => {
     expect(isUnreadNotification({ readAt: null })).toBe(true);
     expect(isUnreadNotification({ readAt: { seconds: 1 } })).toBe(false);
+  });
+
+  it('filters notifications to unread items without changing the original order', () => {
+    const items = [
+      { id: 'read-new', readAt: { seconds: 3 } },
+      { id: 'unread-old', readAt: null },
+      { id: 'unread-new', readAt: undefined }
+    ];
+
+    expect(filterNotifications(items, 'all')).toEqual(items);
+    expect(filterNotifications(items, 'unread').map(item => item.id)).toEqual(['unread-old', 'unread-new']);
+    expect(filterNotifications(items, 'unknown')).toEqual(items);
   });
 });

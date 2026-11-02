@@ -17,3 +17,8 @@ export function notificationLabel(notification = {}) {
 export function isUnreadNotification(notification = {}) {
   return notification.readAt == null;
 }
+
+export function filterNotifications(items = [], filter = 'all') {
+  if (!Array.isArray(items) || filter !== 'unread') return Array.isArray(items) ? items : [];
+  return items.filter(isUnreadNotification);
+}

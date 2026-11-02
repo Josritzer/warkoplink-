@@ -2,11 +2,19 @@
 .notification-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
 .notification-heading h2{margin:7px 0 3px}
 .notification-heading p{margin:0;color:var(--muted);font-size:12px}
+.notification-filters{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.notification-filters button{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:7px 13px;border:1px solid var(--wl-line-soft);border-radius:999px;background:transparent;color:var(--wl-muted,var(--muted));font:inherit;font-size:12px;font-weight:650;cursor:pointer;transition:background .18s ease,border-color .18s ease,color .18s ease}
+.notification-filters button:hover{border-color:var(--wl-primary);color:var(--wl-ink)}
+.notification-filters button.is-active{border-color:var(--wl-primary);background:var(--wl-primary-tint);color:var(--wl-primary)}
+.notification-filters button span{min-width:19px;padding:2px 5px;border-radius:999px;background:var(--wl-line-soft);font-size:10px;text-align:center}
+.notification-filters button.is-active span{background:color-mix(in srgb,var(--wl-primary) 14%,transparent)}
 .notification-list{display:grid;border-top:1px solid var(--wl-line-soft)}
-.notification-item{display:flex;align-items:center;gap:13px;width:100%;min-width:0;padding:15px 4px;border:0;border-bottom:1px solid var(--wl-line-soft);background:transparent;text-align:left;color:var(--wl-ink)}
+.notification-item{display:flex;align-items:center;gap:13px;width:100%;min-width:0;padding:15px 4px;border:0;border-bottom:1px solid var(--wl-line-soft);background:transparent;text-align:left;color:var(--wl-ink);cursor:pointer;transition:background .18s ease}
 .notification-item:hover{background:var(--wl-line-soft)}
+.notification-item:focus-visible,.notification-filters button:focus-visible{outline:2px solid var(--wl-primary);outline-offset:3px}
 .notification-item.unread{background:color-mix(in srgb,var(--wl-primary-tint) 42%,transparent)}
-.notification-icon{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:50%;background:var(--wl-primary-tint);color:var(--wl-primary)}
+.notification-icon{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:var(--wl-primary-tint);color:var(--wl-primary)}
+.notification-icon img{width:100%;height:100%;object-fit:cover}
 .notification-copy{display:grid;gap:3px;min-width:0;flex:1}
 .notification-copy b{font-size:12px}
 .notification-copy>span{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
@@ -16,7 +24,7 @@
 .notification-nav-count{margin-left:auto;min-width:20px;padding:3px 6px;border-radius:20px;background:var(--wl-primary-bright);color:#fff;text-align:center;font-size:10px;font-weight:800}
 .notification-nav-icon{position:relative;display:inline-flex}
 .notification-nav-icon i{position:absolute;right:-9px;top:-7px;min-width:15px;height:15px;padding:0 3px;border-radius:9px;background:var(--wl-primary-bright);color:#fff;font-size:9px;font-style:normal;line-height:15px}
-@media(max-width:620px){.notification-heading{align-items:flex-start}.notification-heading .button{padding:9px 10px;font-size:10px;white-space:nowrap}.notification-item{gap:10px;padding:13px 2px}.notification-icon{width:36px;height:36px;flex-basis:36px}.bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}.bottom-nav-item{min-width:0;font-size:clamp(8px,2.5vw,10px);gap:3px;white-space:nowrap}.bottom-nav-item span{white-space:nowrap}.bottom-nav-item svg{width:17px;height:17px;flex:0 0 17px}}
+@media(max-width:620px){.notification-heading{align-items:flex-start}.notification-heading .button{padding:9px 10px;font-size:10px;white-space:nowrap}.notification-item{gap:10px;padding:13px 2px}.notification-icon{width:36px;height:36px;flex-basis:36px}.notification-filters{gap:6px}.notification-filters button{min-height:34px;padding:6px 11px;font-size:11px}.bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}.bottom-nav-item{min-width:0;font-size:clamp(8px,2.5vw,10px);gap:3px;white-space:nowrap}.bottom-nav-item span{white-space:nowrap}.bottom-nav-item svg{width:17px;height:17px;flex:0 0 17px}}
 
 .member-mention{display:inline;padding:0;border:0;background:transparent;color:var(--wl-primary);font:inherit;font-weight:700;cursor:pointer;text-decoration:none;text-underline-offset:3px}
 .member-mention:hover,.member-mention:focus-visible{text-decoration:underline}

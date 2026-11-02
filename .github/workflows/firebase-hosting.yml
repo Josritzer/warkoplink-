@@ -30,8 +30,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+      - name: Install dependencies and reconcile lockfile
+        run: npm install --no-audit --no-fund
 
       - name: Load public Firebase web configuration
         run: cp .env.example .env

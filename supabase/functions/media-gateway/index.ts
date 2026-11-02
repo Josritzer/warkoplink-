@@ -459,6 +459,10 @@ async function handler(request: Request): Promise<Response> {
       stage = "remove-avatar";
       return response({ media: await removeAvatar(token, identity.uid) }, 200, origin);
     }
+    if (action === "removeVideo") {
+      stage = "remove-feed-video";
+      return response({ media: await removeVideo(token, identity.uid, body.postId) }, 200, origin);
+    }
     return response({ error: "Unsupported action" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Media operation failed";

@@ -88,6 +88,7 @@ export default function ChatPanel(props) {
           </select>
         </label>
         <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={event => setDraft(event.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ceritakan hal yang ingin dibagikan… Gunakan @username untuk menyebut anggota" rows={3} aria-describedby="composer-character-count"/>
+        <p className="mention-usage-help"><b>Gunakan mention:</b> ketik <code>@</code> lalu nama pengguna, pilih anggota dari saran, dan setelah terkirim orang lain bisa mengetuk <code>@username</code> untuk membuka profilnya. Anggota yang disebut akan menerima notifikasi.</p>
         {memberMentionSuggestions.length > 0 && <div className="mention-suggestions member-mention-suggestions" role="listbox" aria-label="Anggota WarkopLink">
           <small>Sebut anggota</small>
           {memberMentionSuggestions.map(member => <button key={member.uid} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/(^|[^a-z0-9_])@([^@]*)$/i, (_, prefix) => `${prefix}@${member.username} `))}>

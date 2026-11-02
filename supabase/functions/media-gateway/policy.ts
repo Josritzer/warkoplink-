@@ -19,31 +19,31 @@ export function normalizeUploadRequest(input: Record<string, unknown>): MediaUpl
   if (typeof input.mediaType !== "string" || !MEDIA_TYPES.has(input.mediaType)) {
     return fail("Unsupported media category");
   }
-  if (typeof input.contentType !== "string" || !ALLOWED_IMAGE_TYPES.has(input.contentType)) {
-    return fail("Unsupported image type");
-  }
-  if (typeof input.size !== "number" || !Number.isSafeInteger(input.size) || input.size < 1 || input.size > MAX_IMAGE_BYTES) {
-    return fail("Image size must be between 1 byte and 2 MiB");
-  }
   const mediaType = input.mediaType as MediaUploadRequest["mediaType"];
+  const isVideo = mediaType === "video";
+  const allowedType = isVideo
+    ? input.contentType === "video/mp4"
+    : typeof input.contentType === "string" && ALLOWED_IMAGE_TYPES.has(input.contentType);
+  if (!allowedType) return fail(isVideo ? "Unsupported video type" : "Unsupported image type");
+  const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (typeof input.size !== "number" || !Number.isSafeInteger(input.size) || input.size < 1 || input.size > maxBytes) {
+    return fail(isVideo ? "Video size must be between 1 byte and 50 MiB" : "Image size must be between 1 byte and 2 MiB");
+  }
   const resourceId = typeof input.resourceId === "string" ? input.resourceId.trim() : "";
-  if (mediaType !== "avatar" && (!resourceId || resourceId.length > 150 || resourceId.includes("/"))) {
+  if (mediaType !== "avatar" && (!resourceId || resourceId.length > 150 || !/^[A-Za-z0-9_-]+$/.test(resourceId))) {
     return fail("Invalid resource identifier");
   }
-  if (mediaType === "video" && input.slot !== undefined) {\n    return fail("Video does not accept a slot");\n  }\n  if (mediaType === "avatar" && input.slot !== undefined) {
-    return fail("Avatar does not accept a slot");
+  if ((mediaType === "avatar" || mediaType === "video" || mediaType === "event") && input.slot !== undefined) {
+    return fail(mediaType === "video" ? "Video does not accept a slot" : mediaType === "event" ? "Event poster has one slot" : "Avatar does not accept a slot");
   }
   if (mediaType === "warung" && (!Number.isInteger(input.slot) || (input.slot as number) < 0 || (input.slot as number) > 4)) {
     return fail("Warkop photo slot must be between 0 and 4");
-  }
-  if (mediaType === "event" && input.slot !== undefined) {
-    return fail("Event poster has one slot");
   }
   return {
     mediaType,
     ...(mediaType !== "avatar" ? { resourceId } : {}),
     ...(mediaType === "warung" ? { slot: input.slot as number } : {}),
-    contentType: input.contentType,
+    contentType: input.contentType as string,
     size: input.size,
   };
 }
@@ -65,52 +65,64 @@ export function validateImageBytes(bytes: Uint8Array, contentType: string): bool
   return false;
 }
 
-
-/** Reads only MP4 container metadata; media is still kept private until this succeeds. */
+/** Walk ISO-BMFF box boundaries and extract the container duration and track dimensions. */
 export function parseMp4Metadata(bytes: Uint8Array): { durationSeconds: number; width: number; height: number } | null {
   if (!(bytes instanceof Uint8Array) || bytes.length < 32 || bytes.length > MAX_VIDEO_BYTES) return null;
-  const text = (start: number, length: number) => String.fromCharCode(...bytes.slice(start, start + length));
-  const readU32 = (offset: number) => offset >= 0 && offset + 4 <= bytes.length
-    ? new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(offset)
-    : 0;
-  if (text(4, 4) !== "ftyp") return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const typeAt = (offset: number) => String.fromCharCode(...bytes.slice(offset, offset + 4));
+  const readU32 = (offset: number) => offset >= 0 && offset + 4 <= bytes.length ? view.getUint32(offset) : 0;
+  if (typeAt(4) !== "ftyp") return null;
+  const ftypSize = readU32(0);
+  if (ftypSize < 12 || ftypSize > bytes.length) return null;
 
-  const findBox = (type: string) => {
-    for (let offset = 4; offset + 8 <= bytes.length; offset++) {
-      if (text(offset, 4) === type) return offset;
+  const findBox = (from: number, to: number, wanted: string, depth = 0): { start: number; size: number } | null => {
+    if (depth > 5) return null;
+    let offset = from;
+    while (offset + 8 <= to) {
+      const size = readU32(offset);
+      const type = typeAt(offset + 4);
+      if (size < 8 || offset + size > to) return null;
+      if (type === wanted) return { start: offset, size };
+      if (type === "trak") {
+        const nested = findBox(offset + 8, offset + size, wanted, depth + 1);
+        if (nested) return nested;
+      }
+      offset += size;
     }
-    return -1;
+    return null;
   };
-  const mvhd = findBox("mvhd");
-  const tkhd = findBox("tkhd");
-  if (mvhd < 0 || tkhd < 0) return null;
 
-  const version = bytes[mvhd + 4];
+  const moov = findBox(ftypSize, bytes.length, "moov");
+  if (!moov) return null;
+  const mvhd = findBox(moov.start + 8, moov.start + moov.size, "mvhd");
+  const tkhd = findBox(moov.start + 8, moov.start + moov.size, "tkhd");
+  if (!mvhd || !tkhd || mvhd.size < 28 || tkhd.size < 24) return null;
+
+  const version = bytes[mvhd.start + 8];
   let timescale = 0;
   let duration = 0;
   if (version === 0) {
-    timescale = readU32(mvhd + 16);
-    duration = readU32(mvhd + 20);
-  } else if (version === 1) {
-    timescale = readU32(mvhd + 20);
-    if (tkhd + 8 <= bytes.length) {
-      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-      duration = Number(view.getBigUint64(mvhd + 24));
-    }
+    timescale = readU32(mvhd.start + 20);
+    duration = readU32(mvhd.start + 24);
+  } else if (version === 1 && mvhd.size >= 40) {
+    timescale = readU32(mvhd.start + 28);
+    const rawDuration = view.getBigUint64(mvhd.start + 32);
+    if (rawDuration > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+    duration = Number(rawDuration);
   } else return null;
 
-  const tkhdSize = readU32(tkhd - 4);
-  if (tkhdSize < 16 || tkhd - 4 + tkhdSize > bytes.length) return null;
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const width = Math.floor(view.getUint32(tkhd - 4 + tkhdSize - 8) / 65536);
-  const height = Math.floor(view.getUint32(tkhd - 4 + tkhdSize - 4) / 65536);
+  const tkhdVersion = bytes[tkhd.start + 8];
+  if (tkhdVersion !== 0 && tkhdVersion !== 1) return null;
+  const width = Math.floor(readU32(tkhd.start + tkhd.size - 8) / 65536);
+  const height = Math.floor(readU32(tkhd.start + tkhd.size - 4) / 65536);
   const durationSeconds = duration / timescale;
   if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 180 ||
       !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
-      width > 1920 || height > 1080) return null;
+      Math.max(width, height) > 1920 || Math.min(width, height) > 1080) return null;
   return { durationSeconds, width, height };
 }
-\nfunction decodeValue(value: any): any {
+
+function decodeValue(value: any): any {
   if (!value || typeof value !== "object") return undefined;
   if ("stringValue" in value) return value.stringValue;
   if ("integerValue" in value) return Number(value.integerValue);
@@ -146,7 +158,8 @@ export function mediaObjectPath(uid: string, mediaType: string, resourceId: stri
   }
   if (mediaType === "avatar") return `profiles/${uid}/${uploadId}.webp`;
   if (mediaType === "warung" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `warungs/${resourceId}/${slot}/${uploadId}.webp`;
-  if (mediaType === "event" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `events/${resourceId}/${uploadId}.webp`;\n  if (mediaType === "video" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `posts/${resourceId}/${uploadId}.mp4`;
+  if (mediaType === "event" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `events/${resourceId}/${uploadId}.webp`;
+  if (mediaType === "video" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `posts/${resourceId}/${uploadId}.mp4`;
   return fail("Unsupported media category");
 }
 

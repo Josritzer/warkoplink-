@@ -24,13 +24,14 @@ function messageDate(value) {
   return date ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(date) : '';
 }
 
-export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice, onRequestAuth, onOpenMention }) {
+export default function ThematicGroupChat({ db, user, groupId, targetMessageId = '', onBack, onNotice, onRequestAuth, onOpenMention }) {
   const group = getThematicGroupById(groupId);
   const [isMember, setIsMember] = useState(false);
   const [membershipLoading, setMembershipLoading] = useState(true);
   const [membershipBusy, setMembershipBusy] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [messages, setMessages] = useState([]);
+  const [targetMessage, setTargetMessage] = useState(null);
   const [reactions, setReactions] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesError, setMessagesError] = useState('');
@@ -119,6 +120,26 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
     });
     return () => { active = false; unsubscribe(); };
   }, [db, group?.id, user?.uid, isMember]);
+
+  useEffect(() => {
+    let active = true;
+    setTargetMessage(null);
+    if (!db || !group || !user?.uid || !isMember || !targetMessageId) return undefined;
+    getDoc(doc(db, 'thematicGroups', group.id, 'messages', targetMessageId))
+      .then((snapshot) => {
+        if (!active || !snapshot.exists()) return;
+        setTargetMessage({ id: snapshot.id, ...snapshot.data() });
+      })
+      .catch(() => {
+        if (active) onNotice?.('Pesan dari notifikasi belum dapat dimuat. Anda tetap dapat membaca percakapan grup.');
+      });
+    return () => { active = false; };
+  }, [db, group?.id, user?.uid, isMember, targetMessageId]);
+
+  useEffect(() => {
+    if (!isMember || !targetMessageId) return;
+    document.getElementById(`thematic-message-${targetMessageId}`)?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+  }, [isMember, targetMessageId, targetMessage, messages]);
 
   async function toggleMembership() {
     if (!group || !db || membershipBusy || membershipLock.current) return;
@@ -222,6 +243,10 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
     }
   }
 
+  const visibleMessages = targetMessage && !messages.some((item) => item.id === targetMessage.id)
+    ? [...messages, targetMessage].sort((a, b) => (a.createdAt?.toMillis?.() || a.createdAt?.toDate?.().getTime?.() || 0) - (b.createdAt?.toMillis?.() || b.createdAt?.toDate?.().getTime?.() || 0))
+    : messages;
+
   if (!group) return <section className="content-section"><p>Grup Tematik tidak ditemukan.</p><button type="button" className="button button-quiet" onClick={onBack}>Kembali ke Obrolan</button></section>;
 
   return <section className="thematic-chat-page" aria-label={`Percakapan grup ${group.name}`}>
@@ -259,14 +284,14 @@ export default function ThematicGroupChat({ db, user, groupId, onBack, onNotice,
           <b>Mulai percakapan pertama</b>
           <p>Sapa anggota lain dan mulai berbagi pengalaman.</p>
         </div>}
-        {messages.map((message, index) => {
+        {visibleMessages.map((message, index) => {
           const own = message.senderUid === user?.uid;
           const previous = messages[index - 1];
           const date = messageDate(message.createdAt);
           const showDate = date && date !== messageDate(previous?.createdAt);
           return <div key={message.id} className="thematic-message-group">
             {showDate && <div className="thematic-date-divider"><span>{date}</span></div>}
-            <article className={own ? 'thematic-message own' : 'thematic-message'}>
+            <article id={`thematic-message-${message.id}`} data-message-id={message.id} className={`thematic-message ${own ? 'own' : ''} ${message.id === targetMessageId ? 'is-targeted' : ''}`.trim()}>
               {!own && <span className="thematic-message-initial">{initials(message.senderName)}</span>}
               <div className="thematic-message-bubble">
                 {!own && <b>{message.senderName || 'Anggota WARKOPLINK'}</b>}

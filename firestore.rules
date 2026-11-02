@@ -182,6 +182,23 @@ service cloud.firestore {
       ];
     }
 
+    function isOfficialThematicGroupId(groupId) {
+      return groupId is string && groupId in [
+        'pemilik-warkop', 'pelaku-umkm', 'info-pekerjaan', 'event-nobar',
+        'komunitas-olahraga', 'kreator-lokal', 'jaringan-warga'
+      ];
+    }
+
+    function thematicGroupMemberPath(groupId, memberUid) {
+      return /databases/$(database)/documents/thematicGroups/$(groupId)/members/$(memberUid);
+    }
+
+    function isThematicGroupMember(groupId) {
+      return signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && exists(thematicGroupMemberPath(groupId, request.auth.uid));
+    }
+
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
         && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'communityId', 'createdAt', 'reactions', 'totalReactions'])
@@ -413,6 +430,47 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
       allow update: if false;
       allow delete: if signedIn() && request.auth.uid == memberUid;
+    }
+
+    // Grup Tematik: keanggotaan mandiri, tanpa peran admin/moderator khusus.
+    // Riwayat pesan tetap tersimpan; akses pesan hanya aktif selama pengguna menjadi anggota.
+    match /thematicGroups/{groupId}/members/{memberUid} {
+      allow read: if signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && request.auth.uid == memberUid;
+      allow create: if signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && request.auth.uid == memberUid
+        && request.resource.data.keys().hasAll(['uid', 'joinedAt', 'lastReadAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'joinedAt', 'lastReadAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.joinedAt == request.time
+        && request.resource.data.lastReadAt == request.time;
+      allow update: if signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && request.auth.uid == memberUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastReadAt'])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.joinedAt == resource.data.joinedAt
+        && request.resource.data.lastReadAt == request.time;
+      allow delete: if signedIn()
+        && isOfficialThematicGroupId(groupId)
+        && request.auth.uid == memberUid;
+    }
+
+    match /thematicGroups/{groupId}/messages/{messageId} {
+      allow read: if isThematicGroupMember(groupId);
+      allow create: if isThematicGroupMember(groupId)
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && request.resource.data.keys().hasAll(['senderUid', 'senderName', 'text', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['senderUid', 'senderName', 'text', 'createdAt'])
+        && request.resource.data.senderUid == request.auth.uid
+        && request.resource.data.senderName == get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.displayName
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 1
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
     }
 
     match /posts/{postId} {

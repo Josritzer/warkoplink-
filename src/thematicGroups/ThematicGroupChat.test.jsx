@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 const state = vi.hoisted(() => ({
   memberExists: false,
   reactionDocs: [],
+  messageFailuresRemaining: 0,
   usernameMap: {},
   setDoc: vi.fn(),
   deleteDoc: vi.fn(),
@@ -33,6 +34,7 @@ import ThematicGroupChat from './ThematicGroupChat.jsx';
 beforeEach(() => {
   state.memberExists = false;
   state.reactionDocs = [];
+  state.messageFailuresRemaining = 0;
   state.usernameMap = {};
   state.setDoc.mockResolvedValue(undefined);
   state.deleteDoc.mockResolvedValue(undefined);
@@ -46,16 +48,21 @@ beforeEach(() => {
     return Promise.resolve({ exists: () => true, data: () => ({ displayName: 'Alice' }) });
   });
   state.updateDoc.mockResolvedValue(undefined);
-  state.onSnapshot.mockImplementation((ref, next) => {
+  state.onSnapshot.mockImplementation((ref, next, error) => {
     if (ref.path.endsWith('/members/alice')) {
       next({ exists: () => state.memberExists, data: () => ({ lastReadAt: null }) });
     } else if (ref.path.endsWith('/reactions')) {
       next({ docs: state.reactionDocs.map((item) => ({ id: item.id, data: () => item.data })) });
     } else if (ref.path.endsWith('/messages')) {
-      next({ docs: state.memberExists ? [{
-        id: 'hello-1',
-        data: () => ({ senderUid: 'bob', senderName: 'Budi', text: 'Selamat datang!', createdAt: { toDate: () => new Date('2026-11-02T08:00:00Z') } })
-      }] : [] });
+      if (state.messageFailuresRemaining > 0) {
+        state.messageFailuresRemaining -= 1;
+        error?.({ code: 'unavailable' });
+      } else {
+        next({ docs: state.memberExists ? [{
+          id: 'hello-1',
+          data: () => ({ senderUid: 'bob', senderName: 'Budi', text: 'Selamat datang!', createdAt: { toDate: () => new Date('2026-11-02T08:00:00Z') } })
+        }] : [] });
+      }
     }
     return vi.fn();
   });
@@ -96,6 +103,16 @@ describe('thematic group conversation', () => {
       { path: 'thematicGroups/pemilik-warkop/messages' },
       { senderUid: 'alice', senderName: 'Alice', text: 'Ada rekomendasi kopi?', createdAt: 'server-time' }
     ));
+  });
+
+  it('offers a retry when the message listener fails and recovers when retried', async () => {
+    state.memberExists = true;
+    state.messageFailuresRemaining = 1;
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText(/Koneksi ke layanan pesan terganggu/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('lets a member reply to a specific message with a visible quote', async () => {
@@ -157,6 +174,7 @@ describe('thematic group conversation', () => {
     state.memberExists = true;
     render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
     expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih reaksi pesan Budi' }));
     fireEvent.click(screen.getByRole('button', { name: 'Reaksi 👍 (0)' }));
     await waitFor(() => expect(state.setDoc).toHaveBeenCalledWith(
       { path: 'thematicGroups/pemilik-warkop/reactions/hello-1_alice' },

@@ -23,7 +23,7 @@ async function fetchRegionOptions(path) {
   return optionCache.get(path);
 }
 
-function useRegionOptions(path) {
+export function clearOfficialRegionCache() {\n  optionCache.clear();\n}\n\nfunction useRegionOptions(path) {
   const [options, setOptions] = useState([]);
   const [status, setStatus] = useState(path ? 'loading' : 'idle');
   const [retry, setRetry] = useState(0);

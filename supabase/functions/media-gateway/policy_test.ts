@@ -1,6 +1,8 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
-  MAX_IMAGE_BYTES,\n  MAX_VIDEO_BYTES,\n  parseMp4Metadata,
+  MAX_IMAGE_BYTES,
+  MAX_VIDEO_BYTES,
+  parseMp4Metadata,
   normalizeUploadRequest,
   parseFirestoreDocument,
   validateImageBytes,
@@ -87,7 +89,8 @@ Deno.test("accepts bounded MP4 video uploads without changing image limits", () 
   assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/quicktime", size: 1024 }));
   assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 50 * 1024 * 1024 + 1 }));
   assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "../other", contentType: "video/mp4", size: 1024 }));
-  assertEquals(MAX_IMAGE_BYTES, 2 * 1024 * 1024);\n  assertEquals(MAX_VIDEO_BYTES, 50 * 1024 * 1024);
+  assertEquals(MAX_IMAGE_BYTES, 2 * 1024 * 1024);
+  assertEquals(MAX_VIDEO_BYTES, 50 * 1024 * 1024);
 });
 
 Deno.test("uses a dedicated MP4 object path for feed videos", () => {

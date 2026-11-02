@@ -1,4 +1,8 @@
+import { isValidElement } from 'react';
+
 export function renderMemberMentions(value, onOpenMention) {
+  if (Array.isArray(value)) return value.map((part, index) => isValidElement(part) ? part : <span key={`mention-text-${index}`}>{renderMemberMentions(part, onOpenMention)}</span>);
+  if (isValidElement(value)) return value;
   const text = String(value ?? '');
   const pattern = /(^|[^a-z0-9_])(@[a-z0-9_]{3,20})(?![a-z0-9_-])/gi;
   const parts = [];

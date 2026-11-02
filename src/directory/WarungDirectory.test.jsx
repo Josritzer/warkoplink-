@@ -75,6 +75,16 @@ describe('kartu direktori warkop', () => {
     fireEvent.change(screen.getByLabelText('Bujur (longitude)'), { target: { value: '112.75' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
+    firestore.addDoc.mockResolvedValueOnce({ id: 'new-warkop-surabaya' });
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    await waitFor(() => expect(firestore.addDoc).toHaveBeenCalledOnce());
+    expect(firestore.addDoc.mock.calls[0][1]).toMatchObject({
+      regionCode: 'id-jawa-timur-kota-surabaya',
+      provinceName: 'Jawa Timur',
+      regencyName: 'Kota Surabaya',
+      verificationStatus: 'pending',
+    });
   });
 
   it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {

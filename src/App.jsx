@@ -1140,7 +1140,7 @@ export default function App() {
 
   const communityChatPanel = <ChatPanel
     readOnly={section === 'Beranda'} previewMode={section === 'Beranda'}
-    onViewAllDiscussions={() => { setMessageInitialTab('komunitas'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
+    onViewAllDiscussions={() => { navigateSection('Obrolan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
     onOpenDiscussion={() => { navigateSection('Obrolan'); setComposerOpen(true); window.scrollTo({ top: 0, behavior: 'auto' }); }}
     onOpenDirectory={() => navigateSection('Cari Warkop')}
     user={user} db={db} firebaseConfigured={firebaseConfigured} search={search} setSearch={setSearch}
@@ -1188,7 +1188,7 @@ export default function App() {
         </nav>
         <div className="sidebar-secondary-nav" aria-label="Ruang komunitas">
           <span className="sidebar-group-label">RUANG KOMUNITAS</span>
-          <button type="button" aria-label="Obrolan" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { setMessageInitialTab('komunitas'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={17}/><span>Obrolan</span></button>
+          <button type="button" aria-label="Obrolan" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={17}/><span>Obrolan</span></button>
           <button type="button" aria-label="Desktop: Agenda & acara" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={17}/><span>Agenda & acara</span></button>
           <button type="button" aria-label="Desktop: Jual beli & jasa" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli & Jasa Lokal'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={17}/><span>Jual beli & jasa</span></button>
         </div>
@@ -1202,7 +1202,7 @@ export default function App() {
       <main className="app-page-content">
       {section === 'Panel Admin' && isPlatformStaff ? <AdminPanel db={db} user={user} onNotice={setNotice} canVerifyWarungs={isSuperAdmin}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
-      section === 'Pesan' ? <MessagesPage db={db} user={user} communityContent={communityChatPanel} initialTab={messageInitialTab} initialConversationId={openConversationId} initialFriend={messageTarget} onOpenPublicChat={(selectedTopic) => { navigateSection('Obrolan'); setTopic(selectedTopic === 'Semua' ? 'Semua' : selectedTopic); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }} onOpenMemberProfile={openMemberProfile}/> :
+      section === 'Pesan' ? <MessagesPage db={db} user={user} initialTab={messageInitialTab} initialConversationId={openConversationId} initialFriend={messageTarget} onOpenMemberProfile={openMemberProfile}/> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
         <div className="reply-page-top">

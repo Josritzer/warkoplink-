@@ -5,11 +5,9 @@ import {
 } from 'firebase/firestore';
 import { MessageCircle, Users, UserRound, Send, ArrowLeft, LoaderCircle } from 'lucide-react';
 import { conversationIdFor, messagePreview } from './messageModel.js';
-import { FILTER_TOPICS } from '../lib.js';
 
 const tabs = [
   { id: 'pribadi', label: 'Pribadi' },
-  { id: 'komunitas', label: 'Komunitas' },
   { id: 'teman', label: 'Teman' }
 ];
 const timeLabel = value => {
@@ -22,10 +20,10 @@ function Avatar({ profile }) {
 }
 
 export default function MessagesPage({
-  db, user, communityContent, onOpenPublicChat, onOpenMemberProfile, initialTab = 'pribadi',
+  db, user, onOpenMemberProfile, initialTab = 'pribadi',
   initialConversationId = '', initialFriend = null
 }) {
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTab] = useState(initialTab === 'teman' ? 'teman' : 'pribadi');
   const [friends, setFriends] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [profiles, setProfiles] = useState({});
@@ -39,7 +37,7 @@ export default function MessagesPage({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => setTab(initialTab), [initialTab]);
+  useEffect(() => setTab(initialTab === 'teman' ? 'teman' : 'pribadi'), [initialTab]);
   useEffect(() => { if (initialConversationId) setSelectedId(initialConversationId); }, [initialConversationId]);
 
   useEffect(() => {
@@ -83,7 +81,7 @@ export default function MessagesPage({
   useEffect(() => {
     if (!db || !user?.uid) { setConversations([]); setLoadingConversations(false); return undefined; }
     setLoadingConversations(true);
-    return onSnapshot(query(collection(db,'conversations'),where('participantUids','array-contains',user.uid),orderBy('lastMessageAt','desc'),limit(50)),async snap=>{
+    return onSnapshot(query(collection(db,'conversations'),where('participantUids','array-contains',user.uid),limit(50)),async snap=>{
       const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.lastMessageAt?.toMillis?.()||0)-(a.lastMessageAt?.toMillis?.()||0));
       setConversations(rows);
       const ids=[...new Set(rows.map(x=>x.participantUids?.find(id=>id!==user.uid)).filter(Boolean))];
@@ -145,13 +143,13 @@ export default function MessagesPage({
   </section>;
 
   return <section className="content-section messages-page" aria-label="Halaman Pesan">
-    <span className="eyebrow">PESAN & KONEKSI</span><h2>Pesan</h2><p className="messages-intro">Percakapan pribadi, ruang komunitas, dan teman dalam satu tempat.</p>
+    <span className="eyebrow">PESAN & KONEKSI</span><h2>Pesan</h2><p className="messages-intro">Percakapan pribadi dan daftar teman yang saling mengikuti.</p>
     <div className="messages-tabs" role="tablist" aria-label="Kategori pesan">{tabs.map(t=><button key={t.id} type="button" role="tab" aria-selected={tab===t.id} aria-controls="message-panel" className="messages-tab" onClick={()=>{setTab(t.id);setSelectedId('');setSelectedFriend(null);}}>{t.label}</button>)}</div>
     <div id="message-panel" className="messages-panel" role="tabpanel">
       {error&&<p className="message-error" role="alert">{error}</p>}
       {tab==='pribadi'&&<><div className="message-list-heading"><h3>Percakapan pribadi</h3><span>{user?.uid ? conversations.length : '—'}</span></div>
         {!user?.uid?<div className="message-empty"><MessageCircle size={24}/><h3>Masuk untuk membuka pesan pribadi</h3><p>Fitur pertemanan dan pesan pribadi tersedia setelah Anda masuk.</p></div>:loadingConversations?<p role="status">Memuat percakapan…</p>:conversations.length?<div className="message-conversation-list">{conversations.map(row=>{const uid=row.participantUids?.find(x=>x!==user.uid),profile=profiles[uid]||{uid,displayName:'Anggota WarkopLink'};return <button key={row.id} className="message-conversation-item" onClick={()=>{setSelectedFriend(profile);setSelectedId(row.id);}}><Avatar profile={profile}/><span className="message-conversation-copy"><b>{profile.displayName}</b><small>{row.lastMessagePreview||'Mulai percakapan'}</small></span><span className="message-conversation-meta"><time>{timeLabel(row.lastMessageAt)}</time>{row.unreadFor===user.uid&&<i aria-label="Pesan belum dibaca"/>}</span></button>;})}</div>:<div className="message-empty"><MessageCircle size={24}/><h3>Belum ada pesan pribadi</h3><p>Mulai percakapan dari daftar Teman yang saling mengikuti.</p><button className="button button-dark" onClick={()=>setTab('teman')}>Lihat Teman</button></div>}</>}
-      {tab==='komunitas'&&<div className="message-community">{communityContent || <><div className="message-list-heading"><h3>Obrolan komunitas</h3><span>{FILTER_TOPICS.length} topik</span></div><p>Ruang diskusi komunitas belum dapat dimuat.</p>{FILTER_TOPICS.map(topic=><button key={topic} className="message-topic-item" onClick={()=>onOpenPublicChat?.(topic)}><span>{topic}</span><span>Jelajahi →</span></button>)}</>}</div>}
+      
       {tab==='teman'&&<><div className="message-list-heading"><h3>Teman</h3><span>{user?.uid ? friends.length : '—'}</span></div><p className="message-presence-note">Status aktif belum tersedia. WARKOPLINK tidak menebak kehadiran dari waktu pesan terakhir.</p>{!user?.uid?<div className="message-empty"><Users size={24}/><h3>Masuk untuk melihat teman</h3><p>Hubungan saling mengikuti akan ditampilkan sebagai teman setelah Anda masuk.</p></div>:loadingFriends?<p role="status">Memuat teman…</p>:friends.length?<div className="message-friend-list">{friends.map(friend=><div className="message-friend-item" key={friend.uid}><button className="message-friend-profile" onClick={()=>onOpenMemberProfile?.(friend)}><Avatar profile={friend}/><span><b>{friend.displayName}</b><small>{friend.username?'@'+friend.username:'Saling mengikuti'}</small></span></button><button className="message-friend-action" onClick={()=>startChat(friend)} aria-label={'Kirim pesan kepada '+friend.displayName}><MessageCircle size={17}/><span>Pesan</span></button></div>)}</div>:<div className="message-empty"><Users size={24}/><h3>Teman muncul di sini saat kalian saling mengikuti</h3><p>Hanya follow dua arah yang dihitung sebagai teman. Status aktif tidak tersedia karena sistem presence belum tersedia.</p></div>}</>}
     </div>
   </section>;

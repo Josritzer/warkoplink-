@@ -15,8 +15,8 @@ export default function NotificationCenter({ db, user, onOpenNotification, onNot
   useEffect(() => {
     if (!db || !user?.uid) { setItems([]); setLoading(false); return undefined; }
     setLoading(true);
-    return onSnapshot(query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), orderBy('createdAt', 'desc'), limit(50)), snapshot => {
-      const own = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    return onSnapshot(query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), limit(100)), snapshot => {
+      const own = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
       setItems(own);
       setLoading(false);
     }, () => {
@@ -45,11 +45,11 @@ export default function NotificationCenter({ db, user, onOpenNotification, onNot
     if (!db || !items.length || !unreadCount || busy) return;
     setBusy(true);
     try {
-      const unread = await getDocs(query(
+      const recipientItems = await getDocs(query(
         collection(db, 'notifications'),
-        where('recipientUid', '==', user.uid),
-        where('readAt', '==', null)
+        where('recipientUid', '==', user.uid)
       ));
+      const unread = { docs: recipientItems.docs.filter(item => isUnreadNotification(item.data())) };
       for (let offset = 0; offset < unread.docs.length; offset += 450) {
         const batch = writeBatch(db);
         unread.docs.slice(offset, offset + 450).forEach(item => {

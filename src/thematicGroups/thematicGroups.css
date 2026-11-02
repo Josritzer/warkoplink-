@@ -78,3 +78,7 @@
 .thematic-reaction-row button.is-selected{border-color:var(--wl-primary);background:var(--wl-primary-tint);color:var(--wl-primary)}
 .thematic-reaction-row button small{font-size:9px;font-weight:750}
 .thematic-message-bubble .member-mention{display:inline;padding:0;border:0;background:transparent;color:var(--wl-primary);font:inherit;font-weight:750;text-decoration:none;cursor:pointer}
+
+.thematic-directory-actions{display:flex;flex:0 0 auto;align-items:flex-end;flex-direction:column;gap:6px}
+.thematic-unread-badge{display:inline-flex;align-items:center;gap:5px;color:var(--wl-primary);font-size:9px;font-weight:750;white-space:nowrap}
+.thematic-unread-badge i{width:7px;height:7px;border-radius:50%;background:var(--wl-primary)}

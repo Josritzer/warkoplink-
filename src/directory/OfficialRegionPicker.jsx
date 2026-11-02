@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 
+// Static, CDN-cached region catalogue derived from the latest published Kemendagri reference.
+// Canonical reference: Kepmendagri 300.2.2-2138/2025 as amended by 300.2.2-2430/2025.
+// Source mirror: emsifa/api-wilayah-indonesia v2; use official numeric codes as identifiers.
 const API_BASE = 'https://www.emsifa.com/api-wilayah-indonesia/v2';
 const optionCache = new Map();
 
@@ -108,7 +111,7 @@ export default function OfficialRegionPicker({ onChange, value = null }) {
 
   return <div className="official-region-picker">
     <label>Provinsi
-      <select value={provinceId} onChange={(event) => chooseProvince(event.target.value)} required>
+      <select value={provinceId} disabled={provinces.status !== "ready"} onChange={(event) => chooseProvince(event.target.value)} required>
         <option value="">Pilih provinsi</option>
         {provinces.options.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>

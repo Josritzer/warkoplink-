@@ -84,7 +84,7 @@ describe("unggah foto warkop", () => {
       mediaType: "video",
       resourceId: "post-1",
       file: { type: "video/mp4", size: 50_000_000 + 1 }
-    })).rejects.toThrow("Ukuran video maksimal 50 MiB.");
+    })).rejects.toThrow("Ukuran video maksimal 50 MB.");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

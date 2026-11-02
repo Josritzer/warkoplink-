@@ -93,7 +93,8 @@ export function parseMp4Metadata(bytes: Uint8Array): { durationSeconds: number; 
   };
 
   const moov = findBox(ftypSize, bytes.length, "moov");
-  if (!moov) return null;
+  const mdat = findBox(ftypSize, bytes.length, "mdat");
+  if (!moov || !mdat || mdat.size < 8) return null;
   const mvhd = findBox(moov.start + 8, moov.start + moov.size, "mvhd");
   const tkhd = findBox(moov.start + 8, moov.start + moov.size, "tkhd");
   if (!mvhd || !tkhd || mvhd.size < 28 || tkhd.size < 24) return null;

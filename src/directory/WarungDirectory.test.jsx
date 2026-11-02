@@ -65,7 +65,7 @@ describe('kartu direktori warkop', () => {
     expect(screen.queryByText(/Kisaran harga/)).toBeNull();
   });
 
-  it('menerima pendaftaran dari provinsi dan kabupaten/kota selain Lamongan', async () => {
+  it('menyimpan kode wilayah resmi sampai tingkat desa/kelurahan', async () => {
     render(<WarungDirectory mode="register" user={{ uid: 'owner-2' }} db={{}} {...callbacks} />);
     fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Kopi Surabaya' } });
     fireEvent.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));

@@ -76,14 +76,14 @@ describe("unggah foto warkop", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("rejects feed videos larger than 50 MiB before network upload", async () => {
+  it("rejects feed videos larger than 50 MB before network upload", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     await expect(uploadWarkopMedia({
       user: { getIdToken: vi.fn().mockResolvedValue("firebase-id-token") },
       mediaType: "video",
       resourceId: "post-1",
-      file: { type: "video/mp4", size: 50 * 1024 * 1024 + 1 }
+      file: { type: "video/mp4", size: 50_000_000 + 1 }
     })).rejects.toThrow("Ukuran video maksimal 50 MiB.");
     expect(fetchMock).not.toHaveBeenCalled();
   });

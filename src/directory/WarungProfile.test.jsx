@@ -46,7 +46,6 @@ describe('WarungProfile', () => {
     expect(screen.getByText('Kopi racikan')).toBeTruthy();
     expect(screen.getByText('Santai untuk ngobrol')).toBeTruthy();
     expect(screen.queryByText(/Kisaran harga:/)).toBeNull();
-    expect(screen.queryByText(/Kisaran harga:/)).toBeNull();
     expect(screen.getByText('3')).toBeTruthy();
   });
 

@@ -4,7 +4,7 @@ const DELETE_BATCH_SIZE = 450;
 
 // Menandai status lebih dulu agar Rules menghentikan reaksi/balasan baru.
 // Jika jaringan gagal, pemilik dapat mengulangi proses dan melanjutkan pembersihan.
-export async function deleteOwnPost(db, postId) {
+export async function deleteOwnPost(db, postId, cleanupMedia) {
   if (!db || !postId) throw new Error('missing-post-reference');
 
   const postRef = doc(db, 'posts', postId);
@@ -22,5 +22,6 @@ export async function deleteOwnPost(db, postId) {
     }
   }
 
+  if (typeof cleanupMedia === "function") await cleanupMedia();
   await deleteDoc(postRef);
 }

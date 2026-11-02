@@ -22,6 +22,8 @@ export default function ChatPanel(props) {
   const [eventKind, setEventKind] = useState('Nobar');
   const [eventCapacity, setEventCapacity] = useState('');
   const [eventPosterFile, setEventPosterFile] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState('');
   const [eventWarungId, setEventWarungId] = useState('');
   const [eventPosterPreview, setEventPosterPreview] = useState('');
   const [price, setPrice] = useState('');
@@ -34,6 +36,12 @@ export default function ChatPanel(props) {
     setEventPosterPreview(preview);
     return () => { if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(preview); };
   }, [eventPosterFile]);
+  useEffect(() => {
+    if (!videoFile || typeof URL.createObjectURL !== 'function') { setVideoPreview(''); return undefined; }
+    const preview = URL.createObjectURL(videoFile);
+    setVideoPreview(preview);
+    return () => { if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(preview); };
+  }, [videoFile]);
   const [nudgeDismissed, setNudgeDismissed] = useState(() => { try { return window.localStorage.getItem('warkoplink:composer-nudge-dismissed:v1') === '1'; } catch { return false; } });
   const startStory = () => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi cerita.'); return; } setComposerTopic('Ngopi Bareng'); setPostType(POST_SUBTYPES['Ngopi Bareng']?.[0] || ''); setTopic('Semua'); if (onOpenDiscussion) onOpenDiscussion(); else setComposerOpen(true); setNotice('Ceritakan suasana warkop hari ini di obrolan komunitas.'); };
   const dismissNudge = () => { setNudgeDismissed(true); try { window.localStorage.setItem('warkoplink:composer-nudge-dismissed:v1', '1'); } catch {} };
@@ -82,7 +90,7 @@ export default function ChatPanel(props) {
       <div className="topic-scroll-wrap"><div className="topic-list" aria-label="Kategori obrolan">{FILTER_TOPICS.map(name => <button key={name} type="button" onClick={() => setTopic(name)} aria-pressed={topic === name} className={topic === name ? 'topic selected' : 'topic'}>{name}</button>)}</div><span className="topic-scroll-hint" aria-hidden="true">›</span></div>
     </>}
     {communityId && !communityMember && !readOnly && <div className="community-post-gate" role="status"><b>Ruang diskusi terbuka untuk dibaca.</b><span>Gabung komunitas untuk mulai membuat postingan dan ikut berdiskusi.</span></div>}
-    {readOnly ? <div className="feed-readonly-note"><span>Beranda · cuplikan 3 obrolan terbaru</span>{previewMode && <button className="button button-quiet" type="button" onClick={onViewAllDiscussions}>Lihat semua obrolan <MessageCircle size={14}/></button>}</div> : communityId && !communityMember ? null : <form className={composerOpen ? "composer composer-expanded" : "composer composer-collapsed"} onSubmit={async event => { const posted = await handlePost(event, { communityId, topic: category, postType, location, eventDate, eventStartAt, eventEndAt, eventKind, eventCapacity, eventPosterFile, eventWarungId, price, workType, contact }); if (posted) { setEventPosterFile(null); setEventWarungId(""); } }} aria-busy={posting}>
+    {readOnly ? <div className="feed-readonly-note"><span>Beranda · cuplikan 3 obrolan terbaru</span>{previewMode && <button className="button button-quiet" type="button" onClick={onViewAllDiscussions}>Lihat semua obrolan <MessageCircle size={14}/></button>}</div> : communityId && !communityMember ? null : <form className={composerOpen ? "composer composer-expanded" : "composer composer-collapsed"} onSubmit={async event => { const posted = await handlePost(event, { communityId, topic: category, postType, location, eventDate, eventStartAt, eventEndAt, eventKind, eventCapacity, eventPosterFile, eventWarungId, videoFile, price, workType, contact }); if (posted) { setEventPosterFile(null); setEventWarungId(""); } }} aria-busy={posting}>
       {!composerOpen ? <button type="button" className="composer-trigger" onClick={() => { if (!user) { openAuth(false); setNotice("Masuk untuk mulai berbagi obrolan."); return; } setComposerOpen(true); }}><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><span>{user ? "Ayo ngobrol…" : "Masuk untuk mulai ngobrol…"}</span></button> : <>
         <div className="composer-context"><span className="composer-avatar">{user?.photoURL ? <img src={user.photoURL} alt="" /> : String(user?.displayName || user?.email || "S").slice(0,1).toUpperCase()}</span><div><b>{user?.displayName || "Anggota komunitas"}</b><small>Posting ke <strong>{category}</strong></small></div></div>
         {communityId
@@ -140,6 +148,15 @@ export default function ChatPanel(props) {
           <p className="composer-help">Isi tanggal dan jam agar peserta bisa menambahkan acara ke kalender HP.</p>
         </div>}
         {showDate && category !== 'Info & Acara' && <label className="composer-field">Waktu / tanggal (opsional)<input value={eventDate} onChange={event => setEventDate(event.target.value)} maxLength={40} placeholder="Contoh: Sabtu, 19.00 WIB"/></label>}
+        <label className="composer-field">Video obrolan (MP4 · maksimal 50 MB; batas durasi mengikuti akun/grup)
+          <input aria-label="Video obrolan MP4" type="file" accept="video/mp4,.mp4" disabled={posting} onChange={event => {
+            const file = event.target.files?.[0] || null;
+            if (file && file.type !== 'video/mp4') { setNotice('Pilih video MP4.'); setVideoFile(null); event.target.value = ''; return; }
+            if (file && (!Number.isSafeInteger(file.size) || file.size < 1 || file.size > 50 * 1024 * 1024)) { setNotice('Ukuran video maksimal 50 MB.'); setVideoFile(null); event.target.value = ''; return; }
+            setVideoFile(file);
+          }} />
+        </label>
+        {videoPreview && <div className="event-poster-preview video-upload-preview"><video src={videoPreview} controls playsInline preload="metadata" aria-label="Pratinjau video sebelum dipublikasikan"/><div><b>{videoFile?.name}</b><button className="button button-quiet" type="button" onClick={() => setVideoFile(null)} disabled={posting}>Hapus video</button></div></div>}
         {showPrice && <label className="composer-field">Harga (opsional)<input value={price} onChange={event => setPrice(event.target.value)} maxLength={60} placeholder="Contoh: Rp50.000, bisa nego"/></label>}
         {showWorkType && <label className="composer-field">Tipe kerja (opsional)<input value={workType} onChange={event => setWorkType(event.target.value)} maxLength={60} placeholder="Penuh waktu, paruh waktu, shift"/></label>}
         {showContact && <label className="composer-field">Kontak aman (opsional)<input value={contact} onChange={event => setContact(event.target.value)} maxLength={240} placeholder="https://… atau @akun"/></label>}

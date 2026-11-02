@@ -82,3 +82,6 @@
 .thematic-directory-actions{display:flex;flex:0 0 auto;align-items:flex-end;flex-direction:column;gap:6px}
 .thematic-unread-badge{display:inline-flex;align-items:center;gap:5px;color:var(--wl-primary);font-size:9px;font-weight:750;white-space:nowrap}
 .thematic-unread-badge i{width:7px;height:7px;border-radius:50%;background:var(--wl-primary)}
+
+.thematic-message.is-targeted .thematic-message-bubble{border-color:var(--wl-primary);box-shadow:0 0 0 3px var(--wl-primary-tint),0 5px 18px rgba(20,20,30,.08)}
+@media(max-width:620px){.thematic-directory-actions{align-items:flex-end}.thematic-open-button{min-height:40px;padding:0 12px}.thematic-message-actions button{min-height:36px;padding:0 8px;border-radius:8px;background:var(--wl-primary-tint)}.thematic-reaction-row button{min-height:36px;min-width:36px;padding:0 8px}.thematic-back-button,.thematic-leave-button{width:40px;height:40px;flex-basis:40px}.thematic-compose button{width:44px;height:44px;flex-basis:44px}}

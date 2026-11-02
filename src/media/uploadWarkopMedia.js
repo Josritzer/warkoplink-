@@ -84,6 +84,80 @@ async function gatewayRequest(user, payload) {
   return body;
 }
 
+
+function encodeTusMetadata(value) {
+  return btoa(unescape(encodeURIComponent(value)));
+}
+
+async function uploadVideoResumable(file, upload, onProgress, signal) {
+  const endpoint = "https://klikvxuronunonymmiqv.storage.supabase.co/storage/v1/upload/resumable/sign";
+  const metadata = [
+    ["bucketName", upload.bucket],
+    ["objectName", upload.path],
+    ["contentType", file.type],
+    ["cacheControl", "31536000"]
+  ].map(([key, value]) => `${key} ${encodeTusMetadata(value)}`).join(",");
+  const created = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      "Tus-Resumable": "1.0.0",
+      "Upload-Length": String(file.size),
+      "Upload-Metadata": metadata,
+      "x-signature": upload.token
+    },
+    signal
+  });
+  if (created.status !== 201) throw new Error("Unggahan video resumable belum dapat dimulai.");
+  const location = created.headers.get("Location");
+  if (!location) throw new Error("Server tidak memberikan alamat unggah resumable.");
+  const uploadUrl = new URL(location, endpoint).toString();
+  const chunkSize = 6 * 1024 * 1024;
+  let offset = 0;
+  let attempts = 0;
+  while (offset < file.size) {
+    if (signal?.aborted) throw new DOMException("Upload dibatalkan", "AbortError");
+    const chunk = file.slice(offset, Math.min(offset + chunkSize, file.size));
+    try {
+      const response = await fetch(uploadUrl, {
+        method: "PATCH",
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          "Tus-Resumable": "1.0.0",
+          "Upload-Offset": String(offset),
+          "Content-Type": "application/offset+octet-stream",
+          "x-signature": upload.token
+        },
+        body: chunk,
+        signal
+      });
+      if (response.status !== 204) throw new Error("Potongan video belum berhasil dikirim.");
+      const nextOffset = Number(response.headers.get("Upload-Offset"));
+      if (!Number.isSafeInteger(nextOffset) || nextOffset <= offset || nextOffset > file.size) {
+        throw new Error("Posisi unggah video tidak valid.");
+      }
+      offset = nextOffset;
+      attempts = 0;
+      onProgress?.(Math.min(100, Math.round(offset / file.size * 100)));
+    } catch (error) {
+      if (signal?.aborted || error?.name === "AbortError") {
+        await fetch(uploadUrl, { method: "DELETE", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "Tus-Resumable": "1.0.0", "x-signature": upload.token } }).catch(() => {});
+        throw new DOMException("Upload dibatalkan", "AbortError");
+      }
+      if (++attempts > 3) throw error;
+      const head = await fetch(uploadUrl, {
+        method: "HEAD",
+        headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "Tus-Resumable": "1.0.0", "x-signature": upload.token }
+      });
+      if (!head.ok) throw error;
+      const serverOffset = Number(head.headers.get("Upload-Offset"));
+      if (!Number.isSafeInteger(serverOffset) || serverOffset < 0 || serverOffset > file.size) throw error;
+      offset = serverOffset;
+      await wait(500 * attempts);
+    }
+  }
+}
+
 function signedUploadUrl(bucket, path, token) {
   const encodedPath = path.split("/").map(encodeURIComponent).join("/");
   return `${SUPABASE_URL}/storage/v1/object/upload/sign/${encodeURIComponent(bucket)}/${encodedPath}?token=${encodeURIComponent(token)}`;
@@ -93,7 +167,7 @@ function signedUploadUrl(bucket, path, token) {
  * Uploads one profile avatar, warkop registration/gallery image, or event poster.
  * The server owns all resource authorization and final public URL assignment.
  */
-export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, file }) {
+export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, file, onProgress, signal }) {
   if (!user?.getIdToken || !file) throw new Error("Silakan masuk dan pilih foto atau video terlebih dahulu.");
   const isVideo = mediaType === "video";
   if (isVideo ? !ALLOWED_VIDEO_TYPES.has(file.type) : !ALLOWED_TYPES.has(file.type)) {
@@ -119,37 +193,35 @@ export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, fil
 
   let uploaded = false;
   try {
-    await retry(async () => {
-      const response = await fetch(new URL(upload.signedUrl, SUPABASE_URL).toString(), {
-        method: "PUT",
-        headers: {
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          "Content-Type": file.type,
-          "x-upsert": "false",
-        },
-        body: file,
-      });
-      if (response.ok || response.status === 409) {
-        uploaded = true;
-        return;
-      }
-      const detail = await response.text().catch(() => "");
-      const error = new Error(response.status === 413
-        ? "Foto melebihi batas penyimpanan."
-        : detail || "Unggahan terputus. Sistem akan mencoba kembali.");
-      error.status = response.status;
-      error.retryable = RETRYABLE_HTTP_STATUSES.has(response.status) || response.status >= 500;
-      throw error;
-    });
-  } catch (error) {
-    // A timeout may happen after the server stored the file; finalize is the safe recovery check.
-    if (!uploaded) {
-      if (error?.retryable === false) throw error;
-      try {
-        return (await gatewayRequest(user, { ...payload, action: "finalize" })).media;
-      } catch {
+    if (isVideo) {
+      await uploadVideoResumable(file, upload, onProgress, signal);
+      uploaded = true;
+    } else {
+      await retry(async () => {
+        const response = await fetch(new URL(upload.signedUrl, SUPABASE_URL).toString(), {
+          method: "PUT",
+          headers: {
+            apikey: SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": file.type,
+            "x-upsert": "false",
+          },
+          body: file,
+        });
+        if (response.ok || response.status === 409) { uploaded = true; return; }
+        const detail = await response.text().catch(() => "");
+        const error = new Error(response.status === 413
+          ? "Foto melebihi batas penyimpanan."
+          : detail || "Unggahan terputus. Sistem akan mencoba kembali.");
+        error.status = response.status;
+        error.retryable = RETRYABLE_HTTP_STATUSES.has(response.status) || response.status >= 500;
         throw error;
-      }
+      });
+    }
+  } catch (error) {
+    if (!uploaded) {
+      if (error?.name === "AbortError" || error?.retryable === false) throw error;
+      try { return (await gatewayRequest(user, { ...payload, action: "finalize" })).media; }
+      catch { throw error; }
     }
   }
 

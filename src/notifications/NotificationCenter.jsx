@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, where, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, where, updateDoc, writeBatch } from 'firebase/firestore';
 import { Bell, CheckCheck, MessageCircle, AtSign, Heart, Store, UserRound, MessageSquare } from 'lucide-react';
 import { isUnreadNotification, notificationLabel } from './notificationModel.js';
 import { relativePostTime } from '../chat/postTime.js';

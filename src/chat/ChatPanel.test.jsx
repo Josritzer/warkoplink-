@@ -1,6 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ChatPanel from './ChatPanel.jsx';
+const mentionFirestore = vi.hoisted(() => ({ getDocs: vi.fn(), getDoc: vi.fn() }));
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn((db, path) => ({ path })),
+  doc: vi.fn((db, collectionName, id) => ({ path: `${collectionName}/${id}` })),
+  endAt: vi.fn(value => ({ endAt: value })),
+  getDoc: mentionFirestore.getDoc,
+  getDocs: mentionFirestore.getDocs,
+  limit: vi.fn(value => ({ limit: value })),
+  orderBy: vi.fn(value => ({ orderBy: value })),
+  query: vi.fn((...args) => ({ args })),
+  startAt: vi.fn(value => ({ startAt: value }))
+}));
 
 describe('ChatPanel warung mentions', () => {
   it('suggests and inserts a verified warung name containing spaces', () => {
@@ -40,6 +52,32 @@ describe('ChatPanel warung mentions', () => {
     expect(setDraft).toHaveBeenCalledTimes(1);
     expect(setDraft.mock.calls[0][0]('Ngopi bareng @Warkop Po')).toBe('Ngopi bareng @Warkop Pojok ');
   });
+
+  it('suggests registered members after punctuation and inserts the selected username', async () => {
+    mentionFirestore.getDocs.mockResolvedValue({
+      docs: [{ id: 'kopi_senja', data: () => ({ uid: 'user-2', username: 'kopi_senja' }) }]
+    });
+    mentionFirestore.getDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({ displayName: 'Kopi Senja' })
+    });
+    const setDraft = vi.fn();
+    render(<ChatPanel
+      user={{ uid: 'user-1', displayName: 'Anggota' }} db={{ name: 'db' }}
+      firebaseConfigured search="" setSearch={vi.fn()} topic="Semua" setTopic={vi.fn()}
+      composerTopic="Ngopi Bareng" setComposerTopic={vi.fn()} composerOpen
+      setComposerOpen={vi.fn()} openAuth={vi.fn()} setNotice={vi.fn()}
+      draft="Halo, @kop" setDraft={setDraft} activeCategory="Ngopi Bareng"
+      handlePost={vi.fn()} posting={false} postsStatus="ready" setPostsRetry={vi.fn()}
+      visiblePosts={[]} cardProps={{}} hasMorePosts={false} loadingMorePosts={false}
+      loadMoreError="" onLoadMorePosts={vi.fn()} verifiedWarungs={[]}
+    />);
+    const option = await screen.findByRole('option', { name: /Kopi Senja.*@kopi_senja/ });
+    fireEvent.click(option);
+    expect(setDraft).toHaveBeenCalledTimes(1);
+    expect(setDraft.mock.calls[0][0]('Halo, @kop')).toBe('Halo, @kopi_senja ');
+  });
+
 });
 
 

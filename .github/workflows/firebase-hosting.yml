@@ -1,4 +1,4 @@
-name: Build and manually deploy SL Community Platform
+name: Build and manually deploy WarkopLink
 
 on:
   workflow_dispatch:
@@ -31,13 +31,16 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm install --no-package-lock --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Load public Firebase web configuration
         run: cp .env.example .env
 
       - name: Build community app
         run: npm run build
+
+      - name: Verify Hosting build output
+        run: test -s dist/index.html
 
       - name: Upload Hosting build artifact
         uses: actions/upload-artifact@v4
@@ -62,6 +65,13 @@ jobs:
           name: hosting-dist
           path: dist/
 
+      - name: Verify downloaded release files
+        run: |
+          test -s dist/index.html
+          test -s firebase.json
+          test -s firestore.rules
+          test -s firestore.indexes.json
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -80,5 +90,5 @@ jobs:
         run: |
           node -e 'const c=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON); console.log("Firebase deploy service account:", c.client_email)'
 
-      - name: Deploy Hosting only
-        run: npx --yes firebase-tools deploy --only hosting --project sl-community-platform --non-interactive
+      - name: Deploy Hosting, Firestore Rules, and indexes
+        run: npx --yes firebase-tools deploy --only hosting,firestore:rules,firestore:indexes --project sl-community-platform --non-interactive

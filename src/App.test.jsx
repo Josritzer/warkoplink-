@@ -848,7 +848,6 @@ describe('notifikasi sementara dan unggah foto profil', () => {
     const { container } = render(<App />);
     emitAuth(fakeUser());
     await user.click(screen.getByRole('button', { name: 'Akun' }));
-    await user.click(await screen.findByRole('button', { name: 'Edit profil' }));
 
     media.uploadWarkopMedia.mockRejectedValueOnce(
       new Error('Firebase account is disabled or status is unknown')
@@ -868,8 +867,8 @@ describe('notifikasi sementara dan unggah foto profil', () => {
   it('menghilangkan notifikasi sementara setelah tiga detik', () => {
     vi.useFakeTimers();
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /Tersimpan/ }));
-    const notice = 'Menu Tersimpan belum tersedia. Tidak ada daftar tersimpan yang dibuat-buat.';
+    fireEvent.click(screen.getByRole('button', { name: /Masuk untuk mulai ngobrol/ }));
+    const notice = 'Masuk untuk mulai berbagi cerita.';
     expect(screen.getByText(notice)).toBeTruthy();
 
     act(() => {

@@ -22,6 +22,8 @@ describe('notification presentation', () => {
     expect(notificationLabel({ type: 'comment' })).toBe('mengomentari obrolan Anda');
     expect(notificationLabel({ type: 'reaction' })).toBe('memberi reaksi pada obrolan Anda');
     expect(notificationLabel({ type: 'follow' })).toBe('mulai mengikuti warkop Anda');
+    expect(notificationLabel({ type: 'friend' })).toBe('sekarang menjadi teman Anda karena kalian saling mengikuti');
+    expect(notificationLabel({ type: 'message' })).toBe('mengirim pesan pribadi kepada Anda');
   });
 
   it('treats null readAt as unread and a timestamp as read', () => {

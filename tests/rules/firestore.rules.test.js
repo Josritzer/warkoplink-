@@ -52,6 +52,8 @@ beforeEach(async () => {
     await setDoc(doc(db, 'profiles/bob'), {
       displayName: 'Bob', email: 'bob@example.test', createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
     });
+    await setDoc(doc(db, 'publicProfiles/alice'), { uid: 'alice', displayName: 'Alice', photoURL: '', updatedAt: Timestamp.now() });
+    await setDoc(doc(db, 'publicProfiles/bob'), { uid: 'bob', displayName: 'Bob', photoURL: '', updatedAt: Timestamp.now() });
     await setDoc(doc(db, 'posts/post-alice'), {
       authorId: 'alice', authorName: 'Alice', body: 'Postingan Alice', topic: 'Tanya Jawab', createdAt: Timestamp.now(), reactions: { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 0,
     });
@@ -753,6 +755,87 @@ describe('pengikut profil warkop', () => {
   });
 });
 
+
+describe('mutual follows and private conversations', () => {
+  async function seedFollows(mutual = true) {
+    await env.withSecurityRulesDisabled(async ctx => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'userFollows/alice_bob'), { followerUid: 'alice', followedUid: 'bob', createdAt: Timestamp.now() });
+      if (mutual) await setDoc(doc(db, 'userFollows/bob_alice'), { followerUid: 'bob', followedUid: 'alice', createdAt: Timestamp.now() });
+    });
+  }
+
+  async function createConversationAndMessage(senderUid = 'alice', recipientUid = 'bob') {
+    const db = asUser(senderUid);
+    const participantUids = [senderUid, recipientUid].sort();
+    const conversationId = participantUids.join('__');
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const messageRef = doc(collection(conversationRef, 'messages'));
+    const batch = writeBatch(db);
+    batch.set(conversationRef, {
+      participantUids, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+      lastMessagePreview: 'Halo teman', lastMessageAt: serverTimestamp(),
+      lastSenderUid: senderUid, lastMessageId: messageRef.id, unreadFor: recipientUid,
+    });
+    batch.set(messageRef, {
+      senderUid, recipientUid, body: 'Halo teman', createdAt: serverTimestamp(), deliveryStatus: 'sent',
+    });
+    batch.set(doc(db, 'notifications', `message_${messageRef.id}`), {
+      recipientUid, actorUid: senderUid, type: 'message', conversationId, messageId: messageRef.id,
+      createdAt: serverTimestamp(), readAt: null,
+    });
+    return { batch, conversationId, messageRef };
+  }
+
+  it('membatasi follow satu arah pada akun yang memulai dan menolak follow diri sendiri', async () => {
+    const aliceDb = asUser('alice');
+    await assertSucceeds(setDoc(doc(aliceDb, 'userFollows/alice_bob'), {
+      followerUid: 'alice', followedUid: 'bob', createdAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(aliceDb, 'userFollows/alice_alice'), {
+      followerUid: 'alice', followedUid: 'alice', createdAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(aliceDb, 'userFollows/bob_alice'), {
+      followerUid: 'bob', followedUid: 'alice', createdAt: serverTimestamp(),
+    }));
+    await assertSucceeds(getDoc(doc(asUser('bob'), 'userFollows/alice_bob')));
+    await assertFails(getDoc(doc(asUser('charlie'), 'userFollows/alice_bob')));
+  });
+
+  it('mengizinkan percakapan dan notifikasi pesan hanya setelah follow dua arah', async () => {
+    await seedFollows(true);
+    const { batch, conversationId, messageRef } = await createConversationAndMessage();
+    await assertSucceeds(batch.commit());
+    await assertSucceeds(getDoc(doc(asUser('bob'), 'conversations', conversationId, 'messages', messageRef.id)));
+    await assertFails(getDoc(doc(asUser('charlie'), 'conversations', conversationId, 'messages', messageRef.id)));
+    await assertSucceeds(updateDoc(doc(asUser('bob'), 'conversations', conversationId), { unreadFor: '' }));
+  });
+
+  it('menolak percakapan pribadi jika follow hanya satu arah', async () => {
+    await seedFollows(false);
+    const { batch } = await createConversationAndMessage();
+    await assertFails(batch.commit());
+  });
+
+  it('menolak pesan baru setelah salah satu pihak berhenti mengikuti', async () => {
+    await seedFollows(true);
+    await assertSucceeds(deleteDoc(doc(asUser('bob'), 'userFollows/bob_alice')));
+    const { batch } = await createConversationAndMessage();
+    await assertFails(batch.commit());
+  });
+
+  it('mengizinkan notifikasi teman hanya jika follow sudah dua arah', async () => {
+    await seedFollows(true);
+    await assertSucceeds(setDoc(doc(asUser('alice'), 'notifications/friend-alice-bob'), {
+      recipientUid: 'bob', actorUid: 'alice', type: 'friend', friendUid: 'alice',
+      createdAt: serverTimestamp(), readAt: null,
+    }));
+    await assertFails(setDoc(doc(asUser('bob'), 'notifications/friend-fake'), {
+      recipientUid: 'alice', actorUid: 'bob', type: 'friend', friendUid: 'alice',
+      createdAt: serverTimestamp(), readAt: null,
+    }));
+  });
+});
 
 describe('notifications', () => {
   async function seedMentionTarget() {

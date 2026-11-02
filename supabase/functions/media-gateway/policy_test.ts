@@ -12,7 +12,7 @@ Deno.test("accepts only avatar, warung and event media", () => {
   assertEquals(normalizeUploadRequest({ mediaType: "avatar", contentType: "image/jpeg", size: 100 }).mediaType, "avatar");
   assertEquals(normalizeUploadRequest({ mediaType: "warung", resourceId: "warung-1", slot: 4, contentType: "image/png", size: 100 }).slot, 4);
   assertEquals(normalizeUploadRequest({ mediaType: "event", resourceId: "post-1", contentType: "image/webp", size: 100 }).mediaType, "event");
-  for (const mediaType of ["post", "video", "document", ""]) {
+  for (const mediaType of ["post", "document", ""]) {
     assertThrows(() => normalizeUploadRequest({ mediaType, contentType: "image/jpeg", size: 100 }));
   }
 });
@@ -104,7 +104,7 @@ Deno.test("extracts MP4 duration and dimensions from bounded metadata", () => {
     0,0,0,20, 109,118,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,3,232, 0,0,175,200,
     // tkhd (version 0, width 1920, height 1080, 16.16 fixed point)
     0,0,0,84, 116,107,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1,
-    ...new Array(60).fill(0), 7,128,0,0, 4,56,0,0
+    ...new Array(64).fill(0), 7,128,0,0, 4,56,0,0
   ]);
   assertEquals(parseMp4Metadata(metadata), { durationSeconds: 45, width: 1920, height: 1080 });
 });

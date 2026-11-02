@@ -676,7 +676,9 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
+    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
@@ -691,7 +693,9 @@ describe('direktori dan pendaftaran warkop', () => {
       nameNormalized: 'warkop pojok',
       ownerUid: 'u1',
       coordinates: { lat: -7.0001, lng: 112.281 },
-      regionCode: 'lamongan-kab',
+      regionCode: 'id-jawa-timur-kabupaten-lamongan',
+      provinceName: 'Jawa Timur',
+      regencyName: 'Kabupaten Lamongan',
       facilities: ['wi-fi', 'parkir'],
       menuItems: ['Kopi', 'teh', 'mi instan'],
       specialties: ['Kopi racikan', 'mi nyemek'],
@@ -711,7 +715,9 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
+    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
@@ -729,7 +735,9 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
+    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
@@ -750,7 +758,9 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
+    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
@@ -768,7 +778,9 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
-    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
+    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '200');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
@@ -782,7 +794,9 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Tes');
-    await user.type(screen.getByLabelText('Alamat lengkap di Kabupaten Lamongan'), 'Jl. Contoh No. 12, Lamongan');
+    await user.type(screen.getByLabelText('Provinsi'), 'Jawa Timur');
+    await user.type(screen.getByLabelText('Kabupaten/Kota'), 'Kabupaten Lamongan');
+    await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
     await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
@@ -926,7 +940,7 @@ describe('aksesibilitas form pendaftaran warkop', () => {
     const longitude = screen.getByPlaceholderText('Contoh: 112.2810');
     expect(latitude.getAttribute('inputmode')).toBe('decimal');
     expect(longitude.getAttribute('inputmode')).toBe('decimal');
-    expect(screen.getByText(/Lintang: angka utara\/selatan/)).toBeTruthy();
-    expect(screen.getByText(/Bujur: angka timur\/barat/)).toBeTruthy();
+    expect(screen.getByText(/Lintang: koordinat utara\/selatan/)).toBeTruthy();
+    expect(screen.getByText(/Bujur: koordinat timur\/barat/)).toBeTruthy();
   });
 });

@@ -90,7 +90,7 @@ export default function ChatPanel(props) {
         <textarea aria-label="Isi obrolan" autoFocus value={draft} onChange={event => setDraft(event.target.value)} maxLength={MAX_POST_LENGTH} placeholder="Ceritakan hal yang ingin dibagikan… Gunakan @username untuk menyebut anggota" rows={3} aria-describedby="composer-character-count"/>
         {memberMentionSuggestions.length > 0 && <div className="mention-suggestions member-mention-suggestions" role="listbox" aria-label="Anggota WarkopLink">
           <small>Sebut anggota</small>
-          {memberMentionSuggestions.map(member => <button key={member.uid} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/(^|\s)@([^@]*)$/, (_, prefix) => `${prefix}@${member.username} `))}>
+          {memberMentionSuggestions.map(member => <button key={member.uid} type="button" role="option" aria-selected="false" onClick={() => setDraft(current => current.replace(/(^|[^a-z0-9_])@([a-z0-9_]*)$/i, (_, prefix) => `${prefix}@${member.username} `))}>
             <span className="mention-suggestion-mark">@</span><span><b>{member.displayName}</b><small>@{member.username}</small></span>
           </button>)}
         </div>}

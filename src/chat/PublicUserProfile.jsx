@@ -29,6 +29,7 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
     let outgoingExists = false;
     let incomingExists = false;
     const syncRelationship = () => {
+      setFollowError('');
       setIsFollowing(outgoingExists);
       setIsMutual(outgoingExists && incomingExists);
     };
@@ -53,24 +54,47 @@ export default function PublicUserProfile({ profile: fallbackProfile, db, curren
     try {
       if (isFollowing) {
         await deleteDoc(followRef);
-        setIsFollowing(false); setIsMutual(false);
+        setIsFollowing(false);
+        setIsMutual(false);
       } else {
-        await setDoc(followRef, { followerUid: currentUser.uid, followedUid: uid, createdAt: serverTimestamp() });
+        await setDoc(followRef, {
+          followerUid: currentUser.uid,
+          followedUid: uid,
+          createdAt: serverTimestamp()
+        });
         setIsFollowing(true);
-        const reverse = await getDoc(doc(db, 'userFollows', `${uid}_${currentUser.uid}`));
-        setIsMutual(reverse.exists());
-        if (reverse.exists()) {
-          const notificationRef = doc(db, 'notifications', friendNotificationId(currentUser.uid, uid, uid));
-          const notification = await getDoc(notificationRef);
-          if (!notification.exists()) {
-            await setDoc(notificationRef, { recipientUid: uid, actorUid: currentUser.uid, type: 'friend', friendUid: currentUser.uid, createdAt: serverTimestamp(), readAt: null });
+        try {
+          const reverse = await getDoc(doc(db, 'userFollows', `${uid}_${currentUser.uid}`));
+          setIsMutual(reverse.exists());
+          if (reverse.exists()) {
+            const notificationRef = doc(db, 'notifications', friendNotificationId(currentUser.uid, uid, uid));
+            try {
+              const notification = await getDoc(notificationRef);
+              if (!notification.exists()) {
+                await setDoc(notificationRef, {
+                  recipientUid: uid,
+                  actorUid: currentUser.uid,
+                  type: 'friend',
+                  friendUid: currentUser.uid,
+                  createdAt: serverTimestamp(),
+                  readAt: null
+                });
+              }
+            } catch {
+              setFollowError('Kalian sudah saling mengikuti, tetapi notifikasi belum berhasil dibuat.');
+            }
           }
+        } catch {
+          setFollowError('Follow tersimpan, tetapi status pertemanan belum dapat diperiksa.');
         }
       }
     } catch {
-      setIsFollowing(previousFollowing); setIsMutual(previousMutual);
+      setIsFollowing(previousFollowing);
+      setIsMutual(previousMutual);
       setFollowError('Perubahan ikuti belum berhasil disimpan. Periksa koneksi lalu coba lagi.');
-    } finally { setFollowBusy(false); }
+    } finally {
+      setFollowBusy(false);
+    }
   }
 
   useEffect(() => {

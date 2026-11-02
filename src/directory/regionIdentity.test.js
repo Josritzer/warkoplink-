@@ -1,22 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { buildRegionIdentity } from './regionIdentity.js';
 
-describe('identitas wilayah nasional', () => {
-  it('membuat ID wilayah internal yang konsisten dari provinsi dan kabupaten/kota', () => {
-    expect(buildRegionIdentity('Jawa Timur', 'Kota Surabaya')).toEqual({
-      regionCode: 'id-jawa-timur-kota-surabaya',
-      provinceName: 'Jawa Timur',
-      regencyName: 'Kota Surabaya',
+const maduran = {
+  provinceCode: '35', provinceName: ' Jawa   Timur ',
+  regencyCode: '35.24', regencyName: 'Kabupaten Lamongan',
+  districtCode: '35.24.10', districtName: 'Maduran',
+  villageCode: '35.24.10.2007', villageName: 'Maduran',
+};
+
+describe('identitas wilayah administrasi resmi', () => {
+  it('menyimpan kode resmi dan nama baku empat tingkat wilayah', () => {
+    expect(buildRegionIdentity(maduran)).toEqual({
+      regionCode: '35.24.10.2007',
+      provinceCode: '35', provinceName: 'Jawa Timur',
+      regencyCode: '35.24', regencyName: 'Kabupaten Lamongan',
+      districtCode: '35.24.10', districtName: 'Maduran',
+      villageCode: '35.24.10.2007', villageName: 'Maduran',
     });
   });
 
-  it('menormalkan huruf, spasi, dan aksen tanpa mengubah nama tampilan', () => {
-    expect(buildRegionIdentity('Daerah Istimewa Yogyakarta', 'Kabupaten Kulon Progo').regionCode)
-      .toBe('id-daerah-istimewa-yogyakarta-kabupaten-kulon-progo');
+  it('menolak kode anak yang tidak berada di bawah kode induknya', () => {
+    expect(() => buildRegionIdentity({ ...maduran, districtCode: '35.24.11' })).toThrow(/Kode wilayah/);
+    expect(() => buildRegionIdentity({ ...maduran, villageCode: '35.24.11.2007' })).toThrow(/Kode wilayah/);
   });
 
-  it('menolak nama wilayah kosong atau terlalu panjang', () => {
-    expect(() => buildRegionIdentity('', 'Kabupaten Lamongan')).toThrow();
-    expect(() => buildRegionIdentity('Jawa Timur', 'x'.repeat(81))).toThrow();
+  it('menolak pilihan wilayah yang tidak lengkap atau nama kosong', () => {
+    expect(() => buildRegionIdentity(null)).toThrow();
+    expect(() => buildRegionIdentity({ ...maduran, villageCode: '' })).toThrow();
+    expect(() => buildRegionIdentity({ ...maduran, villageName: ' ' })).toThrow();
   });
 });

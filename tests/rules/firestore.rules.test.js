@@ -1273,4 +1273,77 @@ describe('thematic group membership and chat', () => {
     })));
   });
 
+
+  it('anggota dapat memberi, mengganti, dan menghapus reaksi miliknya pada pesan grup', async () => {
+    const db = asUser('alice');
+    await joinGroup(db);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/messages/reactable'), {
+        senderUid: 'bob', senderName: 'Bob', text: 'Halo', createdAt: Timestamp.now()
+      });
+    });
+    const reaction = doc(db, 'thematicGroups/pemilik-warkop/reactions/reactable_alice');
+    await assertSucceeds(setDoc(reaction, {
+      messageId: 'reactable', uid: 'alice', emoji: '👍', updatedAt: serverTimestamp()
+    }));
+    await assertSucceeds(updateDoc(reaction, { emoji: '❤️', updatedAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(reaction));
+  });
+
+  it('menolak reaksi nonanggota, emoji di luar daftar, UID palsu, dan pesan yang tidak ada', async () => {
+    const aliceDb = asUser('alice');
+    await joinGroup(aliceDb);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/messages/reactable'), {
+        senderUid: 'bob', senderName: 'Bob', text: 'Halo', createdAt: Timestamp.now()
+      });
+    });
+    await assertFails(setDoc(doc(asUser('bob'), 'thematicGroups/pemilik-warkop/reactions/reactable_bob'), {
+      messageId: 'reactable', uid: 'bob', emoji: '👍', updatedAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(aliceDb, 'thematicGroups/pemilik-warkop/reactions/reactable_alice'), {
+      messageId: 'reactable', uid: 'alice', emoji: '💣', updatedAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(aliceDb, 'thematicGroups/pemilik-warkop/reactions/reactable_bob'), {
+      messageId: 'reactable', uid: 'bob', emoji: '👍', updatedAt: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(aliceDb, 'thematicGroups/pemilik-warkop/reactions/missing_alice'), {
+      messageId: 'missing', uid: 'alice', emoji: '👍', updatedAt: serverTimestamp()
+    }));
+  });
+
+  it('anggota dapat membuat notifikasi mention grup yang didukung pesan dan username terdaftar', async () => {
+    const aliceDb = asUser('alice');
+    await joinGroup(aliceDb);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'usernames/budi'), { uid: 'budi', username: 'budi', createdAt: Timestamp.now() });
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/messages/mention-message'), {
+        senderUid: 'alice', senderName: 'Alice', text: 'Halo @budi, selamat datang!', mentionedUsernames: ['budi'], createdAt: Timestamp.now()
+      });
+    });
+    await assertSucceeds(setDoc(doc(aliceDb, 'notifications/group_mention_mention-message_budi'), {
+      recipientUid: 'budi', actorUid: 'alice', type: 'mention', groupId: 'pemilik-warkop',
+      messageId: 'mention-message', username: 'budi', createdAt: serverTimestamp(), readAt: null
+    }));
+  });
+
+  it('menolak mention grup palsu, penerima yang tidak cocok, dan mention yang tidak tertulis', async () => {
+    const aliceDb = asUser('alice');
+    await joinGroup(aliceDb);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'usernames/budi'), { uid: 'budi', username: 'budi', createdAt: Timestamp.now() });
+      await setDoc(doc(ctx.firestore(), 'usernames/citra'), { uid: 'citra', username: 'citra', createdAt: Timestamp.now() });
+      await setDoc(doc(ctx.firestore(), 'thematicGroups/pemilik-warkop/messages/mention-message'), {
+        senderUid: 'alice', senderName: 'Alice', text: 'Halo @budi!', mentionedUsernames: ['budi'], createdAt: Timestamp.now()
+      });
+    });
+    const valid = {
+      recipientUid: 'budi', actorUid: 'alice', type: 'mention', groupId: 'pemilik-warkop',
+      messageId: 'mention-message', username: 'budi', createdAt: serverTimestamp(), readAt: null
+    };
+    await assertFails(setDoc(doc(aliceDb, 'notifications/wrong-recipient'), { ...valid, recipientUid: 'citra' }));
+    await assertFails(setDoc(doc(aliceDb, 'notifications/wrong-text'), { ...valid, username: 'citra', recipientUid: 'citra' }));
+    await assertFails(setDoc(doc(aliceDb, 'notifications/wrong-group'), { ...valid, groupId: 'not-a-group' }));
+  });
+
 });

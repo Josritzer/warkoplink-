@@ -14,7 +14,7 @@ vi.mock('firebase/firestore', () => ({
   collection: vi.fn((db, ...parts) => ({ path: parts.join('/') })),
   deleteDoc: firestoreState.deleteDoc,
   doc: vi.fn((db, ...parts) => ({ path: parts.join('/') })),
-  getCountFromServer: vi.fn(async () => ({ data: () => ({ count: firestoreState.count }) })),
+  getCountFromServer: firestoreState.getCountFromServer,
   getDoc: firestoreState.getDoc,
   onSnapshot: firestoreState.onSnapshot,
   serverTimestamp: vi.fn(() => 'server-time'),

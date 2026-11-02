@@ -8,7 +8,15 @@ import { getThematicGroupById } from './thematicGroupCatalog.js';
 import { extractMentionUsernames } from '../notifications/notificationModel.js';
 import { renderMemberMentions } from '../notifications/mentionText.jsx';
 
-const GROUP_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+const GROUP_REACTION_OPTIONS = [
+  { emoji: '☕', label: 'Gas Ngopi' },
+  { emoji: '🤝', label: 'Sepakat' },
+  { emoji: '🔥', label: 'Mantap' },
+  { emoji: '🙌', label: 'Dukung' },
+  { emoji: '😂', label: 'Ngakak' },
+  { emoji: '💡', label: 'Ide Bagus' },
+  { emoji: '⭐', label: 'Bintang' }
+];
 
 function initials(value) {
   return String(value || 'A').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
@@ -48,6 +56,7 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
   const [draft, setDraft] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [reactionMenuMessageId, setReactionMenuMessageId] = useState('');
+  const [reactionDetailsKey, setReactionDetailsKey] = useState('');
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [sending, setSending] = useState(false);
   const membershipLock = useRef(false);
@@ -114,10 +123,10 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
       setPublicProfiles({});
       return undefined;
     }
-    const senderIds = [...new Set([user?.uid, ...messages.map((message) => message.senderUid)]
+    const participantIds = [...new Set([user?.uid, ...messages.map((message) => message.senderUid), ...reactions.map((reaction) => reaction.uid)]
       .filter((uid) => typeof uid === 'string' && uid))];
-    if (!senderIds.length) return undefined;
-    const unsubscribers = senderIds.map((uid) => onSnapshot(
+    if (!participantIds.length) return undefined;
+    const unsubscribers = participantIds.map((uid) => onSnapshot(
       doc(db, 'publicProfiles', uid),
       (snapshot) => setPublicProfiles((current) => ({
         ...current,
@@ -126,7 +135,7 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
       () => setPublicProfiles((current) => ({ ...current, [uid]: null }))
     ));
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
-  }, [db, isMember, user?.uid, messages.map((message) => message.senderUid).join('|')]);
+  }, [db, isMember, user?.uid, messages.map((message) => message.senderUid).join('|'), reactions.map((reaction) => reaction.uid).join('|')]);
 
   useEffect(() => {
     let active = true;
@@ -371,21 +380,27 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
           const previous = visibleMessages[index - 1];
           const date = messageDate(message.createdAt);
           const showDate = date && date !== messageDate(previous?.createdAt);
-          const messageReactions = GROUP_REACTION_EMOJIS.map((emoji) => {
+          const availableEmojis = [
+            ...GROUP_REACTION_OPTIONS,
+            ...[...new Set(reactions.filter((item) => item.messageId === message.id).map((item) => item.emoji)
+              .filter((emoji) => !GROUP_REACTION_OPTIONS.some((option) => option.emoji === emoji)))].map((emoji) => ({ emoji, label: 'Reaksi sebelumnya' }))
+          ];
+          const messageReactions = availableEmojis.map(({ emoji, label }) => {
             const matching = reactions.filter((item) => item.messageId === message.id && item.emoji === emoji);
-            return { emoji, matching, mine: matching.some((item) => item.uid === user?.uid) };
+            return { emoji, label, matching, mine: matching.some((item) => item.uid === user?.uid) };
           });
           const showReactionPicker = reactionMenuMessageId === message.id;
+          const groupedWithPrevious = previous?.senderUid === message.senderUid && !showDate;
           return <div key={message.id} className="thematic-message-group">
             {showDate && <div className="thematic-date-divider"><span>{date}</span></div>}
             <article id={`thematic-message-${message.id}`} data-message-id={message.id} className={`thematic-message ${own ? 'own' : ''} ${message.id === targetMessageId ? 'is-targeted' : ''}`.trim()} onTouchStart={() => startReactionPress(message.id)} onTouchEnd={cancelReactionPress} onTouchMove={cancelReactionPress} onTouchCancel={cancelReactionPress}>
-              {!own && <span className="thematic-message-avatar" aria-label={publicProfiles[message.senderUid]?.photoURL ? `Foto profil ${message.senderName || 'anggota'}` : `Avatar ${message.senderName || 'anggota'}`}>
+              {!own && !groupedWithPrevious && <span className="thematic-message-avatar" aria-label={publicProfiles[message.senderUid]?.photoURL ? `Foto profil ${message.senderName || 'anggota'}` : `Avatar ${message.senderName || 'anggota'}`}>
                 {publicProfiles[message.senderUid]?.photoURL
                   ? <img src={publicProfiles[message.senderUid].photoURL} alt={`Foto profil ${message.senderName || 'anggota'}`} loading="lazy" referrerPolicy="no-referrer"/>
                   : <span className="thematic-message-initial">{initials(message.senderName)}</span>}
               </span>}
-              <div className="thematic-message-bubble">
-                {!own && <b>{message.senderName || 'Anggota WARKOPLINK'}</b>}
+              <div className="thematic-message-content">
+                {!own && !groupedWithPrevious && <b>{message.senderName || 'Anggota WARKOPLINK'}</b>}
                 {message.replyToMessageId && (() => {
                   const original = messages.find((item) => item.id === message.replyToMessageId);
                   return <div className="thematic-reply-quote">
@@ -400,15 +415,32 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
                   <button type="button" className="thematic-add-reaction" aria-label={`Pilih reaksi pesan ${message.senderName || 'anggota'}`} aria-expanded={showReactionPicker} onClick={() => setReactionMenuMessageId((current) => current === message.id ? '' : message.id)}><SmilePlus size={15}/></button>
                 </div>
                 {(messageReactions.some((item) => item.matching.length) || showReactionPicker) && <div className={`thematic-reaction-row ${showReactionPicker ? 'is-open' : ''}`}>
-                  {messageReactions.filter((item) => item.matching.length).map(({ emoji, matching, mine }) => <button key={emoji} type="button" className={mine ? 'is-selected' : ''} aria-pressed={mine} aria-label={`Reaksi ${emoji} (${matching.length})`} onClick={() => toggleReaction(message.id, emoji)}>
-                    <span>{emoji}</span><small>{matching.length}</small>
-                  </button>)}
+                  {messageReactions.filter((item) => item.matching.length).map(({ emoji, label, matching, mine }) => {
+                    const detailsKey = `${message.id}:${emoji}`;
+                    const showDetails = reactionDetailsKey === detailsKey;
+                    return <div className="thematic-reaction-item" key={emoji}>
+                      <button type="button" className={`thematic-reaction-trigger ${mine ? 'is-selected' : ''}`} aria-expanded={showDetails} aria-label={`Lihat ${matching.length} anggota yang bereaksi dengan ${label}`} onClick={() => setReactionDetailsKey((current) => current === detailsKey ? '' : detailsKey)}><span>{emoji}</span><small>{matching.length}</small></button>
+                      <button type="button" className="thematic-reaction-people" aria-expanded={showDetails} aria-label={`Lihat foto profil ${matching.length} anggota yang bereaksi dengan ${label}`} onClick={() => setReactionDetailsKey((current) => current === detailsKey ? '' : detailsKey)}>
+                        <span className="thematic-reaction-avatar-stack">
+                          {matching.slice(0, 3).map((item) => {
+                            const profile = publicProfiles[item.uid];
+                            return <span className="thematic-reaction-avatar" key={item.uid}>{profile?.photoURL ? <img src={profile.photoURL} alt="" loading="lazy" referrerPolicy="no-referrer"/> : <span>{initials(profile?.displayName || item.uid)}</span>}</span>;
+                          })}
+                        </span>
+                        {matching.length > 3 && <small>+{matching.length - 3}</small>}
+                      </button>
+                      {showDetails && <div className="thematic-reaction-details" role="group" aria-label={`Anggota yang bereaksi: ${label}`}>{matching.map((item) => <span key={item.uid}>{publicProfiles[item.uid]?.displayName || 'Anggota WARKOPLINK'}</span>)}</div>}
+                    </div>;
+                  })}
                   {showReactionPicker && <div className="thematic-reaction-picker" role="group" aria-label="Pilih reaksi">
-                    {messageReactions.map(({ emoji, matching, mine }) => <button key={emoji} type="button" className={mine ? 'is-selected' : ''} aria-pressed={mine} aria-label={`Reaksi ${emoji} (${matching.length})`} onClick={() => toggleReaction(message.id, emoji)}>{emoji}</button>)}
+                    {GROUP_REACTION_OPTIONS.map(({ emoji, label }) => {
+                      const current = messageReactions.find((item) => item.emoji === emoji);
+                      return <button key={emoji} type="button" className={current?.mine ? 'is-selected' : '' } aria-pressed={Boolean(current?.mine)} aria-label={`Reaksi ${label} ${emoji} (${current?.matching.length || 0})`} onClick={() => toggleReaction(message.id, emoji)}>{emoji}</button>;
+                    })}
                   </div>}
                 </div>}
               </div>
-              {own && <span className="thematic-message-avatar" aria-label={publicProfiles[user?.uid]?.photoURL ? 'Foto profil Anda' : 'Avatar Anda'}>
+              {own && !groupedWithPrevious && <span className="thematic-message-avatar" aria-label={publicProfiles[user?.uid]?.photoURL ? 'Foto profil Anda' : 'Avatar Anda'}>
                 {publicProfiles[user?.uid]?.photoURL
                   ? <img src={publicProfiles[user.uid].photoURL} alt="Foto profil Anda" loading="lazy" referrerPolicy="no-referrer"/>
                   : <span className="thematic-message-initial">{initials(profileName || user?.displayName)}</span>}

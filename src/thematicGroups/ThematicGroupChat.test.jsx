@@ -223,10 +223,10 @@ describe('thematic group conversation', () => {
     render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
     expect(await screen.findByText('Selamat datang!')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Pilih reaksi pesan Budi' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Reaksi 👍 (0)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Reaksi Gas Ngopi ☕ \(0\)/ }));
     await waitFor(() => expect(state.setDoc).toHaveBeenCalledWith(
       { path: 'thematicGroups/pemilik-warkop/reactions/hello-1_alice' },
-      { messageId: 'hello-1', uid: 'alice', emoji: '👍', updatedAt: 'server-time' }
+      { messageId: 'hello-1', uid: 'alice', emoji: '☕', updatedAt: 'server-time' }
     ));
   });
 
@@ -245,6 +245,54 @@ describe('thematic group conversation', () => {
       { path: 'notifications/group_mention_message-1_bob' },
       expect.objectContaining({ recipientUid: 'bob', actorUid: 'alice', type: 'mention', groupId: 'pemilik-warkop', messageId: 'message-1', username: 'budi', readAt: null })
     ));
+  });
+
+
+  it('uses WARKOPLINK community reactions instead of generic defaults', async () => {
+    state.memberExists = true;
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih reaksi pesan Budi' }));
+    expect(screen.getByRole('button', { name: /Gas Ngopi/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Sepakat/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Bintang/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Reaksi 👍/ })).toBeNull();
+  });
+
+  it('shows reaction avatars without emoji bubbles and opens the member list', async () => {
+    state.memberExists = true;
+    state.publicProfiles = {
+      bob: { uid: 'bob', displayName: 'Budi', photoURL: 'https://cdn.example/budi.webp' },
+      carol: { uid: 'carol', displayName: 'Citra', photoURL: 'https://cdn.example/citra.webp' },
+      dave: { uid: 'dave', displayName: 'Dani', photoURL: 'https://cdn.example/dani.webp' },
+      erin: { uid: 'erin', displayName: 'Eka', photoURL: 'https://cdn.example/eka.webp' }
+    };
+    state.reactionDocs = [
+      { id: 'hello-1_bob', data: { messageId: 'hello-1', uid: 'bob', emoji: '☕' } },
+      { id: 'hello-1_carol', data: { messageId: 'hello-1', uid: 'carol', emoji: '☕' } },
+      { id: 'hello-1_dave', data: { messageId: 'hello-1', uid: 'dave', emoji: '☕' } },
+      { id: 'hello-1_erin', data: { messageId: 'hello-1', uid: 'erin', emoji: '☕' } }
+    ];
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    await waitFor(() => expect(document.querySelectorAll('.thematic-reaction-avatar')).toHaveLength(3));
+    expect(screen.getByText('+1')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Lihat 4 anggota.*Gas Ngopi/ }));
+    expect(screen.getByText('Citra')).toBeTruthy();
+    expect(screen.getByText('Eka')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Lihat foto profil 4 anggota.*Gas Ngopi/ }));
+    expect(screen.queryByRole('group', { name: 'Anggota yang bereaksi: Gas Ngopi' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Lihat foto profil 4 anggota.*Gas Ngopi/ }));
+    expect(screen.getByRole('group', { name: 'Anggota yang bereaksi: Gas Ngopi' })).toBeTruthy();
+    expect(document.querySelector('.thematic-reaction-item button.thematic-reaction-trigger')).toBeTruthy();
+  });
+
+  it('renders message text without a bubble surface', async () => {
+    state.memberExists = true;
+    render(<ThematicGroupChat db={{}} user={{ uid: 'alice', displayName: 'Alice' }} groupId="pemilik-warkop" onBack={vi.fn()} onNotice={vi.fn()} onRequestAuth={vi.fn()}/>);
+    expect(await screen.findByText('Selamat datang!')).toBeTruthy();
+    expect(document.querySelector('.thematic-message-bubble')).toBeNull();
+    expect(document.querySelector('.thematic-message-content')).toBeTruthy();
   });
 
 });

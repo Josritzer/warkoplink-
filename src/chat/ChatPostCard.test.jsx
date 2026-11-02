@@ -282,6 +282,17 @@ describe('ChatPostCard', () => {
     expect(values.onOpenWarung).toHaveBeenCalledWith('warung-1');
   });
 
+
+  it('opens the mentioned member profile from a username mention', () => {
+    const onOpenMention = vi.fn();
+    render(<ChatPostCard {...props({
+      post: { ...props().post, body: 'Halo @kopi_senja, ayo ngopi!' },
+      onOpenMention
+    })} />);
+    fireEvent.click(screen.getByRole('button', { name: '@kopi_senja' }));
+    expect(onOpenMention).toHaveBeenCalledWith('kopi_senja');
+  });
+
 });
 
 describe('ChatPostCard — tampilan 2026', () => {

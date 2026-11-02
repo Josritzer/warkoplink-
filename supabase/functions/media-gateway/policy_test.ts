@@ -107,11 +107,11 @@ Deno.test("extracts MP4 duration and dimensions from bounded metadata", () => {
     0,0,0,28, 109,118,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,3,232, 0,0,175,200,
     // tkhd (version 0, width 1920, height 1080, 16.16 fixed point)
     0,0,0,92, 116,107,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1,
-    ...new Array(56).fill(0), 7,128,0,0, 4,56,0,0,
+    ...new Array(60).fill(0), 7,128,0,0, 4,56,0,0,
     // empty but structurally valid media-data box for the metadata fixture
     0,0,0,8, 109,100,97,116
   ]);
-  assertEquals({ durationSeconds: 45, width: 1920, height: 1080 }, parseMp4Metadata(metadata));
+  assertEquals(parseMp4Metadata(metadata), { durationSeconds: 45, width: 1920, height: 1080 });
 });
 
 Deno.test("rejects malformed or oversized MP4 metadata", () => {

@@ -53,6 +53,22 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
   const messageListRef = useRef(null);
   const lastRenderedMessageCount = useRef(0);
   const composeRef = useRef(null);
+  const reactionPressTimer = useRef(null);
+
+  function startReactionPress(messageId) {
+    clearTimeout(reactionPressTimer.current);
+    reactionPressTimer.current = setTimeout(() => {
+      setReactionMenuMessageId(messageId);
+      reactionPressTimer.current = null;
+    }, 450);
+  }
+
+  function cancelReactionPress() {
+    clearTimeout(reactionPressTimer.current);
+    reactionPressTimer.current = null;
+  }
+
+  useEffect(() => () => cancelReactionPress(), []);
 
   useEffect(() => {
     let active = true;
@@ -341,7 +357,7 @@ export default function ThematicGroupChat({ db, user, groupId, targetMessageId =
           const showReactionPicker = reactionMenuMessageId === message.id;
           return <div key={message.id} className="thematic-message-group">
             {showDate && <div className="thematic-date-divider"><span>{date}</span></div>}
-            <article id={`thematic-message-${message.id}`} data-message-id={message.id} className={`thematic-message ${own ? 'own' : ''} ${message.id === targetMessageId ? 'is-targeted' : ''}`.trim()}>
+            <article id={`thematic-message-${message.id}`} data-message-id={message.id} className={`thematic-message ${own ? 'own' : ''} ${message.id === targetMessageId ? 'is-targeted' : ''}`.trim()} onTouchStart={() => startReactionPress(message.id)} onTouchEnd={cancelReactionPress} onTouchMove={cancelReactionPress} onTouchCancel={cancelReactionPress}>
               {!own && <span className="thematic-message-initial">{initials(message.senderName)}</span>}
               <div className="thematic-message-bubble">
                 {!own && <b>{message.senderName || 'Anggota WARKOPLINK'}</b>}

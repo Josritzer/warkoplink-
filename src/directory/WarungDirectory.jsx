@@ -43,7 +43,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [menuItems, setMenuItems] = useState('');
   const [specialties, setSpecialties] = useState('');
   const [ambience, setAmbience] = useState('');
-  const [priceRange, setPriceRange] = useState('belum-diisi');
   const [hours, setHours] = useState('');
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [incompleteWarungId, setIncompleteWarungId] = useState('');
@@ -268,7 +267,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
           regionCode: 'lamongan-kab', facilities: facilityList, activities: [],
           menuItems: menuItems.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 30),
           specialties: specialties.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 15),
-          ambience: ambience.trim().slice(0, 240), priceRange,
+          ambience: ambience.trim().slice(0, 240), priceRange: 'belum-diisi',
           openingHours: hours.trim() ? { keterangan: hours.trim().slice(0, 120) } : {},
           photos: [], verificationStatus: 'pending',
           createdAt: serverTimestamp(), updatedAt: serverTimestamp()
@@ -288,7 +287,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       setSelectedPhotos([]);
       setName(''); setAddress(''); setLat(''); setLng(''); setFacilities('');
       setMenuItems(''); setSpecialties(''); setAmbience('');
-      setPriceRange('belum-diisi'); setHours('');
+      setHours('');
       setRegistrationStep(1);
       onNotice(selectedPhotos.length ? 'Pendaftaran dan foto warkop berhasil dikirim. Menunggu verifikasi admin.' : 'Pendaftaran terkirim. Warkop menunggu verifikasi admin.');
     } catch (error) {
@@ -359,7 +358,6 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
           <label>Menu spesial, pisahkan dengan koma<input value={specialties} onChange={(e) => setSpecialties(e.target.value)} maxLength={400} placeholder="Kopi racikan, mi nyemek, pisang goreng"/></label>
           <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
           <label>Suasana warkop<textarea value={ambience} onChange={(e) => setAmbience(e.target.value)} maxLength={240} rows={2} placeholder="Santai, cocok untuk ngobrol atau kerja ringan"/></label>
-          <label>Kisaran harga (opsional)<select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}><option value="belum-diisi">Tidak ingin mencantumkan</option><option value="hemat">Hemat</option><option value="sedang">Sedang</option><option value="premium">Premium</option></select></label>
           <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>
         </>}
         {registrationStep === 3 && <>

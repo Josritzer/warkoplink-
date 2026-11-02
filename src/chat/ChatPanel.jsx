@@ -35,8 +35,8 @@ export default function ChatPanel(props) {
   const [nudgeDismissed, setNudgeDismissed] = useState(() => { try { return window.localStorage.getItem('warkoplink:composer-nudge-dismissed:v1') === '1'; } catch { return false; } });
   const startStory = () => { if (!user) { openAuth(false); setNotice('Masuk untuk mulai berbagi cerita.'); return; } setComposerTopic('Ngopi Bareng'); setPostType(POST_SUBTYPES['Ngopi Bareng']?.[0] || ''); setTopic('Semua'); if (onOpenDiscussion) onOpenDiscussion(); else setComposerOpen(true); setNotice('Ceritakan suasana warkop hari ini di obrolan komunitas.'); };
   const dismissNudge = () => { setNudgeDismissed(true); try { window.localStorage.setItem('warkoplink:composer-nudge-dismissed:v1', '1'); } catch {} };
-  const mentionMatch = draft.match(/(?:^|\s)@([^@]*)$/);
-  const mentionQuery = mentionMatch?.[1]?.trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID') || '';
+  const mentionMatch = draft.match(/(^|[^a-z0-9_])@([a-z0-9_]*)$/i);
+  const mentionQuery = mentionMatch?.[2]?.toLocaleLowerCase('id-ID') || '';
   const mentionSuggestions = mentionMatch
     ? verifiedWarungs.filter(warung => String(warung.name || warung.nameNormalized || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID').startsWith(mentionQuery)).slice(0, 5)
     : [];

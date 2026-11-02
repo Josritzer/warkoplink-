@@ -90,6 +90,11 @@ describe('ChatPostCard', () => {
     expect(container.querySelector('.post-category-loker')).toBeTruthy();
   });
 
+  it('labels posts published inside an official community', () => {
+    render(<ChatPostCard {...props({ post: { ...props().post, communityId: 'kopi-kuliner' } })} />);
+    expect(screen.getByText('Kopi & Kuliner')).toBeTruthy();
+  });
+
   it('shows old topic labels through compatibility mapping', () => {
     render(<ChatPostCard {...props({ post: { ...props().post, topic: 'Tanya Jawab' } })} />);
     expect(screen.getByText('Tanya Warkop')).toBeTruthy();

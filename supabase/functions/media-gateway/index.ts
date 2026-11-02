@@ -148,7 +148,7 @@ async function authorizeResource(token: string, uid: string, request: ReturnType
     }
     const maxDuration = await videoDurationLimit(token, uid, post);
     const maxBytes = maxDuration === 180 ? 50_000_000 : 25_000_000;
-    if (request.size > maxBytes) throw new Error(maxDuration === 180 ? "Video size exceeds the 50 MiB warkop limit" : "Video size exceeds the 25 MiB member limit");
+    if (request.size > maxBytes) throw new Error(maxDuration === 180 ? "Video size exceeds the 50 MB warkop limit" : "Video size exceeds the 25 MB member limit");
     return post;
   }
   if (request.mediaType === "warung") {

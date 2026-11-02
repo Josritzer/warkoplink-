@@ -81,6 +81,33 @@ describe('ChatPanel warung mentions', () => {
 });
 
 
+describe('community group posting access', () => {
+  const sharedProps = {
+    user: { uid: 'user-1', displayName: 'Anggota' },
+    firebaseConfigured: true,
+    search: '', setSearch: vi.fn(), topic: 'Semua', setTopic: vi.fn(),
+    composerTopic: 'Ngopi Bareng', setComposerTopic: vi.fn(),
+    composerOpen: false, setComposerOpen: vi.fn(), openAuth: vi.fn(), setNotice: vi.fn(),
+    draft: '', setDraft: vi.fn(), activeCategory: 'Ngopi Bareng',
+    handlePost: vi.fn(), posting: false, postsStatus: 'ready', setPostsRetry: vi.fn(),
+    visiblePosts: [], cardProps: {}, hasMorePosts: false, loadingMorePosts: false,
+    loadMoreError: '', onLoadMorePosts: vi.fn(), verifiedWarungs: []
+  };
+
+  it('keeps group discussions readable but hides the composer until the user joins', () => {
+    render(<ChatPanel {...sharedProps} communityId="kopi-kuliner" communityMember={false}/>);
+    expect(screen.getByText(/Ruang diskusi terbuka untuk dibaca/)).toBeTruthy();
+    expect(screen.getByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Ayo ngobrol/ })).toBeNull();
+  });
+
+  it('shows the composer after membership becomes active', () => {
+    render(<ChatPanel {...sharedProps} communityId="kopi-kuliner" communityMember/>);
+    expect(screen.getByRole('button', { name: /Ayo ngobrol/ })).toBeTruthy();
+    expect(screen.queryByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeNull();
+  });
+});
+
 describe('ChatPanel homepage layout', () => {
   it('omits the three story prompts and the auto-sliding story carousel', () => {
     const { container } = render(<ChatPanel

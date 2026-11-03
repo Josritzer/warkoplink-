@@ -1,6 +1,9 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
   MAX_IMAGE_BYTES,
+  MAX_VIDEO_BYTES,
+  videoDurationForAccount,
+  parseMp4Metadata,
   normalizeUploadRequest,
   parseFirestoreDocument,
   validateImageBytes,
@@ -12,7 +15,7 @@ Deno.test("accepts only avatar, warung and event media", () => {
   assertEquals(normalizeUploadRequest({ mediaType: "avatar", contentType: "image/jpeg", size: 100 }).mediaType, "avatar");
   assertEquals(normalizeUploadRequest({ mediaType: "warung", resourceId: "warung-1", slot: 4, contentType: "image/png", size: 100 }).slot, 4);
   assertEquals(normalizeUploadRequest({ mediaType: "event", resourceId: "post-1", contentType: "image/webp", size: 100 }).mediaType, "event");
-  for (const mediaType of ["post", "video", "document", ""]) {
+  for (const mediaType of ["post", "document", ""]) {
     assertThrows(() => normalizeUploadRequest({ mediaType, contentType: "image/jpeg", size: 100 }));
   }
 });
@@ -79,4 +82,48 @@ Deno.test("uses server-controlled UUID object paths scoped to the authenticated 
   assertEquals(mediaObjectPath("user_1", "event", "post_1", id), `events/post_1/${id}.webp`);
   assertThrows(() => mediaObjectPath("bad/uid", "avatar", "x", id));
   assertThrows(() => mediaObjectPath("u1", "warung", "../other", id, 0));
+});
+
+
+Deno.test("accepts bounded MP4 video uploads without changing image limits", () => {
+  assertEquals(normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 25 * 1024 * 1024 }).mediaType, "video");
+  assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/quicktime", size: 1024 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 50_000_000 + 1 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "video", resourceId: "../other", contentType: "video/mp4", size: 1024 }));
+  assertEquals(MAX_IMAGE_BYTES, 2 * 1024 * 1024);
+  assertEquals(MAX_VIDEO_BYTES, 50_000_000);
+});
+
+Deno.test("uses a dedicated MP4 object path for feed videos", () => {
+  const id = "a12b4567-89ab-4cde-8fab-1234567890ab";
+  assertEquals(mediaObjectPath("user_1", "video", "post_1", id), `posts/post_1/${id}.mp4`);
+});
+
+Deno.test("extracts MP4 duration and dimensions from bounded metadata", () => {
+  const metadata = new Uint8Array([
+    // ftyp
+    0,0,0,16, 102,116,121,112, 105,115,111,109, 0,0,2,0,
+    // moov -> mvhd (version 0, timescale 1000, duration 45000 ms)
+    0,0,0,128, 109,111,111,118,
+    0,0,0,28, 109,118,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,3,232, 0,0,175,200,
+    // tkhd (version 0, width 1920, height 1080, 16.16 fixed point)
+    0,0,0,92, 116,107,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1,
+    ...new Array(60).fill(0), 7,128,0,0, 4,56,0,0,
+    // empty but structurally valid media-data box for the metadata fixture
+    0,0,0,8, 109,100,97,116
+  ]);
+  assertEquals(parseMp4Metadata(metadata), { durationSeconds: 45, width: 1920, height: 1080 });
+});
+
+Deno.test("rejects malformed or oversized MP4 metadata", () => {
+  assertEquals(parseMp4Metadata(new TextEncoder().encode("not a video")), null);
+  assertEquals(parseMp4Metadata(new Uint8Array(8)), null);
+});
+
+
+Deno.test("applies the approved feed-video duration tiers", () => {
+  assertEquals(videoDurationForAccount({ verifiedWarkopOwner: false, thematicGroupMember: false }), 30);
+  assertEquals(videoDurationForAccount({ verifiedWarkopOwner: false, thematicGroupMember: true }), 60);
+  assertEquals(videoDurationForAccount({ verifiedWarkopOwner: true, thematicGroupMember: false }), 180);
+  assertEquals(videoDurationForAccount({ verifiedWarkopOwner: true, thematicGroupMember: true }), 180);
 });

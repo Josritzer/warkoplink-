@@ -232,7 +232,7 @@ service cloud.firestore {
 
     function validPost(data) {
       return data.keys().hasAll(['authorId', 'authorName', 'body', 'topic', 'createdAt', 'reactions', 'totalReactions'])
-        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'communityId', 'createdAt', 'reactions', 'totalReactions'])
+        && data.keys().hasOnly(['authorId', 'authorName', 'authorPhotoURL', 'body', 'topic', 'postType', 'warungId', 'location', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'price', 'workType', 'contact', 'communityId', 'videoThumbnailURL', 'createdAt', 'reactions', 'totalReactions'])
         && data.reactions is map
         && data.reactions.keys().hasAll(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
         && data.reactions.keys().hasOnly(['like', 'love', 'haha', 'wow', 'sad', 'angry'])
@@ -244,6 +244,7 @@ service cloud.firestore {
         && data.reactions.angry is number && data.reactions.angry >= 0
         && data.totalReactions is number && data.totalReactions >= 0
         && data.totalReactions == data.reactions.like + data.reactions.love + data.reactions.haha + data.reactions.wow + data.reactions.sad + data.reactions.angry
+        && (!data.keys().hasAny(['videoThumbnailURL']) || (data.videoThumbnailURL is string && data.videoThumbnailURL.size() <= 150000 && data.videoThumbnailURL.matches('data:image/jpeg;base64,[A-Za-z0-9+/=]+')))
         && data.authorId is string
         && data.authorId == request.auth.uid
         && data.authorName is string
@@ -537,7 +538,7 @@ service cloud.firestore {
         && resource.data.get('authorId', '') == request.auth.uid
         && (
           (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'location', 'postType', 'eventPhotoURL'])
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'topic', 'eventDate', 'eventStartAt', 'eventEndAt', 'eventKind', 'eventCapacity', 'eventStatus', 'location', 'postType', 'eventPhotoURL', 'videoURL'])
             && request.resource.data.get('body', '') is string
             && request.resource.data.get('body', '').size() >= 1
             && request.resource.data.get('body', '').size() <= 2000
@@ -547,6 +548,7 @@ service cloud.firestore {
             && (!request.resource.data.keys().hasAny(['eventCapacity']) || (request.resource.data.eventCapacity is number && request.resource.data.eventCapacity >= 1 && request.resource.data.eventCapacity <= 10000))
             && (!request.resource.data.keys().hasAny(['eventStatus']) || request.resource.data.eventStatus in ['scheduled', 'cancelled'])
             && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['eventPhotoURL']) || (request.resource.data.eventPhotoURL is string && request.resource.data.eventPhotoURL.size() <= 2048 && resource.data.get('warungId', '') is string && get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.ownerUid == request.auth.uid && get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.verificationStatus == 'verified' && request.resource.data.eventPhotoURL.matches('https://klikvxuronunonymmiqv[.]supabase[.]co/storage/v1/object/public/warkoplink-media/events/' + postId + '/[0-9a-f-]{36}[.]webp')))
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['videoURL']) || (request.resource.data.videoURL is string && request.resource.data.videoURL.size() <= 2048 && request.resource.data.videoURL.matches('https://klikvxuronunonymmiqv[.]supabase[.]co/storage/v1/object/public/warkoplink-video/posts/' + postId + '/[0-9a-f-]{36}[.]mp4')))
             && (
               request.resource.data.get('topic', '') in ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas']
               || (request.resource.data.get('topic', '') == resource.data.get('topic', '')

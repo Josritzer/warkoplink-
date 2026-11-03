@@ -1,9 +1,20 @@
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 50_000_000;
 export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-export const MEDIA_TYPES = new Set(["avatar", "warung", "event"]);
+export const MEDIA_TYPES = new Set(["avatar", "warung", "event", "video"]);
+
+export function videoDurationForAccount(access: {
+  verifiedWarkopOwner: boolean;
+  thematicGroupMember: boolean;
+}): number {
+  if (access.verifiedWarkopOwner) return 180;
+  if (access.thematicGroupMember) return 60;
+  return 30;
+}
+
 
 export type MediaUploadRequest = {
-  mediaType: "avatar" | "warung" | "event";
+  mediaType: "avatar" | "warung" | "event" | "video";
   resourceId?: string;
   slot?: number;
   contentType: string;
@@ -18,31 +29,31 @@ export function normalizeUploadRequest(input: Record<string, unknown>): MediaUpl
   if (typeof input.mediaType !== "string" || !MEDIA_TYPES.has(input.mediaType)) {
     return fail("Unsupported media category");
   }
-  if (typeof input.contentType !== "string" || !ALLOWED_IMAGE_TYPES.has(input.contentType)) {
-    return fail("Unsupported image type");
-  }
-  if (typeof input.size !== "number" || !Number.isSafeInteger(input.size) || input.size < 1 || input.size > MAX_IMAGE_BYTES) {
-    return fail("Image size must be between 1 byte and 2 MiB");
-  }
   const mediaType = input.mediaType as MediaUploadRequest["mediaType"];
+  const isVideo = mediaType === "video";
+  const allowedType = isVideo
+    ? input.contentType === "video/mp4"
+    : typeof input.contentType === "string" && ALLOWED_IMAGE_TYPES.has(input.contentType);
+  if (!allowedType) return fail(isVideo ? "Unsupported video type" : "Unsupported image type");
+  const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (typeof input.size !== "number" || !Number.isSafeInteger(input.size) || input.size < 1 || input.size > maxBytes) {
+    return fail(isVideo ? "Video size must be between 1 byte and 50 MB" : "Image size must be between 1 byte and 2 MiB");
+  }
   const resourceId = typeof input.resourceId === "string" ? input.resourceId.trim() : "";
-  if (mediaType !== "avatar" && (!resourceId || resourceId.length > 150 || resourceId.includes("/"))) {
+  if (mediaType !== "avatar" && (!resourceId || resourceId.length > 150 || !/^[A-Za-z0-9_-]+$/.test(resourceId))) {
     return fail("Invalid resource identifier");
   }
-  if (mediaType === "avatar" && input.slot !== undefined) {
-    return fail("Avatar does not accept a slot");
+  if ((mediaType === "avatar" || mediaType === "video" || mediaType === "event") && input.slot !== undefined) {
+    return fail(mediaType === "video" ? "Video does not accept a slot" : mediaType === "event" ? "Event poster has one slot" : "Avatar does not accept a slot");
   }
   if (mediaType === "warung" && (!Number.isInteger(input.slot) || (input.slot as number) < 0 || (input.slot as number) > 4)) {
     return fail("Warkop photo slot must be between 0 and 4");
-  }
-  if (mediaType === "event" && input.slot !== undefined) {
-    return fail("Event poster has one slot");
   }
   return {
     mediaType,
     ...(mediaType !== "avatar" ? { resourceId } : {}),
     ...(mediaType === "warung" ? { slot: input.slot as number } : {}),
-    contentType: input.contentType,
+    contentType: input.contentType as string,
     size: input.size,
   };
 }
@@ -62,6 +73,64 @@ export function validateImageBytes(bytes: Uint8Array, contentType: string): bool
       String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
   }
   return false;
+}
+
+/** Walk ISO-BMFF box boundaries and extract the container duration and track dimensions. */
+export function parseMp4Metadata(bytes: Uint8Array): { durationSeconds: number; width: number; height: number } | null {
+  if (!(bytes instanceof Uint8Array) || bytes.length < 32 || bytes.length > MAX_VIDEO_BYTES) return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const typeAt = (offset: number) => String.fromCharCode(...bytes.slice(offset, offset + 4));
+  const readU32 = (offset: number) => offset >= 0 && offset + 4 <= bytes.length ? view.getUint32(offset) : 0;
+  if (typeAt(4) !== "ftyp") return null;
+  const ftypSize = readU32(0);
+  if (ftypSize < 12 || ftypSize > bytes.length) return null;
+
+  const findBox = (from: number, to: number, wanted: string, depth = 0): { start: number; size: number } | null => {
+    if (depth > 5) return null;
+    let offset = from;
+    while (offset + 8 <= to) {
+      const size = readU32(offset);
+      const type = typeAt(offset + 4);
+      if (size < 8 || offset + size > to) return null;
+      if (type === wanted) return { start: offset, size };
+      if (type === "trak") {
+        const nested = findBox(offset + 8, offset + size, wanted, depth + 1);
+        if (nested) return nested;
+      }
+      offset += size;
+    }
+    return null;
+  };
+
+  const moov = findBox(ftypSize, bytes.length, "moov");
+  const mdat = findBox(ftypSize, bytes.length, "mdat");
+  if (!moov || !mdat || mdat.size < 8) return null;
+  const mvhd = findBox(moov.start + 8, moov.start + moov.size, "mvhd");
+  const tkhd = findBox(moov.start + 8, moov.start + moov.size, "tkhd");
+  if (!mvhd || !tkhd || mvhd.size < 28 || tkhd.size < 24) return null;
+
+  const version = bytes[mvhd.start + 8];
+  let timescale = 0;
+  let duration = 0;
+  if (version === 0) {
+    timescale = readU32(mvhd.start + 20);
+    duration = readU32(mvhd.start + 24);
+  } else if (version === 1 && mvhd.size >= 40) {
+    timescale = readU32(mvhd.start + 28);
+    const rawDuration = view.getBigUint64(mvhd.start + 32);
+    if (rawDuration > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+    duration = Number(rawDuration);
+  } else return null;
+
+  const tkhdVersion = bytes[tkhd.start + 8];
+  if (tkhdVersion !== 0 && tkhdVersion !== 1) return null;
+  const width = Math.floor(readU32(tkhd.start + tkhd.size - 8) / 65536);
+  const height = Math.floor(readU32(tkhd.start + tkhd.size - 4) / 65536);
+  const durationSeconds = duration / timescale;
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 180 ||
+      !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
+      Math.max(width, height) > 1920 || Math.min(width, height) > 1080) return null;
+  return { durationSeconds, width, height };
 }
 
 function decodeValue(value: any): any {
@@ -101,6 +170,7 @@ export function mediaObjectPath(uid: string, mediaType: string, resourceId: stri
   if (mediaType === "avatar") return `profiles/${uid}/${uploadId}.webp`;
   if (mediaType === "warung" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `warungs/${resourceId}/${slot}/${uploadId}.webp`;
   if (mediaType === "event" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `events/${resourceId}/${uploadId}.webp`;
+  if (mediaType === "video" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `posts/${resourceId}/${uploadId}.mp4`;
   return fail("Unsupported media category");
 }
 

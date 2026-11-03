@@ -43,6 +43,18 @@ async function markPostDeleting(db, id) {
 }
 
 describe('Firestore Rules: penghapusan status', () => {
+
+  it('mengizinkan URL video hanya pada bucket dan folder milik posting tersebut', async () => {
+    await seedPost('video-post', 'author-1');
+    const db = testEnv.authenticatedContext('author-1').firestore();
+    await assertSucceeds(updateDoc(doc(db, 'posts', 'video-post'), {
+      videoURL: 'https://klikvxuronunonymmiqv.supabase.co/storage/v1/object/public/warkoplink-video/posts/video-post/a12b4567-89ab-4cde-8fab-1234567890ab.mp4'
+    }));
+    await assertFails(updateDoc(doc(db, 'posts', 'video-post'), {
+      videoURL: 'https://example.com/other-user/video.mp4'
+    }));
+  });
+
   it('menolak pemilik menghapus status sebelum menandainya', async () => {
     await seedPost('direct-delete-post', 'author-1');
     const db = testEnv.authenticatedContext('author-1').firestore();

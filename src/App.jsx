@@ -17,7 +17,7 @@ import ChatPanel from './chat/ChatPanel.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
-import { uploadWarkopMedia, removeWarkopAvatar, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
+import { uploadWarkopMedia, removeWarkopAvatar, removeWarkopPostVideo, createVideoThumbnailDataUrl, photoUploadErrorMessage } from './media/uploadWarkopMedia.js';
 import { deleteOwnPost } from './services/postService.js';
 import WarungDirectory from './directory/WarungDirectory.jsx';
 import WarungProfile from './directory/WarungProfile.jsx';
@@ -721,6 +721,7 @@ export default function App() {
         return;
       }
       const postRef = doc(collection(db, 'posts'));
+      const videoThumbnailURL = details.videoFile ? await createVideoThumbnailDataUrl(details.videoFile).catch(() => '') : '';
       await setDoc(postRef, {
         authorId: user.uid,
         authorName: authorNameFor(user),
@@ -739,6 +740,7 @@ export default function App() {
         ...(details.price?.trim() ? { price: details.price.trim() } : {}),
         ...(details.workType?.trim() ? { workType: details.workType.trim() } : {}),
         ...(details.contact?.trim() ? { contact: details.contact.trim() } : {}),
+        ...(videoThumbnailURL ? { videoThumbnailURL } : {}),
         createdAt: serverTimestamp(),
         reactions: { ...EMPTY_REACTIONS },
         totalReactions: 0
@@ -752,6 +754,15 @@ export default function App() {
           await uploadWarkopMedia({ user, mediaType: 'event', resourceId: postRef.id, file: details.eventPosterFile });
         } catch (error) {
           posterNotice = ` Acara sudah terbit, tetapi poster belum berhasil diunggah: ${photoUploadErrorMessage(error)}`;
+        }
+      }
+      if (details.videoFile) {
+        try {
+          await uploadWarkopMedia({ user, mediaType: 'video', resourceId: postRef.id, file: details.videoFile, onProgress: details.onVideoProgress, signal: details.videoSignal });
+        } catch (error) {
+          posterNotice += error?.name === 'AbortError'
+            ? ' Postingan teks tetap terbit; unggahan video dibatalkan.'
+            : ` Postingan sudah terbit, tetapi video belum berhasil diunggah: ${photoUploadErrorMessage(error, 'Video belum berhasil diunggah. Periksa koneksi atau coba lagi.')}`;
         }
       }
       setDraft('');
@@ -820,7 +831,9 @@ export default function App() {
     if (!user || !db || !post?.id || post.authorId !== user.uid || deletingPostId) return;
     setDeletingPostId(post.id);
     try {
-      await deleteOwnPost(db, post.id);
+      await deleteOwnPost(db, post.id, async () => {
+        if (post.videoURL) await removeWarkopPostVideo(user, post.id);
+      });
       setDeleteConfirmId('');
       setOpenPostMenuId('');
       setNotice('Obrolan Anda berhasil dihapus.');

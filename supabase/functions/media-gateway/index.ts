@@ -9,6 +9,8 @@ import {
   mediaObjectPath,
   normalizeUploadRequest,
   parseFirestoreDocument,
+  parseMp4Metadata,
+  videoDurationForAccount,
 } from "./policy.ts";
 
 const PROJECT_ID = "sl-community-platform";
@@ -16,6 +18,9 @@ const ISSUER = `https://securetoken.google.com/${PROJECT_ID}`;
 const JWKS = createRemoteJWKSet(new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"));
 const BUCKET_PENDING = "warkoplink-quarantine";
 const BUCKET_PUBLIC = "warkoplink-media";
+const BUCKET_VIDEO_PENDING = "warkoplink-video-quarantine";
+const BUCKET_VIDEO_PUBLIC = "warkoplink-video";
+const THEMATIC_GROUP_IDS = ["pemilik-warkop", "pelaku-umkm", "info-pekerjaan", "event-nobar", "komunitas-olahraga", "kreator-lokal", "jaringan-warga"];
 const MAX_BODY_BYTES = 16_384;
 const ORIGINS = new Set([
   "https://sl-community-platform.web.app",
@@ -131,11 +136,75 @@ async function patchResource(
   return { data, updateTime: document.updateTime, name: document.name };
 }
 
+async function isThematicGroupMember(token: string, uid: string): Promise<boolean> {
+  const checks = THEMATIC_GROUP_IDS.map(async (groupId) => {
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/thematicGroups/${groupId}/members/${uid}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (response.status === 404) return false;
+    if (!response.ok) throw new Error("Thematic group membership check failed");
+    return true;
+  });
+  return (await Promise.all(checks)).some(Boolean);
+}
+
+async function isVerifiedWarkopOwner(token: string, uid: string, post: Resource): Promise<boolean> {
+  if (typeof post.data.warungId === "string") {
+    const linkedWarung = await getResource(token, "warungs", post.data.warungId);
+    if (linkedWarung?.data.ownerUid === uid && linkedWarung.data.verificationStatus === "verified") return true;
+  }
+  const response = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: "warungs" }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: "ownerUid" },
+              op: "EQUAL",
+              value: { stringValue: uid },
+            },
+          },
+          limit: 20,
+        },
+      }),
+      signal: AbortSignal.timeout(8_000),
+    },
+  );
+  if (!response.ok) throw new Error("Verified warkop ownership check failed");
+  const rows = await response.json();
+  return Array.isArray(rows) && rows.some((row) => {
+    const data = parseFirestoreDocument(row?.document);
+    return data?.ownerUid === uid && data?.verificationStatus === "verified";
+  });
+}
+
+async function videoDurationLimit(token: string, uid: string, post: Resource): Promise<number> {
+  const verifiedWarkopOwner = await isVerifiedWarkopOwner(token, uid, post);
+  const thematicGroupMember = verifiedWarkopOwner ? false : await isThematicGroupMember(token, uid);
+  return videoDurationForAccount({ verifiedWarkopOwner, thematicGroupMember });
+}
+
 async function authorizeResource(token: string, uid: string, request: ReturnType<typeof normalizeUploadRequest>): Promise<Resource> {
   if (request.mediaType === "avatar") {
     const profile = await getResource(token, "profiles", uid);
     if (!profile) throw new Error("Profile not found");
     return profile;
+  }
+  if (request.mediaType === "video") {
+    const post = await getResource(token, "posts", request.resourceId!);
+    if (!post || post.data.authorId !== uid || post.data.deleting === true) {
+      throw new Error("Post ownership check failed");
+    }
+    const maxDuration = await videoDurationLimit(token, uid, post);
+    const maxBytes = maxDuration === 180 ? 50_000_000 : 25_000_000;
+    if (request.size > maxBytes) throw new Error(maxDuration === 180 ? "Video size exceeds the 50 MB warkop limit" : "Video size exceeds the 25 MB member limit");
+    return post;
   }
   if (request.mediaType === "warung") {
     const warung = await getResource(token, "warungs", request.resourceId!);
@@ -161,8 +230,8 @@ async function authorizeResource(token: string, uid: string, request: ReturnType
   return post;
 }
 
-async function cleanExpiredPending(uid: string): Promise<void> {
-  const { data, error } = await admin.storage.from(BUCKET_PENDING).list(`pending/${uid}`, {
+async function cleanExpiredPending(uid: string, bucket = BUCKET_PENDING): Promise<void> {
+  const { data, error } = await admin.storage.from(bucket).list(`pending/${uid}`, {
     limit: 100,
     sortBy: { column: "created_at", order: "asc" },
   });
@@ -172,7 +241,7 @@ async function cleanExpiredPending(uid: string): Promise<void> {
     const created = Date.parse(item.created_at || item.updated_at || "");
     return Number.isFinite(created) && created < cutoff && item.id;
   }).map((item) => `pending/${uid}/${item.name}`);
-  if (expired.length) await admin.storage.from(BUCKET_PENDING).remove(expired);
+  if (expired.length) await admin.storage.from(bucket).remove(expired);
 }
 
 async function cleanOrphanedPublicMedia(
@@ -189,12 +258,21 @@ async function cleanOrphanedPublicMedia(
   } else if (request.mediaType === "warung") {
     folder = `warungs/${request.resourceId}`;
     referencedUrls = Array.isArray(resource.data.photos) ? resource.data.photos.filter((url: unknown): url is string => typeof url === "string") : [];
+  } else if (request.mediaType === "video") {
+    folder = `posts/${request.resourceId}`;
+    if (typeof resource.data.videoURL === "string") referencedUrls = [resource.data.videoURL];
   } else {
     folder = `events/${request.resourceId}`;
     if (typeof resource.data.eventPhotoURL === "string") referencedUrls = [resource.data.eventPhotoURL];
   }
-  const referencedPaths = new Set(referencedUrls.map(isOwnMediaUrl).filter((path): path is string => Boolean(path)));
-  const { data, error } = await admin.storage.from(BUCKET_PUBLIC).list(folder, {
+  const cleanupBucket = request.mediaType === "video" ? BUCKET_VIDEO_PUBLIC : BUCKET_PUBLIC;
+  const referencedPaths = new Set(referencedUrls.map((value) => {
+    if (request.mediaType === "video") {
+      try { const parsed = new URL(value); const prefix = `/storage/v1/object/public/${BUCKET_VIDEO_PUBLIC}/`; return parsed.hostname === "klikvxuronunonymmiqv.supabase.co" && parsed.pathname.startsWith(prefix) ? decodeURIComponent(parsed.pathname.slice(prefix.length)) : null; } catch { return null; }
+    }
+    return isOwnMediaUrl(value);
+  }).filter((path): path is string => Boolean(path)));
+  const { data, error } = await admin.storage.from(cleanupBucket).list(folder, {
     limit: 100,
     sortBy: { column: "created_at", order: "asc" },
   });
@@ -202,7 +280,7 @@ async function cleanOrphanedPublicMedia(
   const stalePaths = expiredOrphanPaths(folder, data, referencedPaths);
   if (stalePaths.length) {
     // Best-effort cleanup must never block an authorized upload.
-    await admin.storage.from(BUCKET_PUBLIC).remove(stalePaths).catch(() => ({ error: true }));
+    await admin.storage.from(cleanupBucket).remove(stalePaths).catch(() => ({ error: true }));
   }
 }
 
@@ -229,6 +307,9 @@ async function setMediaReference(
       if (request.slot! > photos.length) throw new Error("Warkop photo quota exceeded");
       photos[request.slot!] = url;
       fieldPatch = { photos };
+    } else if (request.mediaType === "video") {
+      oldUrl = typeof resource.data.videoURL === "string" ? resource.data.videoURL : null;
+      fieldPatch = { videoURL: url };
     } else {
       oldUrl = typeof resource.data.eventPhotoURL === "string" ? resource.data.eventPhotoURL : null;
       fieldPatch = { eventPhotoURL: url };
@@ -290,6 +371,28 @@ async function removeAvatar(token: string, uid: string) {
   return { removed: true };
 }
 
+
+async function removeVideo(token: string, uid: string, postId: unknown) {
+  if (typeof postId !== "string" || !/^[A-Za-z0-9_-]{1,150}$/.test(postId)) throw new Error("Invalid post identifier");
+  const post = await getResource(token, "posts", postId);
+  if (!post || post.data.authorId !== uid) throw new Error("Post ownership check failed");
+  const videoUrl = typeof post.data.videoURL === "string" ? post.data.videoURL : "";
+  if (!videoUrl) return { removed: true };
+  let path: string;
+  try {
+    const parsed = new URL(videoUrl);
+    const prefix = `/storage/v1/object/public/${BUCKET_VIDEO_PUBLIC}/`;
+    if (parsed.hostname !== "klikvxuronunonymmiqv.supabase.co" || !parsed.pathname.startsWith(prefix)) throw new Error("Invalid video reference");
+    path = decodeURIComponent(parsed.pathname.slice(prefix.length));
+  } catch {
+    throw new Error("Invalid video reference");
+  }
+  if (!path.startsWith(`posts/${postId}/`) || path.includes("..")) throw new Error("Invalid video ownership path");
+  const { error } = await admin.storage.from(BUCKET_VIDEO_PUBLIC).remove([path]);
+  if (error) throw new Error("Could not remove feed video");
+  return { removed: true };
+}
+
 function isOwnMediaUrl(url: string | null): string | null {
   if (!url) return null;
   try {
@@ -305,23 +408,24 @@ function isOwnMediaUrl(url: string | null): string | null {
 async function initUpload(token: string, uid: string, body: Record<string, unknown>) {
   const request = normalizeUploadRequest(body);
   await authorizeResource(token, uid, request);
-  await cleanExpiredPending(uid);
+  const pendingBucket = request.mediaType === "video" ? BUCKET_VIDEO_PENDING : BUCKET_PENDING;
+  await cleanExpiredPending(uid, pendingBucket);
   await cleanOrphanedPublicMedia(token, uid, request);
-  const { data: active, error: listError } = await admin.storage.from(BUCKET_PENDING).list(`pending/${uid}`, { limit: 100 });
+  const { data: active, error: listError } = await admin.storage.from(pendingBucket).list(`pending/${uid}`, { limit: 100 });
   if (listError) throw new Error("Could not inspect pending uploads");
   if ((active || []).filter((item) => item.id).length >= 3) throw new Error("Too many pending uploads; finish or retry an existing upload");
   const uploadId = typeof body.uploadId === "string" && /^[0-9a-f-]{36}$/i.test(body.uploadId)
     ? body.uploadId
     : crypto.randomUUID();
   const path = `pending/${uid}/${uploadId}`;
-  const { data, error } = await admin.storage.from(BUCKET_PENDING).createSignedUploadUrl(path, { upsert: false });
+  const { data, error } = await admin.storage.from(pendingBucket).createSignedUploadUrl(path, { upsert: false });
   if (error || !data?.token) throw new Error("Could not create signed upload");
   return {
     uploadId,
     path,
     token: data.token,
     signedUrl: data.signedUrl,
-    bucket: BUCKET_PENDING,
+    bucket: pendingBucket,
     mediaType: request.mediaType,
     expiresInSeconds: 7200,
   };
@@ -332,42 +436,67 @@ async function finalizeUpload(token: string, uid: string, body: Record<string, u
   const uploadId = typeof body.uploadId === "string" && /^[0-9a-f-]{36}$/i.test(body.uploadId) ? body.uploadId : "";
   if (!uploadId) throw new Error("Invalid upload ID");
   const authorized = await authorizeResource(token, uid, request);
+  const video = request.mediaType === "video";
+  const publicBucket = video ? BUCKET_VIDEO_PUBLIC : BUCKET_PUBLIC;
+  const pendingBucket = video ? BUCKET_VIDEO_PENDING : BUCKET_PENDING;
   const finalPath = mediaObjectPath(uid, request.mediaType, request.resourceId || uid, uploadId, request.slot);
-  const url = publicUrl(finalPath);
+  const url = admin.storage.from(publicBucket).getPublicUrl(finalPath).data.publicUrl;
   const existingReference = request.mediaType === "avatar" ? authorized.data.photoURL
     : request.mediaType === "warung" ? (authorized.data.photos || [])[request.slot!]
+    : request.mediaType === "video" ? authorized.data.videoURL
     : authorized.data.eventPhotoURL;
   if (existingReference === url) {
-    return { url, path: finalPath, contentType: "image/webp", idempotent: true };
+    return { url, path: finalPath, contentType: video ? "video/mp4" : "image/webp", idempotent: true };
   }
   const pendingPath = `pending/${uid}/${uploadId}`;
-  const { data: blob, error: downloadError } = await admin.storage.from(BUCKET_PENDING).download(pendingPath);
+  const { data: blob, error: downloadError } = await admin.storage.from(pendingBucket).download(pendingPath);
   if (downloadError || !blob) throw new Error("Uploaded file not found; retry upload");
   const actual = new Uint8Array(await blob.arrayBuffer());
   if (actual.length !== request.size) {
-    await admin.storage.from(BUCKET_PENDING).remove([pendingPath]);
+    await admin.storage.from(pendingBucket).remove([pendingPath]);
     throw new Error("Uploaded byte count does not match the declared size");
   }
-  const sanitized = await sanitizeImage(actual, request.contentType);
-  const { error: uploadError } = await admin.storage.from(BUCKET_PUBLIC).upload(finalPath, sanitized.bytes, {
-    contentType: "image/webp",
+  let publishBytes: Uint8Array;
+  let publishType: string;
+  let videoMetadata: { durationSeconds: number; width: number; height: number } | null = null;
+  if (video) {
+    videoMetadata = parseMp4Metadata(actual);
+    if (!videoMetadata) {
+      await admin.storage.from(pendingBucket).remove([pendingPath]);
+      throw new Error("Invalid MP4 metadata or video dimensions exceed 1080p");
+    }
+    const maxDuration = await videoDurationLimit(token, uid, authorized);
+    if (videoMetadata.durationSeconds > maxDuration) {
+      await admin.storage.from(pendingBucket).remove([pendingPath]);
+      throw new Error(`Video duration exceeds your ${maxDuration}-second limit`);
+    }
+    publishBytes = actual;
+    publishType = "video/mp4";
+  } else {
+    const sanitized = await sanitizeImage(actual, request.contentType);
+    publishBytes = sanitized.bytes;
+    publishType = "image/webp";
+  }
+  const { error: uploadError } = await admin.storage.from(publicBucket).upload(finalPath, publishBytes, {
+    contentType: publishType,
     cacheControl: "31536000",
     upsert: true,
   });
-  if (uploadError) throw new Error("Could not publish validated image");
+  if (uploadError) throw new Error(video ? "Could not publish validated video" : "Could not publish validated image");
   try {
     const previousUrl = await setMediaReference(token, uid, request, url);
-    await admin.storage.from(BUCKET_PENDING).remove([pendingPath]);
-    const previousPath = isOwnMediaUrl(previousUrl);
+    await admin.storage.from(pendingBucket).remove([pendingPath]);
+    const previousPath = video ? null : isOwnMediaUrl(previousUrl);
     if (previousPath && previousPath !== finalPath) await admin.storage.from(BUCKET_PUBLIC).remove([previousPath]);
-    return { url, path: finalPath, width: sanitized.width, height: sanitized.height, contentType: sanitized.contentType };
+    return { url, path: finalPath, ...(videoMetadata || {}), contentType: publishType };
   } catch (error) {
     // Compensate only if the Firestore reference was not committed.
     const resource = await authorizeResource(token, uid, request).catch(() => null);
     const current = request.mediaType === "avatar" ? resource?.data.photoURL
       : request.mediaType === "warung" ? resource?.data.photos?.[request.slot!]
+      : request.mediaType === "video" ? resource?.data.videoURL
       : resource?.data.eventPhotoURL;
-    if (current !== url) await admin.storage.from(BUCKET_PUBLIC).remove([finalPath]);
+    if (current !== url) await admin.storage.from(publicBucket).remove([finalPath]);
     throw error;
   }
 }
@@ -407,12 +536,16 @@ async function handler(request: Request): Promise<Response> {
       stage = "remove-avatar";
       return response({ media: await removeAvatar(token, identity.uid) }, 200, origin);
     }
+    if (action === "removeVideo") {
+      stage = "remove-feed-video";
+      return response({ media: await removeVideo(token, identity.uid, body.postId) }, 200, origin);
+    }
     return response({ error: "Unsupported action" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Media operation failed";
     // Safe diagnostics only: never log Firebase tokens, request bodies, email, or UID.
     console.error("[media-gateway] request failed", JSON.stringify({ stage, action, message }));
-    const status = /token|Firebase account|ownership|status check|not found|quota|slot|unsupported|invalid|size|signature|animated|dimensions|too many|not supported/i.test(message) ? 400 : 502;
+    const status = /token|Firebase account|ownership|status check|not found|quota|slot|unsupported|invalid|size|signature|animated|dimensions|too many|not supported|video|duration|1080p/i.test(message) ? 400 : 502;
     return response({ error: message }, status, origin);
   }
 }

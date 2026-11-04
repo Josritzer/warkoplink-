@@ -22,7 +22,7 @@ export function buildHomeDiscoveryData(warungs = [], posts = [], now = new Date(
   const safeWarungs = Array.isArray(warungs) ? warungs : [];
   const safePosts = Array.isArray(posts) ? posts : [];
   const activities = safePosts.filter(post =>
-    ACTIVITY_TOPICS.has(post?.topic) ||
+    (ACTIVITY_TOPICS.has(post?.topic) && Boolean(post?.postType || post?.eventStartAt)) ||
     (post?.topic === 'Info & Acara' && getHomeActivityStatus(post, now) !== 'unknown' && getHomeActivityStatus(post, now) !== 'cancelled')
   );
   const events = safePosts.filter(post =>

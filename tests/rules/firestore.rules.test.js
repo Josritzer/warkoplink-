@@ -157,49 +157,27 @@ describe('event RSVPs', () => {
   });
 });
 
-describe('official community membership', () => {
-  it('anggota dapat bergabung dan keluar dari komunitas resmi miliknya sendiri', async () => {
-    const db = asUser('alice');
-    const membership = doc(db, 'communities', 'ngopi-bareng', 'members', 'alice');
-    await assertSucceeds(setDoc(membership, { uid: 'alice', createdAt: serverTimestamp() }));
-    await assertSucceeds(getDoc(membership));
-    await assertSucceeds(deleteDoc(membership));
-  });
-
-  it('dokumen keanggotaan hanya dapat dibaca oleh pemiliknya dan tidak membocorkan daftar UID', async () => {
+describe('open official conversation categories', () => {
+  it('keeps legacy membership records private and read-only while allowing owner cleanup', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'communities/ngopi-bareng/members/alice'), {
         uid: 'alice', createdAt: Timestamp.now()
       });
     });
-    await assertSucceeds(getDoc(doc(asUser('alice'), 'communities', 'ngopi-bareng', 'members', 'alice')));
+    const legacyMembership = doc(asUser('alice'), 'communities', 'ngopi-bareng', 'members', 'alice');
+    await assertSucceeds(getDoc(legacyMembership));
     await assertFails(getDoc(doc(asUser('bob'), 'communities', 'ngopi-bareng', 'members', 'alice')));
     await assertFails(getDocs(collection(asAnon(), 'communities', 'ngopi-bareng', 'members')));
     await assertFails(getDocs(collection(asUser('bob'), 'communities', 'ngopi-bareng', 'members')));
-    await assertFails(updateDoc(doc(asUser('bob'), 'communities', 'ngopi-bareng', 'members', 'alice'), {
-      uid: 'bob'
+    await assertFails(setDoc(doc(asUser('alice'), 'communities', 'ngopi-bareng', 'members', 'alice'), {
+      uid: 'alice', createdAt: serverTimestamp()
     }));
     await assertFails(deleteDoc(doc(asUser('bob'), 'communities', 'ngopi-bareng', 'members', 'alice')));
+    await assertSucceeds(deleteDoc(legacyMembership));
   });
 
-  it('menolak bergabung atas nama pengguna lain atau ke grup yang tidak resmi', async () => {
-    await assertFails(setDoc(doc(asUser('alice'), 'communities', 'ngopi-bareng', 'members', 'bob'), {
-      uid: 'bob', createdAt: serverTimestamp()
-    }));
-    await assertFails(setDoc(doc(asUser('alice'), 'communities', 'grup-buatan-sendiri', 'members', 'alice'), {
-      uid: 'alice', createdAt: serverTimestamp()
-    }));
-    await assertFails(setDoc(doc(asUser('alice'), 'communities', 'ngopi-bareng', 'members', 'alice'), {
-      uid: 'alice', createdAt: serverTimestamp(), role: 'admin'
-    }));
-  });
-
-  it('hanya anggota yang sudah bergabung dapat membuat postingan khusus grup', async () => {
+  it('allows posting to any official category without joining and preserves category validation', async () => {
     const aliceDb = asUser('alice');
-    await assertFails(createPost(aliceDb, validPost({ communityId: 'ngopi-bareng' })));
-    await assertSucceeds(setDoc(doc(aliceDb, 'communities', 'ngopi-bareng', 'members', 'alice'), {
-      uid: 'alice', createdAt: serverTimestamp()
-    }));
     await assertSucceeds(createPost(aliceDb, validPost({ communityId: 'ngopi-bareng' })));
     await assertFails(createPost(aliceDb, validPost({ communityId: 'ngopi-bareng', topic: 'Jasa Lokal' })));
     await assertFails(createPost(asUser('bob'), validPost({
@@ -208,7 +186,7 @@ describe('official community membership', () => {
     await assertFails(createPost(aliceDb, validPost({ communityId: 'grup-buatan-sendiri' })));
   });
 
-  it('posting umum lama tetap dapat dibuat tanpa communityId', async () => {
+  it('keeps ordinary posts without communityId working', async () => {
     await assertSucceeds(createPost(asUser('alice'), validPost()));
   });
 });

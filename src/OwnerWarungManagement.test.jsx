@@ -26,7 +26,7 @@ describe('OwnerWarungManagement', () => {
     render(<OwnerWarungManagement db={{}}/>);
     expect(await screen.findByText('Kopi Maduran')).toBeTruthy();
     expect(screen.getByText('Warkop Paciran')).toBeTruthy();
-    expect(screen.getByText('Terverifikasi')).toBeTruthy();
+    expect(screen.getAllByText('Terverifikasi').some((element) => element.classList.contains('owner-warung-status'))).toBe(true);
   });
 
   it('membuka detail baca-saja dan riwayat verifikasi', async () => {

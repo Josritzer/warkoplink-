@@ -52,7 +52,7 @@ html[data-theme="dark"] {
   --wl-surface-soft: #5A4031;
   --wl-surface-brand: #5A4031;
   --wl-text: var(--wl-milk);
-  --wl-text-muted: #E0CDB9;
+  --wl-text-muted: var(--wl-cream);
   --wl-text-on-brand: var(--wl-espresso);
   --wl-brand: var(--wl-caramel);
   --wl-brand-hover: var(--wl-caramel);

@@ -664,3 +664,21 @@ html, body, #root, .app-shell, .desktop-layout, .desktop-layout > main,
   #community-feed .post-actions .like-toggle,
   #community-feed .post-actions .post-action { font-size: 11px; }
 }
+
+
+/* Four feed actions remain a single aligned row on wide screens. */
+#community-feed .post-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+}
+#community-feed .post-actions > .post-action-wrap {
+  display: flex;
+  min-width: 0;
+}
+#community-feed .post-actions .like-summary,
+#community-feed .post-actions .like-toggle,
+#community-feed .post-actions .post-action {
+  width: 100%;
+  min-width: 0;
+}

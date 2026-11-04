@@ -982,9 +982,10 @@ describe('akses login halaman Akun', () => {
     render(<App />);
     emitAuth(null);
     await user.click(screen.getByRole('button', { name: 'Akun' }));
-    expect(screen.getByRole('button', { name: 'Masuk' })).toBeTruthy();
+    const loginButtons = screen.getAllByRole('button', { name: 'Masuk' });
+    expect(loginButtons.length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole('button', { name: 'Daftar' })).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+    await user.click(loginButtons[loginButtons.length - 1]);
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Masuk' })).toBeTruthy();
   });

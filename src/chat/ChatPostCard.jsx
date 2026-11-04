@@ -106,25 +106,9 @@ function renderWarungMentions(body, warungs = [], onOpenWarung) {
 }
 
 function FeedVideo({ post }) {
-  const videoRef = useRef(null);
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || typeof IntersectionObserver !== "function") return undefined;
-    const observer = new IntersectionObserver(entries => {
-      const visible = entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= 0.55);
-      if (visible) {
-        video.muted = true;
-        video.play().catch(() => {});
-      } else {
-        video.pause();
-      }
-    }, { threshold: [0, 0.55, 1] });
-    observer.observe(video);
-    return () => { observer.disconnect(); video.pause(); };
-  }, [post.videoURL]);
   return <div className="feed-video-frame">
-    <video ref={videoRef} src={post.videoURL} poster={post.videoThumbnailURL || undefined}
-      controls playsInline preload="metadata" muted aria-label="Video obrolan WarkopLink" />
+    <video src={post.videoURL} poster={post.videoThumbnailURL || undefined}
+      controls playsInline preload="none" aria-label="Video obrolan WarkopLink" />
   </div>;
 }
 

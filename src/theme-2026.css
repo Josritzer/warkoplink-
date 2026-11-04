@@ -12,16 +12,17 @@
   --wl-milk: #FAF7F1;
 
   /* Surfaces and typography */
+  --wl-canvas: var(--wl-cream);
   --wl-paper: var(--wl-milk);
   --wl-surface: var(--wl-milk);
   --wl-surface-raised: #FFFFFF;
   --wl-text-primary: var(--wl-espresso);
-  --wl-text-secondary: #655044;
+  --wl-text-secondary: var(--wl-dark-roast);
   --wl-border: #DED1C1;
   --wl-line: #DED1C1;
   --wl-line-soft: #E9DFD2;
   --wl-ink: var(--wl-espresso);
-  --wl-muted: #655044;
+  --wl-muted: var(--wl-dark-roast);
 
   /* Compatibility aliases used by existing components */
   --wl-primary: var(--wl-coffee);
@@ -89,7 +90,7 @@
 }
 html[data-theme="dark"] {
   color-scheme: dark;
-  --wl-cream: var(--wl-espresso);
+  --wl-canvas: var(--wl-espresso);
   --wl-paper: var(--wl-dark-roast);
   --wl-surface: var(--wl-dark-roast);
   --wl-surface-raised: #59402F;
@@ -99,7 +100,8 @@ html[data-theme="dark"] {
   --wl-line: #624636;
   --wl-line-soft: #563C2E;
   --wl-ink: var(--wl-milk);
-  --wl-muted: #E0CDB9;
+  --wl-muted: var(--wl-cream);
+  --wl-text-secondary: var(--wl-cream);
   --wl-primary: var(--wl-coffee);
   --wl-primary-deep: #C58A52;
   --wl-primary-bright: var(--wl-caramel);
@@ -130,12 +132,12 @@ html[data-theme="dark"] {
   --wl-glass-bg: rgba(33, 26, 22, .48);
   --wl-glass-border: rgba(250, 247, 241, .2);
 }
-html, body { background: var(--wl-cream); color: var(--wl-ink); }
+html, body { background: var(--wl-canvas); color: var(--wl-ink); }
 body {
   background:
     radial-gradient(ellipse at 92% -5%, rgba(var(--wl-primary-rgb), .08), transparent 30rem),
     radial-gradient(ellipse at 0% 100%, rgba(197, 138, 82, .055), transparent 28rem),
-    var(--wl-cream);
+    var(--wl-canvas);
 }
 
 /* Header & merek */

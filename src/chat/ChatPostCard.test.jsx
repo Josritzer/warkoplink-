@@ -327,6 +327,37 @@ describe('ChatPostCard — tampilan 2026', () => {
     expect(screen.getByRole('button', { name: 'Balas' })).toBeTruthy();
   });
 
+  it('shows Putar, Jeda, and Putar ulang with matching playback status', async () => {
+    const { container } = render(<ChatPostCard {...props({
+      post: { ...props().post, videoURL: 'https://example.com/video.mp4' }
+    })} />);
+    const video = container.querySelector('.feed-video-frame video');
+    const play = vi.fn().mockResolvedValue(undefined);
+    const pause = vi.fn();
+    Object.defineProperty(video, 'play', { configurable: true, value: play });
+    Object.defineProperty(video, 'pause', { configurable: true, value: pause });
+
+    expect(screen.getByRole('button', { name: 'Putar video' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Dijeda');
+    fireEvent.click(screen.getByRole('button', { name: 'Putar video' }));
+    expect(play).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Jeda video' })).toBeTruthy());
+    expect(screen.getByRole('status').textContent).toBe('Sedang diputar');
+
+    fireEvent.pause(video);
+    expect(screen.getByRole('button', { name: 'Putar video' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Dijeda');
+    fireEvent.play(video);
+    expect(screen.getByRole('button', { name: 'Jeda video' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Sedang diputar');
+
+    fireEvent.ended(video);
+    expect(screen.getByRole('button', { name: 'Putar ulang video' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Video selesai');
+    fireEvent.click(screen.getByRole('button', { name: 'Putar ulang video' }));
+    expect(play).toHaveBeenCalledTimes(2);
+  });
+
   it('does not autoplay feed videos and defers loading until the user presses play', () => {
     const originalObserver = globalThis.IntersectionObserver;
     const observer = vi.fn(function (callback) {

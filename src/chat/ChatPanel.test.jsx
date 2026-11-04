@@ -83,7 +83,7 @@ describe('ChatPanel warung mentions', () => {
 });
 
 
-describe('community group posting access', () => {
+describe('community category posting access', () => {
   const sharedProps = {
     user: { uid: 'user-1', displayName: 'Anggota' },
     firebaseConfigured: true,
@@ -96,24 +96,18 @@ describe('community group posting access', () => {
     loadMoreError: '', onLoadMorePosts: vi.fn(), verifiedWarungs: []
   };
 
-  it('keeps group discussions readable but hides the composer until the user joins', () => {
-    render(<ChatPanel {...sharedProps} communityId="ngopi-bareng" communityMember={false}/>);
-    expect(screen.getByText(/Ruang diskusi terbuka untuk dibaca/)).toBeTruthy();
-    expect(screen.getByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Ayo ngobrol/ })).toBeNull();
-  });
-
-  it('shows the composer after membership becomes active', () => {
-    render(<ChatPanel {...sharedProps} communityId="ngopi-bareng" communityMember/>);
+  it('shows the composer in a category without requiring membership', () => {
+    render(<ChatPanel {...sharedProps} communityId="ngopi-bareng"/>);
     expect(screen.getByRole('button', { name: /Ayo ngobrol/ })).toBeTruthy();
     expect(screen.queryByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeNull();
+    expect(screen.queryByText(/Ruang diskusi terbuka untuk dibaca/)).toBeNull();
   });
 
-  it('locks the posting category to the selected official community', async () => {
+  it('keeps the posting category fixed to the selected conversation category', async () => {
     const setComposerTopic = vi.fn();
-    render(<ChatPanel {...sharedProps} setComposerTopic={setComposerTopic} composerOpen communityId="jasa-lokal" communityMember/>);
+    render(<ChatPanel {...sharedProps} setComposerTopic={setComposerTopic} composerOpen communityId="jasa-lokal"/>);
     await waitFor(() => expect(setComposerTopic).toHaveBeenCalledWith('Jasa Lokal'));
-    expect(screen.getByText('Postingan ini otomatis masuk ke komunitas Jasa Lokal.')).toBeTruthy();
+    expect(screen.getByText('Postingan ini masuk ke kategori Jasa Lokal.')).toBeTruthy();
     expect(screen.queryByRole('combobox', { name: 'Kategori posting' })).toBeNull();
     expect(screen.getByRole('combobox', { name: 'Jenis posting' })).toBeTruthy();
   });

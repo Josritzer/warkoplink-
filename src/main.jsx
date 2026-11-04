@@ -18,6 +18,7 @@ import './wl-glass-card-play.css';
 import './notifications/notifications.css';
 import './messaging/messages.css';
 import './mobile-layout-safety.css';
+import './home/home-discovery.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>

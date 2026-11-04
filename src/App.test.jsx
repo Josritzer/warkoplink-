@@ -230,7 +230,7 @@ describe('halaman publik', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Buka kategori' })[0]);
     expect(await screen.findByRole('heading', { name: 'Ngopi Bareng' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Masuk untuk mulai ngobrol…' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Masuk untuk mulai ngobrol/ })).toBeTruthy();
     expect(screen.queryByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeNull();
     await waitFor(() => {
       expect(state.postSubscriptions.filter((item) => item.active && item.kind === 'global')).toHaveLength(0);

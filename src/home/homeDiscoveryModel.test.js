@@ -14,8 +14,8 @@ describe('home discovery model', () => {
 
   it('shows activity posts only when their category is an activity category', () => {
     const posts = [
-      { id: 'coffee', topic: 'Ngopi Bareng', body: 'Ngopi sore' },
-      { id: 'community', topic: 'Komunitas & Aktivitas', body: 'Kumpul komunitas' },
+      { id: 'coffee', topic: 'Ngopi Bareng', postType: 'Ajakan ngopi', body: 'Ngopi sore' },
+      { id: 'community', topic: 'Komunitas & Aktivitas', postType: 'Kegiatan warga', body: 'Kumpul komunitas' },
       { id: 'question', topic: 'Tanya Warkop', body: 'Tanya lokasi' },
       { id: 'invalid-event', topic: 'Info & Acara', body: 'Acara tanpa waktu' }
     ];

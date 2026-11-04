@@ -1,9 +1,9 @@
 .owner-center {
   --owner-ink: #17233f;
-  --owner-muted: #71809b;
+  --owner-muted: var(--wl-muted);
   --owner-line: #e5eaf3;
-  --owner-blue: #3159d8;
-  --owner-indigo: #5148bd;
+  --owner-blue: var(--wl-coffee);
+  --owner-indigo: var(--wl-dark-roast);
   display: grid;
   grid-template-columns: 252px minmax(0, 1fr);
   gap: 24px;
@@ -49,7 +49,7 @@
 .owner-refresh-button:disabled { opacity: .65; cursor: wait; }
 .owner-refresh-button .is-spinning { animation: owner-spin .9s linear infinite; }
 @keyframes owner-spin { to { transform: rotate(360deg); } }
-.owner-welcome-strip { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 17px; padding: 19px 22px; border-radius: 18px; color: #fff; background: linear-gradient(115deg, #244fc7, #4f48b9); box-shadow: 0 12px 25px rgba(49, 89, 216, .16); }
+.owner-welcome-strip { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 17px; padding: 19px 22px; border-radius: 18px; color: #fff; background: linear-gradient(115deg, var(--wl-coffee), var(--wl-dark-roast)); box-shadow: 0 12px 25px rgba(152, 97, 59, .16); }
 .owner-welcome-strip > div { display: grid; gap: 5px; }
 .owner-welcome-strip span { color: rgba(255,255,255,.75); font-size: 9px; font-weight: 800; letter-spacing: .15em; }
 .owner-welcome-strip b { font-size: 15px; }

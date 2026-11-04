@@ -973,3 +973,17 @@ describe('aksesibilitas form pendaftaran warkop', () => {
     expect(screen.getByText(/Bujur: koordinat timur\/barat/)).toBeTruthy();
   });
 });
+
+describe('akses login halaman Akun', () => {
+  it('menampilkan tombol Masuk dan Daftar untuk pengunjung yang belum login', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Akun' }));
+    expect(screen.getByRole('button', { name: 'Masuk' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Daftar' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Masuk' })).toBeTruthy();
+  });
+});

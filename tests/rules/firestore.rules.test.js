@@ -263,6 +263,16 @@ describe('posts', () => {
     await assertSucceeds(createPost(asUser('alice'), validPost()));
   });
 
+  it('menerima posting video dengan thumbnail JPEG dan nama profil tersimpan yang memiliki spasi persis', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'profiles/alice'), { displayName: '  Alice  ' });
+    });
+    await assertSucceeds(createPost(asUser('alice'), validPost({
+      authorName: '  Alice  ',
+      videoThumbnailURL: `data:image/jpeg;base64,${'A'.repeat(1200)}`,
+    })));
+  });
+
   it('semua kategori yang diizinkan diterima', async () => {
     for (const [index, topic] of ['Ngopi Bareng', 'Tanya Warkop', 'Info & Acara', 'Loker', 'Jual Beli', 'Jasa Lokal', 'Komunitas & Aktivitas'].entries()) {
       const uid = `topic-user-${index}`;

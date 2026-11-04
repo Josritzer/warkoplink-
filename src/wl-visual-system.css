@@ -80,11 +80,11 @@ html[data-theme="dark"] {
   --wl-text-on-brand: #FFFFFF;
   --wl-brand: var(--wl-caramel);
   --wl-brand-hover: var(--wl-milk);
-  --wl-brand-pressed: #E0CCFA;
+  --wl-brand-pressed: var(--wl-state-active);
   --wl-brand-soft: #352542;
   --wl-focus: var(--wl-caramel);
   --wl-border: #3B3044;
-  --wl-border-strong: #5A4965;
+  --wl-border-strong: var(--wl-border-strong);
   --wl-success: #8AD8B8;
   --wl-success-soft: #20392F;
   --wl-warning: #F0C477;

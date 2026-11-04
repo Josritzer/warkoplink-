@@ -35,11 +35,13 @@ describe('home discovery model', () => {
       { id: 'video', videoURL: 'https://cdn.example.test/reel.mp4', videoThumbnailURL: 'https://cdn.example.test/reel.jpg' },
       { id: 'no-video', videoThumbnailURL: 'https://cdn.example.test/no-video.jpg' },
       { id: 'future', topic: 'Info & Acara', eventStartAt: '2026-11-06T19:00:00+07:00', eventStatus: 'scheduled' },
+      { id: 'live', topic: 'Info & Acara', eventStartAt: '2026-11-05T04:00:00+07:00', eventEndAt: '2026-11-05T06:00:00+07:00' },
       { id: 'cancelled', topic: 'Info & Acara', eventStartAt: '2026-11-06T20:00:00+07:00', eventStatus: 'cancelled' },
       { id: 'past', topic: 'Info & Acara', eventStartAt: '2026-11-04T20:00:00+07:00' }
     ];
     const result = buildHomeDiscoveryData([], posts, now);
     expect(result.reels.map(post => post.id)).toEqual(['video']);
     expect(result.events.map(post => post.id)).toEqual(['future']);
+    expect(result.activities.map(post => post.id)).toEqual(['live']);
   });
 });

@@ -409,10 +409,13 @@ describe('login, sesi, dan logout', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('sesi autentikasi dipulihkan saat halaman dimuat ulang', async () => {
+  it('sesi autentikasi dipulihkan dan aksi keluar tersedia di halaman Akun', async () => {
+    const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
     expect(await screen.findByText('Masuk sebagai Sari')).toBeTruthy();
+    expect(document.querySelector('.app-header').textContent).not.toContain('Keluar');
+    await user.click(within(screen.getByRole('navigation', { name: 'Navigasi aplikasi' })).getByRole('button', { name: 'Akun' }));
     expect(screen.getByRole('button', { name: 'Keluar' })).toBeTruthy();
   });
 
@@ -425,10 +428,11 @@ describe('login, sesi, dan logout', () => {
     }));
   });
 
-  it('logout memanggil signOut', async () => {
+  it('logout memanggil signOut dari halaman Akun', async () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
+    await user.click(within(screen.getByRole('navigation', { name: 'Navigasi aplikasi' })).getByRole('button', { name: 'Akun' }));
     await user.click(await screen.findByRole('button', { name: 'Keluar' }));
     expect(fbAuth.signOut).toHaveBeenCalledWith({ name: 'auth' });
     expect(await screen.findByText('Anda sudah keluar dari akun.')).toBeTruthy();

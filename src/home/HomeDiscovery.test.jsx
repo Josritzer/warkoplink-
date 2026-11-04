@@ -1,6 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import HomeDiscovery from './HomeDiscovery.jsx';
+
+afterEach(cleanup);
 
 describe('HomeDiscovery', () => {
   it('renders real verified warungs and opens their existing profile route', () => {

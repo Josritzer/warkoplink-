@@ -19,9 +19,9 @@ describe('platformRoleFromClaims', () => {
 });
 
 describe('canAccessAdminPanel', () => {
-  it('allows only moderator and super admin roles', () => {
+  it('allows only the super admin role', () => {
     expect(canAccessAdminPanel(PLATFORM_ROLES.SUPER_ADMIN)).toBe(true);
-    expect(canAccessAdminPanel(PLATFORM_ROLES.MODERATOR)).toBe(true);
+    expect(canAccessAdminPanel(PLATFORM_ROLES.MODERATOR)).toBe(false);
     expect(canAccessAdminPanel(PLATFORM_ROLES.MEMBER)).toBe(false);
   });
 });

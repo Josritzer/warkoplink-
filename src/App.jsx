@@ -746,6 +746,7 @@ export default function App() {
     if (postSubmissionLock.current) return false;
     postSubmissionLock.current = true;
     setPosting(true);
+    let postFailureStage = 'ensure-profile';
     try {
       // Aturan keamanan mencocokkan nama penulis dengan profil, jadi pastikan profil ada.
       const storedProfile = await ensureProfile(user);
@@ -756,6 +757,7 @@ export default function App() {
       const postAuthorName = postAuthorNameFor(user, storedProfile);
       const postRef = doc(collection(db, 'posts'));
       const videoThumbnailURL = details.videoFile ? await createVideoThumbnailDataUrl(details.videoFile).catch(() => '') : '';
+      postFailureStage = 'create-post';
       await setDoc(postRef, {
         authorId: user.uid,
         authorName: postAuthorName,
@@ -803,7 +805,10 @@ export default function App() {
       setNotice(posterNotice ? `Obrolan berhasil dipublikasikan.${posterNotice}` : 'Obrolan berhasil dipublikasikan.');
       return true;
     } catch (error) {
-      setNotice(postErrorMessage(error));
+      if (error?.code === 'permission-denied') {
+        console.warn('[WarkopLink] Post permission denied', { stage: postFailureStage, code: error.code });
+      }
+      setNotice(postErrorMessage(error, postFailureStage));
     } finally {
       postSubmissionLock.current = false;
       setPosting(false);

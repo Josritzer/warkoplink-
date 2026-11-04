@@ -60,10 +60,10 @@ html[data-theme="dark"] {
   --wl-text-muted: #c2b6c8;
   --wl-text-on-brand: #201629;
   --wl-brand: var(--wl-caramel);
-  --wl-brand-hover: #d4b9ed;
+  --wl-brand-hover: var(--wl-caramel);
   --wl-brand-pressed: #e5d4f3;
   --wl-brand-soft: #382944;
-  --wl-focus: #d8b9f2;
+  --wl-focus: var(--wl-caramel);
   --wl-border: #403448;
   --wl-border-strong: #65536f;
   --wl-success: #8bcdb0;
@@ -75,8 +75,8 @@ html[data-theme="dark"] {
   --wl-gold: #d5b987;
   --wl-gold-soft: #574733;
   --wl-primary-rgb: 195, 161, 228;
-  --wl-primary-bright: #d8b9f2;
-  --wl-info: #d1b5ee;
+  --wl-primary-bright: var(--wl-caramel);
+  --wl-info: var(--wl-caramel);
   --wl-hairline: rgb(213 185 135 / 25%);
   --wl-shadow-card: none;
   --wl-shadow-overlay: 0 20px 54px rgb(0 0 0 / 42%);
@@ -231,7 +231,7 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
 .warung-card-media img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .5s cubic-bezier(.2,.7,.2,1); }
 .warung-card:hover .warung-card-media img { transform: scale(1.035); }
 .warung-card-media-placeholder { align-content: center; gap: 8px; background: radial-gradient(ellipse at 80% 10%, rgb(255 255 255 / 45%), transparent 45%), linear-gradient(135deg, var(--wl-cream), #E9D3BC); }
-.warung-card-media-placeholder span { color: #634a70; font-family: Georgia, serif; font-size: 13px; letter-spacing: .06em; }
+.warung-card-media-placeholder span { color: var(--wl-dark-roast); font-family: Georgia, serif; font-size: 13px; letter-spacing: .06em; }
 .warung-card-body { display: grid; gap: 12px; padding: 19px 20px 20px; }
 .warung-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .warung-card-kicker { display: inline-flex; align-items: center; gap: 5px; color: var(--wl-gold); font-size: 9px; font-weight: 800; letter-spacing: .14em; }
@@ -327,7 +327,7 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
 }
 
 .warung-profile-cover-empty { display: grid; width: 100%; height: 100%; place-content: center; justify-items: center; gap: 10px; color: var(--wl-dark-roast); background: radial-gradient(ellipse at 80% 10%, rgb(255 255 255 / 45%), transparent 45%), linear-gradient(135deg, var(--wl-cream), #E9D3BC); }
-.warung-profile-cover-empty span { color: #634a70; font-family: Georgia, serif; font-size: 13px; letter-spacing: .06em; }
+.warung-profile-cover-empty span { color: var(--wl-dark-roast); font-family: Georgia, serif; font-size: 13px; letter-spacing: .06em; }
 .warung-profile-info-block { padding: 17px 0; border-bottom: 1px solid var(--wl-border); }
 .warung-profile-info-block h3 { margin: 0 0 10px; color: var(--wl-text); font-family: inherit; font-size: 13px; font-weight: 750; letter-spacing: .03em; }
 .warung-profile-info-block p { margin: 0; color: var(--wl-text-muted); font-size: 13px; line-height: 1.7; }

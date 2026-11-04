@@ -318,8 +318,8 @@ describe('ChatPostCard — tampilan 2026', () => {
     });
     const { container } = render(<ChatPostCard {...values} />);
     expect(screen.queryByText('3 reaksi')).toBeNull();
-    expect(container.querySelectorAll('.post-stats')).toHaveLength(1);
-    expect(screen.getByText('2 komentar').tagName).not.toBe('BUTTON');
+    expect(container.querySelectorAll('.post-actions > .post-action-wrap')).toHaveLength(4);
+    expect(screen.getByRole('button', { name: 'Komentar, 2' })).toBeTruthy();
   });
 
   it('keeps all four post actions in one predictable action grid', () => {
@@ -339,7 +339,7 @@ describe('ChatPostCard — tampilan 2026', () => {
       post: { ...props().post, videoURL: 'https://example.com/portrait.mp4' }
     })} />);
     const video = container.querySelector('.feed-video-frame video');
-    expect(video.style.aspectRatio).toBe('');
+    expect(video.style.aspectRatio).toBe('auto');
     expect(video.getAttribute('data-orientation')).toBeNull();
     expect(container.querySelector('.feed-video-frame')).toBeTruthy();
   });

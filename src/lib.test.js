@@ -124,4 +124,17 @@ describe('postErrorMessage', () => {
   it('tidak menjanjikan jeda 10 detik yang tidak ada di aturan keamanan', () => {
     expect(postErrorMessage({ code: 'permission-denied' })).not.toContain('10 detik');
   });
+
+  it('menjelaskan saat Firestore menolak dokumen posting', () => {
+    expect(postErrorMessage({ code: 'permission-denied' }, 'create-post')).toContain('kategori');
+    expect(postErrorMessage({ code: 'permission-denied' }, 'create-post')).toContain('thumbnail video');
+  });
+
+  it('membedakan penolakan saat pemeriksaan profil', () => {
+    expect(postErrorMessage({ code: 'permission-denied' }, 'ensure-profile')).toContain('profil');
+  });
+
+  it('tidak membocorkan pesan mentah meski tahap diketahui', () => {
+    expect(postErrorMessage({ code: 'permission-denied', message: 'PRIVATE' }, 'create-post')).not.toContain('PRIVATE');
+  });
 });

@@ -133,21 +133,20 @@ describe('ChatPostCard', () => {
     expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
   });
 
-  it('opens the dedicated reply page when tapping the comment count', () => {
+  it('opens the dedicated comment thread from the Komentar action, not from the count', () => {
     const values = props({ replyCounts: { 'post-1': 3 }, openReplyPage: vi.fn().mockResolvedValue(undefined) });
     render(<ChatPostCard {...values} />);
-    expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
+    expect(screen.getByText('3 komentar').tagName).not.toBe('BUTTON');
     expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /3 komentar/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Komentar' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
   });
 
-  it('Balas opens the dedicated reply page', () => {
+  it('does not show a second Balas action on the post card', () => {
     const values = props({ openReplyPage: vi.fn().mockResolvedValue(undefined) });
     render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Balas' }));
-    expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
-    expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Balas' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Komentar' })).toBeTruthy();
   });
 
   // Regresi: `repliesByPost[post.id] || []` menghasilkan array baru di tiap render, sehingga efek
@@ -321,7 +320,8 @@ describe('ChatPostCard — tampilan 2026', () => {
 
   it('menampilkan aksi Komentar tanpa pesan kosong yang membingungkan', () => {
     render(<ChatPostCard {...props()} />);
-    expect(screen.getByRole('button', { name: 'Buka komentar, 0 komentar' }).textContent).toBe('Komentar');
+    expect(screen.getByText('0 komentar').tagName).not.toBe('BUTTON');
+    expect(screen.getByRole('button', { name: 'Komentar' })).toBeTruthy();
   });
 
   it('does not autoplay feed videos and defers loading until the user presses play', () => {

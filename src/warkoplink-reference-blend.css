@@ -130,7 +130,7 @@ html[data-theme="dark"] .warung-form select {
 .topic.selected {
   color: var(--wl-reference-violet-deep);
   background: #f1ebff;
-  border-color: #e2d4ff;
+  border-color: var(--wl-primary-tint);
 }
 .composer {
   border-color: var(--wl-reference-line);

@@ -100,19 +100,12 @@ Deno.test("uses a dedicated MP4 object path for feed videos", () => {
 });
 
 Deno.test("extracts MP4 duration and dimensions from bounded metadata", () => {
-  const metadata = new Uint8Array([
-    // ftyp
-    0,0,0,16, 102,116,121,112, 105,115,111,109, 0,0,2,0,
-    // moov -> mvhd (version 0, timescale 1000, duration 45000 ms)
-    0,0,0,128, 109,111,111,118,
-    0,0,0,28, 109,118,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,3,232, 0,0,175,200,
-    // tkhd (version 0, width 1920, height 1080, 16.16 fixed point)
-    0,0,0,92, 116,107,104,100, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1,
-    ...new Array(60).fill(0), 7,128,0,0, 4,56,0,0,
-    // empty but structurally valid media-data box for the metadata fixture
-    0,0,0,8, 109,100,97,116
-  ]);
-  assertEquals(parseMp4Metadata(metadata), { durationSeconds: 45, width: 1920, height: 1080 });
+  const videoTrack = makeMp4Box("trak", makeMp4TrackHeader(1920, 1080));
+  assertEquals(parseMp4Metadata(makeMp4WithTracks(videoTrack)), {
+    durationSeconds: 3,
+    width: 1920,
+    height: 1080,
+  });
 });
 
 Deno.test("rejects malformed or oversized MP4 metadata", () => {
@@ -126,4 +119,63 @@ Deno.test("applies the approved feed-video duration tiers", () => {
   assertEquals(videoDurationForAccount({ verifiedWarkopOwner: false, thematicGroupMember: true }), 60);
   assertEquals(videoDurationForAccount({ verifiedWarkopOwner: true, thematicGroupMember: false }), 180);
   assertEquals(videoDurationForAccount({ verifiedWarkopOwner: true, thematicGroupMember: true }), 180);
+});
+
+
+function makeMp4Box(type: string, payload: Uint8Array): Uint8Array {
+  const box = new Uint8Array(8 + payload.length);
+  new DataView(box.buffer).setUint32(0, box.length);
+  box.set([...type].map(character => character.charCodeAt(0)), 4);
+  box.set(payload, 8);
+  return box;
+}
+
+function joinMp4Boxes(...boxes: Uint8Array[]): Uint8Array {
+  const result = new Uint8Array(boxes.reduce((total, box) => total + box.length, 0));
+  let offset = 0;
+  for (const box of boxes) {
+    result.set(box, offset);
+    offset += box.length;
+  }
+  return result;
+}
+
+function makeMp4TrackHeader(width: number, height: number): Uint8Array {
+  const payload = new Uint8Array(84);
+  const view = new DataView(payload.buffer);
+  view.setUint32(76, width * 65536);
+  view.setUint32(80, height * 65536);
+  return makeMp4Box("tkhd", payload);
+}
+
+function makeMp4WithTracks(...tracks: Uint8Array[]): Uint8Array {
+  const ftyp = new Uint8Array([
+    0,0,0,16, 102,116,121,112, 105,115,111,109, 0,0,2,0,
+  ]);
+  const mvhdPayload = new Uint8Array(20);
+  const mvhdView = new DataView(mvhdPayload.buffer);
+  mvhdView.setUint32(12, 1000);
+  mvhdView.setUint32(16, 3000);
+  const moov = makeMp4Box("moov", joinMp4Boxes(
+    makeMp4Box("mvhd", mvhdPayload),
+    ...tracks,
+  ));
+  const mdat = makeMp4Box("mdat", new Uint8Array());
+  return joinMp4Boxes(ftyp, moov, mdat);
+}
+
+Deno.test("finds the video track when an audio track appears first in the MP4", () => {
+  const audioTrack = makeMp4Box("trak", makeMp4TrackHeader(0, 0));
+  const videoTrack = makeMp4Box("trak", makeMp4TrackHeader(1920, 1080));
+
+  assertEquals(parseMp4Metadata(makeMp4WithTracks(audioTrack, videoTrack)), {
+    durationSeconds: 3,
+    width: 1920,
+    height: 1080,
+  });
+});
+
+Deno.test("rejects MP4 files that contain no track with valid video dimensions", () => {
+  const audioTrack = makeMp4Box("trak", makeMp4TrackHeader(0, 0));
+  assertEquals(parseMp4Metadata(makeMp4WithTracks(audioTrack)), null);
 });

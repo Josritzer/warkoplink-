@@ -1,4 +1,4 @@
-import { MessageSquare, MoreHorizontal, Send, Share2, Trash2, Store } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Send, Share2, Trash2, Store, Play, Pause, RotateCcw } from 'lucide-react';
 import LikeSummary from './LikeSummary.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { displayTopic, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
@@ -106,9 +106,53 @@ function renderWarungMentions(body, warungs = [], onOpenWarung) {
 }
 
 function FeedVideo({ post }) {
+  const videoRef = useRef(null);
+  const [playbackState, setPlaybackState] = useState('paused');
+
+  async function togglePlayback() {
+    const video = videoRef.current;
+    if (!video) return;
+    if (playbackState === 'playing') {
+      video.pause();
+      setPlaybackState('paused');
+      return;
+    }
+    if (playbackState === 'ended') video.currentTime = 0;
+    try {
+      await video.play();
+      setPlaybackState('playing');
+    } catch {
+      setPlaybackState('paused');
+    }
+  }
+
+  const action = playbackState === 'playing'
+    ? { label: 'Jeda video', text: 'Jeda', Icon: Pause }
+    : playbackState === 'ended'
+      ? { label: 'Putar ulang video', text: 'Putar ulang', Icon: RotateCcw }
+      : { label: 'Putar video', text: 'Putar', Icon: Play };
+  const ActionIcon = action.Icon;
+  const statusText = playbackState === 'playing' ? 'Sedang diputar' : playbackState === 'ended' ? 'Video selesai' : 'Dijeda';
+
   return <div className="feed-video-frame">
-    <video src={post.videoURL} poster={post.videoThumbnailURL || undefined}
-      controls playsInline preload="none" aria-label="Video obrolan WarkopLink" />
+    <video
+      ref={videoRef}
+      src={post.videoURL}
+      poster={post.videoThumbnailURL || undefined}
+      playsInline
+      preload="none"
+      aria-label="Video obrolan WarkopLink"
+      onPlay={() => setPlaybackState('playing')}
+      onPause={() => { if (!videoRef.current?.ended) setPlaybackState('paused'); }}
+      onEnded={() => setPlaybackState('ended')}
+    />
+    <div className="feed-video-controls">
+      <button type="button" className="feed-video-toggle" onClick={togglePlayback} aria-label={action.label}>
+        <ActionIcon size={18} aria-hidden="true"/>
+        <span>{action.text}</span>
+      </button>
+      <span className="feed-video-status" role="status" aria-live="polite">{statusText}</span>
+    </div>
   </div>;
 }
 
@@ -216,6 +260,10 @@ export default function ChatPostCard({
     await openReplyPage(post);
   }
 
+  async function openReplyComposer() {
+    await openReplyPage(post, { focusComposer: true });
+  }
+
   const category = displayTopic(post.topic, post.postType);
   const community = getCommunityById(post.communityId);
   const linkedWarung = post.warungId ? verifiedWarungs.find(warung => warung.id === post.warungId) : null;
@@ -245,7 +293,7 @@ export default function ChatPostCard({
     <div className="post-content">
       <div className="post-head">
         <div className="post-meta">
-          <button type="button" className="post-author-profile" onClick={() => onOpenProfile?.({ uid: post.authorId, displayName: post.authorName, photoURL: post.authorPhotoURL })}>{post.authorName || 'Anggota SL'}</button><span className="post-category-label">{category}</span>{community && <span className="post-community-label">{community.name}</span>}
+          <button type="button" className="post-author-profile" onClick={() => onOpenProfile?.({ uid: post.authorId, displayName: post.authorName, photoURL: post.authorPhotoURL })}>{post.authorName || 'Anggota SL'}</button><span className="post-category-label">{category}</span>{community && community.name !== category && <span className="post-community-label">{community.name}</span>}
           <small title={post.createdAt?.toDate?.()?.toLocaleString('id-ID') || ''}>{relativePostTime(post.createdAt)}</small>
         </div>
         <div className="post-menu-wrap">
@@ -312,13 +360,14 @@ export default function ChatPostCard({
 
       <div className="post-stats post-stats-like">
         <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
-        <button className="engagement-comment-count" type="button" onClick={openCommentsForReply} aria-label={`Buka komentar, ${commentCount} komentar`}>
-          {commentCount > 0 ? `Komentar · ${commentCount}` : 'Komentar'}
-        </button>
+        <span className="engagement-comment-count" aria-label={`${commentCount} komentar`}>
+          {commentCount.toLocaleString('id-ID')} komentar
+        </span>
       </div>
       <div className="post-actions">
         <div className="post-action-wrap">
-          <button className="post-action" type="button" onClick={openCommentsForReply}><MessageSquare size={17}/> <span>Balas</span></button>
+          <button className="post-action" type="button" onClick={openCommentsForReply} aria-label="Komentar"><MessageSquare size={17}/> <span>Komentar</span></button>
+          <button className="post-action" type="button" onClick={openReplyComposer} aria-label="Balas"><Send size={17}/> <span>Balas</span></button>
         </div>
         <div className="post-action-wrap">
           <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>

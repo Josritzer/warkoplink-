@@ -90,9 +90,11 @@ describe('ChatPostCard', () => {
     expect(container.querySelector('.post-category-loker')).toBeTruthy();
   });
 
-  it('labels posts published inside an official community', () => {
-    render(<ChatPostCard {...props({ post: { ...props().post, communityId: 'ngopi-bareng' } })} />);
-    expect(screen.getByText('Ngopi Bareng', { selector: '.post-community-label' })).toBeTruthy();
+  it('does not repeat the main category as a second official-community label', () => {
+    const { container } = render(<ChatPostCard {...props({ post: { ...props().post, communityId: 'ngopi-bareng' } })} />);
+    expect(container.querySelectorAll('.post-category-label')).toHaveLength(1);
+    expect(container.querySelectorAll('.post-community-label')).toHaveLength(0);
+    expect(screen.getByText('Ngopi Bareng', { selector: '.post-category-label' })).toBeTruthy();
   });
 
   it('shows old topic labels through compatibility mapping', () => {
@@ -133,21 +135,20 @@ describe('ChatPostCard', () => {
     expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
   });
 
-  it('opens the dedicated reply page when tapping the comment count', () => {
+  it('opens the dedicated comment thread from the Komentar action, not from the count', () => {
     const values = props({ replyCounts: { 'post-1': 3 }, openReplyPage: vi.fn().mockResolvedValue(undefined) });
     render(<ChatPostCard {...values} />);
-    expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
+    expect(screen.getByText('3 komentar').tagName).not.toBe('BUTTON');
     expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /3 komentar/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Komentar' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
   });
 
-  it('Balas opens the dedicated reply page', () => {
+  it('Balas opens the thread with the reply composer focused', () => {
     const values = props({ openReplyPage: vi.fn().mockResolvedValue(undefined) });
     render(<ChatPostCard {...values} />);
     fireEvent.click(screen.getByRole('button', { name: 'Balas' }));
-    expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
-    expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
+    expect(values.openReplyPage).toHaveBeenCalledWith(values.post, { focusComposer: true });
   });
 
   // Regresi: `repliesByPost[post.id] || []` menghasilkan array baru di tiap render, sehingga efek
@@ -177,7 +178,7 @@ describe('ChatPostCard', () => {
       openReplyPage: vi.fn().mockResolvedValue(undefined)
     });
     render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: /1 komentar/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Komentar' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
     expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
     expect(counter.renders).toBeLessThanOrEqual(30);
@@ -316,12 +317,45 @@ describe('ChatPostCard — tampilan 2026', () => {
     const { container } = render(<ChatPostCard {...values} />);
     expect(screen.queryByText('3 reaksi')).toBeNull();
     expect(container.querySelectorAll('.post-stats')).toHaveLength(1);
-    expect(screen.getByRole('button', { name: /2 komentar/ })).toBeTruthy();
+    expect(screen.getByText('2 komentar').tagName).not.toBe('BUTTON');
   });
 
   it('menampilkan aksi Komentar tanpa pesan kosong yang membingungkan', () => {
     render(<ChatPostCard {...props()} />);
-    expect(screen.getByRole('button', { name: 'Buka komentar, 0 komentar' }).textContent).toBe('Komentar');
+    expect(screen.getByText('0 komentar').tagName).not.toBe('BUTTON');
+    expect(screen.getByRole('button', { name: 'Komentar' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Balas' })).toBeTruthy();
+  });
+
+  it('shows Putar, Jeda, and Putar ulang with matching playback status', async () => {
+    const { container } = render(<ChatPostCard {...props({
+      post: { ...props().post, videoURL: 'https://example.com/video.mp4' }
+    })} />);
+    const video = container.querySelector('.feed-video-frame video');
+    const play = vi.fn().mockResolvedValue(undefined);
+    const pause = vi.fn();
+    Object.defineProperty(video, 'play', { configurable: true, value: play });
+    Object.defineProperty(video, 'pause', { configurable: true, value: pause });
+
+    expect(screen.getByRole('button', { name: 'Putar video' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Dijeda');
+    fireEvent.click(screen.getByRole('button', { name: 'Putar video' }));
+    expect(play).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Jeda video' })).toBeTruthy());
+    expect(screen.getByRole('status').textContent).toBe('Sedang diputar');
+
+    fireEvent.pause(video);
+    expect(screen.getByRole('button', { name: 'Putar video' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Dijeda');
+    fireEvent.play(video);
+    expect(screen.getByRole('button', { name: 'Jeda video' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Sedang diputar');
+
+    fireEvent.ended(video);
+    expect(screen.getByRole('button', { name: 'Putar ulang video' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Video selesai');
+    fireEvent.click(screen.getByRole('button', { name: 'Putar ulang video' }));
+    expect(play).toHaveBeenCalledTimes(2);
   });
 
   it('does not autoplay feed videos and defers loading until the user presses play', () => {
@@ -338,6 +372,7 @@ describe('ChatPostCard — tampilan 2026', () => {
       const video = container.querySelector('.feed-video-frame video');
       expect(video).toBeTruthy();
       expect(video.getAttribute('preload')).toBe('none');
+      expect(video.controls).toBe(false);
       expect(video.autoplay).toBe(false);
       expect(observer).not.toHaveBeenCalled();
     } finally {

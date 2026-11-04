@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const styles = readFileSync('src/ui-2026.css', 'utf8');
+const mobileSafetyStyles = readFileSync('src/mobile-layout-safety.css', 'utf8');
 
 describe('responsivitas navigasi WarkopLink', () => {
   it('menyembunyikan navigasi bawah di desktop', () => {
@@ -15,5 +16,26 @@ describe('responsivitas navigasi WarkopLink', () => {
   it('menangani layar sangat sempit dan preferensi reduced motion', () => {
     expect(styles).toContain('@media (max-width: 360px)');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
+  });
+});
+
+
+describe('penerimaan layout feed mobile', () => {
+  it('menyisakan ruang scroll di bawah feed setelah navigasi tetap dan safe area', () => {
+    expect(mobileSafetyStyles).toContain('padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px))');
+  });
+
+  it('memakai header dan kartu ringkas dengan tiga aksi yang mudah disentuh', () => {
+    expect(mobileSafetyStyles).toContain('.app-header { height: 58px; min-height: 58px; }');
+    expect(mobileSafetyStyles).toContain('#community-feed .post-card { gap: 8px; padding: 11px; border-radius: 12px; }');
+    expect(mobileSafetyStyles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(mobileSafetyStyles).toContain('min-height: 44px');
+  });
+
+  it('memakai teks sekunder berkontras dan kontrol video terpisah dari area gambar', () => {
+    expect(mobileSafetyStyles).toContain('#community-feed .post-meta small');
+    expect(mobileSafetyStyles).toContain('color: var(--wl-ink)');
+    expect(mobileSafetyStyles).toContain('.feed-video-controls');
+    expect(mobileSafetyStyles).toContain('min-height: 44px');
   });
 });

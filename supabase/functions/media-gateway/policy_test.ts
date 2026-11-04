@@ -99,6 +99,55 @@ Deno.test("uses a dedicated MP4 object path for feed videos", () => {
   assertEquals(mediaObjectPath("user_1", "video", "post_1", id), `posts/post_1/${id}.mp4`);
 });
 
+function mp4Box(type: string, payload: Uint8Array): Uint8Array {
+  const bytes = new Uint8Array(8 + payload.length);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, bytes.length);
+  bytes.set(new TextEncoder().encode(type), 4);
+  bytes.set(payload, 8);
+  return bytes;
+}
+
+function mp4Concat(...parts: Uint8Array[]): Uint8Array {
+  const result = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+  let offset = 0;
+  for (const part of parts) { result.set(part, offset); offset += part.length; }
+  return result;
+}
+
+function mp4Track(width: number, height: number): Uint8Array {
+  const payload = new Uint8Array(84);
+  const view = new DataView(payload.buffer);
+  view.setUint32(76, width * 65536);
+  view.setUint32(80, height * 65536);
+  return mp4Box("trak", mp4Box("tkhd", payload));
+}
+
+function realisticMp4Fixture(extendedMdat = false): Uint8Array {
+  const ftyp = mp4Box("ftyp", new Uint8Array([105,115,111,109,0,0,2,0]));
+  const mvhdPayload = new Uint8Array(20);
+  const mvhdView = new DataView(mvhdPayload.buffer);
+  mvhdView.setUint32(12, 1000);
+  mvhdView.setUint32(16, 3000);
+  const moov = mp4Box("moov", mp4Concat(
+    mp4Box("mvhd", mvhdPayload),
+    mp4Track(0, 0), // Audio track may appear before the video track.
+    mp4Track(1280, 720),
+  ));
+  const mdat = extendedMdat
+    ? new Uint8Array([0,0,0,1,109,100,97,116,0,0,0,0,0,0,0,16])
+    : mp4Box("mdat", new Uint8Array(0));
+  return mp4Concat(ftyp, moov, mdat);
+}
+
+Deno.test("selects the video track when an audio track appears first", () => {
+  assertEquals(parseMp4Metadata(realisticMp4Fixture()), { durationSeconds: 3, width: 1280, height: 720 });
+});
+
+Deno.test("accepts MP4 boxes that use 64-bit extended sizes", () => {
+  assertEquals(parseMp4Metadata(realisticMp4Fixture(true)), { durationSeconds: 3, width: 1280, height: 720 });
+});
+
 Deno.test("extracts MP4 duration and dimensions from bounded metadata", () => {
   const metadata = new Uint8Array([
     // ftyp

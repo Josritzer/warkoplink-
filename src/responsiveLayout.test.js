@@ -25,11 +25,22 @@ describe('penerimaan layout feed mobile', () => {
     expect(mobileSafetyStyles).toContain('padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px))');
   });
 
-  it('memakai header dan kartu ringkas dengan tiga aksi yang mudah disentuh', () => {
+  it('memakai header ringkas dan empat aksi feed dalam grid dua kolom pada ponsel', () => {
     expect(mobileSafetyStyles).toContain('.app-header { height: 58px; min-height: 58px; }');
     expect(mobileSafetyStyles).toContain('#community-feed .post-card { gap: 8px; padding: 11px; border-radius: 12px; }');
-    expect(mobileSafetyStyles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(mobileSafetyStyles).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
     expect(mobileSafetyStyles).toContain('min-height: 44px');
+  });
+
+
+  it('menjaga label aksi utuh, rasio video intrinsik, dan kontras state Suka pada 360–390 px', () => {
+    expect(mobileSafetyStyles).toContain('white-space: nowrap;');
+    expect(mobileSafetyStyles).toContain('word-break: keep-all;');
+    expect(mobileSafetyStyles).toContain('aspect-ratio: auto !important;');
+    expect(mobileSafetyStyles).toContain('object-fit: contain;');
+    expect(mobileSafetyStyles).toContain('.like-toggle[aria-pressed="true"]');
+    expect(mobileSafetyStyles).toContain('padding-bottom: calc(136px + env(safe-area-inset-bottom, 0px))');
+    expect(mobileSafetyStyles).toContain('@media (max-width: 390px)');
   });
 
   it('memakai teks sekunder berkontras dan kontrol video terpisah dari area gambar', () => {

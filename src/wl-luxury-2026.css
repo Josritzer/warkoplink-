@@ -1,28 +1,28 @@
-/* WarkopLink Luxury 2026 — editorial discovery, warm surfaces, deep violet.
+/* WarkopLink Luxury 2026 — editorial discovery, Coffee Culture surfaces. 
    Visual layer only: preserve Firebase, authentication, routes and stored records. */
 :root {
-  --wl-bg: #f7f4f0;
-  --wl-surface: #fffdfa;
-  --wl-surface-soft: #f0eaf4;
-  --wl-surface-brand: #eee5f5;
-  --wl-text: #211827;
-  --wl-text-muted: #706675;
-  --wl-text-on-brand: #fffdfa;
+  --wl-bg: var(--wl-cream);
+  --wl-surface: var(--wl-milk);
+  --wl-surface-soft: var(--wl-cream);
+  --wl-surface-brand: var(--wl-primary-tint);
+  --wl-text: var(--wl-espresso);
+  --wl-text-muted: var(--wl-muted);
+  --wl-text-on-brand: var(--wl-milk);
   --wl-brand: var(--wl-coffee);
   --wl-brand-hover: var(--wl-dark-roast);
-  --wl-brand-pressed: #321a49;
-  --wl-brand-soft: #eee5f5;
+  --wl-brand-pressed: var(--wl-dark-roast);
+  --wl-brand-soft: var(--wl-primary-tint);
   --wl-focus: var(--wl-caramel);
-  --wl-border: #e5dce8;
-  --wl-border-strong: #c9b9d2;
+  --wl-border: var(--wl-line);
+  --wl-border-strong: var(--wl-hairline);
   --wl-success: #286c56;
   --wl-success-soft: #e8f3ed;
   --wl-warning: #876a3d;
   --wl-warning-soft: #f5efe3;
   --wl-danger: #a33c4a;
   --wl-danger-soft: #f8eaec;
-  --wl-gold: #aa8958;
-  --wl-gold-soft: #e9dcc5;
+  --wl-gold: var(--wl-caramel);
+  --wl-gold-soft: var(--wl-primary-tint);
   --wl-radius-card: 22px;
   --wl-radius-panel: 28px;
   --wl-shadow-card: 0 12px 34px rgb(42 27 49 / 7%);
@@ -30,20 +30,20 @@
   --wl-cream: var(--wl-bg);
   --wl-paper: var(--wl-surface);
   --wl-line: var(--wl-border);
-  --wl-line-soft: #f0eaf2;
+  --wl-line-soft: var(--wl-line-soft);
   --wl-ink: var(--wl-text);
   --wl-muted: var(--wl-text-muted);
   --wl-primary: var(--wl-brand);
   --wl-primary-deep: var(--wl-brand-hover);
   --wl-primary-bright: var(--wl-caramel);
   --wl-primary-tint: var(--wl-brand-soft);
-  --wl-primary-tint-2: #e2d5eb;
-  --wl-primary-rgb: 86, 49, 127;
+  --wl-primary-tint-2: var(--wl-primary-tint-2);
+  --wl-primary-rgb: 152, 97, 59;
   --wl-on-primary: var(--wl-text-on-brand);
   --wl-blue: var(--wl-brand);
   --wl-blue-deep: var(--wl-brand-hover);
-  --wl-plum: #211827;
-  --wl-plum-2: #30223a;
+  --wl-plum: var(--wl-espresso);
+  --wl-plum-2: var(--wl-dark-roast);
   --wl-jade: var(--wl-success);
   --wl-jade-tint: var(--wl-success-soft);
   --wl-info: var(--wl-brand);
@@ -52,29 +52,29 @@
   --wl-shadow: var(--wl-shadow-card);
 }
 html[data-theme="dark"] {
-  --wl-bg: #17121c;
-  --wl-surface: #211a28;
-  --wl-surface-soft: #2c2234;
-  --wl-surface-brand: #382944;
-  --wl-text: #f5eff7;
-  --wl-text-muted: #c2b6c8;
-  --wl-text-on-brand: #201629;
+  --wl-bg: var(--wl-espresso);
+  --wl-surface: var(--wl-dark-roast);
+  --wl-surface-soft: #5A4031;
+  --wl-surface-brand: #5A4031;
+  --wl-text: var(--wl-milk);
+  --wl-text-muted: #E0CDB9;
+  --wl-text-on-brand: var(--wl-espresso);
   --wl-brand: var(--wl-caramel);
   --wl-brand-hover: var(--wl-caramel);
-  --wl-brand-pressed: #e5d4f3;
-  --wl-brand-soft: #382944;
+  --wl-brand-pressed: var(--wl-primary-tint-2);
+  --wl-brand-soft: #5A4031;
   --wl-focus: var(--wl-caramel);
-  --wl-border: #403448;
-  --wl-border-strong: #65536f;
+  --wl-border: #624636;
+  --wl-border-strong: #8D6342;
   --wl-success: #8bcdb0;
   --wl-success-soft: #20372f;
   --wl-warning: #e0c18c;
   --wl-warning-soft: #3b3022;
   --wl-danger: #efabb4;
   --wl-danger-soft: #42272e;
-  --wl-gold: #d5b987;
-  --wl-gold-soft: #574733;
-  --wl-primary-rgb: 195, 161, 228;
+  --wl-gold: var(--wl-caramel);
+  --wl-gold-soft: #5A4031;
+  --wl-primary-rgb: 152, 97, 59;
   --wl-primary-bright: var(--wl-caramel);
   --wl-info: var(--wl-caramel);
   --wl-hairline: rgb(213 185 135 / 25%);
@@ -153,12 +153,12 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
   box-shadow: 0 28px 64px -32px rgb(32 20 42 / 58%);
   overflow: hidden;
 }
-.hero h1 { color: #fffdfa; font-size: clamp(38px, 5vw, 64px); letter-spacing: -.055em; line-height: 1.02; }
-.hero h1 em { color: #e7d3ae; }
+.hero h1 { color: var(--wl-milk); font-size: clamp(38px, 5vw, 64px); letter-spacing: -.055em; line-height: 1.02; }
+.hero h1 em { color: var(--wl-caramel); }
 .hero-copy > p { color: rgb(255 253 250 / 78%); font-size: 15px; line-height: 1.8; }
-.hero .eyebrow, .hero-proof { color: #e8d9c2; }
-.hero .eyebrow::before { background: #d5b987; }
-.hero .button-dark { background: #f5eddf; color: #2b1c35; border-color: #d5b987; box-shadow: none; }
+.hero .eyebrow, .hero-proof { color: var(--wl-cream); }
+.hero .eyebrow::before { background: var(--wl-caramel); }
+.hero .button-dark { background: var(--wl-cream); color: var(--wl-dark-roast); border-color: var(--wl-caramel); box-shadow: none; }
 .trust-row { border-bottom-color: var(--wl-border); }
 .trust-row > div { background: var(--wl-surface); border: 1px solid var(--wl-border); border-radius: 18px; box-shadow: 0 8px 22px rgb(42 27 49 / 4%); }
 .desktop-sidebar { background: var(--wl-surface); border: 1px solid var(--wl-border); border-radius: 22px; }
@@ -259,7 +259,7 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
 .warung-registration-progress-track { height: 5px; border-radius: 99px; background: var(--wl-surface-soft); overflow: hidden; }
 .warung-registration-progress-track span { background: linear-gradient(90deg, var(--wl-brand), var(--wl-gold)); border-radius: inherit; }
 .warung-registration-summary { background: var(--wl-surface-soft); border: 1px solid var(--wl-border); border-radius: 14px; padding: 15px; }
-.warung-profile-cover { aspect-ratio: 16 / 7; max-height: 390px; border-radius: 26px; overflow: hidden; background: linear-gradient(135deg, #e9e0ed, #cdbbd8); }
+.warung-profile-cover { aspect-ratio: 16 / 7; max-height: 390px; border-radius: 26px; overflow: hidden; background: linear-gradient(135deg, var(--wl-cream), var(--wl-primary-tint-2)); }
 .warung-profile-cover img { width: 100%; height: 100%; object-fit: cover; }
 .warung-profile-heading { align-items: center; gap: 15px; padding: 20px 0; border-bottom: 1px solid var(--wl-border); }
 .warung-profile-title-group h1 { font-size: clamp(28px, 4vw, 42px); }

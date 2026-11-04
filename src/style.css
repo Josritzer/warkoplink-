@@ -622,7 +622,7 @@
 .member-profile-back:hover{background:var(--wl-line-soft)}
 .member-profile-edit{min-height:38px;display:inline-flex;align-items:center;gap:6px}
 .member-profile-hero{border-bottom:1px solid var(--wl-line)}
-.member-profile-cover{height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;overflow:hidden;background:radial-gradient(ellipse at 18% 10%,rgba(255,255,255,.28),transparent 38%),linear-gradient(125deg,#253a78,#4656a7 58%,#7252a0);color:#fff;letter-spacing:.16em;font-size:19px;font-weight:850}
+.member-profile-cover{height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;overflow:hidden;background:radial-gradient(ellipse at 18% 10%,rgba(255,255,255,.28),transparent 38%),linear-gradient(125deg,var(--wl-espresso),var(--wl-dark-roast) 58%,var(--wl-coffee));color:#fff;letter-spacing:.16em;font-size:19px;font-weight:850}
 .member-profile-cover small{font-size:11px;font-weight:500;letter-spacing:.04em;opacity:.85}
 .member-profile-identity{display:flex;align-items:flex-end;gap:14px;padding:0 20px 14px;min-width:0}
 .member-profile-avatar{width:116px;height:116px;flex:0 0 116px;display:grid;place-items:center;overflow:hidden;margin-top:-54px;border:5px solid var(--wl-paper);border-radius:50%;background:var(--wl-line-soft);color:var(--wl-muted)}
@@ -817,6 +817,6 @@
 .account-auth-actions .button { min-width: 112px; justify-content: center; }
 .owner-login-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; padding: 18px 20px; border: 1px solid var(--line, #dfe5f0); border-radius: 18px; background: var(--surface, #fff); }
 .owner-login-card b { display: block; }
-.owner-login-card p { margin: 5px 0 0; color: var(--muted, #71809b); font-size: .9rem; }
+.owner-login-card p { margin: 5px 0 0; color: var(--wl-muted); font-size: .9rem; }
 .owner-login-card .button { flex: 0 0 auto; }
 @media (max-width: 560px) { .owner-login-card { align-items: stretch; flex-direction: column; } .owner-login-card .button { width: 100%; justify-content: center; } }

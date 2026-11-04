@@ -3,8 +3,8 @@ import { flushSync } from 'react-dom';
 import { runViewTransition } from './navigation/viewTransitions.js';
 import { EMPTY_REACTIONS, reactionFieldForEmoji, shouldRemoveReaction, summarizeReactions } from './reactions.js';
 import {
-  createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
-  signOut, updateProfile
+  createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword,
+  signInWithPopup, signOut, updateProfile
 } from 'firebase/auth';
 import {
   addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, increment, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where
@@ -541,6 +541,42 @@ export default function App() {
     setRegisterMode(register);
     setAuthError('');
     setAuthOpen(true);
+  }
+
+  async function handleOwnerGoogleLogin() {
+    if (!auth) {
+      setNotice('Firebase belum dikonfigurasi. Login pemilik belum dapat digunakan.');
+      return;
+    }
+    setBusy(true);
+    setAuthError('');
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account', login_hint: 'srawungjagad3714@gmail.com' });
+      const result = await signInWithPopup(auth, provider);
+      const signedInUser = result.user;
+      const allowedEmail = String(signedInUser.email || '').toLowerCase() === 'srawungjagad3714@gmail.com';
+      const isOwnerUid = isPlatformOwner(signedInUser);
+      const token = await signedInUser.getIdTokenResult(true);
+      const hasOwnerClaim = platformRoleFromClaims(token.claims) === PLATFORM_ROLES.SUPER_ADMIN;
+      if (!allowedEmail || !isOwnerUid || !hasOwnerClaim) {
+        await signOut(auth);
+        setNotice('Akses pemilik ditolak. Gunakan akun Google pemilik yang sudah terdaftar dan memiliki akses Super Admin.');
+        return;
+      }
+      setNotice('Login pemilik berhasil. Owner Control Center siap dibuka dari menu Akun.');
+    } catch (error) {
+      console.warn('Login Google pemilik gagal:', error?.code || 'unknown');
+      setNotice(error?.code === 'auth/unauthorized-domain'
+        ? 'Domain WarkopLink belum diizinkan pada Firebase Authentication.'
+        : error?.code === 'auth/operation-not-allowed'
+          ? 'Login Google belum diaktifkan pada Firebase Authentication.'
+          : error?.code === 'auth/popup-blocked'
+            ? 'Popup login diblokir browser. Izinkan popup lalu coba lagi.'
+            : 'Login Google pemilik gagal. Periksa koneksi dan coba kembali.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleAuth(event) {
@@ -1414,7 +1450,7 @@ export default function App() {
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
         {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className={`email-verification-panel ${emailVerified ? 'is-verified' : 'is-pending'}`} role="status" aria-live="polite"><div><b>{emailVerified ? 'Email terverifikasi' : 'Email belum terverifikasi'}</b><small>{emailVerified ? 'Alamat email akun ini sudah dikonfirmasi.' : 'Verifikasi email diperlukan untuk mengaktifkan hak Super Admin.'}</small></div>{!emailVerified && <div className="email-verification-actions"><button className="button button-quiet" type="button" onClick={handleResendVerification} disabled={verificationBusy}>{verificationBusy ? 'Memproses…' : 'Kirim ulang verifikasi'}</button><button className="button button-quiet" type="button" onClick={handleRefreshVerificationStatus} disabled={verificationBusy}>Saya sudah verifikasi</button></div>}</div><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article><button className="button button-dark account-edit-profile" type="button" onClick={() => navigateSection('Edit Profil')}>Edit Profil</button>{isPlatformOwnerAccount && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Owner Control Center</button>}</> :
-          <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
+          <><article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Selamat datang di WarkopLink</b><p>Masuk untuk melanjutkan, atau daftar jika belum memiliki akun.</p></div><div className="account-auth-actions"><button className="button button-dark" type="button" onClick={() => openAuth(false)}>Masuk</button><button className="button button-quiet" type="button" onClick={() => openAuth(true)}>Daftar</button></div></article><section className="owner-login-card" aria-label="Login pemilik platform"><div><b>Login Pemilik Platform</b><p>Khusus akun Google pemilik yang terdaftar.</p></div><button className="button button-quiet" type="button" onClick={handleOwnerGoogleLogin} disabled={busy}>{busy ? 'Memproses…' : 'Masuk dengan Google'}</button></section></>}
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu masyarakat menemukan dan mengenal warkop di seluruh Indonesia. Pendaftaran tetap gratis.</p></section> :
       section === 'Profil Warkop' ? <WarungProfile warungId={selectedWarungId} db={db} user={user} onBack={() => navigateSection('Cari Warkop')} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :

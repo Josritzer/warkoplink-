@@ -24,6 +24,8 @@ vi.mock('firebase/auth', () => ({
   onAuthStateChanged: vi.fn((auth, callback) => { state.authCallback = callback; return vi.fn(); }),
   createUserWithEmailAndPassword: vi.fn(),
   signInWithEmailAndPassword: vi.fn(),
+  signInWithPopup: vi.fn(),
+  GoogleAuthProvider: class GoogleAuthProvider { setCustomParameters() {} },
   signOut: vi.fn(),
   updateProfile: vi.fn(),
   sendEmailVerification: vi.fn(),
@@ -971,5 +973,20 @@ describe('aksesibilitas form pendaftaran warkop', () => {
     expect(longitude.getAttribute('inputmode')).toBe('decimal');
     expect(screen.getByText(/Lintang: koordinat utara\/selatan/)).toBeTruthy();
     expect(screen.getByText(/Bujur: koordinat timur\/barat/)).toBeTruthy();
+  });
+});
+
+describe('akses login halaman Akun', () => {
+  it('menampilkan tombol Masuk dan Daftar untuk pengunjung yang belum login', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(null);
+    await user.click(screen.getByRole('button', { name: 'Akun' }));
+    const loginButtons = screen.getAllByRole('button', { name: 'Masuk' });
+    expect(loginButtons.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('button', { name: 'Daftar' })).toBeTruthy();
+    await user.click(loginButtons[loginButtons.length - 1]);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Masuk' })).toBeTruthy();
   });
 });

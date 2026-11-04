@@ -144,11 +144,11 @@ describe('ChatPostCard', () => {
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
   });
 
-  it('does not show a second Balas action on the post card', () => {
+  it('Balas opens the thread with the reply composer focused', () => {
     const values = props({ openReplyPage: vi.fn().mockResolvedValue(undefined) });
     render(<ChatPostCard {...values} />);
-    expect(screen.queryByRole('button', { name: 'Balas' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Komentar' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Balas' }));
+    expect(values.openReplyPage).toHaveBeenCalledWith(values.post, { focusComposer: true });
   });
 
   // Regresi: `repliesByPost[post.id] || []` menghasilkan array baru di tiap render, sehingga efek
@@ -324,6 +324,7 @@ describe('ChatPostCard — tampilan 2026', () => {
     render(<ChatPostCard {...props()} />);
     expect(screen.getByText('0 komentar').tagName).not.toBe('BUTTON');
     expect(screen.getByRole('button', { name: 'Komentar' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Balas' })).toBeTruthy();
   });
 
   it('does not autoplay feed videos and defers loading until the user presses play', () => {
@@ -340,6 +341,7 @@ describe('ChatPostCard — tampilan 2026', () => {
       const video = container.querySelector('.feed-video-frame video');
       expect(video).toBeTruthy();
       expect(video.getAttribute('preload')).toBe('none');
+      expect(video.controls).toBe(false);
       expect(video.autoplay).toBe(false);
       expect(observer).not.toHaveBeenCalled();
     } finally {

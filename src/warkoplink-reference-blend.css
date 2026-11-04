@@ -10,21 +10,6 @@
   --wl-reference-canvas: var(--wl-cream);
   --wl-reference-line: var(--wl-line);
 }
-html[data-theme="light"] {
-  --wl-primary: var(--wl-reference-violet);
-  --wl-primary-bright: var(--wl-caramel);
-  --wl-primary-tint: var(--wl-primary-tint);
-  --wl-primary-rgb: 152, 97, 59;
-  --wl-blue: var(--wl-reference-violet);
-  --wl-blue-deep: var(--wl-reference-violet-deep);
-  --wl-cream: var(--wl-reference-canvas);
-  --wl-paper: var(--wl-milk);
-  --wl-line: var(--wl-reference-line);
-  --wl-line-soft: var(--wl-line-soft);
-  --wl-ink: var(--wl-espresso);
-  --wl-plum: var(--wl-dark-roast);
-  --wl-muted: var(--wl-muted);
-}
 html[data-theme="dark"] {
   --wl-reference-paper: var(--wl-espresso);
   --wl-reference-canvas: var(--wl-espresso);

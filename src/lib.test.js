@@ -81,9 +81,12 @@ describe('postAuthorNameFor', () => {
   it('menggunakan nama profil tersimpan yang menjadi acuan Firestore, bukan nama Firebase Auth', () => {
     expect(postAuthorNameFor({ displayName: 'Nama Google' }, { displayName: 'Nama Profil' })).toBe('Nama Profil');
   });
-  it('kembali ke nama Auth jika profil belum memiliki nama tampilan yang valid', () => {
+  it('mempertahankan nilai persis profil termasuk spasi karena Firestore membandingkan nilai mentah', () => {
+    expect(postAuthorNameFor({ displayName: 'Nama Auth' }, { displayName: '  Nama Profil  ' })).toBe('  Nama Profil  ');
+  });
+  it('kembali ke nama Auth hanya jika profil tidak memiliki field displayName string', () => {
     expect(postAuthorNameFor({ displayName: 'Sari' }, {})).toBe('Sari');
-    expect(postAuthorNameFor({ displayName: 'Sari' }, { displayName: ' ' })).toBe('Sari');
+    expect(postAuthorNameFor({ displayName: 'Sari' }, { displayName: null })).toBe('Sari');
   });
 });
 

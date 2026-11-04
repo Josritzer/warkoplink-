@@ -1,7 +1,7 @@
 import { COMMUNITY_GROUPS } from './community/communityCatalog.js';
 import { describe, expect, it } from 'vitest';
 import {
-  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, displayTopic, filterPosts,
+  FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, postAuthorNameFor, canonicalTopic, displayTopic, filterPosts,
   postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails, validateTopic
 } from './lib.js';
 
@@ -74,6 +74,16 @@ describe('authorNameFor', () => {
     expect(authorNameFor({ displayName: 'Sari', email: 'sari@x.com' })).toBe('Sari');
     expect(authorNameFor({ displayName: null, email: 'rahasia@x.com' })).toBe('Anggota');
     expect(authorNameFor(null)).toBe('Anggota');
+  });
+});
+
+describe('postAuthorNameFor', () => {
+  it('menggunakan nama profil tersimpan yang menjadi acuan Firestore, bukan nama Firebase Auth', () => {
+    expect(postAuthorNameFor({ displayName: 'Nama Google' }, { displayName: 'Nama Profil' })).toBe('Nama Profil');
+  });
+  it('kembali ke nama Auth jika profil belum memiliki nama tampilan yang valid', () => {
+    expect(postAuthorNameFor({ displayName: 'Sari' }, {})).toBe('Sari');
+    expect(postAuthorNameFor({ displayName: 'Sari' }, { displayName: ' ' })).toBe('Sari');
   });
 });
 

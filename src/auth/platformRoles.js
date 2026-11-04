@@ -16,5 +16,5 @@ export function platformRoleFromClaims(claims = {}) {
 }
 
 export function canAccessAdminPanel(role) {
-  return role === PLATFORM_ROLES.SUPER_ADMIN || role === PLATFORM_ROLES.MODERATOR;
+  return role === PLATFORM_ROLES.SUPER_ADMIN;
 }

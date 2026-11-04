@@ -132,6 +132,7 @@ function FeedVideo({ post }) {
       ? { label: 'Putar ulang video', text: 'Putar ulang', Icon: RotateCcw }
       : { label: 'Putar video', text: 'Putar', Icon: Play };
   const ActionIcon = action.Icon;
+  const statusText = playbackState === 'playing' ? 'Sedang diputar' : playbackState === 'ended' ? 'Video selesai' : 'Dijeda';
 
   return <div className="feed-video-frame">
     <video
@@ -150,7 +151,7 @@ function FeedVideo({ post }) {
         <ActionIcon size={18} aria-hidden="true"/>
         <span>{action.text}</span>
       </button>
-      {playbackState === 'ended' && <span className="feed-video-status" role="status">Video selesai</span>}
+      <span className="feed-video-status" role="status" aria-live="polite">{statusText}</span>
     </div>
   </div>;
 }

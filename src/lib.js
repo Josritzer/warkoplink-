@@ -134,8 +134,14 @@ export function authErrorMessage(error) {
   return AUTH_MESSAGES[error?.code] || 'Proses autentikasi gagal. Silakan coba lagi.';
 }
 
-export function postErrorMessage(error) {
+export function postErrorMessage(error, stage = '') {
   if (error?.code === 'permission-denied') {
+    if (stage === 'create-post') {
+      return 'Firestore menolak data posting. Periksa kategori, jenis posting, keanggotaan komunitas, dan data thumbnail video.';
+    }
+    if (stage === 'ensure-profile') {
+      return 'Izin Firestore menolak pemeriksaan atau penyimpanan profil. Muat ulang sesi akun lalu coba lagi.';
+    }
     return 'Pesan ditolak oleh aturan keamanan. Pastikan Anda sudah masuk dan isi pesan sesuai ketentuan.';
   }
   if (error?.code === 'unavailable') {

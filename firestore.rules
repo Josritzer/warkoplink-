@@ -276,7 +276,6 @@ service cloud.firestore {
         && (!data.keys().hasAny(['communityId']) || (
           isOfficialCommunityId(data.communityId)
           && validCommunityTopic(data.communityId, data.topic)
-          && exists(/databases/$(database)/documents/communities/$(data.communityId)/members/$(request.auth.uid))
         ))
         && data.createdAt == request.time;
     }
@@ -457,19 +456,14 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
-    // Tujuh komunitas resmi bersifat terbuka. Anggota mengelola keanggotaannya sendiri;
-    // tidak ada dokumen admin atau moderator per grup.
+    // Legacy membership records are retained for compatibility only.
+    // Seven conversation categories no longer use join/leave membership.
     match /communities/{communityId}/members/{memberUid} {
       allow read: if signedIn() && request.auth.uid == memberUid;
-      allow create: if signedIn()
+      allow create, update: if false;
+      allow delete: if signedIn()
         && isOfficialCommunityId(communityId)
-        && request.auth.uid == memberUid
-        && request.resource.data.keys().hasAll(['uid', 'createdAt'])
-        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.createdAt == request.time;
-      allow update: if false;
-      allow delete: if signedIn() && request.auth.uid == memberUid;
+        && request.auth.uid == memberUid;
     }
 
     // Grup Tematik: keanggotaan mandiri, tanpa peran admin/moderator khusus.

@@ -3,8 +3,8 @@
    interactions with the existing WarkopLink layout, Firebase flows and routes.
    Presentation only: no auth, Firestore schema, profile or post data changes. */
 :root {
-  --wl-reference-violet: #7c3aed;
-  --wl-reference-violet-deep: #5b21b6;
+  --wl-reference-violet: var(--wl-coffee);
+  --wl-reference-violet-deep: var(--wl-dark-roast);
   --wl-reference-persimmon: #ef7655;
   --wl-reference-paper: #fff;
   --wl-reference-canvas: #f7f7fb;
@@ -12,7 +12,7 @@
 }
 html[data-theme="light"] {
   --wl-primary: var(--wl-reference-violet);
-  --wl-primary-bright: #8b5cf6;
+  --wl-primary-bright: var(--wl-caramel);
   --wl-primary-tint: #f1ebff;
   --wl-primary-rgb: 124, 58, 237;
   --wl-blue: var(--wl-reference-violet);
@@ -56,7 +56,7 @@ html[data-theme="dark"] .bottom-nav {
 }
 html[data-theme="dark"] .bottom-nav-item { color: #b6afc4; }
 html[data-theme="dark"] .bottom-nav-item.active {
-  color: #c4a8ff;
+  color: var(--wl-caramel);
   background: #302344;
 }
 html[data-theme="dark"] .search,
@@ -78,7 +78,7 @@ html[data-theme="dark"] .warung-form select {
 }
 .app-header .brand-mark,
 .sidebar-brand-mark {
-  background: linear-gradient(135deg, var(--wl-reference-violet), #a78bfa);
+  background: linear-gradient(135deg, var(--wl-reference-violet), var(--wl-caramel));
 }
 .app-header .brand strong { letter-spacing: .045em; }
 .button-dark {
@@ -87,7 +87,7 @@ html[data-theme="dark"] .warung-form select {
 }
 .button-dark:hover { background: var(--wl-reference-violet-deep); }
 .button-quiet,
-.button-install { background: #f1ebff; color: #5b21b6; }
+.button-install { background: var(--wl-primary-tint); color: var(--wl-dark-roast); }
 .desktop-layout {
   gap: 24px;
   grid-template-columns: 224px minmax(0, 1fr) 286px;
@@ -138,7 +138,7 @@ html[data-theme="dark"] .warung-form select {
   box-shadow: 0 3px 14px rgba(35, 24, 54, .025);
 }
 .composer:focus-within {
-  border-color: #c4a8ff;
+  border-color: var(--wl-caramel);
   box-shadow: 0 0 0 3px rgba(124, 58, 237, .08);
 }
 .post-list { gap: 0; border-top: 1px solid var(--wl-reference-line); }
@@ -159,7 +159,7 @@ html[data-theme="dark"] .warung-form select {
   flex-basis: 40px;
   border-radius: 50%;
   background: #eee6ff;
-  color: #6d28d9;
+  color: var(--wl-coffee);
   overflow: hidden;
 }
 .post-avatar img,
@@ -176,7 +176,7 @@ html[data-theme="dark"] .warung-form select {
 .post-meta span {
   border-radius: 6px;
   background: #f3effb;
-  color: #6d28d9;
+  color: var(--wl-coffee);
   padding: 4px 7px;
   font-size: 10px;
 }

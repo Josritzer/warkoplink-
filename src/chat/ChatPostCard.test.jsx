@@ -90,9 +90,11 @@ describe('ChatPostCard', () => {
     expect(container.querySelector('.post-category-loker')).toBeTruthy();
   });
 
-  it('labels posts published inside an official community', () => {
-    render(<ChatPostCard {...props({ post: { ...props().post, communityId: 'ngopi-bareng' } })} />);
-    expect(screen.getByText('Ngopi Bareng', { selector: '.post-community-label' })).toBeTruthy();
+  it('does not repeat the main category as a second official-community label', () => {
+    const { container } = render(<ChatPostCard {...props({ post: { ...props().post, communityId: 'ngopi-bareng' } })} />);
+    expect(container.querySelectorAll('.post-category-label')).toHaveLength(1);
+    expect(container.querySelectorAll('.post-community-label')).toHaveLength(0);
+    expect(screen.getByText('Ngopi Bareng', { selector: '.post-category-label' })).toBeTruthy();
   });
 
   it('shows old topic labels through compatibility mapping', () => {
@@ -176,7 +178,7 @@ describe('ChatPostCard', () => {
       openReplyPage: vi.fn().mockResolvedValue(undefined)
     });
     render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: /1 komentar/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Komentar' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
     expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
     expect(counter.renders).toBeLessThanOrEqual(30);
@@ -315,7 +317,7 @@ describe('ChatPostCard — tampilan 2026', () => {
     const { container } = render(<ChatPostCard {...values} />);
     expect(screen.queryByText('3 reaksi')).toBeNull();
     expect(container.querySelectorAll('.post-stats')).toHaveLength(1);
-    expect(screen.getByRole('button', { name: /2 komentar/ })).toBeTruthy();
+    expect(screen.getByText('2 komentar').tagName).not.toBe('BUTTON');
   });
 
   it('menampilkan aksi Komentar tanpa pesan kosong yang membingungkan', () => {

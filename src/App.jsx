@@ -15,6 +15,7 @@ import { isPlatformOwner } from './auth/platformOwner.js';
 import { PLATFORM_ROLES, platformRoleFromClaims } from './auth/platformRoles.js';
 import { emailVerificationErrorMessage, refreshAccountVerification, sendAccountVerificationEmail } from './auth/emailVerification.js';
 import ChatPanel from './chat/ChatPanel.jsx';
+import ReelsExperience from './chat/ReelsExperience.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
@@ -32,7 +33,7 @@ import ThematicGroupChat from './thematicGroups/ThematicGroupChat.jsx';
 import { isThematicGroupId } from './thematicGroups/thematicGroupCatalog.js';
 import { extractMentionUsernames } from './notifications/notificationModel.js';
 import { renderMemberMentions } from './notifications/mentionText.jsx';
-import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell } from 'lucide-react';
+import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell, Video } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts, isPublicPost,
   postErrorMessage, postAuthorNameFor, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
@@ -1334,6 +1335,7 @@ export default function App() {
 
   const feedPosts = section === 'Grup Komunitas' ? [...communityPosts, ...olderCommunityPosts] : allPosts;
   const visiblePosts = filterPosts(feedPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
+  const reelsPosts = allPosts.map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
   const resolvedSelectedReplyPost = selectedReplyPost ? withPublicAuthorProfile(selectedReplyPost, publicAuthorProfiles[selectedReplyPost.authorId]) : null;
   const resolvedReplies = selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []).map(reply => withPublicAuthorProfile(reply, publicAuthorProfiles[reply.authorId])) : [];
   const activeCategory = composerTopic;
@@ -1375,7 +1377,7 @@ export default function App() {
     />}
   </>;
 
-  return <div className={section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>
+  return <div className={section === 'Reels' ? 'app-shell reels-view' : section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>
     <header className="topbar app-header">
       <a className="brand" href="#" onClick={e => { e.preventDefault(); navigateSection('Beranda'); }}>
         <span className="brand-mark"><Sparkles size={21}/></span>
@@ -1396,6 +1398,7 @@ export default function App() {
         <p className="sidebar-label">MENU UTAMA</p>
         <nav className="sidebar-nav" aria-label="Navigasi utama">
           <button type="button" aria-label="Desktop: Beranda" className={section === 'Beranda' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Beranda'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Home size={18}/><span>Beranda</span></button>
+          <button type="button" aria-label="Desktop: Reels" className={section === 'Reels' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Reels')}><Video size={18}/><span>Reels</span></button>
           <button type="button" aria-label="Desktop: Cari Warkop" className={section === 'Cari Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Cari Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Compass size={18}/><span>Cari Warkop</span></button>
           <button type="button" aria-label="Desktop: Pesan" className={section === 'Pesan' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageSquare size={18}/><span>Pesan</span></button>
           <button type="button" aria-label="Desktop: Notifikasi" className={section === 'Notifikasi' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Notifikasi')}><Bell size={18}/><span>Notifikasi</span>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}</button>
@@ -1415,7 +1418,15 @@ export default function App() {
         </button>
       </aside>
       <main className="app-page-content">
-      {section === 'Panel Admin' && isPlatformOwnerAccount ? <OwnerControlCenter db={db} user={user} onNotice={setNotice}/> :
+      {section === 'Reels' ? <ReelsExperience
+        posts={reelsPosts} status={postsStatus} user={user} verifiedWarungs={verifiedWarungs}
+        likedPosts={likedPosts} likeCounts={likeCounts} reactionSummaries={reactionSummaries} replyCounts={replyCounts}
+        hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts} loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
+        onLike={handleLikePost} onComments={openReplyPage} onShare={sharePost} onOpenProfile={openMemberProfile} onOpenWarung={openWarungProfile}
+        onNavigate={next => { if (next === 'Pesan') setMessageInitialTab('pribadi'); navigateSection(next); }}
+        onRetry={() => setPostsRetry(value => value + 1)}
+        onCreateVideo={() => { navigateSection('Obrolan'); setComposerOpen(true); setComposerTopic('Ngopi Bareng'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
+      /> : section === 'Panel Admin' && isPlatformOwnerAccount ? <OwnerControlCenter db={db} user={user} onNotice={setNotice}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses pemilik platform tidak tersedia</h2><p>Owner Control Center hanya dapat dibuka oleh akun pemilik platform yang telah terverifikasi dan memiliki klaim akses resmi.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
       section === 'Pesan' ? <MessagesPage db={db} user={user} initialTab={messageInitialTab} initialConversationId={openConversationId} initialFriend={messageTarget} onOpenMemberProfile={openMemberProfile}/> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
@@ -1499,6 +1510,7 @@ export default function App() {
     </div>
     <nav className="bottom-nav" aria-label="Navigasi aplikasi">
       <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
+      <button className={section === 'Reels' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Reels')} aria-current={section === 'Reels' ? 'page' : undefined}><Video size={20}/><span>Reels</span></button>
       <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>
       <button className={section === 'Pesan' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); }} aria-current={section === 'Pesan' ? 'page' : undefined}><MessageSquare size={20}/><span>Pesan</span></button>
       <button className={section === 'Notifikasi' ? 'bottom-nav-item active' : 'bottom-nav-item'} aria-label="Notifikasi" onClick={() => navigateSection('Notifikasi')} aria-current={section === 'Notifikasi' ? 'page' : undefined}><span className="notification-nav-icon"><Bell size={20}/>{notificationCount > 0 && <i>{notificationCount > 9 ? '9+' : notificationCount}</i>}</span><span>Notifikasi</span></button>

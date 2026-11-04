@@ -166,16 +166,25 @@ describe('preferensi tampilan', () => {
 
 
 describe('navigasi utama dan halaman pesan', () => {
-  it('menampilkan tepat lima menu utama dan tidak menaruh pendaftaran di navigasi bawah', () => {
+  it('menampilkan enam menu utama termasuk Reels dan tidak menaruh pendaftaran di navigasi bawah', () => {
     render(<App />);
     const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
     const labels = within(nav).getAllByRole('button').map(button => button.textContent.trim());
-    expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
+    expect(labels).toEqual(['Beranda', 'Reels', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
     expect(within(nav).queryByRole('button', { name: /Daftar|Ajukan Warkop/ })).toBeNull();
     const desktopNav = screen.getByRole('navigation', { name: 'Navigasi utama' });
     expect(within(desktopNav).getAllByRole('button').map(button => button.textContent.trim()))
-      .toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
+      .toEqual(['Beranda', 'Reels', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
     expect(screen.getByRole('button', { name: 'Obrolan' })).toBeTruthy();
+  });
+
+  it('membuka WARKOPLINK Reels dan menampilkan empty state lokal saat belum ada video', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitPosts([]);
+    await user.click(screen.getByRole('button', { name: 'Reels' }));
+    expect(screen.getByRole('region', { name: 'WARKOPLINK Reels' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tutup Reels' })).toBeTruthy();
   });
 
   it('hanya menampilkan tab Pribadi dan Teman; diskusi komunitas tetap di halaman Obrolan', async () => {

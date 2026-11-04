@@ -41,7 +41,7 @@ describe('Obrolan directory', () => {
 
   it('keeps the seven existing communities available in a separate tab', () => {
     render(<ConversationHub onSelectCommunity={vi.fn()} onSelectThematicGroup={vi.fn()}/>);
-    fireEvent.click(screen.getByRole('tab', { name: 'Komunitas' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Kategori obrolan' }));
     expect(screen.getByRole('tab', { name: 'Komunitas' }).getAttribute('aria-selected')).toBe('true');
     expect(screen.getByRole('heading', { name: 'Pilih topik obrolan.' })).toBeTruthy();
     expect(screen.getByText('Ngopi Bareng')).toBeTruthy();

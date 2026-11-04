@@ -106,8 +106,8 @@ describe('platform role claims', () => {
     await assertFails(moderateReport(db, 'member'));
   });
 
-  it('legacy admin claim remains a super-admin compatibility path during migration', async () => {
-    await assertSucceeds(approvePendingWarung(asLegacyAdmin(), 'legacy-admin'));
+  it('legacy admin claim remains a compatibility path for the fixed owner only', async () => {
+    await assertSucceeds(approvePendingWarung(asLegacyAdmin(), OWNER_UID));
   });
 
   it('platform role audit is readable only by super_admin and never writable by clients', async () => {

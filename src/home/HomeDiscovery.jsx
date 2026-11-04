@@ -74,7 +74,7 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
     </nav>
 
     <section className="home-discovery-section" id="home-warungs">
-      <SectionHeading eyebrow="TEMPAT PILIHAN" title="Warkop untuk disinggahi" description="Warkop terverifikasi dengan informasi yang tersedia." action="Lihat direktori" onAction={onOpenDirectory}/>
+      <SectionHeading eyebrow="TEMPAT PILIHAN" title="Warkop terverifikasi" description="Temukan warkop dengan profil dan informasi yang sudah diverifikasi." action="Lihat direktori" onAction={onOpenDirectory}/>
       {visibleWarungs.length ? <div className="home-warung-grid">{visibleWarungs.slice(0, 8).map(warung => {
         const photo = Array.isArray(warung.photos) ? warung.photos.find(value => typeof value === 'string' && value.trim()) : '';
         const openState = isOpenNow(warung);

@@ -4,11 +4,13 @@ import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
 
+const OWNER_UID = 'OYgUG5eMWjfmHJ0VLaSXr34H7Dv2';
+
 let env;
 const asMember = () => env.authenticatedContext('member').firestore();
 const asModerator = () => env.authenticatedContext('moderator', { platformRole: 'moderator' }).firestore();
-const asSuperAdmin = () => env.authenticatedContext('owner', { platformRole: 'super_admin' }).firestore();
-const asLegacyAdmin = () => env.authenticatedContext('legacy-admin', { admin: true }).firestore();
+const asSuperAdmin = () => env.authenticatedContext(OWNER_UID, { platformRole: 'super_admin' }).firestore();
+const asLegacyAdmin = () => env.authenticatedContext(OWNER_UID, { admin: true }).firestore();
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({
@@ -69,13 +71,13 @@ async function moderateReport(db, actorUid) {
 
 describe('platform role claims', () => {
   it('super_admin can verify a warung and create its atomic audit record', async () => {
-    await assertSucceeds(approvePendingWarung(asSuperAdmin(), 'owner'));
+    await assertSucceeds(approvePendingWarung(asSuperAdmin(), OWNER_UID));
   });
 
-  it('moderator can read reports and perform audited report moderation', async () => {
+  it('moderator cannot read reports or perform report moderation', async () => {
     const db = asModerator();
-    await assertSucceeds(getDoc(doc(db, 'postReports/report-1')));
-    await assertSucceeds(moderateReport(db, 'moderator'));
+    await assertFails(getDoc(doc(db, 'postReports/report-1')));
+    await assertFails(moderateReport(db, 'moderator'));
   });
 
   it('moderator cannot approve warungs or read verification audit records', async () => {
@@ -97,7 +99,7 @@ describe('platform role claims', () => {
   it('platform role audit is readable only by super_admin and never writable by clients', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'platformRoleAudit/event-1'), {
-        targetUid: 'moderator', newRole: 'moderator', actorUid: 'owner', createdAt: Timestamp.now(),
+        targetUid: 'moderator', newRole: 'moderator', actorUid: OWNER_UID, createdAt: Timestamp.now(),
       });
     });
     await assertSucceeds(getDoc(doc(asSuperAdmin(), 'platformRoleAudit/event-1')));

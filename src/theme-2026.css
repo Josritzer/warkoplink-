@@ -13,6 +13,11 @@
 
   /* Surfaces and typography */
   --wl-paper: var(--wl-milk);
+  --wl-surface: var(--wl-milk);
+  --wl-surface-raised: #FFFFFF;
+  --wl-text-primary: var(--wl-espresso);
+  --wl-text-secondary: #655044;
+  --wl-border: #DED1C1;
   --wl-line: #DED1C1;
   --wl-line-soft: #E9DFD2;
   --wl-ink: var(--wl-espresso);
@@ -51,8 +56,31 @@
   /* Type, geometry and elevation */
   --wl-font-display: "Fraunces", "Playfair Display", Georgia, "Times New Roman", serif;
   --wl-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --wl-radius-lg: 22px;
+  --wl-radius-xs: 6px;
+  --wl-radius-sm: 10px;
   --wl-radius-md: 14px;
+  --wl-radius-lg: 22px;
+  --wl-radius-xl: 28px;
+  --wl-space-1: 4px;
+  --wl-space-2: 8px;
+  --wl-space-3: 12px;
+  --wl-space-4: 16px;
+  --wl-space-5: 20px;
+  --wl-space-6: 24px;
+  --wl-space-8: 32px;
+  --wl-space-10: 40px;
+  --wl-space-12: 48px;
+  --wl-type-xs: 0.75rem;
+  --wl-type-sm: 0.875rem;
+  --wl-type-md: 1rem;
+  --wl-type-lg: 1.125rem;
+  --wl-type-xl: 1.5rem;
+  --wl-type-display: clamp(2rem, 4.2vw, 3.5rem);
+  --wl-border-subtle: 1px solid rgba(152, 97, 59, .14);
+  --wl-border-strong: 1px solid rgba(152, 97, 59, .28);
+  --wl-focus-ring: 0 0 0 3px rgba(197, 138, 82, .38);
+  --wl-state-hover: #E9D3BC;
+  --wl-state-active: #D8B995;
   --wl-shadow: 0 12px 32px rgba(33, 26, 22, .08);
   --wl-shadow-raised: 0 22px 54px rgba(33, 26, 22, .14);
   --wl-glass-bg: rgba(250, 247, 241, .14);
@@ -63,6 +91,11 @@ html[data-theme="dark"] {
   color-scheme: dark;
   --wl-cream: var(--wl-espresso);
   --wl-paper: var(--wl-dark-roast);
+  --wl-surface: var(--wl-dark-roast);
+  --wl-surface-raised: #59402F;
+  --wl-text-primary: var(--wl-milk);
+  --wl-text-secondary: #E0CDB9;
+  --wl-border: #624636;
   --wl-line: #624636;
   --wl-line-soft: #563C2E;
   --wl-ink: var(--wl-milk);
@@ -87,6 +120,11 @@ html[data-theme="dark"] {
   --wl-gold: var(--wl-caramel);
   --wl-gold-soft: #8D6342;
   --wl-hairline: rgba(197, 138, 82, .28);
+  --wl-border-subtle: 1px solid rgba(250, 247, 241, .12);
+  --wl-border-strong: 1px solid rgba(197, 138, 82, .34);
+  --wl-focus-ring: 0 0 0 3px rgba(197, 138, 82, .42);
+  --wl-state-hover: #684A36;
+  --wl-state-active: #76563D;
   --wl-shadow: 0 12px 32px rgba(0, 0, 0, .2);
   --wl-shadow-raised: 0 22px 54px rgba(0, 0, 0, .32);
   --wl-glass-bg: rgba(33, 26, 22, .48);

@@ -1,9 +1,9 @@
 /* Home Discovery Marketplace — scoped to Beranda only. */
 .home-discovery {
-  --home-brand: #4058c8;
-  --home-brand-hover: #2d43a8;
-  --home-brand-soft: #edf1ff;
-  --home-accent: #b8c7ff;
+  --home-brand: var(--wl-coffee, #98613B);
+  --home-brand-hover: var(--wl-dark-roast, #493126);
+  --home-brand-soft: #F2E4D4;
+  --home-accent: var(--wl-caramel, #C58A52);
   --home-surface: var(--wl-paper, #fffdf9);
   --home-text: var(--wl-ink, #241a20);
   --home-muted: var(--wl-muted, #6b5f66);
@@ -24,7 +24,7 @@
   min-height: 310px;
   overflow: hidden;
   padding: clamp(24px, 4vw, 48px);
-  border: 1px solid rgb(151 174 255 / 32%);
+  border: 1px solid rgb(250 247 241 / 24%);
   border-radius: 28px;
   background:
     radial-gradient(ellipse at 82% 14%, rgb(137 162 255 / 22%), transparent 23rem),
@@ -36,7 +36,7 @@
 .home-discovery-hero-copy { position: relative; z-index: 2; max-width: 620px; }
 .home-discovery-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--home-accent); font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
 .home-discovery-hero h1 { max-width: 620px; margin: 14px 0 12px; color: #fffdfa; font-family: var(--wl-font-display, Georgia, serif); font-size: clamp(34px, 4.2vw, 56px); font-weight: 500; line-height: 1.04; letter-spacing: -.055em; text-wrap: balance; }
-.home-discovery-hero h1 em { color: #cbd7ff; font-style: normal; }
+.home-discovery-hero h1 em { color: var(--wl-caramel, #C58A52); font-style: normal; }
 .home-discovery-hero-copy > p { max-width: 490px; margin: 0 0 20px; color: rgb(255 253 250 / 76%); font-size: 14px; line-height: 1.75; }
 .home-discovery-search { display: flex; align-items: center; gap: 11px; width: min(100%, 520px); min-height: 52px; padding: 0 16px; border: 1px solid rgb(255 255 255 / 35%); border-radius: 14px; background: #fffdfa; color: #211827; box-shadow: 0 12px 28px rgb(10 7 13 / 18%); }
 .home-discovery-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #211827; font-size: 13px; }
@@ -170,4 +170,82 @@ html[data-theme="dark"] .home-discovery {
   --home-brand-hover: #c4d0ff;
   --home-brand-soft: #28365f;
   --home-accent: #cbd7ff;
+}
+
+
+/* Coffee Culture hero: full-bleed photography with one restrained glass text surface. */
+.home-discovery-hero {
+  display: flex;
+  align-items: center;
+  min-height: clamp(370px, 35vw, 490px);
+  padding: clamp(20px, 4vw, 48px);
+  border: 1px solid rgba(250, 247, 241, .24);
+  border-radius: 28px;
+  background-color: #211A16;
+  background-image:
+    linear-gradient(90deg, rgba(25, 18, 14, .82) 0%, rgba(33, 26, 22, .54) 48%, rgba(33, 26, 22, .16) 100%),
+    linear-gradient(0deg, rgba(33, 26, 22, .28), rgba(33, 26, 22, .04)),
+    url("https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2200&q=85");
+  background-size: cover;
+  background-position: center 54%;
+  box-shadow: 0 26px 60px -34px rgba(33, 26, 22, .62);
+}
+.home-discovery-hero-copy {
+  width: min(100%, 720px);
+  max-width: 720px;
+  padding: clamp(20px, 3vw, 34px);
+  border: 1px solid rgba(250, 247, 241, .24);
+  border-radius: 22px;
+  background: rgba(33, 26, 22, .38);
+  box-shadow: 0 18px 48px rgba(18, 12, 9, .16), inset 0 1px 0 rgba(250, 247, 241, .1);
+  -webkit-backdrop-filter: blur(16px) saturate(118%);
+  backdrop-filter: blur(16px) saturate(118%);
+}
+.home-discovery-eyebrow { color: #E8B77F; }
+.home-discovery-hero h1 { color: #FAF7F1; max-width: 680px; }
+.home-discovery-hero h1 em { color: #E8B77F; }
+.home-discovery-hero-copy > p { color: rgba(250, 247, 241, .88); }
+.home-discovery-search {
+  border-color: rgba(250, 247, 241, .3);
+  background: rgba(250, 247, 241, .14);
+  color: #FAF7F1;
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.home-discovery-search input { color: #FAF7F1; }
+.home-discovery-search input::placeholder { color: rgba(250, 247, 241, .72); }
+.home-discovery-search button { background: rgba(197, 138, 82, .24); color: #FAF7F1; }
+.home-discovery-hero-note { color: rgba(250, 247, 241, .8); }
+.home-discovery-hero-art { display: none; }
+.home-discovery button:focus-visible,
+.home-discovery input:focus-visible {
+  outline: 3px solid #E8B77F;
+  outline-offset: 3px;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .home-discovery-hero-copy { background: rgba(33, 26, 22, .82); }
+  .home-discovery-search { background: rgba(33, 26, 22, .72); }
+}
+@media (max-width: 620px) {
+  .home-discovery-hero {
+    min-height: 430px;
+    align-items: end;
+    padding: 14px;
+    border-radius: 22px;
+    background-position: 58% center;
+    background-image:
+      linear-gradient(0deg, rgba(25, 18, 14, .86) 0%, rgba(33, 26, 22, .52) 55%, rgba(33, 26, 22, .12) 100%),
+      url("https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1000&q=82");
+  }
+  .home-discovery-hero-copy {
+    padding: 18px 16px;
+    border-radius: 18px;
+    background: rgba(33, 26, 22, .48);
+  }
+  .home-discovery-hero h1 { font-size: clamp(32px, 8.8vw, 42px); }
+  .home-discovery-hero-copy > p { font-size: 12px; line-height: 1.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-discovery-hero, .home-discovery-hero-copy { transition: none !important; }
 }

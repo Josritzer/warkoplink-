@@ -259,6 +259,10 @@ export default function ChatPostCard({
     await openReplyPage(post);
   }
 
+  async function openReplyComposer() {
+    await openReplyPage(post, { focusComposer: true });
+  }
+
   const category = displayTopic(post.topic, post.postType);
   const community = getCommunityById(post.communityId);
   const linkedWarung = post.warungId ? verifiedWarungs.find(warung => warung.id === post.warungId) : null;
@@ -362,6 +366,7 @@ export default function ChatPostCard({
       <div className="post-actions">
         <div className="post-action-wrap">
           <button className="post-action" type="button" onClick={openCommentsForReply} aria-label="Komentar"><MessageSquare size={17}/> <span>Komentar</span></button>
+          <button className="post-action" type="button" onClick={openReplyComposer} aria-label="Balas"><Send size={17}/> <span>Balas</span></button>
         </div>
         <div className="post-action-wrap">
           <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>

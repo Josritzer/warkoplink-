@@ -96,8 +96,11 @@ export function authorNameFor(user) {
 
 // Firestore Rules require posts.authorName to match profiles/{uid}.displayName exactly.
 export function postAuthorNameFor(user, profile) {
-  const profileName = String(profile?.displayName ?? '').trim();
-  return validateDisplayName(profileName).ok ? profileName : authorNameFor(user);
+  // Firestore Rules compare this value byte-for-byte with profiles/{uid}.displayName.
+  // Do not trim or normalize an existing stored value before writing the post.
+  return typeof profile?.displayName === 'string'
+    ? profile.displayName
+    : authorNameFor(user);
 }
 
 export function filterPosts(posts, topic, search) {

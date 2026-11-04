@@ -3,7 +3,7 @@ import {
   collection, getCountFromServer, getDocs, limit, orderBy, query, where
 } from 'firebase/firestore';
 import {
-  Activity, ArrowUpRight, Bell, ChartNoAxesCombined, ChevronRight, CircleAlert,
+  Activity, ArrowUpRight, BarChart3, ChevronRight, CircleAlert,
   LayoutDashboard, RefreshCw, ShieldCheck, Store, Users, MessageSquareText
 } from 'lucide-react';
 import AdminPanel from './AdminPanel.jsx';
@@ -170,7 +170,7 @@ export default function OwnerControlCenter({ db, user, onNotice }) {
       {section === 'dashboard' ? <>
         <div className="owner-welcome-strip">
           <div><span>OVERVIEW PLATFORM</span><b>Selamat datang di pusat kendali WarkopLink</b><p>Angka di bawah diambil langsung dari koleksi Firestore yang dapat diakses akun pemilik.</p></div>
-          <ChartNoAxesCombined size={34}/>
+          <BarChart3 size={34}/>
         </div>
 
         <div className="owner-metric-grid" aria-label="Statistik platform">

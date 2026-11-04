@@ -150,3 +150,13 @@
 @media (prefers-reduced-motion: reduce) {
   .home-discovery *, .home-discovery *::before, .home-discovery *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* Beranda uses the discovery canvas instead of the legacy three-column summary rail. */
+@media (min-width: 1200px) {
+  .app-shell.home-view .desktop-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+    justify-content: stretch;
+    gap: 24px;
+  }
+  .app-shell.home-view .app-page-content { width: 100%; max-width: none; min-width: 0; }
+}

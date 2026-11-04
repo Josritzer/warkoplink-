@@ -141,6 +141,7 @@ function FeedVideo({ post }) {
       poster={post.videoThumbnailURL || undefined}
       playsInline
       preload="none"
+      style={{ aspectRatio: 'auto' }}
       aria-label="Video obrolan WarkopLink"
       onPlay={() => setPlaybackState('playing')}
       onPause={() => { if (!videoRef.current?.ended) setPlaybackState('paused'); }}

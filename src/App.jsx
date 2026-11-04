@@ -15,6 +15,7 @@ import { isPlatformOwner } from './auth/platformOwner.js';
 import { PLATFORM_ROLES, platformRoleFromClaims } from './auth/platformRoles.js';
 import { emailVerificationErrorMessage, refreshAccountVerification, sendAccountVerificationEmail } from './auth/emailVerification.js';
 import ChatPanel from './chat/ChatPanel.jsx';
+import HomeDiscovery from './home/HomeDiscovery.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
@@ -1342,7 +1343,16 @@ export default function App() {
   const recentSidebarPosts = allPosts.slice(0, 3);
 
   const communityChatPanel = <>
-    {section === 'Beranda' && <CommunityShortcuts onSelectCommunity={openCommunity} onViewAll={() => navigateSection('Obrolan')}/>}
+    {section === 'Beranda' && <HomeDiscovery
+      warungs={verifiedWarungs}
+      posts={allPosts}
+      postsStatus={postsStatus}
+      onOpenWarung={openWarungProfile}
+      onOpenPost={openReplyPage}
+      onOpenDirectory={() => navigateSection('Cari Warkop')}
+      onOpenCommunity={() => navigateSection('Obrolan')}
+    />}
+    {section === 'Beranda' && <div id="home-community"><CommunityShortcuts onSelectCommunity={openCommunity} onViewAll={() => navigateSection('Obrolan')}/></div>}
     {section === 'Obrolan' && <ConversationHub db={db} user={user} onSelectCommunity={openCommunity} onSelectThematicGroup={openThematicGroup}/>}
     {section === 'Grup Tematik Chat' && <ThematicGroupChat db={db} user={user} groupId={selectedThematicGroupId} targetMessageId={selectedThematicMessageId} onBack={() => navigateSection('Obrolan')} onNotice={setNotice} onRequestAuth={() => openAuth(false)} onOpenMention={handleOpenMention}/>}
     {section === 'Grup Komunitas' && <CommunityGroupHeader
@@ -1481,7 +1491,7 @@ export default function App() {
       </section></div>}
       {notice && <div className="app-notice" role="status" aria-live="polite">{notice}</div>}
       </main>
-      {(section === 'Beranda' || section === 'Obrolan') && <aside className="desktop-right-rail" aria-label="Ringkasan komunitas">
+      {section === 'Obrolan' && <aside className="desktop-right-rail" aria-label="Ringkasan komunitas">
         <section className="rail-panel">
           <div className="rail-panel-heading"><h2>Warkop terverifikasi</h2><span>{verifiedWarungs.length}</span></div>
           {verifiedWarungs.length ? <div className="rail-warung-list">{verifiedWarungs.slice(0, 4).map(warung => <button type="button" key={warung.id} className="rail-warung" onClick={() => openWarungProfile(warung.id)}><span className="rail-warung-avatar"><Store size={15}/></span><span><b>{warung.name || 'Warkop lokal'}</b><small>{warung.address || 'Profil warkop terverifikasi'}</small></span><ArrowUpRight size={14}/></button>)}</div> : <p className="rail-empty">Belum ada warkop terverifikasi untuk ditampilkan.</p>}

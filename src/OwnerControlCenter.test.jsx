@@ -5,7 +5,7 @@ vi.mock('firebase/firestore', () => ({
   collection: vi.fn((db, name) => ({ name })),
   getCountFromServer: vi.fn(async (target) => {
     const name = target.args[0].name;
-    const filteredVerified = target.args.some((part) => part.where?.[1] === 'verified');
+    const filteredVerified = target.args.some((part) => part.where?.[2] === 'verified');
     const values = { publicProfiles: 17, warungs: filteredVerified ? 3 : 5, posts: 31, postReports: 2 };
     return { data: () => ({ count: values[name] ?? 0 }) };
   }),

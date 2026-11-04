@@ -94,6 +94,12 @@ describe('platform role claims', () => {
     await assertFails(getDoc(doc(otherLegacyAdmin, 'postReports/report-1')));
   });
 
+  it('requires the fixed owner account to carry an approved owner claim', async () => {
+    const ownerWithoutClaim = env.authenticatedContext(OWNER_UID).firestore();
+    await assertFails(getDoc(doc(ownerWithoutClaim, 'warungs/pending-warung')));
+    await assertFails(getDoc(doc(ownerWithoutClaim, 'postReports/report-1')));
+  });
+
   it('moderator cannot approve warungs or read verification audit records', async () => {
     const db = asModerator();
     await assertFails(approvePendingWarung(db, 'moderator'));

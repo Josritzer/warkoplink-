@@ -105,9 +105,9 @@ export function parseMp4Metadata(bytes: Uint8Array): { durationSeconds: number; 
   const moov = findBox(ftypSize, bytes.length, "moov");
   const mdat = findBox(ftypSize, bytes.length, "mdat");
   if (!moov || !mdat || mdat.size < 8) return null;
-  const mvhd = findBox(moov.start + 8, moov.start + moov.size, "mvhd");
-  const tkhd = findBox(moov.start + 8, moov.start + moov.size, "tkhd");
-  if (!mvhd || !tkhd || mvhd.size < 28 || tkhd.size < 24) return null;
+  const moovEnd = moov.start + moov.size;
+  const mvhd = findBox(moov.start + 8, moovEnd, "mvhd");
+  if (!mvhd || mvhd.size < 28) return null;
 
   const version = bytes[mvhd.start + 8];
   let timescale = 0;
@@ -122,13 +122,33 @@ export function parseMp4Metadata(bytes: Uint8Array): { durationSeconds: number; 
     duration = Number(rawDuration);
   } else return null;
 
-  const tkhdVersion = bytes[tkhd.start + 8];
-  if (tkhdVersion !== 0 && tkhdVersion !== 1) return null;
-  const width = Math.floor(readU32(tkhd.start + tkhd.size - 8) / 65536);
-  const height = Math.floor(readU32(tkhd.start + tkhd.size - 4) / 65536);
+  // A valid MP4 can place its audio trak before its video trak. Do not
+  // mistake the first tkhd (often 0x0 for audio) for the video's dimensions.
+  const tracks: { start: number; size: number }[] = [];
+  let offset = moov.start + 8;
+  while (offset + 8 <= moovEnd) {
+    const size = readU32(offset);
+    if (size < 8 || offset + size > moovEnd) return null;
+    if (typeAt(offset + 4) === "trak") tracks.push({ start: offset, size });
+    offset += size;
+  }
+
+  const videoDimensions = tracks.map((track) => {
+    const tkhd = findBox(track.start + 8, track.start + track.size, "tkhd");
+    if (!tkhd || tkhd.size < 24) return null;
+    const tkhdVersion = bytes[tkhd.start + 8];
+    if (tkhdVersion !== 0 && tkhdVersion !== 1) return null;
+    return {
+      width: Math.floor(readU32(tkhd.start + tkhd.size - 8) / 65536),
+      height: Math.floor(readU32(tkhd.start + tkhd.size - 4) / 65536),
+    };
+  }).find((dimensions) => dimensions && dimensions.width > 0 && dimensions.height > 0);
+
+  if (!videoDimensions) return null;
+  const { width, height } = videoDimensions;
   const durationSeconds = duration / timescale;
   if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 180 ||
-      !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
+      !Number.isInteger(width) || !Number.isInteger(height) ||
       Math.max(width, height) > 1920 || Math.min(width, height) > 1080) return null;
   return { durationSeconds, width, height };
 }

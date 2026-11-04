@@ -43,7 +43,7 @@ export function CommunityDirectory({ onSelectCommunity }) {
   return <section className="community-directory" aria-labelledby="community-directory-title">
     <div className="community-section-heading">
       <div><span className="eyebrow">7 KATEGORI OBROLAN</span><h2 id="community-directory-title">Pilih topik obrolan.</h2><p>Tujuh kategori terbuka. Pilih topik dan langsung ikut berdiskusi.</p></div>
-      <span className="community-total">7 komunitas</span>
+      <span className="community-total">7 kategori</span>
     </div>
     <div className="community-directory-grid">
       {COMMUNITY_GROUPS.map((community) => <article className="community-directory-card" key={community.id}>

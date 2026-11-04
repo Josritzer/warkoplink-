@@ -1,95 +1,102 @@
-/* WarkopLink — sistem warna 2026 (satu-satunya sumber token warna).
-   Arah: krem hangat "kopi susu" sebagai dasar, Plum Noir untuk teks dan mode gelap,
-   Persimmon sebagai satu aksen utama, Jade untuk status positif (buka/aktif),
-   Wasabi untuk sorotan kecil, Cool Blue untuk tautan dan info.
-   Terinspirasi Pinterest Palette 2026 (Cool Blue, Jade, Plum Noir, Wasabi, Persimmon);
-   nilai hex dihitung sendiri dan sudah diuji kontras WCAG AA untuk teks.
-   Hanya lapisan visual: tidak menyentuh Firebase, auth, data, moderasi, atau routing. */
-
+/* WARKOPLINK Coffee Culture 2026 — single source of visual tokens.
+   Brand palette: Espresso, Dark Roast, Coffee, Caramel, Cream and Milk.
+   Semantic status colors remain separate from brand colors. */
 :root {
   color-scheme: light;
+  /* Official brand colors */
+  --wl-espresso: #211A16;
+  --wl-dark-roast: #493126;
+  --wl-coffee: #98613B;
+  --wl-caramel: #C58A52;
+  --wl-cream: #F1E7D7;
+  --wl-milk: #FAF7F1;
 
-  /* Permukaan */
-  --wl-cream: #f7f5f1;
-  --wl-paper: #fffdf9;
-  --wl-line: #e9e0da;
-  --wl-line-soft: #f1eae4;
+  /* Surfaces and typography */
+  --wl-paper: var(--wl-milk);
+  --wl-line: #DED1C1;
+  --wl-line-soft: #E9DFD2;
+  --wl-ink: var(--wl-espresso);
+  --wl-muted: #655044;
 
-  /* Teks */
-  --wl-ink: #241a20;
-  --wl-muted: #6b5f66;
-
-  /* Aksen utama: Persimmon */
-  --wl-primary: #4b5fc7;        /* tombol utama, putih di atasnya 4.96:1 */
-  --wl-primary-deep: #3546a5;
-  --wl-primary-bright: #6577e8; /* hanya dekoratif: garis, ikon besar, glow */
-  --wl-primary-tint: #e9edff;
-  --wl-primary-tint-2: #d9e0ff;
-  --wl-primary-rgb: 75, 95, 199;
-  --wl-on-primary: #ffffff;
-
-  /* Pendukung */
-  --wl-jade: #0d7a5f;
-  --wl-jade-bright: #2fbf9b;
-  --wl-jade-tint: #e3f4ee;
-  --wl-wasabi: #c6e03a;
-  --wl-info: #2f6fe4;
-  --wl-info-tint: #e8f0fe;
-  --wl-plum: #1c1420;           /* sidebar, tombol gelap */
-  --wl-plum-2: #281c2e;
-
-  /* Emas champagne: hanya untuk garis halus dan dekorasi, bukan teks */
-  --wl-gold: #b08d57;
-  --wl-gold-soft: #e3d2b4;
-  --wl-hairline: rgba(176, 141, 87, .3);
-
-  /* Tipografi */
-  --wl-font-display: "Fraunces", "Playfair Display", Georgia, "Times New Roman", serif;
-  --wl-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-
-  /* Alias lama agar kode yang masih memakai var(--wl-blue) ikut berganti */
+  /* Compatibility aliases used by existing components */
+  --wl-primary: var(--wl-coffee);
+  --wl-primary-deep: var(--wl-dark-roast);
+  --wl-primary-bright: var(--wl-caramel);
+  --wl-primary-tint: #F2E4D4;
+  --wl-primary-tint-2: #E9D3BC;
+  --wl-primary-rgb: 152, 97, 59;
+  --wl-on-primary: #FFFFFF;
+  --wl-info: var(--wl-dark-roast);
+  --wl-info-tint: #E9DFD2;
+  --wl-plum: var(--wl-espresso);
+  --wl-plum-2: var(--wl-dark-roast);
   --wl-blue: var(--wl-primary);
   --wl-blue-deep: var(--wl-primary-deep);
 
+  /* Semantic states — intentionally distinct from brand palette */
+  --wl-jade: #246B52;
+  --wl-jade-bright: #3B8A6B;
+  --wl-jade-tint: #E4F0E8;
+  --wl-wasabi: #D8B86A;
+  --wl-danger: #A33D36;
+  --wl-danger-soft: #F7E8E5;
+  --wl-warning: #805A20;
+  --wl-warning-soft: #F5EEDC;
+
+  /* Caramel is reserved for restrained accents and focus indicators */
+  --wl-gold: var(--wl-caramel);
+  --wl-gold-soft: #E8CBA9;
+  --wl-hairline: rgba(152, 97, 59, .22);
+
+  /* Type, geometry and elevation */
+  --wl-font-display: "Fraunces", "Playfair Display", Georgia, "Times New Roman", serif;
+  --wl-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --wl-radius-lg: 22px;
   --wl-radius-md: 14px;
-  --wl-shadow: 0 10px 30px rgba(36, 26, 32, .07);
+  --wl-shadow: 0 12px 32px rgba(33, 26, 22, .08);
+  --wl-shadow-raised: 0 22px 54px rgba(33, 26, 22, .14);
+  --wl-glass-bg: rgba(250, 247, 241, .14);
+  --wl-glass-border: rgba(250, 247, 241, .28);
+  --wl-glass-blur: 16px;
 }
-
 html[data-theme="dark"] {
   color-scheme: dark;
-  --wl-cream: #16101a;
-  --wl-paper: #201826;
-  --wl-line: #33283a;
-  --wl-line-soft: #2a2031;
-  --wl-ink: #f4ecf1;
-  --wl-muted: #b3a6b0;
-
-  --wl-primary: #9aa8ff;        /* teks gelap di atasnya 7.3:1 */
-  --wl-primary-deep: #b5beff;
-  --wl-primary-bright: #9aa8ff;
-  --wl-primary-tint: #242b4d;
-  --wl-primary-tint-2: #30395f;
-  --wl-primary-rgb: 154, 168, 255;
-  --wl-on-primary: #1a0f08;
-
-  --wl-jade: #4fd6b2;
-  --wl-jade-tint: #17302b;
-  --wl-info: #7aa7ff;
-  --wl-info-tint: #1c2640;
-  --wl-plum: #0f0a12;
-  --wl-plum-2: #1a1220;
-  --wl-gold: #d4b27a;
-  --wl-gold-soft: #8a7048;
-  --wl-hairline: rgba(212, 178, 122, .28);
-  --wl-shadow: none;
+  --wl-cream: var(--wl-espresso);
+  --wl-paper: var(--wl-dark-roast);
+  --wl-line: #624636;
+  --wl-line-soft: #563C2E;
+  --wl-ink: var(--wl-milk);
+  --wl-muted: #E0CDB9;
+  --wl-primary: var(--wl-coffee);
+  --wl-primary-deep: #C58A52;
+  --wl-primary-bright: var(--wl-caramel);
+  --wl-primary-tint: #5A4031;
+  --wl-primary-tint-2: #684A36;
+  --wl-primary-rgb: 152, 97, 59;
+  --wl-on-primary: var(--wl-milk);
+  --wl-info: var(--wl-caramel);
+  --wl-info-tint: #5A4031;
+  --wl-plum: var(--wl-espresso);
+  --wl-plum-2: var(--wl-dark-roast);
+  --wl-jade: #8CC7A8;
+  --wl-jade-tint: #294638;
+  --wl-danger: #F0A39A;
+  --wl-danger-soft: #58332F;
+  --wl-warning: #E6C27D;
+  --wl-warning-soft: #57452A;
+  --wl-gold: var(--wl-caramel);
+  --wl-gold-soft: #8D6342;
+  --wl-hairline: rgba(197, 138, 82, .28);
+  --wl-shadow: 0 12px 32px rgba(0, 0, 0, .2);
+  --wl-shadow-raised: 0 22px 54px rgba(0, 0, 0, .32);
+  --wl-glass-bg: rgba(33, 26, 22, .48);
+  --wl-glass-border: rgba(250, 247, 241, .2);
 }
-
 html, body { background: var(--wl-cream); color: var(--wl-ink); }
 body {
   background:
-    radial-gradient(ellipse at 90% -4%, rgba(var(--wl-primary-rgb), .09), transparent 30rem),
-    radial-gradient(ellipse at 0% 100%, rgba(47, 191, 155, .06), transparent 28rem),
+    radial-gradient(ellipse at 92% -5%, rgba(var(--wl-primary-rgb), .08), transparent 30rem),
+    radial-gradient(ellipse at 0% 100%, rgba(197, 138, 82, .055), transparent 28rem),
     var(--wl-cream);
 }
 
@@ -210,18 +217,18 @@ input, textarea, select { font-size: 15px; border-radius: 14px; }
 
 /* Hero: selalu gelap dan elegan di kedua tema, teks tetap terang */
 .hero {
-  background: radial-gradient(ellipse at 85% 0%, rgba(227, 210, 180, .16), transparent 24rem), linear-gradient(122deg, #1c1420 0%, #33192a 52%, #8f2d0d 128%);
+  background: radial-gradient(ellipse at 85% 0%, rgba(227, 210, 180, .16), transparent 24rem), linear-gradient(122deg, var(--wl-espresso) 0%, var(--wl-dark-roast) 72%, #6B422B 128%);
   border: 1px solid rgba(227, 210, 180, .22);
   box-shadow: 0 28px 60px -30px rgba(28, 20, 32, .6);
   color: #fff;
 }
 .hero h1 { font-weight: 500; letter-spacing: -.03em; color: #fff; }
-.hero h1 em { color: #f0d9b0; font-style: italic; }
+.hero h1 em { color: var(--wl-caramel); font-style: italic; }
 .hero-copy > p { color: rgba(255, 255, 255, .8); }
 .hero .eyebrow, .hero-proof { color: rgba(255, 255, 255, .78); }
 .hero .eyebrow::before { background: #e3d2b4; }
-.hero .button-dark { background: #fff; color: #1c1420; box-shadow: none; }
-.hero .button-dark:hover { background: #f4ecf1; }
+.hero .button-dark { background: var(--wl-milk); color: var(--wl-espresso); box-shadow: none; }
+.hero .button-dark:hover { background: var(--wl-cream); }
 
 
 /* Kontrol carousel suasana warkop */

@@ -141,6 +141,7 @@ function FeedVideo({ post }) {
       poster={post.videoThumbnailURL || undefined}
       playsInline
       preload="none"
+      style={{ aspectRatio: 'auto' }}
       aria-label="Video obrolan WarkopLink"
       onPlay={() => setPlaybackState('playing')}
       onPause={() => { if (!videoRef.current?.ended) setPlaybackState('paused'); }}
@@ -358,19 +359,20 @@ export default function ChatPostCard({
             } catch { setNotice(`Kontak: ${post.contact}. Salin secara manual.`); }
           }}>Salin kontak {post.contact}</button>)}
 
-      <div className="post-stats post-stats-like">
-        <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
-        <span className="engagement-comment-count" aria-label={`${commentCount} komentar`}>
-          {commentCount.toLocaleString('id-ID')} komentar
-        </span>
-      </div>
-      <div className="post-actions">
+      <div className="post-actions" aria-label="Aksi postingan">
         <div className="post-action-wrap">
-          <button className="post-action" type="button" onClick={openCommentsForReply} aria-label="Komentar"><MessageSquare size={17}/> <span>Komentar</span></button>
-          <button className="post-action" type="button" onClick={openReplyComposer} aria-label="Balas"><Send size={17}/> <span>Balas</span></button>
+          <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
         </div>
         <div className="post-action-wrap">
-          <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17}/> <span>Bagikan</span></button>
+          <button className="post-action" type="button" onClick={openCommentsForReply} aria-label={`Komentar, ${commentCount.toLocaleString('id-ID')}`}>
+            <MessageSquare size={17} aria-hidden="true"/> <span>Komentar</span><span className="post-action-count">{commentCount.toLocaleString('id-ID')}</span>
+          </button>
+        </div>
+        <div className="post-action-wrap">
+          <button className="post-action" type="button" onClick={openReplyComposer} aria-label="Balas"><Send size={17} aria-hidden="true"/> <span>Balas</span></button>
+        </div>
+        <div className="post-action-wrap">
+          <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17} aria-hidden="true"/> <span>Bagikan</span></button>
         </div>
       </div>
       {category === 'Info & Acara' && <div className={"event-action-row event-card-actions" + (eventLifecycle.label === 'Dibatalkan' ? ' event-cancelled' : '')}>

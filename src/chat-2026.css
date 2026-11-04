@@ -544,3 +544,18 @@
 .video-upload-progress > div { display:flex; justify-content:space-between; gap:8px; }
 .video-upload-progress progress { width:100%; height:7px; accent-color:var(--wl-primary); }
 .video-upload-progress .button { justify-self:start; min-height:32px; }
+
+
+/* Keep the native mobile video play/pause bubbles compact without replacing accessible controls. */
+.feed-video-frame video::-webkit-media-controls-overlay-play-button {
+  width: 48px !important;
+  height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+}
+.feed-video-frame video::-webkit-media-controls-play-button {
+  width: 28px !important;
+  height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+}

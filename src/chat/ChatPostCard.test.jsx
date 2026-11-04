@@ -135,12 +135,14 @@ describe('ChatPostCard', () => {
     expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
   });
 
-  it('opens the dedicated comment thread from the Komentar action, not from the count', () => {
+  it('uses one accessible Komentar action with the count and opens the dedicated thread', () => {
     const values = props({ replyCounts: { 'post-1': 3 }, openReplyPage: vi.fn().mockResolvedValue(undefined) });
-    render(<ChatPostCard {...values} />);
-    expect(screen.getByText('3 komentar').tagName).not.toBe('BUTTON');
+    const { container } = render(<ChatPostCard {...values} />);
+    expect(screen.getByRole('button', { name: 'Komentar, 3' })).toBeTruthy();
+    expect(container.querySelectorAll('.engagement-comment-count')).toHaveLength(0);
+    expect(screen.getAllByText('Komentar')).toHaveLength(1);
     expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Komentar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Komentar, 3' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
   });
 
@@ -320,11 +322,26 @@ describe('ChatPostCard — tampilan 2026', () => {
     expect(screen.getByText('2 komentar').tagName).not.toBe('BUTTON');
   });
 
-  it('menampilkan aksi Komentar tanpa pesan kosong yang membingungkan', () => {
-    render(<ChatPostCard {...props()} />);
-    expect(screen.getByText('0 komentar').tagName).not.toBe('BUTTON');
-    expect(screen.getByRole('button', { name: 'Komentar' })).toBeTruthy();
+  it('keeps all four post actions in one predictable action grid', () => {
+    const { container } = render(<ChatPostCard {...props()} />);
+    const actions = container.querySelector('.post-actions');
+    expect(actions.getAttribute('aria-label')).toBe('Aksi postingan');
+    expect(actions.querySelectorAll(':scope > .post-action-wrap')).toHaveLength(4);
+    expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Komentar, 0' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Balas' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Bagikan/ })).toBeTruthy();
+    expect(container.querySelectorAll('.engagement-comment-count')).toHaveLength(0);
+  });
+
+  it('preserves intrinsic video orientation instead of forcing a landscape ratio', () => {
+    const { container } = render(<ChatPostCard {...props({
+      post: { ...props().post, videoURL: 'https://example.com/portrait.mp4' }
+    })} />);
+    const video = container.querySelector('.feed-video-frame video');
+    expect(video.style.aspectRatio).toBe('');
+    expect(video.getAttribute('data-orientation')).toBeNull();
+    expect(container.querySelector('.feed-video-frame')).toBeTruthy();
   });
 
   it('shows Putar, Jeda, and Putar ulang with matching playback status', async () => {

@@ -81,6 +81,7 @@ export default function App() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [replyingPostId, setReplyingPostId] = useState('');
   const [selectedReplyPost, setSelectedReplyPost] = useState(null);
+  const [replyComposerFocusRequested, setReplyComposerFocusRequested] = useState(false);
   const [replyPageLoading, setReplyPageLoading] = useState(false);
   const [replySending, setReplySending] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
@@ -1103,15 +1104,22 @@ export default function App() {
     setRepliesByPost(current => ({ ...current, [post.id]: [] }));
   }
 
-  async function openReplyPage(post) {
+  async function openReplyPage(post, { focusComposer = false } = {}) {
     if (!post?.id) return;
     setSelectedReplyPost(post);
+    setReplyComposerFocusRequested(focusComposer);
     navigateSection('Balas');
     setReplyPageLoading(true);
     await openReplies(post);
     setReplyPageLoading(false);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
+
+  useEffect(() => {
+    if (section !== 'Balas' || !replyComposerFocusRequested || replyPageLoading) return;
+    document.getElementById('reply-page-input')?.focus();
+    setReplyComposerFocusRequested(false);
+  }, [section, replyComposerFocusRequested, replyPageLoading]);
 
   async function handleReply(event, post) {
     event.preventDefault();
@@ -1443,7 +1451,7 @@ export default function App() {
         </div>
         {selectedReplyPost && <form className="reply-page-form" onSubmit={event => handleReply(event, selectedReplyPost)} aria-busy={replySending}>
           <label className="sr-only" htmlFor="reply-page-input">Tulis komentar</label>
-          <textarea id="reply-page-input" autoFocus value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} rows={1} placeholder="Tulis komentar…" disabled={replySending}/>
+          <textarea id="reply-page-input" value={replyDraft} onChange={event => setReplyDraft(event.target.value)} maxLength={1000} rows={1} placeholder="Tulis komentar…" disabled={replySending}/>
           <button className="reply-send" type="submit" aria-label={replySending ? 'Mengirim balasan' : 'Kirim balasan'} disabled={!replyDraft.trim() || replySending} aria-busy={replySending}>{replySending ? '…' : <Send size={18}/>}</button>
           {replyDraft.length > 800 && <small className="reply-counter" aria-live="polite">{replyDraft.length}/1000</small>}
         </form>}

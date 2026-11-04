@@ -159,3 +159,56 @@ html[data-theme='dark'] .owner-member-status { color: #bdcafa; background: #2834
   .owner-member-avatar { flex-basis: 36px; width: 36px; height: 36px; }
   .owner-member-status { display: none; }
 }
+
+
+/* Owner read-only warung directory */
+.owner-warung-management { display: grid; gap: 13px; }
+.owner-warung-toolbar, .owner-warung-summary, .owner-warung-controls, .owner-warung-search, .owner-warung-row, .owner-warung-detail-heading, .owner-warung-audit-heading, .owner-warung-audit-row > span { display: flex; align-items: center; }
+.owner-warung-toolbar { justify-content: space-between; gap: 12px; }
+.owner-warung-summary { gap: 10px; min-width: 0; }
+.owner-warung-summary-icon, .owner-warung-avatar { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; border-radius: 12px; color: var(--owner-blue); background: rgba(49,89,216,.09); }
+.owner-warung-summary > div, .owner-warung-row-copy { display: grid; min-width: 0; gap: 4px; }
+.owner-warung-summary b { color: var(--owner-ink); font-size: 12px; }
+.owner-warung-summary small, .owner-warung-row-copy small { color: var(--owner-muted); font-size: 10px; }
+.owner-warung-controls { gap: 9px; }
+.owner-warung-search { flex: 1; min-width: 0; min-height: 43px; gap: 8px; padding: 0 12px; border: 1px solid var(--owner-line); border-radius: 11px; color: var(--owner-muted); background: var(--surface,#fff); }
+.owner-warung-search input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--owner-ink); background: transparent; font: inherit; font-size: 11px; }
+.owner-warung-controls select { min-height: 43px; max-width: 155px; padding: 0 9px; border: 1px solid var(--owner-line); border-radius: 11px; color: var(--owner-ink); background: var(--surface,#fff); font: inherit; font-size: 10px; }
+.owner-warung-count { color: var(--owner-muted); font-size: 10px; }
+.owner-warung-list { overflow: hidden; border: 1px solid var(--owner-line); border-radius: 14px; background: var(--surface,#fff); }
+.owner-warung-row { width: 100%; gap: 10px; padding: 12px; border: 0; border-bottom: 1px solid var(--owner-line); text-align: left; background: transparent; cursor: pointer; }
+.owner-warung-row:last-child { border-bottom: 0; }
+.owner-warung-row:hover, .owner-warung-row.is-selected { background: rgba(49,89,216,.055); }
+.owner-warung-avatar { flex-basis: 36px; width: 36px; height: 36px; border-radius: 11px; }
+.owner-warung-row-copy { flex: 1; }
+.owner-warung-row-copy b { overflow: hidden; color: var(--owner-ink); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.owner-warung-row-copy small { display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owner-warung-status { display: inline-flex; align-items: center; flex: 0 0 auto; width: fit-content; padding: 5px 8px; border-radius: 8px; color: #63718a; background: #eef1f6; font-size: 9px; font-weight: 750; }
+.owner-warung-status.is-verified { color: #176b4b; background: #e4f5ed; }
+.owner-warung-status.is-pending { color: #91651b; background: #fff3d9; }
+.owner-warung-status.is-rejected { color: #a13b4c; background: #fde9ed; }
+.owner-warung-detail { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--owner-line); border-radius: 15px; background: var(--surface,#fff); }
+.owner-warung-detail-heading { justify-content: space-between; gap: 12px; }
+.owner-warung-detail-heading > div > span { color: var(--owner-muted); font-size: 9px; letter-spacing: .1em; }
+.owner-warung-detail-heading h3 { margin: 4px 0 0; color: var(--owner-ink); font-size: 15px; }
+.owner-warung-detail-heading button { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--owner-line); border-radius: 9px; color: var(--owner-muted); background: transparent; }
+.owner-warung-detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.owner-warung-detail-row { display: grid; gap: 3px; min-width: 0; }
+.owner-warung-detail-row span { color: var(--owner-muted); font-size: 9px; }
+.owner-warung-detail-row b { overflow-wrap: anywhere; color: var(--owner-ink); font-size: 10px; font-weight: 600; }
+.owner-warung-audit-heading { gap: 7px; padding-top: 9px; border-top: 1px solid var(--owner-line); color: var(--owner-ink); font-size: 11px; }
+.owner-warung-audit-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 8px 0; border-bottom: 1px solid var(--owner-line); }
+.owner-warung-audit-row > span { gap: 6px; color: var(--owner-ink); font-size: 10px; }
+.owner-warung-audit-row small { color: var(--owner-muted); font-size: 9px; }
+.owner-warung-audit-row p { grid-column: 1/-1; margin: 0; color: var(--owner-muted); font-size: 10px; }
+html[data-theme='dark'] .owner-warung-search, html[data-theme='dark'] .owner-warung-controls select, html[data-theme='dark'] .owner-warung-list, html[data-theme='dark'] .owner-warung-detail { background: #151d30; }
+html[data-theme='dark'] .owner-warung-status.is-verified { color: #a6e5c9; background: #173d32; }
+html[data-theme='dark'] .owner-warung-status.is-pending { color: #f0d28d; background: #46391e; }
+html[data-theme='dark'] .owner-warung-status.is-rejected { color: #f0a9b4; background: #482832; }
+@media (max-width: 600px) {
+  .owner-warung-controls { align-items: stretch; flex-direction: column; }
+  .owner-warung-controls select { max-width: none; }
+  .owner-warung-detail-grid { grid-template-columns: 1fr; }
+  .owner-warung-row { padding: 10px 8px; gap: 7px; }
+  .owner-warung-status { font-size: 8px; padding: 4px 6px; }
+}

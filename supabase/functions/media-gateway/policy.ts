@@ -75,62 +75,96 @@ export function validateImageBytes(bytes: Uint8Array, contentType: string): bool
   return false;
 }
 
-/** Walk ISO-BMFF box boundaries and extract the container duration and track dimensions. */
+/** Walk ISO-BMFF boxes, including extended-size boxes and multiple audio/video tracks. */
 export function parseMp4Metadata(bytes: Uint8Array): { durationSeconds: number; width: number; height: number } | null {
   if (!(bytes instanceof Uint8Array) || bytes.length < 32 || bytes.length > MAX_VIDEO_BYTES) return null;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const typeAt = (offset: number) => String.fromCharCode(...bytes.slice(offset, offset + 4));
   const readU32 = (offset: number) => offset >= 0 && offset + 4 <= bytes.length ? view.getUint32(offset) : 0;
-  if (typeAt(4) !== "ftyp") return null;
-  const ftypSize = readU32(0);
-  if (ftypSize < 12 || ftypSize > bytes.length) return null;
-
-  const findBox = (from: number, to: number, wanted: string, depth = 0): { start: number; size: number } | null => {
-    if (depth > 5) return null;
-    let offset = from;
-    while (offset + 8 <= to) {
-      const size = readU32(offset);
-      const type = typeAt(offset + 4);
-      if (size < 8 || offset + size > to) return null;
-      if (type === wanted) return { start: offset, size };
-      if (type === "trak") {
-        const nested = findBox(offset + 8, offset + size, wanted, depth + 1);
-        if (nested) return nested;
-      }
-      offset += size;
+  const readBox = (offset: number, limit: number): { start: number; size: number; headerSize: number; type: string } | null => {
+    if (offset < 0 || offset + 8 > limit || limit > bytes.length) return null;
+    const size32 = readU32(offset);
+    const type = typeAt(offset + 4);
+    let size = size32;
+    let headerSize = 8;
+    if (size32 === 1) {
+      if (offset + 16 > limit) return null;
+      const extendedSize = view.getBigUint64(offset + 8);
+      if (extendedSize > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+      size = Number(extendedSize);
+      headerSize = 16;
+    } else if (size32 === 0) {
+      size = limit - offset;
     }
-    return null;
+    if (size < headerSize || offset + size > limit) return null;
+    return { start: offset, size, headerSize, type };
   };
 
-  const moov = findBox(ftypSize, bytes.length, "moov");
-  const mdat = findBox(ftypSize, bytes.length, "mdat");
-  if (!moov || !mdat || mdat.size < 8) return null;
-  const mvhd = findBox(moov.start + 8, moov.start + moov.size, "mvhd");
-  const tkhd = findBox(moov.start + 8, moov.start + moov.size, "tkhd");
-  if (!mvhd || !tkhd || mvhd.size < 28 || tkhd.size < 24) return null;
+  const first = readBox(0, bytes.length);
+  if (!first || first.type !== "ftyp" || first.size < 12) return null;
 
-  const version = bytes[mvhd.start + 8];
+  const containers = new Set(["moov", "trak", "mdia", "minf", "stbl", "edts", "dinf", "mvex", "moof", "traf"]);
+  const findBoxes = (
+    from: number,
+    to: number,
+    wanted: string,
+    depth = 0,
+  ): Array<{ start: number; size: number; headerSize: number; type: string }> => {
+    if (depth > 8) return [];
+    const matches: Array<{ start: number; size: number; headerSize: number; type: string }> = [];
+    let offset = from;
+    while (offset + 8 <= to) {
+      const box = readBox(offset, to);
+      if (!box) break;
+      if (box.type === wanted) matches.push(box);
+      if (containers.has(box.type)) {
+        matches.push(...findBoxes(offset + box.headerSize, offset + box.size, wanted, depth + 1));
+      }
+      offset += box.size;
+    }
+    return matches;
+  };
+
+  const topLevel = findBoxes(first.size, bytes.length, "moov");
+  const mdat = findBoxes(first.size, bytes.length, "mdat");
+  const moov = topLevel[0];
+  if (!moov || !mdat.length) return null;
+  const mvhd = findBoxes(moov.start + moov.headerSize, moov.start + moov.size, "mvhd")[0];
+  const tracks = findBoxes(moov.start + moov.headerSize, moov.start + moov.size, "tkhd");
+  if (!mvhd || mvhd.size < 28 || !tracks.length) return null;
+
+  const version = bytes[mvhd.start + mvhd.headerSize];
   let timescale = 0;
   let duration = 0;
   if (version === 0) {
-    timescale = readU32(mvhd.start + 20);
-    duration = readU32(mvhd.start + 24);
-  } else if (version === 1 && mvhd.size >= 40) {
-    timescale = readU32(mvhd.start + 28);
-    const rawDuration = view.getBigUint64(mvhd.start + 32);
+    timescale = readU32(mvhd.start + mvhd.headerSize + 12);
+    duration = readU32(mvhd.start + mvhd.headerSize + 16);
+  } else if (version === 1 && mvhd.size >= mvhd.headerSize + 32) {
+    timescale = readU32(mvhd.start + mvhd.headerSize + 20);
+    const rawDuration = view.getBigUint64(mvhd.start + mvhd.headerSize + 24);
     if (rawDuration > BigInt(Number.MAX_SAFE_INTEGER)) return null;
     duration = Number(rawDuration);
   } else return null;
 
-  const tkhdVersion = bytes[tkhd.start + 8];
-  if (tkhdVersion !== 0 && tkhdVersion !== 1) return null;
-  const width = Math.floor(readU32(tkhd.start + tkhd.size - 8) / 65536);
-  const height = Math.floor(readU32(tkhd.start + tkhd.size - 4) / 65536);
+  // Audio tracks commonly precede video tracks and have zero dimensions.
+  let dimensions: { width: number; height: number } | null = null;
+  for (const tkhd of tracks) {
+    if (tkhd.size < tkhd.headerSize + 8) continue;
+    const trackVersion = bytes[tkhd.start + tkhd.headerSize];
+    if (trackVersion !== 0 && trackVersion !== 1) continue;
+    const width = Math.floor(readU32(tkhd.start + tkhd.size - 8) / 65536);
+    const height = Math.floor(readU32(tkhd.start + tkhd.size - 4) / 65536);
+    if (width >= 1 && height >= 1) {
+      dimensions = { width, height };
+      break;
+    }
+  }
+
   const durationSeconds = duration / timescale;
-  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 180 ||
-      !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
-      Math.max(width, height) > 1920 || Math.min(width, height) > 1080) return null;
-  return { durationSeconds, width, height };
+  if (!dimensions || !Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 180 ||
+      Math.max(dimensions.width, dimensions.height) > 1920 ||
+      Math.min(dimensions.width, dimensions.height) > 1080) return null;
+  return { durationSeconds, ...dimensions };
 }
 
 function decodeValue(value: any): any {

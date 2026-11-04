@@ -40,17 +40,12 @@
   --wl-shadow-card: 0 2px 10px rgb(36 26 42 / 6%);
   --wl-shadow-overlay: 0 12px 32px rgb(36 26 42 / 14%);
   /* Compatibility aliases used by existing components. */
-  --wl-cream: var(--wl-bg);
   --wl-paper: var(--wl-surface);
-  --wl-line: var(--wl-border);
-  --wl-line-soft: var(--wl-line-soft);
   --wl-ink: var(--wl-text);
   --wl-muted: var(--wl-text-muted);
   --wl-primary: var(--wl-brand);
   --wl-primary-deep: var(--wl-brand-hover);
   --wl-primary-bright: var(--wl-focus);
-  --wl-primary-tint: var(--wl-brand-soft);
-  --wl-primary-tint-2: var(--wl-primary-tint-2);
   --wl-primary-rgb: 152, 97, 59;
   --wl-on-primary: var(--wl-text-on-brand);
   --wl-blue: var(--wl-brand);
@@ -84,7 +79,7 @@ html[data-theme="dark"] {
   --wl-brand-soft: #5A4031;
   --wl-focus: var(--wl-caramel);
   --wl-border: #624636;
-  --wl-border-strong: 1px solid rgba(197, 138, 82, .34);
+  --wl-border-strong: #8D6342;
   --wl-success: #8AD8B8;
   --wl-success-soft: #20392F;
   --wl-warning: #F0C477;

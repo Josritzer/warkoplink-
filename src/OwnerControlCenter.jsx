@@ -7,6 +7,7 @@ import {
   LayoutDashboard, RefreshCw, ShieldCheck, Store, Users, MessageSquareText
 } from 'lucide-react';
 import AdminPanel from './AdminPanel.jsx';
+import OwnerMemberManagement from './OwnerMemberManagement.jsx';
 import './owner-control-center.css';
 
 const METRICS = [
@@ -129,6 +130,7 @@ export default function OwnerControlCenter({ db, user, onNotice }) {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard utama', icon: LayoutDashboard },
+    { id: 'members', label: 'Anggota', icon: Users },
     { id: 'operations', label: 'Verifikasi & laporan', icon: ShieldCheck },
   ];
 
@@ -159,7 +161,7 @@ export default function OwnerControlCenter({ db, user, onNotice }) {
       <header className="owner-center-header">
         <div>
           <span className="owner-center-eyebrow">PUSAT PENGELOLAAN PLATFORM</span>
-          <h1>{section === 'dashboard' ? 'Dashboard Utama' : 'Verifikasi & Laporan'}</h1>
+          <h1>{section === 'dashboard' ? 'Dashboard Utama' : section === 'members' ? 'Pengelolaan Anggota' : 'Verifikasi & Laporan'}</h1>
           <p>Pantau ekosistem WarkopLink dari satu pusat kendali.</p>
         </div>
         {section === 'dashboard' && <button type="button" className="owner-refresh-button" onClick={() => loadDashboard(true)} disabled={refreshing}>
@@ -167,7 +169,7 @@ export default function OwnerControlCenter({ db, user, onNotice }) {
         </button>}
       </header>
 
-      {section === 'dashboard' ? <>
+      {section === 'members' ? <OwnerMemberManagement db={db}/> : section === 'dashboard' ? <>
         <div className="owner-welcome-strip">
           <div><span>OVERVIEW PLATFORM</span><b>Selamat datang di pusat kendali WarkopLink</b><p>Angka di bawah diambil langsung dari koleksi Firestore yang dapat diakses akun pemilik.</p></div>
           <BarChart3 size={34}/>

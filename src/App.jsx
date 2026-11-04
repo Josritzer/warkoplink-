@@ -1381,7 +1381,7 @@ export default function App() {
         <button className="button button-theme-toggle" type="button" onClick={() => setDarkMode(value => !value)} aria-label={darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'} title={darkMode ? 'Mode terang' : 'Mode gelap'}><span className="theme-toggle-icon" aria-hidden="true">{darkMode ? <Sun size={16}/> : <Moon size={16}/>}</span></button>
         {(installPrompt || (/iphone|ipad|ipod/i.test(navigator.userAgent) && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios|opios/i.test(navigator.userAgent))) && <button className="button button-install" type="button" onClick={handleInstallPwa} aria-label="Pasang aplikasi" title="Pasang aplikasi"><Download size={16}/></button>}
         {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
-          user ? <button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button> :
+          user ? null :
           <><button className="button button-quiet" onClick={() => openAuth(false)}>Masuk</button><button className="button button-dark" onClick={() => openAuth(true)}>Gabung komunitas</button></>}
       </div>
     </header>

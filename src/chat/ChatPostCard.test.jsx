@@ -323,4 +323,27 @@ describe('ChatPostCard — tampilan 2026', () => {
     render(<ChatPostCard {...props()} />);
     expect(screen.getByRole('button', { name: 'Buka komentar, 0 komentar' }).textContent).toBe('Komentar');
   });
+
+  it('does not autoplay feed videos and defers loading until the user presses play', () => {
+    const originalObserver = globalThis.IntersectionObserver;
+    const observer = vi.fn(function (callback) {
+      this.observe = element => callback([{ isIntersecting: true, intersectionRatio: 1, target: element }]);
+      this.disconnect = vi.fn();
+    });
+    globalThis.IntersectionObserver = observer;
+    try {
+      const { container } = render(<ChatPostCard {...props({
+        post: { ...props().post, videoURL: 'https://example.com/video.mp4' }
+      })} />);
+      const video = container.querySelector('.feed-video-frame video');
+      expect(video).toBeTruthy();
+      expect(video.getAttribute('preload')).toBe('none');
+      expect(video.autoplay).toBe(false);
+      expect(observer).not.toHaveBeenCalled();
+    } finally {
+      if (originalObserver === undefined) delete globalThis.IntersectionObserver;
+      else globalThis.IntersectionObserver = originalObserver;
+    }
+  });
+
 });

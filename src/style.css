@@ -831,7 +831,7 @@
   color: var(--wl-ink);
 }
 #community-feed .post-meta small { opacity: .78; font-size: 11px; font-weight: 600; }
-#community-feed .post-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#community-feed .post-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #community-feed .post-actions .post-action { min-height: 44px; font-size: 13px; }
 #community-feed .engagement-comment-count { font-size: 12px; font-weight: 650; opacity: .82; }
 .feed-video-frame { display: grid; gap: 8px; margin-top: 12px; min-width: 0; }

@@ -13,10 +13,8 @@ function formatDate(value) {
 export default function AdminPanel({ db, user, onNotice, canVerifyWarungs = false }) {
   const [pending, setPending] = useState([]);
   const [audit, setAudit] = useState([]);
-  const [roleAudit, setRoleAudit] = useState([]);
   const [loadingPending, setLoadingPending] = useState(true);
   const [loadingAudit, setLoadingAudit] = useState(true);
-  const [loadingRoleAudit, setLoadingRoleAudit] = useState(true);
   const [error, setError] = useState('');
   const [reasons, setReasons] = useState({});
   const [busyId, setBusyId] = useState('');
@@ -25,7 +23,6 @@ export default function AdminPanel({ db, user, onNotice, canVerifyWarungs = fals
     if (!canVerifyWarungs) {
       setLoadingPending(false);
       setLoadingAudit(false);
-      setLoadingRoleAudit(false);
       return undefined;
     }
     if (!db) {
@@ -53,18 +50,9 @@ export default function AdminPanel({ db, user, onNotice, canVerifyWarungs = fals
       setError('Riwayat audit verifikasi tidak dapat dimuat.');
       setLoadingAudit(false);
     });
-    const roleAuditQuery = query(collection(db, 'platformRoleAudit'), orderBy('createdAt', 'desc'), limit(50));
-    const unsubscribeRoleAudit = onSnapshot(roleAuditQuery, (snapshot) => {
-      setRoleAudit(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-      setLoadingRoleAudit(false);
-    }, () => {
-      setError('Riwayat perubahan role tidak dapat dimuat.');
-      setLoadingRoleAudit(false);
-    });
     return () => {
       unsubscribePending();
       unsubscribeAudit();
-      unsubscribeRoleAudit();
     };
   }, [db, canVerifyWarungs]);
 
@@ -112,9 +100,9 @@ export default function AdminPanel({ db, user, onNotice, canVerifyWarungs = fals
   }
 
   return <section className="content-section admin-section">
-    <span className="eyebrow">PENGELOLAAN TERBATAS</span>
-    <h2>Panel admin</h2>
-    <p>{canVerifyWarungs ? 'Kelola moderasi laporan dan verifikasi pendaftaran warkop.' : 'Tinjau laporan dan bantu menjaga percakapan komunitas tetap sehat.'}</p>
+    <span className="eyebrow">PENGELOLAAN PLATFORM</span>
+    <h2>Verifikasi dan laporan</h2>
+    <p>Pemilik platform mengelola pendaftaran warkop dan laporan komunitas dari satu tempat.</p>
     <div className="admin-security-note"><ShieldAlert size={18}/><span>Akses ditentukan oleh klaim role tepercaya dari Firebase Authentication. Panel ini tidak memberikan hak kepada pengguna.</span></div>
     {error && <p className="form-error" role="alert">{error}</p>}
     <ReportModerationPanel db={db} user={user} onNotice={onNotice}/>
@@ -138,13 +126,6 @@ export default function AdminPanel({ db, user, onNotice, canVerifyWarungs = fals
     <div className="admin-audit-list">{audit.map((item) => <article className="admin-audit-row" key={item.id}>
       <div><b>{item.warungName || item.warungId}</b><small>{formatDate(item.createdAt)} · Admin UID: {item.actorUid}</small>{item.reason && <p>{item.reason}</p>}</div>
       <span className={item.newStatus === 'verified' ? 'admin-status-verified' : 'admin-status-rejected'}>{item.newStatus === 'verified' ? 'DISETUJUI' : 'DITOLAK'}</span>
-    </article>)}</div>
-    <div className="admin-subheading"><h3><History size={18}/> Riwayat perubahan role</h3><span>50 perubahan terbaru</span></div>
-    {loadingRoleAudit && <p role="status">Memuat riwayat role…</p>}
-    {!loadingRoleAudit && roleAudit.length === 0 && <div className="empty-state"><h3>Belum ada perubahan role</h3><p>Penetapan dan perubahan role resmi akan tercatat di sini.</p></div>}
-    <div className="admin-audit-list">{roleAudit.map((item) => <article className="admin-audit-row" key={item.id}>
-      <div><b>{item.targetEmail || item.targetUid}</b><small>{formatDate(item.createdAt)} · Oleh UID: {item.actorUid}</small><p>{item.previousRole || 'member'} → {item.newRole}</p></div>
-      <span className="admin-status-verified">ROLE</span>
     </article>)}</div>
     </>}
   </section>;

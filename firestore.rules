@@ -26,18 +26,25 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/conversations/$(conversationId)/messages/$(data.lastMessageId)).data.recipientUid == data.unreadFor;
     }
 
-    function isSuperAdmin() {
-      return signedIn() && (
-        request.auth.token.platformRole == 'super_admin'
-        || request.auth.token.admin == true
-      );
+    // Only the fixed platform owner account may use privileged platform controls.
+    // Legacy admin claims remain accepted for this exact UID during migration.
+    function isPlatformOwner() {
+      return signedIn()
+        && request.auth.uid == 'OYgUG5eMWjfmHJ0VLaSXr34H7Dv2'
+        && (
+          request.auth.token.platformRole == 'super_admin'
+          || request.auth.token.admin == true
+        );
     }
 
+    function isSuperAdmin() {
+      return isPlatformOwner();
+    }
+
+    // Kept as a compatibility helper for existing report rules; it grants no
+    // separate moderator tier and resolves only to the platform owner.
     function isModerator() {
-      return signedIn() && (
-        isSuperAdmin()
-        || request.auth.token.platformRole == 'moderator'
-      );
+      return isPlatformOwner();
     }
 
     function auditPath(auditId) {

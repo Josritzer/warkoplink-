@@ -4,11 +4,13 @@ import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
 
+const OWNER_UID = 'OYgUG5eMWjfmHJ0VLaSXr34H7Dv2';
+
 let env;
 const asMember = () => env.authenticatedContext('member').firestore();
 const asModerator = () => env.authenticatedContext('moderator', { platformRole: 'moderator' }).firestore();
-const asSuperAdmin = () => env.authenticatedContext('owner', { platformRole: 'super_admin' }).firestore();
-const asLegacyAdmin = () => env.authenticatedContext('legacy-admin', { admin: true }).firestore();
+const asSuperAdmin = () => env.authenticatedContext(OWNER_UID, { platformRole: 'super_admin' }).firestore();
+const asLegacyAdmin = () => env.authenticatedContext(OWNER_UID, { admin: true }).firestore();
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({
@@ -69,13 +71,33 @@ async function moderateReport(db, actorUid) {
 
 describe('platform role claims', () => {
   it('super_admin can verify a warung and create its atomic audit record', async () => {
-    await assertSucceeds(approvePendingWarung(asSuperAdmin(), 'owner'));
+    await assertSucceeds(approvePendingWarung(asSuperAdmin(), OWNER_UID));
   });
 
-  it('moderator can read reports and perform audited report moderation', async () => {
+  it('moderator cannot read reports or perform report moderation', async () => {
     const db = asModerator();
-    await assertSucceeds(getDoc(doc(db, 'postReports/report-1')));
-    await assertSucceeds(moderateReport(db, 'moderator'));
+    await assertFails(getDoc(doc(db, 'postReports/report-1')));
+    await assertFails(moderateReport(db, 'moderator'));
+  });
+
+  it('rejects super_admin claims on every UID except the fixed platform owner', async () => {
+    const otherSuperAdmin = env.authenticatedContext('other-super-admin', {
+      platformRole: 'super_admin',
+    }).firestore();
+    await assertFails(getDoc(doc(otherSuperAdmin, 'warungs/pending-warung')));
+    await assertFails(getDoc(doc(otherSuperAdmin, 'postReports/report-1')));
+  });
+
+  it('rejects legacy admin claims on every UID except the fixed platform owner', async () => {
+    const otherLegacyAdmin = env.authenticatedContext('other-legacy-admin', { admin: true }).firestore();
+    await assertFails(getDoc(doc(otherLegacyAdmin, 'warungs/pending-warung')));
+    await assertFails(getDoc(doc(otherLegacyAdmin, 'postReports/report-1')));
+  });
+
+  it('requires the fixed owner account to carry an approved owner claim', async () => {
+    const ownerWithoutClaim = env.authenticatedContext(OWNER_UID).firestore();
+    await assertFails(getDoc(doc(ownerWithoutClaim, 'warungs/pending-warung')));
+    await assertFails(getDoc(doc(ownerWithoutClaim, 'postReports/report-1')));
   });
 
   it('moderator cannot approve warungs or read verification audit records', async () => {
@@ -90,14 +112,14 @@ describe('platform role claims', () => {
     await assertFails(moderateReport(db, 'member'));
   });
 
-  it('legacy admin claim remains a super-admin compatibility path during migration', async () => {
-    await assertSucceeds(approvePendingWarung(asLegacyAdmin(), 'legacy-admin'));
+  it('legacy admin claim remains a compatibility path for the fixed owner only', async () => {
+    await assertSucceeds(approvePendingWarung(asLegacyAdmin(), OWNER_UID));
   });
 
   it('platform role audit is readable only by super_admin and never writable by clients', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'platformRoleAudit/event-1'), {
-        targetUid: 'moderator', newRole: 'moderator', actorUid: 'owner', createdAt: Timestamp.now(),
+        targetUid: 'moderator', newRole: 'moderator', actorUid: OWNER_UID, createdAt: Timestamp.now(),
       });
     });
     await assertSucceeds(getDoc(doc(asSuperAdmin(), 'platformRoleAudit/event-1')));

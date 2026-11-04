@@ -1,7 +1,7 @@
 // Assign platform roles only from a trusted local environment.
 // Usage:
 //   Bootstrap: node scripts/set-platform-role.mjs <UID> super_admin <EXPECTED_EMAIL> --bootstrap --apply
-//   Later:     node scripts/set-platform-role.mjs <UID> <moderator|member|super_admin> <EXPECTED_EMAIL> <ACTOR_UID> --apply
+//   Later:     node scripts/set-platform-role.mjs <UID> <member|super_admin> <EXPECTED_EMAIL> <ACTOR_UID> --apply
 import { applicationDefault, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
@@ -9,7 +9,7 @@ import { isAllowedPlatformBootstrapOwner } from './platform-role-guards.mjs';
 
 const projectId = 'sl-community-platform';
 const [uid, role, expectedEmail, actorOrBootstrap, confirmation] = process.argv.slice(2);
-const allowedRoles = new Set(['super_admin', 'moderator', 'member']);
+const allowedRoles = new Set(['super_admin', 'member']);
 const bootstrap = actorOrBootstrap === '--bootstrap';
 
 if (!uid || uid.length < 5 || uid.length > 128 || /\\s/.test(uid)

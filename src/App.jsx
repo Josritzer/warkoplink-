@@ -10,7 +10,8 @@ import {
   addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, increment, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where
 } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebase.js';
-import AdminPanel from './AdminPanel.jsx';
+import OwnerControlCenter from './OwnerControlCenter.jsx';
+import { isPlatformOwner } from './auth/platformOwner.js';
 import { PLATFORM_ROLES, platformRoleFromClaims } from './auth/platformRoles.js';
 import { emailVerificationErrorMessage, refreshAccountVerification, sendAccountVerificationEmail } from './auth/emailVerification.js';
 import ChatPanel from './chat/ChatPanel.jsx';
@@ -106,8 +107,7 @@ export default function App() {
   const [openConversationId, setOpenConversationId] = useState('');
   const [messageInitialTab, setMessageInitialTab] = useState('pribadi');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [isModerator, setIsModerator] = useState(false);
-  const isPlatformStaff = isSuperAdmin || isModerator;
+  const isPlatformOwnerAccount = isPlatformOwner(user) && isSuperAdmin;
   const [authReady, setAuthReady] = useState(!auth);
   const [posts, setPosts] = useState(readCachedPosts);
   const [olderPosts, setOlderPosts] = useState([]);
@@ -295,18 +295,15 @@ export default function App() {
       setUser(nextUser);
       setEmailVerified(Boolean(nextUser?.emailVerified));
       setIsSuperAdmin(false);
-      setIsModerator(false);
       setAuthReady(true);
       if (nextUser && typeof nextUser.getIdTokenResult === 'function') {
         try {
           const token = await nextUser.getIdTokenResult(true);
           const role = platformRoleFromClaims(token.claims || {});
           setIsSuperAdmin(role === PLATFORM_ROLES.SUPER_ADMIN);
-          setIsModerator(role === PLATFORM_ROLES.MODERATOR || role === PLATFORM_ROLES.SUPER_ADMIN);
         } catch {
           setIsSuperAdmin(false);
-          setIsModerator(false);
-        }
+           }
       }
       if (nextUser && !registering.current) ensureProfile(nextUser);
     });
@@ -1372,8 +1369,8 @@ export default function App() {
         </button>
       </aside>
       <main className="app-page-content">
-      {section === 'Panel Admin' && isPlatformStaff ? <AdminPanel db={db} user={user} onNotice={setNotice} canVerifyWarungs={isSuperAdmin}/> :
-      section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
+      {section === 'Panel Admin' && isPlatformOwnerAccount ? <OwnerControlCenter db={db} user={user} onNotice={setNotice}/> :
+      section === 'Panel Admin' ? <section className="content-section"><h2>Akses pemilik platform tidak tersedia</h2><p>Owner Control Center hanya dapat dibuka oleh akun pemilik platform yang telah terverifikasi dan memiliki klaim akses resmi.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
       section === 'Pesan' ? <MessagesPage db={db} user={user} initialTab={messageInitialTab} initialConversationId={openConversationId} initialFriend={messageTarget} onOpenMemberProfile={openMemberProfile}/> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">
@@ -1416,7 +1413,7 @@ export default function App() {
       </section> :
       section === 'Akun' ? <section className="content-section account-section">
         <span className="eyebrow">AKUN ANDA</span><h2>Profil komunitas</h2>
-        {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className={`email-verification-panel ${emailVerified ? 'is-verified' : 'is-pending'}`} role="status" aria-live="polite"><div><b>{emailVerified ? 'Email terverifikasi' : 'Email belum terverifikasi'}</b><small>{emailVerified ? 'Alamat email akun ini sudah dikonfirmasi.' : 'Verifikasi email diperlukan untuk mengaktifkan hak Super Admin.'}</small></div>{!emailVerified && <div className="email-verification-actions"><button className="button button-quiet" type="button" onClick={handleResendVerification} disabled={verificationBusy}>{verificationBusy ? 'Memproses…' : 'Kirim ulang verifikasi'}</button><button className="button button-quiet" type="button" onClick={handleRefreshVerificationStatus} disabled={verificationBusy}>Saya sudah verifikasi</button></div>}</div><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article><button className="button button-dark account-edit-profile" type="button" onClick={() => navigateSection('Edit Profil')}>Edit Profil</button>{isPlatformStaff && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Buka Panel Admin</button>}</> :
+        {user ? <><article className="account-card"><div className="account-avatar">{user.photoURL ? <img src={user.photoURL} alt="Foto profil" /> : String(user.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div><div className="account-details"><b>{user.displayName || 'Anggota SL'}</b><p>{user.email}</p><small>Akun Anda siap untuk ikut berdiskusi.</small><div className={`email-verification-panel ${emailVerified ? 'is-verified' : 'is-pending'}`} role="status" aria-live="polite"><div><b>{emailVerified ? 'Email terverifikasi' : 'Email belum terverifikasi'}</b><small>{emailVerified ? 'Alamat email akun ini sudah dikonfirmasi.' : 'Verifikasi email diperlukan untuk mengaktifkan hak Super Admin.'}</small></div>{!emailVerified && <div className="email-verification-actions"><button className="button button-quiet" type="button" onClick={handleResendVerification} disabled={verificationBusy}>{verificationBusy ? 'Memproses…' : 'Kirim ulang verifikasi'}</button><button className="button button-quiet" type="button" onClick={handleRefreshVerificationStatus} disabled={verificationBusy}>Saya sudah verifikasi</button></div>}</div><div className="profile-photo-actions"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleProfilePhotoChange} /><button className="button button-quiet" type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading}>{photoUploading ? 'Memproses foto…' : user.photoURL ? 'Ganti foto' : 'Unggah foto profil'}</button>{user.photoURL && <button className="button button-quiet" type="button" onClick={handleRemoveProfilePhoto} disabled={photoUploading}>Hapus foto</button>}</div><small>JPG, PNG, atau WebP · maksimal 2 MB.</small></div><button className="button button-dark" onClick={handleSignOut}><LogOut size={15}/> Keluar</button></article><button className="button button-dark account-edit-profile" type="button" onClick={() => navigateSection('Edit Profil')}>Edit Profil</button>{isPlatformOwnerAccount && <button className="button button-dark admin-entry-button" onClick={() => navigateSection('Panel Admin')}><ShieldCheck size={16}/> Owner Control Center</button>}</> :
           <article className="account-card"><div className="account-avatar"><UserRound size={25}/></div><div><b>Gabung bersama komunitas</b><p>Buat akun untuk memulai obrolan dan berbagi pengalaman.</p></div><button className="button button-dark" onClick={() => openAuth(true)}>Daftar</button></article>}
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu masyarakat menemukan dan mengenal warkop di seluruh Indonesia. Pendaftaran tetap gratis.</p></section> :

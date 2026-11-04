@@ -35,7 +35,7 @@ import { renderMemberMentions } from './notifications/mentionText.jsx';
 import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts, isPublicPost,
-  postErrorMessage, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
+  postErrorMessage, postAuthorNameFor, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
 } from './lib.js';
 
 const POSTS_LIMIT = 10;
@@ -247,7 +247,7 @@ export default function App() {
         photoURL: versionedPhotoURL(currentUser.photoURL || profile.photoURL || ''),
         updatedAt: serverTimestamp()
       }, { merge: true });
-      return true;
+      return profile;
     } catch (error) {
       console.warn('Profil belum dapat disimpan:', error?.code || 'unknown');
       return false;
@@ -748,16 +748,17 @@ export default function App() {
     setPosting(true);
     try {
       // Aturan keamanan mencocokkan nama penulis dengan profil, jadi pastikan profil ada.
-      const hasProfile = await ensureProfile(user);
-      if (!hasProfile) {
+      const storedProfile = await ensureProfile(user);
+      if (!storedProfile) {
         setNotice('Profil Anda belum tersimpan sehingga pesan belum dapat dikirim. Coba lagi sebentar lagi.');
         return;
       }
+      const postAuthorName = postAuthorNameFor(user, storedProfile);
       const postRef = doc(collection(db, 'posts'));
       const videoThumbnailURL = details.videoFile ? await createVideoThumbnailDataUrl(details.videoFile).catch(() => '') : '';
       await setDoc(postRef, {
         authorId: user.uid,
-        authorName: authorNameFor(user),
+        authorName: postAuthorName,
         authorPhotoURL: user.photoURL || null,
         body: bodyCheck.value,
         topic: postTopic,

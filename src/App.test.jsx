@@ -990,3 +990,19 @@ describe('akses login halaman Akun', () => {
     expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Masuk' })).toBeTruthy();
   });
 });
+
+
+describe('header mobile ringkas', () => {
+  it('keeps the sign-out action in Akun instead of the application header', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([]);
+    const header = document.querySelector('.app-header');
+    expect(within(header).queryByRole('button', { name: /Keluar/ })).toBeNull();
+
+    const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
+    await user.click(within(nav).getByRole('button', { name: 'Akun' }));
+    expect(screen.getByRole('button', { name: /Keluar/ })).toBeTruthy();
+  });
+});

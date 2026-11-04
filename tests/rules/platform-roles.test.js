@@ -80,6 +80,20 @@ describe('platform role claims', () => {
     await assertFails(moderateReport(db, 'moderator'));
   });
 
+  it('rejects super_admin claims on every UID except the fixed platform owner', async () => {
+    const otherSuperAdmin = env.authenticatedContext('other-super-admin', {
+      platformRole: 'super_admin',
+    }).firestore();
+    await assertFails(getDoc(doc(otherSuperAdmin, 'warungs/pending-warung')));
+    await assertFails(getDoc(doc(otherSuperAdmin, 'postReports/report-1')));
+  });
+
+  it('rejects legacy admin claims on every UID except the fixed platform owner', async () => {
+    const otherLegacyAdmin = env.authenticatedContext('other-legacy-admin', { admin: true }).firestore();
+    await assertFails(getDoc(doc(otherLegacyAdmin, 'warungs/pending-warung')));
+    await assertFails(getDoc(doc(otherLegacyAdmin, 'postReports/report-1')));
+  });
+
   it('moderator cannot approve warungs or read verification audit records', async () => {
     const db = asModerator();
     await assertFails(approvePendingWarung(db, 'moderator'));

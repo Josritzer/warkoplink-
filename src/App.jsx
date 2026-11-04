@@ -295,14 +295,12 @@ export default function App() {
       setUser(nextUser);
       setEmailVerified(Boolean(nextUser?.emailVerified));
       setIsSuperAdmin(false);
-      setIsModerator(false);
       setAuthReady(true);
       if (nextUser && typeof nextUser.getIdTokenResult === 'function') {
         try {
           const token = await nextUser.getIdTokenResult(true);
           const role = platformRoleFromClaims(token.claims || {});
           setIsSuperAdmin(role === PLATFORM_ROLES.SUPER_ADMIN);
-          setIsModerator(role === PLATFORM_ROLES.MODERATOR || role === PLATFORM_ROLES.SUPER_ADMIN);
         } catch {
           setIsSuperAdmin(false);
            }
@@ -1371,8 +1369,8 @@ export default function App() {
         </button>
       </aside>
       <main className="app-page-content">
-      {section === 'Panel Admin' && isPlatformStaff ? <AdminPanel db={db} user={user} onNotice={setNotice} canVerifyWarungs={isSuperAdmin}/> :
-      section === 'Panel Admin' ? <section className="content-section"><h2>Akses admin tidak tersedia</h2><p>Akun ini tidak memiliki hak admin. Masuk menggunakan akun admin resmi atau kembali ke beranda.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
+      {section === 'Panel Admin' && isPlatformOwnerAccount ? <OwnerControlCenter db={db} user={user} onNotice={setNotice}/> :
+      section === 'Panel Admin' ? <section className="content-section"><h2>Akses pemilik platform tidak tersedia</h2><p>Owner Control Center hanya dapat dibuka oleh akun pemilik platform yang telah terverifikasi dan memiliki klaim akses resmi.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
       section === 'Pesan' ? <MessagesPage db={db} user={user} initialTab={messageInitialTab} initialConversationId={openConversationId} initialFriend={messageTarget} onOpenMemberProfile={openMemberProfile}/> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :
       section === 'Balas' ? <section className="content-section reply-page" aria-label="Halaman balasan">

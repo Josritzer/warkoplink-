@@ -121,7 +121,6 @@ export default function App() {
   const [selectedCommunityId, setSelectedCommunityId] = useState('');
   const [selectedThematicGroupId, setSelectedThematicGroupId] = useState('');
   const [selectedThematicMessageId, setSelectedThematicMessageId] = useState('');
-  const [isCommunityMember, setIsCommunityMember] = useState(false);
   const [communityPosts, setCommunityPosts] = useState([]);
   const [olderCommunityPosts, setOlderCommunityPosts] = useState([]);
   const [communityPostsStatus, setCommunityPostsStatus] = useState('idle');
@@ -730,8 +729,8 @@ export default function App() {
       setNotice('Masuk atau buat akun terlebih dahulu untuk mengirim obrolan.');
       return;
     }
-    if (details.communityId && (!isCommunityId(details.communityId) || !isCommunityMember)) {
-      setNotice('Gabung dengan komunitas ini terlebih dahulu sebelum mengirim postingan.');
+    if (details.communityId && !isCommunityId(details.communityId)) {
+      setNotice('Kategori obrolan tidak valid. Pilih salah satu dari tujuh kategori resmi.');
       return false;
     }
     const postTopic = details.communityId ? (details.topic || composerTopic) : composerTopic;
@@ -1317,7 +1316,6 @@ export default function App() {
   function openCommunity(communityId) {
     if (!isCommunityId(communityId)) return;
     setSelectedCommunityId(communityId);
-    setIsCommunityMember(false);
     setSearch('');
     setTopic('Semua');
     setComposerOpen(false);
@@ -1348,12 +1346,10 @@ export default function App() {
     {section === 'Obrolan' && <ConversationHub db={db} user={user} onSelectCommunity={openCommunity} onSelectThematicGroup={openThematicGroup}/>}
     {section === 'Grup Tematik Chat' && <ThematicGroupChat db={db} user={user} groupId={selectedThematicGroupId} targetMessageId={selectedThematicMessageId} onBack={() => navigateSection('Obrolan')} onNotice={setNotice} onRequestAuth={() => openAuth(false)} onOpenMention={handleOpenMention}/>}
     {section === 'Grup Komunitas' && <CommunityGroupHeader
-      db={db} user={user} communityId={selectedCommunityId} onBack={() => navigateSection('Obrolan')}
-      onNotice={setNotice} onRequestAuth={() => openAuth(false)} onMembershipChange={setIsCommunityMember}
+      communityId={selectedCommunityId} onBack={() => navigateSection('Obrolan')}
     />}
     {section !== 'Grup Tematik Chat' && <ChatPanel
     communityId={section === 'Grup Komunitas' ? selectedCommunityId : ''}
-    communityMember={isCommunityMember}
     readOnly={section === 'Beranda'} previewMode={section === 'Beranda'}
     onViewAllDiscussions={() => { navigateSection('Obrolan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
     onOpenDiscussion={() => { navigateSection('Obrolan'); setComposerOpen(true); window.scrollTo({ top: 0, behavior: 'auto' }); }}
@@ -1390,7 +1386,7 @@ export default function App() {
         {(installPrompt || (/iphone|ipad|ipod/i.test(navigator.userAgent) && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios|opios/i.test(navigator.userAgent))) && <button className="button button-install" type="button" onClick={handleInstallPwa} aria-label="Pasang aplikasi" title="Pasang aplikasi"><Download size={16}/></button>}
         {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
           user ? null :
-          <><button className="button button-quiet" onClick={() => openAuth(false)}>Masuk</button><button className="button button-dark" onClick={() => openAuth(true)}>Gabung komunitas</button></>}
+          <><button className="button button-quiet" onClick={() => openAuth(false)}>Masuk</button><button className="button button-dark" onClick={() => openAuth(true)}>Buat akun</button></>}
       </div>
     </header>
 
@@ -1473,7 +1469,7 @@ export default function App() {
       communityChatPanel}
       {authOpen && <div className="modal-backdrop" role="presentation" onClick={() => setAuthOpen(false)}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={() => setAuthOpen(false)} aria-label="Tutup">×</button>
-        <span className="brand-mark"><Sparkles size={20}/></span><h2 id="auth-title">{registerMode ? 'Gabung komunitas' : 'Selamat datang kembali'}</h2><p>{registerMode ? 'Buat akun untuk mulai terhubung.' : 'Masuk untuk ikut dalam percakapan.'}</p>
+        <span className="brand-mark"><Sparkles size={20}/></span><h2 id="auth-title">{registerMode ? 'Buat akun' : 'Selamat datang kembali'}</h2><p>{registerMode ? 'Buat akun untuk mulai terhubung.' : 'Masuk untuk ikut dalam percakapan.'}</p>
         <form onSubmit={handleAuth} noValidate>
           {registerMode && <label>Nama tampilan<input value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={60} placeholder="Nama kamu"/></label>}
           <label>Email<input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="nama@email.com"/></label>

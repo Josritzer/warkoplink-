@@ -118,7 +118,7 @@ afterEach(() => {
 });
 
 async function openRegister(user) {
-  await user.click(screen.getByRole('button', { name: 'Gabung komunitas' }));
+  await user.click(screen.getByRole('button', { name: 'Buat akun' }));
   return screen.getByRole('dialog');
 }
 
@@ -189,7 +189,7 @@ describe('navigasi utama dan halaman pesan', () => {
     expect(fs.orderBy).not.toHaveBeenCalledWith('lastMessageAt', 'desc');
     expect(screen.getByRole('tab', { name: 'Pribadi' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
-    expect(screen.queryByRole('tab', { name: 'Komunitas' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Kategori obrolan' })).toBeNull();
     // This test covers tab/navigation structure, not signed-in vs signed-out copy.
     await user.click(screen.getByRole('tab', { name: 'Teman' }));
     expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
@@ -217,20 +217,21 @@ describe('halaman publik', () => {
     render(<App />);
     emitAuth(null);
     emitPosts([]);
-    expect(screen.getByRole('heading', { name: 'Komunitas' })).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: /Buka komunitas/ })).toHaveLength(7);
+    expect(screen.getByRole('heading', { name: 'Kategori obrolan' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Buka kategori obrolan/ })).toHaveLength(7);
 
     await user.click(screen.getByRole('button', { name: /Lihat semua obrolan/ }));
     expect(screen.getByRole('heading', { name: 'Grup Tematik' })).toBeTruthy();
     expect(screen.getByText('Pemilik Warkop')).toBeTruthy();
     expect(screen.getByText('Jaringan Warga')).toBeTruthy();
-    await user.click(screen.getByRole('tab', { name: 'Komunitas' }));
-    expect(screen.getByRole('heading', { name: 'Temukan komunitasmu.' })).toBeTruthy();
+    await user.click(screen.getByRole('tab', { name: 'Kategori obrolan' }));
+    expect(screen.getByRole('heading', { name: 'Pilih topik obrolan.' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Ngopi Bareng' })).toBeTruthy();
 
-    await user.click(screen.getAllByRole('button', { name: 'Buka komunitas' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Buka kategori' })[0]);
     expect(await screen.findByRole('heading', { name: 'Ngopi Bareng' })).toBeTruthy();
-    expect(screen.getByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Masuk untuk mulai ngobrol/ })).toBeTruthy();
+    expect(screen.queryByText(/Gabung komunitas untuk mulai membuat postingan/)).toBeNull();
     await waitFor(() => {
       expect(state.postSubscriptions.filter((item) => item.active && item.kind === 'global')).toHaveLength(0);
       expect(state.postSubscriptions.filter((item) => item.active && item.kind === 'community')).toHaveLength(1);

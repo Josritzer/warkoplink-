@@ -132,7 +132,7 @@ export default function ConversationHub({ db, user, onSelectCommunity, onSelectT
     </div>
     <div className="conversation-hub-tabs" role="tablist" aria-label="Jenis ruang obrolan">
       <button type="button" role="tab" aria-selected={activeTab === 'thematic'} className={activeTab === 'thematic' ? 'is-active' : ''} onClick={() => setActiveTab('thematic')}>Grup Tematik</button>
-      <button type="button" role="tab" aria-selected={activeTab === 'community'} className={activeTab === 'community' ? 'is-active' : ''} onClick={() => setActiveTab('community')}>Komunitas</button>
+      <button type="button" role="tab" aria-selected={activeTab === 'community'} className={activeTab === 'community' ? 'is-active' : ''} onClick={() => setActiveTab('community')}>Kategori obrolan</button>
     </div>
     <div role="tabpanel" className="conversation-hub-panel">
       {activeTab === 'thematic'

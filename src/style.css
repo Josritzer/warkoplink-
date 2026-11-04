@@ -810,3 +810,13 @@
 .warung-activity-options legend{font-size:12px;font-weight:700;color:var(--wl-ink);padding:0}
 .warung-activity-options .facility-chip{display:inline-flex;align-items:center;gap:8px}
 .warung-activity-options input[type=checkbox]{width:auto;min-height:0;margin:0;accent-color:var(--wl-primary)}
+
+
+/* Clear entry points for member and platform-owner authentication. */
+.account-auth-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.account-auth-actions .button { min-width: 112px; justify-content: center; }
+.owner-login-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; padding: 18px 20px; border: 1px solid var(--line, #dfe5f0); border-radius: 18px; background: var(--surface, #fff); }
+.owner-login-card b { display: block; }
+.owner-login-card p { margin: 5px 0 0; color: var(--muted, #71809b); font-size: .9rem; }
+.owner-login-card .button { flex: 0 0 auto; }
+@media (max-width: 560px) { .owner-login-card { align-items: stretch; flex-direction: column; } .owner-login-card .button { width: 100%; justify-content: center; } }

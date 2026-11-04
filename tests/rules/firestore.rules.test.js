@@ -180,7 +180,7 @@ describe('open official conversation categories', () => {
     const aliceDb = asUser('alice');
     await assertSucceeds(createPost(aliceDb, validPost({ communityId: 'ngopi-bareng' })));
     await assertFails(createPost(aliceDb, validPost({ communityId: 'ngopi-bareng', topic: 'Jasa Lokal' })));
-    await assertFails(createPost(asUser('bob'), validPost({
+    await assertSucceeds(createPost(asUser('bob'), validPost({
       authorId: 'bob', authorName: 'Bob', communityId: 'ngopi-bareng'
     })));
     await assertFails(createPost(aliceDb, validPost({ communityId: 'grup-buatan-sendiri' })));

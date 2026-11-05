@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import * as firestore from 'firebase/firestore';
+import * as media from '../media/uploadWarkopMedia.js';
 
 const fixture = vi.hoisted(() => ({ rows: [], events: [] }));
 
@@ -68,6 +69,7 @@ describe('kartu direktori warkop', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Desa Maduran, Kecamatan Maduran, Lamongan' } });
     fireEvent.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
+    fireEvent.change(screen.getByLabelText('Nomor WhatsApp aktif'), { target: { value: '081234567890' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     expect(screen.queryByText(/Kisaran harga/)).toBeNull();
@@ -79,10 +81,15 @@ describe('kartu direktori warkop', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Jl. Tunjungan, Surabaya' } });
     fireEvent.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
+    fireEvent.change(screen.getByLabelText('Nomor WhatsApp aktif'), { target: { value: '081234567890' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     firestore.addDoc.mockResolvedValueOnce({ id: 'new-warkop-surabaya' });
+    media.uploadWarkopMedia.mockResolvedValueOnce({ url: 'https://example.test/main.webp' });
+    fireEvent.change(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), { target: { value: 'Kopi racikan' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    const mainPhoto = new File(['image'], 'warkop.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Foto utama warkop dan foto tambahan'), { target: { files: [mainPhoto] } });
     fireEvent.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
     await waitFor(() => expect(firestore.addDoc).toHaveBeenCalledOnce());
     expect(firestore.addDoc.mock.calls[0][1]).toMatchObject({
@@ -92,7 +99,35 @@ describe('kartu direktori warkop', () => {
       districtCode: '35.24.10', districtName: 'Maduran',
       villageCode: '35.24.10.2007', villageName: 'Maduran',
       verificationStatus: 'pending',
+      whatsapp: '6281234567890',
+      specialties: ['Kopi racikan'],
+      registrationPolicyVersion: 2,
     });
+  });
+
+  it('mewajibkan WhatsApp, menu spesial, dan foto utama sebelum membuat pendaftaran', async () => {
+    render(<WarungDirectory mode="register" user={{ uid: 'owner-required' }} db={{}} {...callbacks} />);
+    fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Warkop Wajib' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
+    fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Desa Maduran, Lamongan' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByText(/Nomor WhatsApp wajib diisi/)).toBeTruthy();
+    expect(firestore.addDoc).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Nomor WhatsApp aktif'), { target: { value: '081234567890' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByText(/Tambahkan minimal satu menu spesial/)).toBeTruthy();
+    expect(firestore.addDoc).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), { target: { value: 'Kopi racikan' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByLabelText('Foto utama warkop dan foto tambahan')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    expect(await screen.findByText(/Pilih minimal satu foto utama/)).toBeTruthy();
+    expect(firestore.addDoc).not.toHaveBeenCalled();
   });
 
   it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {

@@ -399,6 +399,9 @@ const validWarung = (overrides = {}) => ({
   districtCode: '35.24.10', districtName: 'Maduran',
   villageCode: '35.24.10.2007', villageName: 'Maduran',
   facilities: ['wifi', 'parkir'],
+  whatsapp: '6281234567890',
+  specialties: ['Kopi racikan'],
+  registrationPolicyVersion: 2,
   priceRange: 'hemat',
   openingHours: { senin: '08:00-22:00' },
   photos: [],
@@ -411,6 +414,13 @@ const validWarung = (overrides = {}) => ({
 describe('warungs — direktori aman tahap awal', () => {
   it('pemilik login boleh mendaftarkan warkop berstatus pending', async () => {
     await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warkop-alice'), validWarung()));
+  });
+
+
+  it('menolak pendaftaran baru tanpa menu spesial atau WhatsApp Indonesia yang valid', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/no-specialty'), validWarung({ specialties: [] })));
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/invalid-whatsapp'), validWarung({ whatsapp: '081234567890' })));
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/missing-policy'), validWarung({ registrationPolicyVersion: 1 })));
   });
 
   it('pemilik dapat menyimpan menu khas dan suasana tanpa mencantumkan kisaran harga', async () => {
@@ -541,11 +551,12 @@ describe('warungs — direktori aman tahap awal', () => {
 
 
 describe('verifikasi admin dan audit otomatis', () => {
-  async function seedPendingWarung() {
+  async function seedPendingWarung({ withPhoto = false } = {}) {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'warungs/warkop-audit'), validWarung({
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
+        ...(withPhoto ? { photos: ['https://klikvxuronunonymmiqv.supabase.co/storage/v1/object/public/warkoplink-media/warungs/warkop-audit/0/a12b4567-89ab-4cde-8fab-1234567890ab.webp'] } : {}),
       }));
     });
   }
@@ -559,8 +570,41 @@ describe('verifikasi admin dan audit otomatis', () => {
     }));
   });
 
-  it('admin sah dapat mengubah status dan membuat audit dalam satu batch', async () => {
+
+  it('admin tidak dapat memverifikasi warkop versi 2 tanpa foto utama', async () => {
     await seedPendingWarung();
+    const db = asAdmin();
+    const auditRef = doc(collection(db, 'verificationAudit'));
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'warungs/warkop-audit'), {
+      verificationStatus: 'verified',
+      verificationAuditId: auditRef.id,
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(auditRef, {
+      warungId: 'warkop-audit', warungName: 'Warkop Pojok', previousStatus: 'pending',
+      newStatus: 'verified', actorUid: 'admin', reason: '', createdAt: serverTimestamp(),
+    });
+    await assertFails(batch.commit());
+  });
+
+
+  it('pemilik tetap dapat memperbarui profil warung lama tanpa nomor WhatsApp', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const legacy = validWarung({ registrationPolicyVersion: 1, createdAt: Timestamp.now(), updatedAt: Timestamp.now() });
+      delete legacy.whatsapp;
+      delete legacy.specialties;
+      await setDoc(doc(ctx.firestore(), 'warungs/legacy-warung'), legacy);
+    });
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'warungs/legacy-warung'), {
+      name: 'Warkop Lama Diperbarui',
+      nameNormalized: 'warkop lama diperbarui',
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it('admin sah dapat mengubah status dan membuat audit dalam satu batch', async () => {
+    await seedPendingWarung({ withPhoto: true });
     const db = asAdmin();
     const auditRef = doc(collection(db, 'verificationAudit'));
     const batch = writeBatch(db);

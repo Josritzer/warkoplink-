@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, ArrowUpRight, CalendarDays, Clock3, MapPin, MessageCircle, Search, ShieldCheck, SlidersHorizontal, Store, Users, Utensils, Video } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarDays, Clock3, MapPin, Search, ShieldCheck, SlidersHorizontal, Store, Users, Utensils, Video } from 'lucide-react';
 import { isOpenNow } from '../directory/directoryFilters.js';
 import { buildHomeDiscoveryData, getHomeActivityStatus } from './homeDiscoveryModel.js';
 
@@ -125,14 +125,6 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
           <button type="button" onClick={() => onOpenPost?.(post)} aria-label="Lihat detail acara"><ArrowUpRight size={18}/></button>
         </article>;
       })}</div> : <div className="home-discovery-empty"><CalendarDays size={22}/><b>Belum ada agenda mendatang</b><span>Acara akan muncul setelah jadwalnya dipublikasikan.</span></div>}
-    </section>
-    <section className="home-discovery-section" id="home-community">
-      <SectionHeading eyebrow="RUANG KOMUNITAS" title="Obrolan komunitas" action="Lihat Semua" onAction={onOpenCommunity}/>
-      {posts.length ? <div className="home-community-list">{posts.filter(post => post?.body && post.topic !== 'Info & Acara').slice(0, 4).map(post => <button className="home-community-card" type="button" key={post.id} onClick={onOpenCommunity}>
-        <span className="home-community-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy"/> : String(post.authorName || 'W').slice(0,1).toUpperCase()}</span>
-        <span className="home-community-copy"><b>{post.topic || 'Ngopi Bareng'}</b><span>{post.body.split('\n')[0].slice(0, 100)}</span></span>
-        <span className="home-community-time">{post.createdAt?.toDate ? 'Terbaru' : ''}</span>
-      </button>)}</div> : <div className="home-discovery-empty"><MessageCircle size={22}/><b>Belum ada obrolan komunitas</b><span>Obrolan terbaru akan muncul di sini.</span></div>}
     </section>
   </div>;
 }

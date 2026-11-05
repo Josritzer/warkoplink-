@@ -37,7 +37,7 @@ vi.mock('../media/imagePolicy.js', () => ({
   MAX_WARUNG_PHOTOS: 5,
   validateImageFiles: vi.fn(() => ''),
 }));
-vi.mock('./LeafletLocationPicker.jsx', () => ({ default: () => null }));
+vi.mock('./LeafletLocationPicker.jsx', () => ({ default: ({ onChange }) => <button type="button" onClick={() => onChange('-7.05', '112.30')}>Pilih titik lokasi (uji)</button> }));
 vi.mock('./OfficialRegionPicker.jsx', () => ({ default: ({ onChange }) => <button type="button" onClick={() => onChange({ provinceCode: '35', provinceName: 'Jawa Timur', regencyCode: '35.24', regencyName: 'Kabupaten Lamongan', districtCode: '35.24.10', districtName: 'Maduran', villageCode: '35.24.10.2007', villageName: 'Maduran' })}>Pilih wilayah resmi (uji)</button> }));
 
 import WarungDirectory from './WarungDirectory.jsx';
@@ -53,13 +53,21 @@ afterEach(() => {
 
 describe('kartu direktori warkop', () => {
 
+
+  it('memilih lokasi lewat peta atau GPS tanpa meminta koordinat manual', () => {
+    render(<WarungDirectory mode="register" user={{ uid: 'owner-location' }} db={{}} {...callbacks} />);
+    expect(screen.queryByLabelText('Lintang (latitude)')).toBeNull();
+    expect(screen.queryByLabelText('Bujur (longitude)')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Gunakan Lokasi Saya' })).toBeTruthy();
+  });
+
   it('mengutamakan menu spesial dan tidak meminta kisaran harga saat pendaftaran', async () => {
     render(<WarungDirectory mode="register" user={{ uid: 'owner-1' }} db={{}} {...callbacks} />);
     fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Warkop Maduran' } });
     fireEvent.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Desa Maduran, Kecamatan Maduran, Lamongan' } });
-    fireEvent.change(screen.getByLabelText('Lintang (latitude)'), { target: { value: '-7.05' } });
-    fireEvent.change(screen.getByLabelText('Bujur (longitude)'), { target: { value: '112.30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     expect(screen.queryByText(/Kisaran harga/)).toBeNull();
@@ -70,8 +78,7 @@ describe('kartu direktori warkop', () => {
     fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Kopi Surabaya' } });
     fireEvent.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Jl. Tunjungan, Surabaya' } });
-    fireEvent.change(screen.getByLabelText('Lintang (latitude)'), { target: { value: '-7.25' } });
-    fireEvent.change(screen.getByLabelText('Bujur (longitude)'), { target: { value: '112.75' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     firestore.addDoc.mockResolvedValueOnce({ id: 'new-warkop-surabaya' });

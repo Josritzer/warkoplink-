@@ -124,7 +124,7 @@ html[data-theme="dark"] .warung-form select {
 }
 .composer:focus-within {
   border-color: var(--wl-caramel);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, .08);
+  box-shadow: 0 0 0 3px rgba(197, 138, 82, .18);
 }
 .post-list { gap: 0; border-top: 1px solid var(--wl-reference-line); }
 .post-card {
@@ -137,7 +137,7 @@ html[data-theme="dark"] .warung-form select {
   box-shadow: none;
   transition: background-color .15s ease;
 }
-.post-card:hover { background: rgba(124, 58, 237, .025); }
+.post-card:hover { background: rgba(152, 97, 59, .035); }
 .post-avatar {
   width: 40px;
   height: 40px;

@@ -174,13 +174,13 @@
   color: var(--wl-primary);
 }
 
-.thematic-group-icon-pemilik-warkop { background: #f0eaff; color: #7146bd; }
-.thematic-group-icon-pelaku-umkm { background: #e8f3ff; color: #3478bb; }
-.thematic-group-icon-info-pekerjaan { background: #fff1df; color: #bd7524; }
-.thematic-group-icon-event-nobar { background: #fce9ee; color: #c44d70; }
-.thematic-group-icon-komunitas-olahraga { background: #e6f5ee; color: #32865e; }
-.thematic-group-icon-kreator-lokal { background: #f1eaff; color: #8857c6; }
-.thematic-group-icon-jaringan-warga { background: #e4f3f2; color: #32817b; }
+.thematic-group-icon-pemilik-warkop { background: #E9DFD2; color: #493126; }
+.thematic-group-icon-pelaku-umkm { background: #F2E4D4; color: #98613B; }
+.thematic-group-icon-info-pekerjaan { background: #F5EEDC; color: #805A20; }
+.thematic-group-icon-event-nobar { background: #F7E8E5; color: #A33D36; }
+.thematic-group-icon-komunitas-olahraga { background: #E4F0E8; color: #246B52; }
+.thematic-group-icon-kreator-lokal { background: #F1E7D7; color: #98613B; }
+.thematic-group-icon-jaringan-warga { background: #E9DFD2; color: #493126; }
 
 .thematic-group-copy {
   flex: 1;

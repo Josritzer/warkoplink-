@@ -589,24 +589,18 @@ describe('verifikasi admin dan audit otomatis', () => {
   });
 
 
-  it('tetap mengizinkan verifikasi data pending warung versi lama tanpa syarat versi baru', async () => {
+  it('pemilik tetap dapat memperbarui profil warung lama tanpa nomor WhatsApp', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       const legacy = validWarung({ registrationPolicyVersion: 1, createdAt: Timestamp.now(), updatedAt: Timestamp.now() });
       delete legacy.whatsapp;
       delete legacy.specialties;
       await setDoc(doc(ctx.firestore(), 'warungs/legacy-warung'), legacy);
     });
-    const db = asAdmin();
-    const auditRef = doc(collection(db, 'verificationAudit'));
-    const batch = writeBatch(db);
-    batch.update(doc(db, 'warungs/legacy-warung'), {
-      verificationStatus: 'verified', verificationAuditId: auditRef.id, updatedAt: serverTimestamp(),
-    });
-    batch.set(auditRef, {
-      warungId: 'legacy-warung', warungName: 'Warkop Pojok', previousStatus: 'pending',
-      newStatus: 'verified', actorUid: 'admin', reason: '', createdAt: serverTimestamp(),
-    });
-    await assertSucceeds(batch.commit());
+    await assertSucceeds(updateDoc(doc(asUser('alice'), 'warungs/legacy-warung'), {
+      name: 'Warkop Lama Diperbarui',
+      nameNormalized: 'warkop lama diperbarui',
+      updatedAt: serverTimestamp(),
+    }));
   });
 
   it('admin sah dapat mengubah status dan membuat audit dalam satu batch', async () => {

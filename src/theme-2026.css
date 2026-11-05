@@ -165,17 +165,17 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visib
   outline: 3px solid rgba(var(--wl-primary-rgb), .5); outline-offset: 3px;
 }
 
-/* Sidebar desktop: Plum Noir dengan aksen Persimmon */
-.desktop-sidebar { background: var(--wl-plum); border-color: var(--wl-plum-2); }
-.sidebar-nav-item.active { background: var(--wl-plum-2); color: #fff; box-shadow: inset 3px 0 var(--wl-primary-bright); }
-.sidebar-nav-item.active > svg, .sidebar-note-icon { color: var(--wl-primary-bright); }
-.sidebar-community-note { background: var(--wl-plum-2); border-color: #3a2c42; }
+/* Desktop navigation — Espresso base with Dark Roast and Caramel accents */
+.desktop-sidebar { background: var(--wl-espresso); border-color: var(--wl-dark-roast); color: var(--wl-milk); }
+.sidebar-nav-item.active { background: var(--wl-dark-roast); color: var(--wl-milk); box-shadow: inset 3px 0 var(--wl-caramel); }
+.sidebar-nav-item.active > svg, .sidebar-note-icon { color: var(--wl-caramel); }
+.sidebar-community-note { background: var(--wl-dark-roast); border-color: rgba(197, 138, 82, .28); }
 
 /* Kartu & topik */
 #community-feed .post-card, .content-section, .account-card, .rail-panel {
   background: var(--wl-paper); border-color: var(--wl-line); box-shadow: var(--wl-shadow);
 }
-#community-feed .topic.selected, .topic.selected { background: var(--wl-plum); border-color: var(--wl-plum); color: #fff; }
+#community-feed .topic.selected, .topic.selected { background: var(--wl-coffee); border-color: var(--wl-coffee); color: #fff; }
 #community-feed .post-category-ngopi { border-left-color: var(--wl-primary-bright); }
 
 /* Navigasi bawah (mobile) */

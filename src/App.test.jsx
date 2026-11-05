@@ -203,7 +203,212 @@ describe('navigasi utama dan halaman pesan', () => {
     await user.click(screen.getByRole('tab', { name: 'Teman' }));
     expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
-    expect(screen.getByRole('heading', { name: 'Suasana komunitas' })).toBeTruthy();
+    // Tes komponen dengan Firebase di-mock (BUKAN E2E ke Firebase asli).
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+const state = vi.hoisted(() => ({ authCallback: null, snapshotNext: null, snapshotError: null, warungsSnapshots: [], postSubscriptions: [] }));
+
+
+vi.mock('./directory/LeafletLocationPicker.jsx', () => ({
+  default: ({ onChange }) => (
+    <div>
+      <button type="button" onClick={() => onChange('-7.0001', '112.2810')}>Pilih titik lokasi (uji)</button>
+      <button type="button" onClick={() => onChange('200', '112')}>Pilih titik tidak valid (uji)</button>
+    </div>
+  ),
+}));
+
+vi.mock('./directory/OfficialRegionPicker.jsx', () => ({
+  default: ({ onChange }) => <button type="button" onClick={() => onChange({
+    provinceCode: '35', provinceName: 'Jawa Timur',
+    regencyCode: '35.24', regencyName: 'Kabupaten Lamongan',
+    districtCode: '35.24.10', districtName: 'Maduran',
+    villageCode: '35.24.10.2007', villageName: 'Maduran',
+  })}>Pilih wilayah resmi (uji)</button>,
+}));
+
+vi.mock('./firebase.js', () => ({ auth: { name: 'auth' }, db: { name: 'db' }, firebaseConfigured: true }));
+vi.mock('./media/uploadWarkopMedia.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, uploadWarkopMedia: vi.fn() };
+});
+
+vi.mock('firebase/auth', () => ({
+  onAuthStateChanged: vi.fn((auth, callback) => { state.authCallback = callback; return vi.fn(); }),
+  createUserWithEmailAndPassword: vi.fn(),
+  signInWithEmailAndPassword: vi.fn(),
+  signInWithPopup: vi.fn(),
+  GoogleAuthProvider: class GoogleAuthProvider { setCustomParameters() {} },
+  signOut: vi.fn(),
+  updateProfile: vi.fn(),
+  sendEmailVerification: vi.fn(),
+  reload: vi.fn(),
+}));
+
+vi.mock('firebase/firestore', () => ({
+  addDoc: vi.fn(),
+  deleteDoc: vi.fn().mockResolvedValue(undefined),
+  collection: vi.fn((db, ...segments) => ({ path: segments.join('/') })),
+  doc: vi.fn((db, col, id) => { const reference = { path: id === undefined && col === undefined && db?.path ? `${db.path}/new-post` : `${col}/${id}` }; Object.defineProperty(reference, 'id', { value: id ?? (col === undefined && db?.path ? 'new-post' : undefined), enumerable: false }); return reference; }),
+  getCountFromServer: vi.fn(() => Promise.resolve({ data: () => ({ count: 0 }) })),
+  getDoc: vi.fn(),
+  getDocs: vi.fn(),
+  increment: vi.fn((amount) => ({ increment: amount })),
+  limit: vi.fn((n) => ({ limit: n })),
+  onSnapshot: vi.fn((q, next, error) => {
+    // Simpan callback feed/direktori saja; subscription likes/replies tidak boleh menimpa helper tes.
+    const path = q?.args?.[0]?.path ?? q?.path;
+    let unsubscribe = vi.fn();
+    if (path === 'posts') {
+      const isCommunityQuery = q?.args?.some((argument) => argument?.where?.[0] === 'communityId');
+      const subscription = { kind: isCommunityQuery ? 'community' : 'global', active: true };
+      state.postSubscriptions.push(subscription);
+      unsubscribe = vi.fn(() => { subscription.active = false; });
+      if (!isCommunityQuery) {
+        state.snapshotNext = next;
+        state.snapshotError = error;
+      }
+    }
+    if (path === 'warungs') {
+      state.warungsSnapshots.push({ query: q, next, error });
+      state.snapshotNext = next;
+      state.snapshotError = error;
+    }
+    return unsubscribe;
+  }),
+  orderBy: vi.fn(),
+  query: vi.fn((...args) => ({ args })),
+  runTransaction: vi.fn(async (db, callback) => callback({ get: vi.fn(), set: vi.fn(), update: vi.fn(), delete: vi.fn() })),
+  startAfter: vi.fn((cursor) => ({ startAfter: cursor })),
+  where: vi.fn((...args) => ({ where: args })),
+  updateDoc: vi.fn().mockResolvedValue(undefined),
+  writeBatch: vi.fn(() => ({ set: vi.fn(), delete: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) })),
+  serverTimestamp: vi.fn(() => '__SERVER_TS__'),
+  setDoc: vi.fn(),
+}));
+
+import * as fbAuth from 'firebase/auth';
+import * as fs from 'firebase/firestore';
+import * as media from './media/uploadWarkopMedia.js';
+import App from './App.jsx';
+
+const fakeUser = (overrides = {}) => ({ uid: 'u1', email: 'sari@example.test', displayName: 'Sari', ...overrides });
+const snapshotOf = (posts) => ({
+  docs: posts.map(({ id, ...rest }) => ({ id, data: () => rest })),
+});
+const emitAuth = (user) => act(() => { state.authCallback(user); });
+const emitPosts = (posts) => act(() => { state.snapshotNext(snapshotOf(posts)); });
+
+const POSTS = [
+  { id: 'p1', authorName: 'Sari', body: 'Halo semuanya', topic: 'Obrolan Umum' },
+  { id: 'p2', authorName: 'Budi', body: 'Berapa harga layanan?', topic: 'Tanya Jawab' },
+  { id: 'p3', authorName: 'Dewi', body: 'Usul fitur baru', topic: 'Ide & Saran' },
+];
+
+beforeEach(() => {
+  state.warungsSnapshots = [];
+  state.postSubscriptions = [];
+  window.localStorage.clear();
+  vi.clearAllMocks();
+  fs.getDoc.mockResolvedValue({ exists: () => true, data: () => ({}) });
+  fs.getDocs.mockResolvedValue({ docs: [], empty: true });
+  fs.getCountFromServer.mockResolvedValue({ data: () => ({ count: 0 }) });
+  fs.updateDoc.mockResolvedValue(undefined);
+  fs.setDoc.mockResolvedValue(undefined);
+  fs.addDoc.mockResolvedValue({ id: 'new' });
+  fs.writeBatch.mockImplementation(() => ({ set: vi.fn(), commit: vi.fn().mockResolvedValue(undefined) }));
+  fbAuth.updateProfile.mockResolvedValue(undefined);
+  fbAuth.sendEmailVerification.mockResolvedValue(undefined);
+  fbAuth.reload.mockResolvedValue(undefined);
+  fbAuth.signOut.mockResolvedValue(undefined);
+  fbAuth.signInWithEmailAndPassword.mockResolvedValue({ user: fakeUser() });
+  fbAuth.createUserWithEmailAndPassword.mockResolvedValue({ user: { uid: 'u1', email: 'sari@example.test' } });
+});
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+
+async function openRegister(user) {
+  await user.click(screen.getByRole('button', { name: 'Buat akun' }));
+  return screen.getByRole('dialog');
+}
+
+async function fillAuth(user, dialog, { name, email, password }) {
+  if (name !== undefined) {
+    const field = within(dialog).getByLabelText('Nama tampilan');
+    await user.clear(field);
+    if (name) await user.type(field, name);
+  }
+  const emailField = within(dialog).getByLabelText('Email');
+  await user.clear(emailField);
+  if (email) await user.type(emailField, email);
+  const passwordField = within(dialog).getByLabelText('Kata sandi');
+  await user.clear(passwordField);
+  if (password) await user.type(passwordField, password);
+}
+
+describe('laporan obrolan', () => {
+  it('anggota dapat mengirim laporan dengan alasan terpilih', async () => {
+    render(<App />);
+    emitAuth(fakeUser());
+    emitPosts([{ id: 'post-1', authorId: 'author-1', authorName: 'Budi', body: 'Pesan contoh', topic: 'Obrolan Umum' }]);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Opsi postingan' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Laporkan obrolan/ }));
+    await user.selectOptions(screen.getByLabelText('Alasan laporan'), 'Lainnya');
+    await user.click(screen.getByRole('button', { name: 'Kirim laporan' }));
+    await waitFor(() => expect(fs.setDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ targetPostId: 'post-1', targetAuthorId: 'author-1', reporterUid: 'u1', reason: 'Lainnya', createdAt: '__SERVER_TS__' })));
+    expect(await screen.findByText('Laporan terkirim kepada admin untuk ditinjau.')).toBeTruthy();
+    expect(screen.getByText('Laporan terkirim kepada admin untuk ditinjau.').tagName).toBe('DIV');
+  });
+});
+
+describe('preferensi tampilan', () => {
+  it('mengaktifkan mode gelap dan menyimpan pilihan pengguna', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const toggle = screen.getByRole('button', { name: 'Aktifkan mode gelap' });
+    await user.click(toggle);
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(window.localStorage.getItem('warkoplink:theme')).toBe('dark');
+    expect(screen.getByRole('button', { name: 'Aktifkan mode terang' })).toBeTruthy();
+  });
+});
+
+
+describe('navigasi utama dan halaman pesan', () => {
+  it('menampilkan tepat lima menu utama dan tidak menaruh pendaftaran di navigasi bawah', () => {
+    render(<App />);
+    const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
+    const labels = within(nav).getAllByRole('button').map(button => button.textContent.trim());
+    expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Obrolan', 'Daftarkan Warkop', 'Akun']);
+    const desktopNav = screen.getByRole('navigation', { name: 'Navigasi utama' });
+    expect(within(desktopNav).getAllByRole('button').map(button => button.textContent.trim()))
+      .toEqual(['Beranda', 'Cari Warkop', 'Obrolan', 'Daftarkan Warkop', 'Akun']);
+    expect(screen.getByRole('button', { name: 'Buka pesan pribadi' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Buka notifikasi' })).toBeTruthy();
+  });
+
+  it('hanya menampilkan tab Pribadi dan Teman; diskusi komunitas tetap di halaman Obrolan', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitAuth(fakeUser());
+    await user.click(screen.getByRole('button', { name: 'Buka pesan pribadi' }));
+    expect(screen.getByRole('heading', { name: 'Pesan' })).toBeTruthy();
+    expect(fs.where).toHaveBeenCalledWith('participantUids', 'array-contains', 'u1');
+    expect(fs.orderBy).not.toHaveBeenCalledWith('lastMessageAt', 'desc');
+    expect(screen.getByRole('tab', { name: 'Pribadi' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Kategori obrolan' })).toBeNull();
+    // This test covers tab/navigation structure, not signed-in vs signed-out copy.
+    await user.click(screen.getByRole('tab', { name: 'Teman' }));
+    expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Obrolan' }));
+    
     expect(screen.getByLabelText('Kategori obrolan')).toBeTruthy();
   });
 });

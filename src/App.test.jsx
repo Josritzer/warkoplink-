@@ -793,6 +793,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     await user.type(screen.getByLabelText('Nomor WhatsApp aktif'), '081234567890');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.type(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), 'Kopi racikan');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.upload(screen.getByLabelText(/Foto utama warkop/), new File(['foto'], 'warkop.jpg', { type: 'image/jpeg' }));
@@ -815,6 +816,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
     await user.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     await user.type(screen.getByLabelText('Nomor WhatsApp aktif'), '081234567890');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.type(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), 'Kopi racikan');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));

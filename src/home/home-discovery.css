@@ -180,23 +180,23 @@ html[data-theme="dark"] .home-discovery {
   border-radius: 28px;
   background-color: #211A16;
   background-image:
-    linear-gradient(90deg, rgba(25, 18, 14, .82) 0%, rgba(33, 26, 22, .54) 48%, rgba(33, 26, 22, .16) 100%),
-    linear-gradient(0deg, rgba(33, 26, 22, .28), rgba(33, 26, 22, .04)),
+    linear-gradient(90deg, rgba(25, 18, 14, .48) 0%, rgba(33, 26, 22, .24) 48%, rgba(33, 26, 22, .06) 100%),
+    linear-gradient(0deg, rgba(33, 26, 22, .16), rgba(33, 26, 22, .02)),
     url("https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2200&q=85");
   background-size: cover;
   background-position: center 54%;
   box-shadow: 0 26px 60px -34px rgba(33, 26, 22, .62);
 }
 .home-discovery-hero-copy {
-  width: min(100%, 720px);
-  max-width: 720px;
-  padding: clamp(20px, 3vw, 34px);
-  border: 1px solid rgba(250, 247, 241, .24);
+  width: min(100%, 620px);
+  max-width: 620px;
+  padding: clamp(20px, 2.8vw, 30px);
+  border: 1px solid rgba(250, 247, 241, .19);
   border-radius: 22px;
-  background: rgba(33, 26, 22, .38);
-  box-shadow: 0 18px 48px rgba(18, 12, 9, .16), inset 0 1px 0 rgba(250, 247, 241, .1);
-  -webkit-backdrop-filter: blur(16px) saturate(118%);
-  backdrop-filter: blur(16px) saturate(118%);
+  background: rgba(33, 26, 22, .18);
+  box-shadow: 0 14px 38px rgba(18, 12, 9, .12), inset 0 1px 0 rgba(250, 247, 241, .08);
+  -webkit-backdrop-filter: blur(9px) saturate(118%);
+  backdrop-filter: blur(9px) saturate(118%);
 }
 .home-discovery-eyebrow { color: #E8B77F; }
 .home-discovery-hero h1 { color: #FAF7F1; max-width: 680px; }
@@ -221,7 +221,7 @@ html[data-theme="dark"] .home-discovery {
   outline-offset: 3px;
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .home-discovery-hero-copy { background: rgba(33, 26, 22, .82); }
+  .home-discovery-hero-copy { background: rgba(33, 26, 22, .68); }
   .home-discovery-search { background: rgba(33, 26, 22, .72); }
 }
 @media (max-width: 620px) {
@@ -232,13 +232,13 @@ html[data-theme="dark"] .home-discovery {
     border-radius: 22px;
     background-position: 58% center;
     background-image:
-      linear-gradient(0deg, rgba(25, 18, 14, .86) 0%, rgba(33, 26, 22, .52) 55%, rgba(33, 26, 22, .12) 100%),
+      linear-gradient(0deg, rgba(25, 18, 14, .56) 0%, rgba(33, 26, 22, .26) 55%, rgba(33, 26, 22, .05) 100%),
       url("https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1000&q=82");
   }
   .home-discovery-hero-copy {
     padding: 18px 16px;
     border-radius: 18px;
-    background: rgba(33, 26, 22, .48);
+    background: rgba(33, 26, 22, .22);
   }
   .home-discovery-hero h1 { font-size: clamp(32px, 8.8vw, 42px); }
   .home-discovery-hero-copy > p { font-size: 12px; line-height: 1.6; }

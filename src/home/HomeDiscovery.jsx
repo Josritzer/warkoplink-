@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, ArrowUpRight, CalendarDays, Clock3, MapPin, Search, ShieldCheck, Store, Users, Utensils, Video } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarDays, Clock3, MapPin, Search, ShieldCheck, SlidersHorizontal, Store, Users, Utensils, Video } from 'lucide-react';
 import { isOpenNow } from '../directory/directoryFilters.js';
 import { buildHomeDiscoveryData, getHomeActivityStatus } from './homeDiscoveryModel.js';
 
@@ -58,15 +58,13 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
   }
 
   return <div className="home-discovery" aria-label="Jelajahi WarkopLink">
-    <section className="home-discovery-hero" aria-labelledby="home-discovery-title">
+    <section className="home-discovery-hero" aria-label="Pencarian WarkopLink">
       <div className="home-discovery-hero-copy">
         <span className="home-discovery-eyebrow">WARKOPLINK · LOCAL DISCOVERY</span>
         <h1 id="home-discovery-title">Temukan tempat singgah, <em>temukan cerita.</em></h1>
-        <p>Jelajahi warkop, menu spesial, aktivitas, dan komunitas lokal dalam satu tempat.</p>
-        <label className="home-discovery-search"><Search size={19}/><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Cari warkop, menu, atau kegiatan…" aria-label="Cari warkop, menu, atau kegiatan"/>{search && <button type="button" onClick={() => setSearch('')} aria-label="Hapus pencarian">×</button>}</label>
-        <div className="home-discovery-hero-note"><ShieldCheck size={14}/> Jelajahi informasi dari komunitas WarkopLink</div>
+        <p>Jelajahi warkop, menu spesial, aktivitas, dan komunitas dari berbagai daerah di Indonesia.</p>
+        <label className="home-discovery-search"><Search size={21}/><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Cari warkop, menu, atau kegiatan…" aria-label="Cari warkop, menu, atau kegiatan"/>{search && <button type="button" onClick={() => setSearch('')} aria-label="Hapus pencarian">×</button>}<button className="home-search-filter" type="button" onClick={onOpenDirectory} aria-label="Buka filter pencarian"><SlidersHorizontal size={21}/></button></label>
       </div>
-      <div className="home-discovery-hero-art" aria-hidden="true"><div className="home-discovery-art-orbit"/><div className="home-discovery-coffee"><span>W</span></div><div className="home-discovery-art-caption">NGOPI · NONGKRONG · TERHUBUNG</div></div>
     </section>
 
     <nav className="home-explore-categories" aria-label="Kategori penjelajahan">
@@ -74,7 +72,7 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
     </nav>
 
     <section className="home-discovery-section" id="home-warungs">
-      <SectionHeading eyebrow="TEMPAT PILIHAN" title="Warkop terverifikasi" description="Temukan warkop dengan profil dan informasi yang sudah diverifikasi." action="Lihat direktori" onAction={onOpenDirectory}/>
+      <SectionHeading eyebrow="TEMPAT PILIHAN" title="Warkop pilihan" action="Lihat Semua" onAction={onOpenDirectory}/>
       {visibleWarungs.length ? <div className="home-warung-grid">{visibleWarungs.slice(0, 8).map(warung => {
         const photo = Array.isArray(warung.photos) ? warung.photos.find(value => typeof value === 'string' && value.trim()) : '';
         const openState = isOpenNow(warung);
@@ -94,7 +92,7 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
     </section>
 
     <section className="home-discovery-section" id="home-activities">
-      <SectionHeading eyebrow="KEHIDUPAN LOKAL" title="Sedang ramai" description="Aktivitas dan ajakan yang dibagikan komunitas." action="Lihat obrolan" onAction={onOpenCommunity}/>
+      <SectionHeading eyebrow="AKTIVITAS KOMUNITAS" title="Sedang ramai" action="Lihat Semua" onAction={onOpenCommunity}/>
       <div className="home-activity-filters" role="group" aria-label="Filter aktivitas">
         {[['all','Semua'],['ongoing','Berlangsung'],['today','Hari ini'],['scheduled','Terjadwal']].map(([value,label]) => <button key={value} type="button" className={activityFilter === value ? 'active' : ''} aria-pressed={activityFilter === value} onClick={() => setActivityFilter(value)}>{label}</button>)}
       </div>
@@ -102,7 +100,7 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
         const status = getHomeActivityStatus(post);
         const linkedWarung = post.warungId ? warungs.find(item => item.id === post.warungId) : null;
         return <article className="home-activity-card" key={post.id}>
-          <div className="home-activity-icon"><Users size={20}/></div>
+          <div className="home-activity-icon">{post.eventPhotoURL ? <img src={post.eventPhotoURL} alt="" loading="lazy"/> : <Users size={20}/>}</div>
           <div className="home-activity-copy"><div className="home-activity-meta"><span>{post.eventKind || post.postType || post.topic}</span>{status === 'ongoing' && <b className="home-live-label">Berlangsung</b>}{status === 'scheduled' && <b className="home-scheduled-label">Terjadwal</b>}</div><h3>{post.body?.split('\n')[0]?.slice(0, 92) || 'Aktivitas komunitas'}</h3>
             <div className="home-activity-details">{post.eventStartAt && <span><Clock3 size={13}/>{eventDateLabel(post.eventStartAt)}</span>}{post.location && <span><MapPin size={13}/>{post.location}</span>}</div>
             {linkedWarung && <button type="button" className="home-activity-organizer" onClick={() => onOpenWarung?.(linkedWarung.id)}><Store size={13}/>{linkedWarung.name}</button>}
@@ -113,12 +111,12 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
     </section>
 
     <section className="home-discovery-section" id="home-reels">
-      <SectionHeading eyebrow="CERITA VISUAL" title="WARKOPLINK Reels" description="Video dari postingan komunitas. Putar saat Anda ingin menonton."/>
+      <SectionHeading eyebrow="CERITA VISUAL" title="Reels WarkopLink" action="Lihat Semua" onAction={onOpenCommunity}/>
       {visibleReels.length ? <div className="home-reels-row">{visibleReels.slice(0, 6).map(post => <article className="home-reel-card" key={post.id}><video src={post.videoURL} poster={post.videoThumbnailURL || undefined} controls playsInline preload="none" aria-label="Video komunitas WarkopLink"/><div className="home-reel-caption"><Video size={13}/><span>{post.body?.slice(0, 66) || 'Video komunitas'}</span></div></article>)}</div> : <div className="home-discovery-empty home-reels-empty"><Video size={22}/><b>Belum ada video untuk ditampilkan</b><span>Video komunitas akan muncul di sini setelah tersedia.</span></div>}
     </section>
 
     <section className="home-discovery-section" id="home-events">
-      <SectionHeading eyebrow="AGENDA LOKAL" title="Agenda & acara" description="Acara mendatang yang memiliki waktu mulai valid." action="Lihat obrolan" onAction={onOpenCommunity}/>
+      <SectionHeading eyebrow="AGENDA LOKAL" title="Agenda & acara" action="Lihat Semua" onAction={onOpenCommunity}/>
       {visibleEvents.length ? <div className="home-event-list">{visibleEvents.slice(0, 4).map(post => {
         const linkedWarung = post.warungId ? warungs.find(item => item.id === post.warungId) : null;
         return <article className="home-event-card" key={post.id}>

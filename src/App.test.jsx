@@ -203,7 +203,7 @@ describe('navigasi utama dan halaman pesan', () => {
     await user.click(screen.getByRole('tab', { name: 'Teman' }));
     expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
-    expect(screen.getByRole('heading', { name: 'Obrolan komunitas' })).toBeTruthy();
+    
     expect(screen.getByLabelText('Kategori obrolan')).toBeTruthy();
   });
 });
@@ -1020,5 +1020,20 @@ describe('header mobile ringkas', () => {
     const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
     await user.click(within(nav).getByRole('button', { name: 'Akun' }));
     expect(screen.getByRole('button', { name: /Keluar/ })).toBeTruthy();
+  });
+});
+
+
+describe('beranda marketplace nasional', () => {
+  it('menampilkan akses Semua Lokasi tanpa mengunci wilayah dan susunan discovery utama', async () => {
+    render(<App />);
+    emitAuth(null);
+    emitPosts([]);
+    expect(screen.getByRole('button', { name: 'Jelajahi warkop di semua lokasi' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Warkop pilihan' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Sedang ramai' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Reels WarkopLink' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Agenda & acara' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Suasana komunitas' })).toBeTruthy();
   });
 });

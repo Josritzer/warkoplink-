@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t test_files < <(find src -type f -name '*.test.js' -print -o -name '*.test.jsx' -print | sort)
+          mapfile -t test_files < <(find src -type f \( -name '*.test.js' -o -name '*.test.jsx' \) -print | sort)
           if [ "${#test_files[@]}" -eq 0 ]; then
             echo "::error::Tidak ditemukan file tes di src/"
             exit 1
@@ -36,7 +36,7 @@ jobs:
           failed=0
           for test_file in "${test_files[@]}"; do
             echo "::group::Tes file: ${test_file}"
-            if ! timeout 60s npx vitest run "${test_file}" --reporter=verbose; then
+            if ! timeout 60s npm exec -- vitest run "${test_file}" --reporter=verbose; then
               failed=1
             fi
             echo "::endgroup::"

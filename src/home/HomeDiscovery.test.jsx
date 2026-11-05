@@ -13,7 +13,8 @@ describe('HomeDiscovery', () => {
       posts={[]}
       onOpenWarung={onOpenWarung}
     />);
-    expect(screen.getByRole('heading', { name: 'Warkop terverifikasi' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Temukan tempat singgah, temukan cerita.' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Warkop pilihan' })).toBeTruthy();
     expect(screen.getByText('Kopi Maduran')).toBeTruthy();
     expect(screen.getByText('Kopi tubruk')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Lihat profil' }));
@@ -26,7 +27,7 @@ describe('HomeDiscovery', () => {
       { id: 'no-video', videoThumbnailURL: 'https://cdn.example.test/no-video.jpg', body: 'Hanya poster' },
       { id: 'event-1', topic: 'Info & Acara', eventStartAt: '2099-11-06T19:00:00+07:00', eventKind: 'Nobar', body: 'Nobar final' }
     ]} />);
-    expect(screen.getByText('WARKOPLINK Reels')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Reels WarkopLink' })).toBeTruthy();
     expect(screen.getByLabelText('Video komunitas WarkopLink').getAttribute('src')).toBe('https://cdn.example.test/reel.mp4');
     expect(screen.getByText('Nobar final')).toBeTruthy();
     expect(document.querySelectorAll('.home-reel-card video')).toHaveLength(1);

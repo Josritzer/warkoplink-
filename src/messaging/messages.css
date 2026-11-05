@@ -34,7 +34,7 @@
 .messages-intro{margin-top:7px;color:var(--wl-muted);font-size:13px;line-height:1.65}
 .messages-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:20px 0 0;padding:4px;border:1px solid var(--wl-line-soft);border-radius:13px;background:var(--wl-paper,var(--wl-cream))}
 .messages-tab{min-width:0;padding:11px 5px;border:0;border-radius:9px;background:transparent;color:var(--wl-muted);font-size:12px;font-weight:700}
-.messages-tab[aria-selected="true"]{background:var(--wl-surface,#fff);color:var(--wl-primary);box-shadow:0 1px 5px rgba(30,20,60,.08)}
+.messages-tab[aria-selected="true"]{background:var(--wl-surface,#fff);color:var(--wl-primary);box-shadow:0 1px 5px rgba(33,26,22,.08)}
 .messages-panel{display:block;min-height:180px;margin-top:12px;padding:18px 16px;border:1px solid var(--wl-line-soft);border-radius:15px;background:var(--wl-surface,#fff);text-align:left}
 .message-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
 .message-list-heading h3{margin:0;color:var(--wl-ink);font-size:14px;font-weight:750}

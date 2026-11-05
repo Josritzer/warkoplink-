@@ -416,6 +416,13 @@ describe('warungs — direktori aman tahap awal', () => {
     await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warkop-alice'), validWarung()));
   });
 
+
+  it('menolak pendaftaran baru tanpa menu spesial atau WhatsApp Indonesia yang valid', async () => {
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/no-specialty'), validWarung({ specialties: [] })));
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/invalid-whatsapp'), validWarung({ whatsapp: '081234567890' })));
+    await assertFails(setDoc(doc(asUser('alice'), 'warungs/missing-policy'), validWarung({ registrationPolicyVersion: 1 })));
+  });
+
   it('pemilik dapat menyimpan menu khas dan suasana tanpa mencantumkan kisaran harga', async () => {
     await assertSucceeds(setDoc(doc(asUser('alice'), 'warungs/warkop-menu'), validWarung({
       priceRange: 'belum-diisi',
@@ -579,6 +586,27 @@ describe('verifikasi admin dan audit otomatis', () => {
       newStatus: 'verified', actorUid: 'admin', reason: '', createdAt: serverTimestamp(),
     });
     await assertFails(batch.commit());
+  });
+
+
+  it('tetap mengizinkan verifikasi data pending warung versi lama tanpa syarat versi baru', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const legacy = validWarung({ registrationPolicyVersion: 1, createdAt: Timestamp.now(), updatedAt: Timestamp.now() });
+      delete legacy.whatsapp;
+      delete legacy.specialties;
+      await setDoc(doc(ctx.firestore(), 'warungs/legacy-warung'), legacy);
+    });
+    const db = asAdmin();
+    const auditRef = doc(collection(db, 'verificationAudit'));
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'warungs/legacy-warung'), {
+      verificationStatus: 'verified', verificationAuditId: auditRef.id, updatedAt: serverTimestamp(),
+    });
+    batch.set(auditRef, {
+      warungId: 'legacy-warung', warungName: 'Warkop Pojok', previousStatus: 'pending',
+      newStatus: 'verified', actorUid: 'admin', reason: '', createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
   });
 
   it('admin sah dapat mengubah status dan membuat audit dalam satu batch', async () => {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, ArrowUpRight, CalendarDays, Clock3, Eye, MapPin, MessageCircle, Search, ShieldCheck, SlidersHorizontal, Store, Users, Utensils, Video } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarDays, Clock3, MapPin, MessageCircle, Search, ShieldCheck, SlidersHorizontal, Store, Users, Utensils, Video } from 'lucide-react';
 import { isOpenNow } from '../directory/directoryFilters.js';
 import { buildHomeDiscoveryData, getHomeActivityStatus } from './homeDiscoveryModel.js';
 

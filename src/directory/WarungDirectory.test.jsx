@@ -96,14 +96,15 @@ describe('kartu direktori warkop', () => {
   });
 
   it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {
-    fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', verificationStatus: 'verified' }];
+    fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', specialties: ['Kopi rempah'], verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
     expect(await screen.findByRole('button', { name: /Populer/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Ada Event/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Terdekat/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Warkop Terbaru/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /Warkop Terbaru/ }));
-    expect(screen.getByRole('button', { name: /Warkop Terbaru/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /Menu Spesial/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Warkop Terbaru/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Menu Spesial/ }));
+    expect(screen.getByRole('button', { name: /Menu Spesial/ }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByRole('button', { name: 'Hapus filter' })).toBeNull();
     expect(screen.queryByLabelText('Filter kisaran harga')).toBeNull();
     expect(screen.getByPlaceholderText('Cari nama, alamat, menu, menu spesial, fasilitas…')).toBeTruthy();

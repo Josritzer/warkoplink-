@@ -1034,6 +1034,6 @@ describe('beranda marketplace nasional', () => {
     expect(screen.getByRole('heading', { name: 'Sedang ramai' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Reels WarkopLink' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Agenda & acara' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Obrolan komunitas' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Suasana komunitas' })).toBeTruthy();
   });
 });

@@ -30,14 +30,6 @@ function SectionHeading({ eyebrow, title, description, action, onAction }) {
   return <div className="home-discovery-heading">
     <div><span className="home-discovery-eyebrow">{eyebrow}</span><h2>{title}</h2>{description && <p>{description}</p>}</div>
     {action && <button className="home-discovery-link" type="button" onClick={onAction}>{action}<ArrowRight size={15}/></button>}
-    <section className="home-discovery-section" id="home-community">
-      <SectionHeading eyebrow="RUANG KOMUNITAS" title="Obrolan komunitas" action="Lihat Semua" onAction={onOpenCommunity}/>
-      {posts.length ? <div className="home-community-list">{posts.filter(post => post?.body && post.topic !== 'Info & Acara').slice(0, 4).map(post => <button className="home-community-card" type="button" key={post.id} onClick={onOpenCommunity}>
-        <span className="home-community-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy"/> : String(post.authorName || 'W').slice(0,1).toUpperCase()}</span>
-        <span className="home-community-copy"><b>{post.topic || 'Ngopi Bareng'}</b><span>{post.body.split('\n')[0].slice(0, 100)}</span></span>
-        <span className="home-community-time">{post.createdAt?.toDate ? 'Terbaru' : ''}</span>
-      </button>)}</div> : <div className="home-discovery-empty"><MessageCircle size={22}/><b>Belum ada obrolan komunitas</b><span>Obrolan terbaru akan muncul di sini.</span></div>}
-    </section>
   </div>;
 }
 
@@ -69,6 +61,8 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
     <section className="home-discovery-hero" aria-label="Pencarian WarkopLink">
       <div className="home-discovery-hero-copy">
         <span className="home-discovery-eyebrow">WARKOPLINK · LOCAL DISCOVERY</span>
+        <h1 id="home-discovery-title">Temukan tempat singgah, <em>temukan cerita.</em></h1>
+        <p>Jelajahi warkop, menu spesial, aktivitas, dan komunitas dari berbagai daerah di Indonesia.</p>
         <label className="home-discovery-search"><Search size={21}/><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Cari warkop, menu, atau kegiatan…" aria-label="Cari warkop, menu, atau kegiatan"/>{search && <button type="button" onClick={() => setSearch('')} aria-label="Hapus pencarian">×</button>}<button className="home-search-filter" type="button" onClick={onOpenDirectory} aria-label="Buka filter pencarian"><SlidersHorizontal size={21}/></button></label>
       </div>
     </section>
@@ -131,6 +125,14 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
           <button type="button" onClick={() => onOpenPost?.(post)} aria-label="Lihat detail acara"><ArrowUpRight size={18}/></button>
         </article>;
       })}</div> : <div className="home-discovery-empty"><CalendarDays size={22}/><b>Belum ada agenda mendatang</b><span>Acara akan muncul setelah jadwalnya dipublikasikan.</span></div>}
+    </section>
+    <section className="home-discovery-section" id="home-community">
+      <SectionHeading eyebrow="RUANG KOMUNITAS" title="Obrolan komunitas" action="Lihat Semua" onAction={onOpenCommunity}/>
+      {posts.length ? <div className="home-community-list">{posts.filter(post => post?.body && post.topic !== 'Info & Acara').slice(0, 4).map(post => <button className="home-community-card" type="button" key={post.id} onClick={onOpenCommunity}>
+        <span className="home-community-avatar">{post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" loading="lazy"/> : String(post.authorName || 'W').slice(0,1).toUpperCase()}</span>
+        <span className="home-community-copy"><b>{post.topic || 'Ngopi Bareng'}</b><span>{post.body.split('\n')[0].slice(0, 100)}</span></span>
+        <span className="home-community-time">{post.createdAt?.toDate ? 'Terbaru' : ''}</span>
+      </button>)}</div> : <div className="home-discovery-empty"><MessageCircle size={22}/><b>Belum ada obrolan komunitas</b><span>Obrolan terbaru akan muncul di sini.</span></div>}
     </section>
   </div>;
 }

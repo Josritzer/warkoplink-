@@ -275,15 +275,20 @@ html[data-theme="dark"] .home-discovery {
   display:grid; gap:clamp(22px,3vw,30px); padding:10px 0 24px; color:#f8f5f2;
 }
 .home-view .home-discovery-hero {
-  min-height:112px; display:flex; align-items:flex-end; padding:20px 0 10px;
-  border:0; border-radius:0; box-shadow:none; background:transparent; overflow:visible;
+  min-height:clamp(390px,42vw,520px); display:flex; align-items:flex-end; padding:20px 0 18px;
+  border:0; border-radius:24px; box-shadow:0 24px 60px #0006; background:transparent; overflow:hidden;
 }
 .home-view .home-discovery-hero::before {
-  content:""; position:absolute; z-index:-1; inset:-10px -24px -4px;
-  background:linear-gradient(90deg,rgba(16,13,25,.96) 0%,rgba(16,13,25,.72) 48%,rgba(16,13,25,.12) 100%),linear-gradient(0deg,#100d19 0%,transparent 55%),url("https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=1600&q=85") center 48%/cover;
-  opacity:.94;
+  content:""; position:absolute; z-index:-1; inset:0; border-radius:inherit;
+  background:linear-gradient(90deg,rgba(16,13,25,.58) 0%,rgba(16,13,25,.18) 60%,rgba(16,13,25,.04) 100%),linear-gradient(0deg,rgba(16,13,25,.58) 0%,transparent 68%),url("https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=1800&q=88") center 48%/cover;
+  opacity:1;
 }
-.home-view .home-discovery-hero-copy { width:100%; max-width:none; }
+.home-view .home-discovery-hero-copy {
+  width:min(100%,680px); max-width:680px; margin:0 0 10px 18px; padding:20px 22px;
+  border:1px solid rgba(255,255,255,.24); border-radius:22px;
+  background:rgba(24,18,16,.22); box-shadow:0 14px 38px #09070a44,inset 0 1px 0 #ffffff18;
+  -webkit-backdrop-filter:blur(2px) saturate(112%); backdrop-filter:blur(2px) saturate(112%);
+}
 .home-view .home-discovery-eyebrow { color:#edbd72; font-size:10px; letter-spacing:.14em; }
 .home-view .home-discovery-search {
   width:100%; min-height:58px; gap:13px; margin-top:14px; padding:0 18px;
@@ -371,8 +376,11 @@ html[data-theme="dark"] .home-discovery {
   .home-view .app-header .header-actions .button-install,
   .home-view .app-header .header-actions .header-utility-action:first-child { display:none; }
   .home-view .home-discovery { gap:22px; }
-  .home-view .home-discovery-hero { min-height:94px; }
-  .home-view .home-discovery-hero::before { inset:-10px -24px -4px; }
+  .home-view .home-discovery-hero { min-height:430px; padding:14px 0; }
+  .home-view .home-discovery-hero::before { inset:0; background-position:58% center; }
+  .home-view .home-discovery-hero-copy { width:calc(100% - 20px); max-width:none; margin:0 10px 8px; padding:17px 15px; border-radius:19px; }
+  .home-view .home-discovery-hero h1 { font-size:clamp(31px,8.6vw,38px); }
+  .home-view .home-discovery-hero-copy > p { font-size:12px; line-height:1.55; }
   .home-view .home-explore-categories { grid-template-columns:repeat(4,minmax(0,1fr));gap:8px; }
   .home-view .home-explore-categories button { min-height:86px;padding:10px 3px;border-radius:19px; }
   .home-view .home-warung-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:10px; }

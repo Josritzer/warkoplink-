@@ -170,20 +170,19 @@ describe('navigasi utama dan halaman pesan', () => {
     render(<App />);
     const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
     const labels = within(nav).getAllByRole('button').map(button => button.textContent.trim());
-    expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
-    expect(within(nav).queryByRole('button', { name: /Daftar|Ajukan Warkop/ })).toBeNull();
+    expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Obrolan', 'Daftarkan Warkop', 'Akun']);
     const desktopNav = screen.getByRole('navigation', { name: 'Navigasi utama' });
     expect(within(desktopNav).getAllByRole('button').map(button => button.textContent.trim()))
-      .toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
-    expect(screen.getByRole('button', { name: 'Obrolan' })).toBeTruthy();
+      .toEqual(['Beranda', 'Cari Warkop', 'Obrolan', 'Daftarkan Warkop', 'Akun']);
+    expect(screen.getByRole('button', { name: 'Buka pesan pribadi' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Buka notifikasi' })).toBeTruthy();
   });
 
   it('hanya menampilkan tab Pribadi dan Teman; diskusi komunitas tetap di halaman Obrolan', async () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
-    const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
-    await user.click(within(nav).getByRole('button', { name: 'Pesan' }));
+    await user.click(screen.getByRole('button', { name: 'Buka pesan pribadi' }));
     expect(screen.getByRole('heading', { name: 'Pesan' })).toBeTruthy();
     expect(fs.where).toHaveBeenCalledWith('participantUids', 'array-contains', 'u1');
     expect(fs.orderBy).not.toHaveBeenCalledWith('lastMessageAt', 'desc');

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { collection, deleteDoc, doc, getCountFromServer, getDoc, limit, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
-import { ArrowLeft, MapPin, ShieldCheck, Store, Users, UserPlus, UserRoundCheck, Clock, CalendarDays, Share2 } from 'lucide-react';
+import { ArrowLeft, MapPin, ShieldCheck, Store, Users, UserPlus, UserRoundCheck, Clock, CalendarDays, Share2, MessageCircle } from 'lucide-react';
 import { ACTIVITY_OPTIONS } from './directoryFilters.js';
 import { buildGoogleMapsDirectionsUrl } from './mapLocation.js';
 import { uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
@@ -254,6 +254,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
     <div className="warung-profile-details">
       <h2>Tentang warkop</h2>
       <p className="warung-profile-address"><MapPin size={17}/>{warung.address}</p>
+      {warung.whatsapp && <a className="warung-map-link warung-whatsapp-link" href={`https://wa.me/${String(warung.whatsapp).replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={17}/> Chat WhatsApp</a>}
       <section className="warung-profile-info-block" aria-labelledby="warung-profile-hours-title">
         <h3 id="warung-profile-hours-title">Jam operasional</h3>
         {warung.openingHours?.is24Hours === true ? <p>Buka 24 jam setiap hari</p> : hasWeeklySchedule

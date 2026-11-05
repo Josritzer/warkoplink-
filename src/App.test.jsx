@@ -203,7 +203,7 @@ describe('navigasi utama dan halaman pesan', () => {
     await user.click(screen.getByRole('tab', { name: 'Teman' }));
     expect(screen.getByRole('tab', { name: 'Teman' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
-    expect(screen.getByRole('heading', { name: 'Obrolan komunitas' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Suasana komunitas' })).toBeTruthy();
     expect(screen.getByLabelText('Kategori obrolan')).toBeTruthy();
   });
 });

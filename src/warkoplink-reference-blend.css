@@ -187,7 +187,7 @@ footer { color: var(--wl-muted); }
 .bottom-nav-item:focus-visible,
 .sidebar-nav-item:focus-visible,
 .post-action:focus-visible {
-  outline: 3px solid rgba(124, 58, 237, .38);
+  outline: 3px solid rgba(197, 138, 82, .48);
   outline-offset: 2px;
 }
 @media (min-width: 1100px) {

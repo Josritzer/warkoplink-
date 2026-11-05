@@ -1401,7 +1401,7 @@ export default function App() {
         <span><strong>WARKOPLINK</strong><small>Ngopi · Nongkrong · Terhubung</small></span>
       </a>
       <div className="header-actions">
-        <button className="button button-quiet header-location-action" type="button" onClick={() => navigateSection('Cari Warkop')} aria-label="Jelajahi warkop di semua lokasi" title="Jelajahi lokasi"><MapPin size={16}/><span>Semua Lokasi</span><ChevronDown size={14}/></button>
+        <button className="button button-quiet header-location-action" type="button" onClick={() => navigateSection('Cari Warkop')} aria-label="Jelajahi warkop di semua lokasi" title="Jelajahi lokasi"><MapPin size={16}/><span>Semua Lokasi</span><ArrowUpRight size={14}/></button>
         <button className="button button-quiet header-utility-action" type="button" onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); }} aria-label="Buka pesan pribadi" title="Pesan"><MessageSquare size={17}/></button>
         <button className="button button-quiet header-utility-action" type="button" onClick={() => navigateSection('Notifikasi')} aria-label={notificationCount > 0 ? `Buka ${notificationCount} notifikasi` : 'Buka notifikasi'} title="Notifikasi"><Bell size={17}/>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}</button>
         <button className="button button-theme-toggle" type="button" onClick={() => setDarkMode(value => !value)} aria-label={darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'} title={darkMode ? 'Mode terang' : 'Mode gelap'}><span className="theme-toggle-icon" aria-hidden="true">{darkMode ? <Sun size={16}/> : <Moon size={16}/>}</span></button>

@@ -382,7 +382,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
           <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>
           <OfficialRegionPicker value={regionSelection} onChange={setRegionSelection}/>
           <label>Alamat lengkap<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa/kelurahan, kecamatan"/></label>
-          <label>Nomor WhatsApp aktif<input type="tel" inputMode="tel" autoComplete="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} maxLength={20} required placeholder="081234567890"/><span className="form-hint">Nomor ini akan ditampilkan sebagai kontak bisnis setelah warkop terverifikasi.</span></label>
+          <label>Nomor WhatsApp aktif<input type="tel" inputMode="tel" autoComplete="tel" aria-label="Nomor WhatsApp aktif" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} maxLength={20} required placeholder="081234567890"/><span className="form-hint">Nomor ini akan ditampilkan sebagai kontak bisnis setelah warkop terverifikasi.</span></label>
           <div className="warung-location-selection">
             <strong>Tentukan titik lokasi warkop</strong>
             <p>Pilih langsung pada peta, geser pin ke posisi yang tepat, atau gunakan GPS perangkat. Koordinat akan terisi otomatis.</p>
@@ -393,7 +393,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         </>}
         {registrationStep === 2 && <>
           <label>Menu utama, pisahkan dengan koma<input value={menuItems} onChange={(e) => setMenuItems(e.target.value)} maxLength={600} placeholder="Kopi, teh, mi instan, nasi goreng"/></label>
-          <label>Menu spesial wajib, pisahkan dengan koma<input value={specialties} onChange={(e) => setSpecialties(e.target.value)} maxLength={900} placeholder="Kopi racikan, mi nyemek, pisang goreng"/><span className="form-hint">Isi minimal satu menu andalan. Maksimal 15 nama menu.</span></label>
+          <label>Menu spesial wajib, pisahkan dengan koma<input aria-label="Menu spesial, pisahkan dengan koma" value={specialties} onChange={(e) => setSpecialties(e.target.value)} maxLength={900} placeholder="Kopi racikan, mi nyemek, pisang goreng"/><span className="form-hint">Isi minimal satu menu andalan. Maksimal 15 nama menu.</span></label>
           <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
           <fieldset className="warung-activity-options"><legend>Aktivitas warkop</legend><p className="form-hint">Pilih kegiatan yang memang tersedia di warkop Anda.</p><div className="facility-filter-list">{ACTIVITY_OPTIONS.map((activity) => <label className="facility-chip" key={activity.value}><input type="checkbox" checked={selectedActivities.includes(activity.value)} onChange={() => setSelectedActivities((current) => current.includes(activity.value) ? current.filter((value) => value !== activity.value) : [...current, activity.value])}/>{activity.label}</label>)}</div></fieldset>
           <label>Suasana warkop<textarea value={ambience} onChange={(e) => setAmbience(e.target.value)} maxLength={240} rows={2} placeholder="Santai, cocok untuk ngobrol atau kerja ringan"/></label>

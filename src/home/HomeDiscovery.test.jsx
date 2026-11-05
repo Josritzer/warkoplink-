@@ -13,6 +13,7 @@ describe('HomeDiscovery', () => {
       posts={[]}
       onOpenWarung={onOpenWarung}
     />);
+    expect(screen.getByRole('heading', { name: 'Temukan tempat singgah, temukan cerita.' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Warkop pilihan' })).toBeTruthy();
     expect(screen.getByText('Kopi Maduran')).toBeTruthy();
     expect(screen.getByText('Kopi tubruk')).toBeTruthy();

@@ -392,3 +392,12 @@ html[data-theme="dark"] .home-discovery {
   .home-view .home-warung-card { min-height:172px; }
   .home-view .home-activity-card { grid-template-columns:90px minmax(0,1fr) 28px; }
 }
+
+
+.home-view .header-location-action { display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:8px 13px;border:1px solid #51465c;border-radius:999px;background:#211b2d;color:#f8f5f2;font-size:12px;font-weight:700;white-space:nowrap; }
+.home-view .header-location-action svg:first-child { color:#edbd72; }
+@media (max-width:767px) {
+  .home-view .header-location-action { min-height:38px;padding:7px 10px;font-size:10px; }
+  .home-view .app-header .brand strong { font-size:16px; }
+  .home-view .app-header .brand small { font-size:9px; }
+}

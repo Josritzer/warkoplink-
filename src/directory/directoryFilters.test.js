@@ -107,6 +107,17 @@ describe('kategori penemuan direktori', () => {
     expect(calculateDistanceKm({ lat: 91, lng: 0 }, { lat: 0, lng: 0 })).toBeNull();
   });
 
+
+  it('memfilter kategori menu spesial hanya untuk warkop yang memiliki menu unggulan', () => {
+    const rows = [
+      { id: 'a', name: 'Warkop A', specialties: ['Kopi rempah'] },
+      { id: 'b', name: 'Warkop B', specialties: [] },
+      { id: 'c', name: 'Warkop C' },
+      { id: 'd', name: 'Warkop D', specialties: ['Mi nyemek', 'Kopi susu'] }
+    ];
+    expect(sortWarungsForDiscovery(rows, 'specialties').map(item => item.id)).toEqual(['d', 'a']);
+  });
+
   it('mengurutkan warkop populer berdasarkan pengikut, bukan like postingan', () => {
     const rows = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }, { id: 'c', name: 'C' }];
     expect(sortWarungsForDiscovery(rows, 'popular', { followerCounts: { a: 2, b: 8, c: 0 } }).map(x => x.id)).toEqual(['b', 'a']);

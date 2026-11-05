@@ -16,6 +16,7 @@
   --wl-paper: var(--wl-milk);
   --wl-surface: var(--wl-milk);
   --wl-surface-raised: #FFFFFF;
+  --wl-input-bg: #FFFFFF;
   --wl-text-primary: var(--wl-espresso);
   --wl-text-secondary: var(--wl-dark-roast);
   --wl-border: #DED1C1;
@@ -94,6 +95,7 @@ html[data-theme="dark"] {
   --wl-paper: var(--wl-dark-roast);
   --wl-surface: var(--wl-dark-roast);
   --wl-surface-raised: #59402F;
+  --wl-input-bg: #38271F;
   --wl-text-primary: var(--wl-milk);
   --wl-text-secondary: #E0CDB9;
   --wl-border: #624636;

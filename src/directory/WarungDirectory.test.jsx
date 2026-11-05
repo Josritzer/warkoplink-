@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import * as firestore from 'firebase/firestore';
+import * as media from '../media/uploadWarkopMedia.js';
 
 const fixture = vi.hoisted(() => ({ rows: [], events: [] }));
 
@@ -37,7 +38,7 @@ vi.mock('../media/imagePolicy.js', () => ({
   MAX_WARUNG_PHOTOS: 5,
   validateImageFiles: vi.fn(() => ''),
 }));
-vi.mock('./LeafletLocationPicker.jsx', () => ({ default: () => null }));
+vi.mock('./LeafletLocationPicker.jsx', () => ({ default: ({ onChange }) => <button type="button" onClick={() => onChange('-7.05', '112.30')}>Pilih titik lokasi (uji)</button> }));
 vi.mock('./OfficialRegionPicker.jsx', () => ({ default: ({ onChange }) => <button type="button" onClick={() => onChange({ provinceCode: '35', provinceName: 'Jawa Timur', regencyCode: '35.24', regencyName: 'Kabupaten Lamongan', districtCode: '35.24.10', districtName: 'Maduran', villageCode: '35.24.10.2007', villageName: 'Maduran' })}>Pilih wilayah resmi (uji)</button> }));
 
 import WarungDirectory from './WarungDirectory.jsx';
@@ -53,13 +54,22 @@ afterEach(() => {
 
 describe('kartu direktori warkop', () => {
 
+
+  it('memilih lokasi lewat peta atau GPS tanpa meminta koordinat manual', () => {
+    render(<WarungDirectory mode="register" user={{ uid: 'owner-location' }} db={{}} {...callbacks} />);
+    expect(screen.queryByLabelText('Lintang (latitude)')).toBeNull();
+    expect(screen.queryByLabelText('Bujur (longitude)')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Gunakan Lokasi Saya' })).toBeTruthy();
+  });
+
   it('mengutamakan menu spesial dan tidak meminta kisaran harga saat pendaftaran', async () => {
     render(<WarungDirectory mode="register" user={{ uid: 'owner-1' }} db={{}} {...callbacks} />);
     fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Warkop Maduran' } });
     fireEvent.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Desa Maduran, Kecamatan Maduran, Lamongan' } });
-    fireEvent.change(screen.getByLabelText('Lintang (latitude)'), { target: { value: '-7.05' } });
-    fireEvent.change(screen.getByLabelText('Bujur (longitude)'), { target: { value: '112.30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
+    fireEvent.change(screen.getByLabelText('Nomor WhatsApp aktif'), { target: { value: '081234567890' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     expect(screen.queryByText(/Kisaran harga/)).toBeNull();
@@ -70,12 +80,16 @@ describe('kartu direktori warkop', () => {
     fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Kopi Surabaya' } });
     fireEvent.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Jl. Tunjungan, Surabaya' } });
-    fireEvent.change(screen.getByLabelText('Lintang (latitude)'), { target: { value: '-7.25' } });
-    fireEvent.change(screen.getByLabelText('Bujur (longitude)'), { target: { value: '112.75' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
+    fireEvent.change(screen.getByLabelText('Nomor WhatsApp aktif'), { target: { value: '081234567890' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
     firestore.addDoc.mockResolvedValueOnce({ id: 'new-warkop-surabaya' });
+    media.uploadWarkopMedia.mockResolvedValueOnce({ url: 'https://example.test/main.webp' });
+    fireEvent.change(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), { target: { value: 'Kopi racikan' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    const mainPhoto = new File(['image'], 'warkop.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Foto utama warkop dan foto tambahan'), { target: { files: [mainPhoto] } });
     fireEvent.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
     await waitFor(() => expect(firestore.addDoc).toHaveBeenCalledOnce());
     expect(firestore.addDoc.mock.calls[0][1]).toMatchObject({
@@ -85,22 +99,51 @@ describe('kartu direktori warkop', () => {
       districtCode: '35.24.10', districtName: 'Maduran',
       villageCode: '35.24.10.2007', villageName: 'Maduran',
       verificationStatus: 'pending',
+      whatsapp: '6281234567890',
+      specialties: ['Kopi racikan'],
+      registrationPolicyVersion: 2,
     });
   });
 
+  it('mewajibkan WhatsApp, menu spesial, dan foto utama sebelum membuat pendaftaran', async () => {
+    render(<WarungDirectory mode="register" user={{ uid: 'owner-required' }} db={{}} {...callbacks} />);
+    fireEvent.change(screen.getByLabelText('Nama warkop'), { target: { value: 'Warkop Wajib' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
+    fireEvent.change(screen.getByLabelText('Alamat lengkap'), { target: { value: 'Desa Maduran, Lamongan' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByText(/Nomor WhatsApp wajib diisi/)).toBeTruthy();
+    expect(firestore.addDoc).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Nomor WhatsApp aktif'), { target: { value: '081234567890' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByText(/Tambahkan minimal satu menu spesial/)).toBeTruthy();
+    expect(firestore.addDoc).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), { target: { value: 'Kopi racikan' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    expect(await screen.findByLabelText('Foto utama warkop dan foto tambahan')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
+    expect(await screen.findByText(/Pilih minimal satu foto utama/)).toBeTruthy();
+    expect(firestore.addDoc).not.toHaveBeenCalled();
+  });
+
   it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {
-    fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', verificationStatus: 'verified' }];
+    fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', specialties: ['Kopi rempah'], verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
     expect(await screen.findByRole('button', { name: /Populer/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Ada Event/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Terdekat/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Warkop Terbaru/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /Warkop Terbaru/ }));
-    expect(screen.getByRole('button', { name: /Warkop Terbaru/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /Menu Spesial/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Warkop Terbaru/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Menu Spesial/ }));
+    expect(screen.getByRole('button', { name: /Menu Spesial/ }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByRole('button', { name: 'Hapus filter' })).toBeNull();
     expect(screen.queryByLabelText('Filter kisaran harga')).toBeNull();
     expect(screen.getByPlaceholderText('Cari nama, alamat, menu, menu spesial, fasilitas…')).toBeTruthy();
-    expect(screen.getByText('Baru ditambahkan')).toBeTruthy();
+    expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });
 
   it('menampilkan acara yang masih berlangsung pada kategori event', async () => {

@@ -54,6 +54,10 @@ service cloud.firestore {
     function validAdminDecision(warungId, data) {
       return isSuperAdmin()
         && data.verificationStatus in ['verified', 'rejected']
+        && (data.verificationStatus != 'verified' || resource.data.get('registrationPolicyVersion', 1) != 2
+          || (resource.data.whatsapp is string && resource.data.whatsapp.matches('^628[0-9]{7,11}$')
+            && resource.data.specialties is list && resource.data.specialties.size() >= 1
+            && resource.data.photos is list && resource.data.photos.size() >= 1))
         && data.verificationAuditId is string
         && data.updatedAt == request.time
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -316,13 +320,14 @@ service cloud.firestore {
     }
     function validWarung(data) {
       return data.keys().hasAll([
-          'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
-          'regionCode', 'facilities', 'priceRange', 'openingHours', 'photos',
-          'verificationStatus', 'createdAt', 'updatedAt'
+          'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address', 'whatsapp',
+          'registrationPolicyVersion', 'specialties', 'regionCode', 'facilities',
+          'priceRange', 'openingHours', 'photos', 'verificationStatus', 'createdAt', 'updatedAt'
         ])
         && data.keys().hasOnly([
-          'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address',
-          'regionCode', 'provinceCode', 'provinceName', 'regencyCode', 'regencyName', 'districtCode', 'districtName', 'villageCode', 'villageName', 'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos',
+          'name', 'nameNormalized', 'ownerUid', 'coordinates', 'address', 'whatsapp', 'registrationPolicyVersion',
+          'regionCode', 'provinceCode', 'provinceName', 'regencyCode', 'regencyName', 'districtCode', 'districtName', 'villageCode', 'villageName',
+          'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos',
           'verificationStatus', 'createdAt', 'updatedAt'
         ])
         && data.name is string && data.name.size() >= 2 && data.name.size() <= 100
@@ -334,10 +339,12 @@ service cloud.firestore {
         && data.coordinates.lat is number && data.coordinates.lat >= -90 && data.coordinates.lat <= 90
         && data.coordinates.lng is number && data.coordinates.lng >= -180 && data.coordinates.lng <= 180
         && data.address is string && data.address.size() >= 5 && data.address.size() <= 300
+        && data.whatsapp is string && data.whatsapp.matches('^628[0-9]{7,11}$')
+        && data.registrationPolicyVersion == 2
+        && data.specialties is list && data.specialties.size() >= 1 && data.specialties.size() <= 15
         && validOfficialWarungRegion(data)
         && data.facilities is list && data.facilities.size() <= 20
         && (!data.keys().hasAny(['menuItems']) || (data.menuItems is list && data.menuItems.size() <= 30))
-        && (!data.keys().hasAny(['specialties']) || (data.specialties is list && data.specialties.size() <= 15))
         && (!data.keys().hasAny(['ambience']) || (data.ambience is string && data.ambience.size() <= 240))
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 9 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara', 'olahraga', 'hobi', 'musik', 'ngopi-bareng'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
@@ -377,7 +384,9 @@ service cloud.firestore {
         && validWarungRegion(data)
         && data.facilities is list && data.facilities.size() <= 20
         && (!data.keys().hasAny(['menuItems']) || (data.menuItems is list && data.menuItems.size() <= 30))
-        && (!data.keys().hasAny(['specialties']) || (data.specialties is list && data.specialties.size() <= 15))
+        && (!data.keys().hasAny(['specialties']) || (data.specialties is list && data.specialties.size() <= 15
+          && (data.get('registrationPolicyVersion', 1) != 2 || data.specialties.size() >= 1)))
+        && (!data.keys().hasAny(['whatsapp']) || (data.whatsapp is string && data.whatsapp.matches('^628[0-9]{7,11}$')))
         && (!data.keys().hasAny(['ambience']) || (data.ambience is string && data.ambience.size() <= 240))
         && (!data.keys().hasAny(['activities']) || (data.activities is list && data.activities.size() <= 9 && data.activities.hasOnly(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'acara', 'olahraga', 'hobi', 'musik', 'ngopi-bareng'])))
         && data.priceRange in ['hemat', 'sedang', 'premium', 'belum-diisi']
@@ -664,7 +673,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'nameNormalized', 'coordinates', 'address', 'regionCode', 'provinceCode', 'provinceName', 'regencyCode', 'regencyName', 'districtCode', 'districtName', 'villageCode', 'villageName',
-          'facilities', 'activities', 'menuItems', 'specialties', 'ambience', 'priceRange', 'openingHours', 'photos', 'updatedAt'
+          'facilities', 'activities', 'menuItems', 'specialties', 'whatsapp', 'ambience', 'priceRange', 'openingHours', 'photos', 'updatedAt'
         ])
         && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos']) || request.resource.data.updatedAt == request.time)
         && validWarungEdit(request.resource.data, warungId, resource.data.get('photos', [])));

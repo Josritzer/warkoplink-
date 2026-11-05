@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { runViewTransition } from './navigation/viewTransitions.js';
+import { PRIMARY_NAVIGATION } from './navigation/primaryNavigation.js';
 import { EMPTY_REACTIONS, reactionFieldForEmoji, shouldRemoveReaction, summarizeReactions } from './reactions.js';
 import {
   createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword,
@@ -15,6 +16,7 @@ import { isPlatformOwner } from './auth/platformOwner.js';
 import { PLATFORM_ROLES, platformRoleFromClaims } from './auth/platformRoles.js';
 import { emailVerificationErrorMessage, refreshAccountVerification, sendAccountVerificationEmail } from './auth/emailVerification.js';
 import ChatPanel from './chat/ChatPanel.jsx';
+import HomeDiscovery from './home/HomeDiscovery.jsx';
 import ReelsExperience from './chat/ReelsExperience.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
@@ -33,11 +35,19 @@ import ThematicGroupChat from './thematicGroups/ThematicGroupChat.jsx';
 import { isThematicGroupId } from './thematicGroups/thematicGroupCatalog.js';
 import { extractMentionUsernames } from './notifications/notificationModel.js';
 import { renderMemberMentions } from './notifications/mentionText.jsx';
-import { MessageCircle, Users, BookOpen, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell, Video } from 'lucide-react';
+import { MessageCircle, Users, BookOpen, Coffee, Sparkles, ShieldCheck, Heart, ArrowUpRight, LogOut, Home, Compass, UserRound, Download, MapPin, Store, Send, MoreHorizontal, MessageSquare, Share2, Moon, Sun, Bell } from 'lucide-react';
 import {
   FILTER_TOPICS, MAX_POST_LENGTH, POST_TOPICS, authErrorMessage, authorNameFor, canonicalTopic, filterPosts, isPublicPost,
   postErrorMessage, postAuthorNameFor, validateDisplayName, validateEmail, validatePassword, validatePostBody, validatePostDetails
 } from './lib.js';
+
+const PRIMARY_NAVIGATION_ICONS = Object.freeze({
+  home: Home,
+  compass: Compass,
+  'message-circle': MessageCircle,
+  store: Store,
+  'user-round': UserRound,
+});
 
 const POSTS_LIMIT = 10;
 const FEED_CACHE_KEY = 'warkoplink:community-feed:v1';
@@ -1344,7 +1354,17 @@ export default function App() {
   const recentSidebarPosts = allPosts.slice(0, 3);
 
   const communityChatPanel = <>
-    {section === 'Beranda' && <CommunityShortcuts onSelectCommunity={openCommunity} onViewAll={() => navigateSection('Obrolan')}/>}
+    {section === 'Beranda' && <HomeDiscovery
+      warungs={verifiedWarungs}
+      posts={allPosts}
+      postsStatus={postsStatus}
+      onOpenWarung={openWarungProfile}
+      onOpenPost={openReplyPage}
+      onOpenDirectory={() => navigateSection('Cari Warkop')}
+      onOpenCommunity={() => navigateSection('Obrolan')}
+      onOpenReels={() => { navigateSection('Reels'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
+    />}
+    {section === 'Beranda' && <div id="home-community"><CommunityShortcuts onSelectCommunity={openCommunity} onViewAll={() => navigateSection('Obrolan')}/></div>}
     {section === 'Obrolan' && <ConversationHub db={db} user={user} onSelectCommunity={openCommunity} onSelectThematicGroup={openThematicGroup}/>}
     {section === 'Grup Tematik Chat' && <ThematicGroupChat db={db} user={user} groupId={selectedThematicGroupId} targetMessageId={selectedThematicMessageId} onBack={() => navigateSection('Obrolan')} onNotice={setNotice} onRequestAuth={() => openAuth(false)} onOpenMention={handleOpenMention}/>}
     {section === 'Grup Komunitas' && <CommunityGroupHeader
@@ -1380,10 +1400,13 @@ export default function App() {
   return <div className={section === 'Reels' ? 'app-shell reels-view' : section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>
     <header className="topbar app-header">
       <a className="brand" href="#" onClick={e => { e.preventDefault(); navigateSection('Beranda'); }}>
-        <span className="brand-mark"><Sparkles size={21}/></span>
-        <span><strong>WARKOPLINK</strong><small>Ruang obrolan Indonesia</small></span>
+        <span className="brand-mark"><Coffee size={23}/></span>
+        <span><strong>WARKOPLINK</strong><small>Ngopi · Nongkrong · Terhubung</small></span>
       </a>
       <div className="header-actions">
+        <button className="button button-quiet header-location-action" type="button" onClick={() => navigateSection('Cari Warkop')} aria-label="Jelajahi warkop di semua lokasi" title="Jelajahi lokasi"><MapPin size={16}/><span>Semua Lokasi</span><ArrowUpRight size={14}/></button>
+        <button className="button button-quiet header-utility-action" type="button" onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); }} aria-label="Buka pesan pribadi" title="Pesan"><MessageSquare size={17}/></button>
+        <button className="button button-quiet header-utility-action" type="button" onClick={() => navigateSection('Notifikasi')} aria-label={notificationCount > 0 ? `Buka ${notificationCount} notifikasi` : 'Buka notifikasi'} title="Notifikasi"><Bell size={17}/>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}</button>
         <button className="button button-theme-toggle" type="button" onClick={() => setDarkMode(value => !value)} aria-label={darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'} title={darkMode ? 'Mode terang' : 'Mode gelap'}><span className="theme-toggle-icon" aria-hidden="true">{darkMode ? <Sun size={16}/> : <Moon size={16}/>}</span></button>
         {(installPrompt || (/iphone|ipad|ipod/i.test(navigator.userAgent) && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios|opios/i.test(navigator.userAgent))) && <button className="button button-install" type="button" onClick={handleInstallPwa} aria-label="Pasang aplikasi" title="Pasang aplikasi"><Download size={16}/></button>}
         {!authReady ? <button className="button button-dark" disabled>Memuat…</button> :
@@ -1397,16 +1420,18 @@ export default function App() {
         <div className="sidebar-brand"><span className="sidebar-brand-mark"><Sparkles size={18}/></span><span><b>WarkopLink</b><small>Ruang komunitas lokal</small></span></div>
         <p className="sidebar-label">MENU UTAMA</p>
         <nav className="sidebar-nav" aria-label="Navigasi utama">
-          <button type="button" aria-label="Desktop: Beranda" className={section === 'Beranda' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Beranda'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Home size={18}/><span>Beranda</span></button>
-          <button type="button" aria-label="Desktop: Reels" className={section === 'Reels' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Reels')}><Video size={18}/><span>Reels</span></button>
-          <button type="button" aria-label="Desktop: Cari Warkop" className={section === 'Cari Warkop' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection('Cari Warkop'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Compass size={18}/><span>Cari Warkop</span></button>
-          <button type="button" aria-label="Desktop: Pesan" className={section === 'Pesan' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageSquare size={18}/><span>Pesan</span></button>
-          <button type="button" aria-label="Desktop: Notifikasi" className={section === 'Notifikasi' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Notifikasi')}><Bell size={18}/><span>Notifikasi</span>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}</button>
-          <button type="button" aria-label="Desktop: Akun" className={section === 'Akun' ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => navigateSection('Akun')}><UserRound size={18}/><span>Akun</span></button>
+          {PRIMARY_NAVIGATION.map(item => {
+            const NavigationIcon = PRIMARY_NAVIGATION_ICONS[item.icon];
+            return <button key={item.section} type="button" aria-label={`Desktop: ${item.label}`} aria-current={section === item.section ? 'page' : undefined} className={section === item.section ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection(item.section); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+              <NavigationIcon size={18}/><span>{item.label}</span>
+            </button>;
+          })}
         </nav>
-        <div className="sidebar-secondary-nav" aria-label="Ruang komunitas">
-          <span className="sidebar-group-label">RUANG KOMUNITAS</span>
-          <button type="button" aria-label="Obrolan" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageCircle size={17}/><span>Obrolan</span></button>
+        <div className="sidebar-secondary-nav" aria-label="Aktivitas dan kategori">
+          <span className="sidebar-group-label">AKTIVITAS</span>
+          <button type="button" aria-label="Pesan pribadi" className={section === 'Pesan' ? 'sidebar-nav-item sidebar-nav-item-secondary active' : 'sidebar-nav-item sidebar-nav-item-secondary'} onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageSquare size={17}/><span>Pesan</span></button>
+          <button type="button" aria-label="Notifikasi" className={section === 'Notifikasi' ? 'sidebar-nav-item sidebar-nav-item-secondary active' : 'sidebar-nav-item sidebar-nav-item-secondary'} onClick={() => navigateSection('Notifikasi')}><Bell size={17}/><span>Notifikasi</span>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}</button>
+          <span className="sidebar-group-label">JELAJAHI</span>
           <button type="button" aria-label="Desktop: Agenda & acara" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={17}/><span>Agenda & acara</span></button>
           <button type="button" aria-label="Desktop: Jual beli & jasa" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={17}/><span>Jual beli</span></button>
         </div>
@@ -1492,7 +1517,7 @@ export default function App() {
       </section></div>}
       {notice && <div className="app-notice" role="status" aria-live="polite">{notice}</div>}
       </main>
-      {(section === 'Beranda' || section === 'Obrolan') && <aside className="desktop-right-rail" aria-label="Ringkasan komunitas">
+      {section === 'Obrolan' && <aside className="desktop-right-rail" aria-label="Ringkasan komunitas">
         <section className="rail-panel">
           <div className="rail-panel-heading"><h2>Warkop terverifikasi</h2><span>{verifiedWarungs.length}</span></div>
           {verifiedWarungs.length ? <div className="rail-warung-list">{verifiedWarungs.slice(0, 4).map(warung => <button type="button" key={warung.id} className="rail-warung" onClick={() => openWarungProfile(warung.id)}><span className="rail-warung-avatar"><Store size={15}/></span><span><b>{warung.name || 'Warkop lokal'}</b><small>{warung.address || 'Profil warkop terverifikasi'}</small></span><ArrowUpRight size={14}/></button>)}</div> : <p className="rail-empty">Belum ada warkop terverifikasi untuk ditampilkan.</p>}
@@ -1509,12 +1534,12 @@ export default function App() {
       </aside>}
     </div>
     <nav className="bottom-nav" aria-label="Navigasi aplikasi">
-      <button className={section === 'Beranda' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Beranda')} aria-current={section === 'Beranda' ? 'page' : undefined}><Home size={20}/><span>Beranda</span></button>
-      <button className={section === 'Reels' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Reels')} aria-current={section === 'Reels' ? 'page' : undefined}><Video size={20}/><span>Reels</span></button>
-      <button className={section === 'Cari Warkop' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Cari Warkop')} aria-current={section === 'Cari Warkop' ? 'page' : undefined}><Compass size={20}/><span>Cari Warkop</span></button>
-      <button className={section === 'Pesan' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); }} aria-current={section === 'Pesan' ? 'page' : undefined}><MessageSquare size={20}/><span>Pesan</span></button>
-      <button className={section === 'Notifikasi' ? 'bottom-nav-item active' : 'bottom-nav-item'} aria-label="Notifikasi" onClick={() => navigateSection('Notifikasi')} aria-current={section === 'Notifikasi' ? 'page' : undefined}><span className="notification-nav-icon"><Bell size={20}/>{notificationCount > 0 && <i>{notificationCount > 9 ? '9+' : notificationCount}</i>}</span><span>Notifikasi</span></button>
-      <button className={section === 'Akun' ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection('Akun')} aria-current={section === 'Akun' ? 'page' : undefined}><UserRound size={20}/><span>Akun</span></button>
+      {PRIMARY_NAVIGATION.map(item => {
+        const NavigationIcon = PRIMARY_NAVIGATION_ICONS[item.icon];
+        return <button key={item.section} type="button" className={section === item.section ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection(item.section)} aria-current={section === item.section ? 'page' : undefined} aria-label={item.label}>
+          <NavigationIcon size={20}/><span>{item.label}</span>
+        </button>;
+      })}
     </nav>
     <footer><span className="footer-brand"><Sparkles size={16}/> WARKOPLINK</span><span>Ruang digital untuk saling terhubung.</span><small>© {new Date().getFullYear()} WarkopLink Platform</small></footer>
   </div>;

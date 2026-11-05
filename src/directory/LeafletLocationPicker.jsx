@@ -91,7 +91,7 @@ export default function LeafletLocationPicker({ latitude, longitude, onChange })
       map.on('click', (event) => setPoint(event.latlng));
       window.setTimeout(() => map?.invalidateSize(), 0);
     }).catch(() => {
-      if (!cancelled) setMapError('Peta belum dapat dimuat. Periksa koneksi internet atau gunakan GPS/koordinat manual.');
+      if (!cancelled) setMapError('Peta belum dapat dimuat. Periksa koneksi internet, lalu muat ulang halaman atau gunakan GPS perangkat.');
     });
 
     return () => {

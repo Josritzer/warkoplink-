@@ -9,6 +9,13 @@ import OfficialRegionPicker from './OfficialRegionPicker.jsx';
 import { buildRegionIdentity } from './regionIdentity.js';
 import { buildGoogleMapsDirectionsUrl } from './mapLocation.js';
 
+function normalizeWhatsAppNumber(value) {
+  const digits = String(value || '').replace(/[^0-9]/g, '');
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`;
+  if (digits.startsWith('8')) return `62${digits}`;
+  return digits;
+}
+
 class WarungFormValidationError extends Error {
   constructor(message) {
     super(message);
@@ -40,6 +47,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
   const [now, setNow] = useState(() => new Date());
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [regionSelection, setRegionSelection] = useState(null);
   const provinceName = regionSelection?.provinceName || '';
   const regencyName = regionSelection?.regencyName || '';
@@ -210,6 +218,14 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       if (!lat.trim() || !lng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
         return setFormError('Tentukan lokasi warkop dengan GPS atau isi koordinat yang valid.');
       }
+      if (!/^628[0-9]{7,11}$/.test(normalizeWhatsAppNumber(whatsapp))) {
+        return setFormError('Nomor WhatsApp wajib diisi dengan nomor Indonesia yang aktif. Contoh: 081234567890.');
+      }
+    }
+    if (registrationStep === 2) {
+      const specialtyList = specialties.split(',').map((item) => item.trim()).filter(Boolean);
+      if (!specialtyList.length) return setFormError('Tambahkan minimal satu menu spesial warkop.');
+      if (specialtyList.length > 15 || specialtyList.some((item) => item.length > 60)) return setFormError('Maksimal 15 menu spesial, setiap nama maksimal 60 karakter.');
     }
     setRegistrationStep((step) => Math.min(3, step + 1));
   }
@@ -255,6 +271,11 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     if (!db) return setFormError('Firebase belum dikonfigurasi.');
     const photoError = validateImageFiles(selectedPhotos, { maxFiles: MAX_WARUNG_PHOTOS });
     if (photoError) return setFormError(photoError);
+    if (!/^628[0-9]{7,11}$/.test(normalizeWhatsAppNumber(whatsapp))) return setFormError('Nomor WhatsApp wajib diisi dengan nomor Indonesia yang aktif. Contoh: 081234567890.');
+    const specialtyList = specialties.split(',').map((item) => item.trim()).filter(Boolean);
+    if (!specialtyList.length) return setFormError('Tambahkan minimal satu menu spesial warkop.');
+    if (specialtyList.length > 15 || specialtyList.some((item) => item.length > 60)) return setFormError('Maksimal 15 menu spesial, setiap nama maksimal 60 karakter.');
+    if (!selectedPhotos.length) return setFormError('Pilih minimal satu foto utama warkop sebelum mengirim pendaftaran.');
     setSaving(true);
     setFormError('');
     let registrationId = incompleteWarungId;
@@ -264,6 +285,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       if (!warungId) {
         const cleanName = name.trim();
         const cleanAddress = address.trim();
+        const cleanWhatsApp = normalizeWhatsAppNumber(whatsapp);
         const region = buildRegionIdentity(regionSelection);
         const latitude = Number(lat);
         const longitude = Number(lng);
@@ -275,10 +297,11 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
         if (facilityList.length > 20) throw new WarungFormValidationError('Maksimal 20 fasilitas.');
         const warungRef = await addDoc(collection(db, 'warungs'), {
           name: cleanName, nameNormalized: cleanName.toLowerCase(), ownerUid: user.uid,
+          whatsapp: cleanWhatsApp, registrationPolicyVersion: 2,
           coordinates: { lat: latitude, lng: longitude }, address: cleanAddress,
           ...region, facilities: facilityList, activities: selectedActivities,
           menuItems: menuItems.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 30),
-          specialties: specialties.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 15),
+          specialties: specialtyList,
           ambience: ambience.trim().slice(0, 240), priceRange: 'belum-diisi',
           openingHours: hours.trim() ? { keterangan: hours.trim().slice(0, 120) } : {},
           photos: [], verificationStatus: 'pending',
@@ -297,7 +320,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       }
       setIncompleteWarungId('');
       setSelectedPhotos([]);
-      setName(''); setAddress(''); setRegionSelection(null); setLat(''); setLng(''); setFacilities('');
+      setName(''); setAddress(''); setWhatsapp(''); setRegionSelection(null); setLat(''); setLng(''); setFacilities('');
       setSelectedActivities([]);
       setMenuItems(''); setSpecialties(''); setAmbience('');
       setHours('');
@@ -359,27 +382,28 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
           <label>Nama warkop<input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required placeholder="Contoh: Warkop Pojok"/></label>
           <OfficialRegionPicker value={regionSelection} onChange={setRegionSelection}/>
           <label>Alamat lengkap<textarea value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} required rows={3} placeholder="Nama jalan, desa/kelurahan, kecamatan"/></label>
-          <div className="coordinate-fields">
-            <label>Lintang (latitude)<input type="text" inputMode="decimal" autoComplete="off" value={lat} onChange={(e) => setLat(e.target.value)} required placeholder="Contoh: -7.0001" aria-describedby="latitude-help"/></label>
-            <label>Bujur (longitude)<input type="text" inputMode="decimal" autoComplete="off" value={lng} onChange={(e) => setLng(e.target.value)} required placeholder="Contoh: 112.2810" aria-describedby="longitude-help"/></label>
+          <label>Nomor WhatsApp aktif<input type="tel" inputMode="tel" autoComplete="tel" aria-label="Nomor WhatsApp aktif" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} maxLength={20} required placeholder="081234567890"/><span className="form-hint">Nomor ini akan ditampilkan sebagai kontak bisnis setelah warkop terverifikasi.</span></label>
+          <div className="warung-location-selection">
+            <strong>Tentukan titik lokasi warkop</strong>
+            <p>Pilih langsung pada peta, geser pin ke posisi yang tepat, atau gunakan GPS perangkat. Koordinat akan terisi otomatis.</p>
           </div>
           <LeafletLocationPicker latitude={lat} longitude={lng} onChange={(nextLat, nextLng) => { setLat(nextLat); setLng(nextLng); }} />
           <button className="button button-quiet warung-location-button" type="button" onClick={handleUseCurrentLocation} disabled={locating}><LocateFixed size={17}/>{locating ? 'Mencari lokasi…' : 'Gunakan Lokasi Saya'}</button>
-          <div className="coordinate-help"><small id="latitude-help">Lintang: koordinat utara/selatan lokasi warkop.</small><small id="longitude-help">Bujur: koordinat timur/barat lokasi warkop.</small><small>GPS mengisi koordinat perangkat. Periksa dan sesuaikan titik agar tepat di lokasi warkop.</small></div>
+          <p className="warung-location-status" role="status" aria-live="polite">{lat && lng ? 'Titik lokasi sudah dipilih. Pastikan pin berada tepat di lokasi warkop.' : 'Belum ada titik lokasi. Pilih titik pada peta atau gunakan GPS.'}</p>
         </>}
         {registrationStep === 2 && <>
           <label>Menu utama, pisahkan dengan koma<input value={menuItems} onChange={(e) => setMenuItems(e.target.value)} maxLength={600} placeholder="Kopi, teh, mi instan, nasi goreng"/></label>
-          <label>Menu spesial, pisahkan dengan koma<input value={specialties} onChange={(e) => setSpecialties(e.target.value)} maxLength={400} placeholder="Kopi racikan, mi nyemek, pisang goreng"/></label>
+          <label>Menu spesial wajib, pisahkan dengan koma<input aria-label="Menu spesial, pisahkan dengan koma" value={specialties} onChange={(e) => setSpecialties(e.target.value)} maxLength={900} placeholder="Kopi racikan, mi nyemek, pisang goreng"/><span className="form-hint">Isi minimal satu menu andalan. Maksimal 15 nama menu.</span></label>
           <label>Fasilitas, pisahkan dengan koma<input value={facilities} onChange={(e) => setFacilities(e.target.value)} placeholder="Wi-Fi, parkir, toilet"/></label>
           <fieldset className="warung-activity-options"><legend>Aktivitas warkop</legend><p className="form-hint">Pilih kegiatan yang memang tersedia di warkop Anda.</p><div className="facility-filter-list">{ACTIVITY_OPTIONS.map((activity) => <label className="facility-chip" key={activity.value}><input type="checkbox" checked={selectedActivities.includes(activity.value)} onChange={() => setSelectedActivities((current) => current.includes(activity.value) ? current.filter((value) => value !== activity.value) : [...current, activity.value])}/>{activity.label}</label>)}</div></fieldset>
           <label>Suasana warkop<textarea value={ambience} onChange={(e) => setAmbience(e.target.value)} maxLength={240} rows={2} placeholder="Santai, cocok untuk ngobrol atau kerja ringan"/></label>
           <label>Jam buka (opsional)<input value={hours} onChange={(e) => setHours(e.target.value)} maxLength={120} placeholder="Contoh: Setiap hari, 08.00–23.00"/></label>
         </>}
         {registrationStep === 3 && <>
-          <p className="form-hint">Periksa kembali data warkop sebelum dikirim. Foto dapat ditambahkan sekarang atau menyusul.</p>
+          <p className="form-hint">Periksa kembali data warkop. Satu foto utama wajib diunggah; hingga empat foto tambahan bersifat opsional.</p>
           <div className="warung-registration-summary"><strong>{name}</strong><span>{[villageName, districtName, regencyName, provinceName].filter(Boolean).join(', ')}</span><span>{address}</span><span>Koordinat: {lat}, {lng}</span>{menuItems.trim() && <span>Menu: {menuItems}</span>}{specialties.trim() && <span>Menu spesial: {specialties}</span>}{selectedActivities.length > 0 && <span>Aktivitas: {selectedActivities.map((value) => ACTIVITY_OPTIONS.find((item) => item.value === value)?.label || value).join(', ')}</span>}</div>
-          <label>Foto warkop (maksimal 5, JPG/PNG/WebP, 2 MiB per foto)<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={Boolean(incompleteWarungId)} onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
-          {selectedPhotos.length > 0 && <p className="form-hint">{selectedPhotos.length} foto dipilih. {incompleteWarungId ? 'Pilihan foto dikunci sampai unggahan selesai.' : ''}</p>}
+          <label>Foto utama warkop dan foto tambahan (foto pertama menjadi sampul; maksimal 5, JPG/PNG/WebP, 2 MiB per foto)<input aria-label="Foto utama warkop dan foto tambahan" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={Boolean(incompleteWarungId)} onChange={(event) => { const files = Array.from(event.target.files || []); const error = validateImageFiles(files); if (error) { setFormError(error); setSelectedPhotos([]); event.target.value = ''; return; } setFormError(''); setSelectedPhotos(files); }} /></label>
+          {selectedPhotos.length > 0 && <p className="form-hint">Foto utama: {selectedPhotos[0].name}. {selectedPhotos.length > 1 ? `${selectedPhotos.length - 1} foto tambahan dipilih.` : 'Belum ada foto tambahan.'} {incompleteWarungId ? 'Pilihan foto dikunci sampai unggahan selesai.' : ''}</p>}
         </>}
         {formError && <p className="form-error" role="alert">{formError}</p>}
         <div className="warung-form-step-actions">
@@ -422,7 +446,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
       <button type="button" className={discoveryCategory === 'popular' ? 'active' : ''} aria-pressed={discoveryCategory === 'popular'} onClick={() => selectDiscoveryCategory('popular')}><span>♥</span><b>Populer</b><small>Paling diikuti</small></button>
       <button type="button" className={discoveryCategory === 'events' ? 'active' : ''} aria-pressed={discoveryCategory === 'events'} onClick={() => selectDiscoveryCategory('events')}><span>◷</span><b>Ada Event Sekarang</b><small>Sedang berlangsung & akan datang</small></button>
       <button type="button" className={discoveryCategory === 'nearby' ? 'active' : ''} aria-pressed={discoveryCategory === 'nearby'} onClick={() => selectDiscoveryCategory('nearby')}><span>⌖</span><b>Terdekat</b><small>Jarak dari Anda</small></button>
-      <button type="button" className={discoveryCategory === 'newest' ? 'active' : ''} aria-pressed={discoveryCategory === 'newest'} onClick={() => selectDiscoveryCategory('newest')}><span>✦</span><b>Warkop Terbaru</b><small>Baru ditambahkan</small></button>
+      <button type="button" className={discoveryCategory === 'specialties' ? 'active' : ''} aria-pressed={discoveryCategory === 'specialties'} onClick={() => selectDiscoveryCategory('specialties')}><span>✦</span><b>Menu Spesial</b><small>Racikan khas warkop</small></button>
     </div>
     <label className="search directory-search"><span>⌕</span><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari nama, alamat, menu, menu spesial, fasilitas…" aria-label="Cari warkop"/></label>
     <div className="directory-filters" role="group" aria-label="Filter warkop">
@@ -443,7 +467,7 @@ export default function WarungDirectory({ mode, user, db, onRequestAuth, onNotic
     {discoveryCategory === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="directory-category-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}
     {discoveryCategory === 'popular' && popularStatus === 'ready' && visibleWarungs.length === 0 && <p className="directory-category-status">Belum ada warkop dengan pengikut. Ikuti warkop favorit untuk membantu komunitas menemukannya.</p>}
     {status === 'ready' && searchingAll && visibleWarungs.length === 0 && <div className="empty-state" role="status"><h3>Menelusuri seluruh direktori…</h3><p>Memeriksa halaman warkop berikutnya agar hasil pencarian tidak terlewat.</p></div>}
-    {status === 'ready' && !searchingAll && visibleWarungs.length === 0 && !(discoveryCategory === 'popular' && popularStatus === 'loading') && !(discoveryCategory === 'events' && eventsStatus === 'loading') && <div className="empty-state"><span><Store size={24}/></span><h3>{hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
+    {status === 'ready' && !searchingAll && visibleWarungs.length === 0 && !(discoveryCategory === 'popular' && popularStatus === 'loading') && !(discoveryCategory === 'events' && eventsStatus === 'loading') && <div className="empty-state"><span><Store size={24}/></span><h3>{discoveryCategory === 'specialties' ? 'Belum ada menu spesial tercatat' : hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{discoveryCategory === 'specialties' ? 'Menu unggulan akan tampil setelah pemilik warkop melengkapi profilnya.' : hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
     {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {warungs.length} warkop yang sudah dimuat{searchingAll ? ' · sedang memeriksa halaman berikutnya' : hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
     <div className="warung-list">{visibleWarungs.map((item) => {
       const primaryPhoto = Array.isArray(item.photos) ? item.photos.find((photo) => typeof photo === 'string' && photo.trim()) : '';

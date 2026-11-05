@@ -108,7 +108,7 @@ describe('kartu direktori warkop', () => {
     expect(screen.queryByRole('button', { name: 'Hapus filter' })).toBeNull();
     expect(screen.queryByLabelText('Filter kisaran harga')).toBeNull();
     expect(screen.getByPlaceholderText('Cari nama, alamat, menu, menu spesial, fasilitas…')).toBeTruthy();
-    expect(screen.getByText('Baru ditambahkan')).toBeTruthy();
+    expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });
 
   it('menampilkan acara yang masih berlangsung pada kategori event', async () => {

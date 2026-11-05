@@ -26,14 +26,14 @@ function searchableText(record) {
   ].filter(Boolean).join(' ').toLocaleLowerCase('id-ID');
 }
 
-function SectionHeading({ eyebrow, title, description, action, onAction }) {
+function SectionHeading({ eyebrow, title, description, action, actionLabel, onAction }) {
   return <div className="home-discovery-heading">
     <div><span className="home-discovery-eyebrow">{eyebrow}</span><h2>{title}</h2>{description && <p>{description}</p>}</div>
-    {action && <button className="home-discovery-link" type="button" onClick={onAction}>{action}<ArrowRight size={15}/></button>}
+    {action && <button className="home-discovery-link" type="button" aria-label={actionLabel} onClick={onAction}>{action}<ArrowRight size={15}/></button>}
   </div>;
 }
 
-export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 'ready', onOpenWarung, onOpenPost, onOpenDirectory, onOpenCommunity }) {
+export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 'ready', onOpenWarung, onOpenPost, onOpenDirectory, onOpenCommunity, onOpenReels }) {
   const [search, setSearch] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
   const data = useMemo(() => buildHomeDiscoveryData(warungs, posts), [warungs, posts]);
@@ -111,7 +111,7 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
     </section>
 
     <section className="home-discovery-section" id="home-reels">
-      <SectionHeading eyebrow="CERITA VISUAL" title="Reels WarkopLink" action="Lihat Semua" onAction={onOpenCommunity}/>
+      <SectionHeading eyebrow="CERITA VISUAL" title="Reels WarkopLink" action="Lihat Semua" actionLabel="Lihat semua Reels" onAction={onOpenReels || onOpenCommunity}/>
       {visibleReels.length ? <div className="home-reels-row">{visibleReels.slice(0, 6).map(post => <article className="home-reel-card" key={post.id}><video src={post.videoURL} poster={post.videoThumbnailURL || undefined} controls playsInline preload="none" aria-label="Video komunitas WarkopLink"/><div className="home-reel-caption"><Video size={13}/><span>{post.body?.slice(0, 66) || 'Video komunitas'}</span></div></article>)}</div> : <div className="home-discovery-empty home-reels-empty"><Video size={22}/><b>Belum ada video untuk ditampilkan</b><span>Video komunitas akan muncul di sini setelah tersedia.</span></div>}
     </section>
 

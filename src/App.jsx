@@ -17,6 +17,7 @@ import { PLATFORM_ROLES, platformRoleFromClaims } from './auth/platformRoles.js'
 import { emailVerificationErrorMessage, refreshAccountVerification, sendAccountVerificationEmail } from './auth/emailVerification.js';
 import ChatPanel from './chat/ChatPanel.jsx';
 import HomeDiscovery from './home/HomeDiscovery.jsx';
+import ReelsExperience from './chat/ReelsExperience.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
@@ -1344,6 +1345,7 @@ export default function App() {
 
   const feedPosts = section === 'Grup Komunitas' ? [...communityPosts, ...olderCommunityPosts] : allPosts;
   const visiblePosts = filterPosts(feedPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
+  const reelsPosts = allPosts.map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
   const resolvedSelectedReplyPost = selectedReplyPost ? withPublicAuthorProfile(selectedReplyPost, publicAuthorProfiles[selectedReplyPost.authorId]) : null;
   const resolvedReplies = selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []).map(reply => withPublicAuthorProfile(reply, publicAuthorProfiles[reply.authorId])) : [];
   const activeCategory = composerTopic;
@@ -1360,6 +1362,7 @@ export default function App() {
       onOpenPost={openReplyPage}
       onOpenDirectory={() => navigateSection('Cari Warkop')}
       onOpenCommunity={() => navigateSection('Obrolan')}
+      onOpenReels={() => { navigateSection('Reels'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
     />}
     {section === 'Beranda' && <div id="home-community"><CommunityShortcuts onSelectCommunity={openCommunity} onViewAll={() => navigateSection('Obrolan')}/></div>}
     {section === 'Obrolan' && <ConversationHub db={db} user={user} onSelectCommunity={openCommunity} onSelectThematicGroup={openThematicGroup}/>}
@@ -1394,7 +1397,7 @@ export default function App() {
     />}
   </>;
 
-  return <div className={section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>
+  return <div className={section === 'Reels' ? 'app-shell reels-view' : section === 'Beranda' ? 'app-shell home-view' : 'app-shell secondary-view'}>
     <header className="topbar app-header">
       <a className="brand" href="#" onClick={e => { e.preventDefault(); navigateSection('Beranda'); }}>
         <span className="brand-mark"><Coffee size={23}/></span>
@@ -1440,7 +1443,15 @@ export default function App() {
         </button>
       </aside>
       <main className="app-page-content">
-      {section === 'Panel Admin' && isPlatformOwnerAccount ? <OwnerControlCenter db={db} user={user} onNotice={setNotice}/> :
+      {section === 'Reels' ? <ReelsExperience
+        posts={reelsPosts} status={postsStatus} user={user} verifiedWarungs={verifiedWarungs}
+        likedPosts={likedPosts} likeCounts={likeCounts} reactionSummaries={reactionSummaries} replyCounts={replyCounts}
+        hasMorePosts={hasMorePosts} loadingMorePosts={loadingMorePosts} loadMoreError={loadMoreError} onLoadMorePosts={loadMorePosts}
+        onLike={handleLikePost} onComments={openReplyPage} onShare={sharePost} onOpenProfile={openMemberProfile} onOpenWarung={openWarungProfile}
+        onNavigate={next => { if (next === 'Pesan') setMessageInitialTab('pribadi'); navigateSection(next); }}
+        onRetry={() => setPostsRetry(value => value + 1)}
+        onCreateVideo={() => { navigateSection('Obrolan'); setComposerOpen(true); setComposerTopic('Ngopi Bareng'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
+      /> : section === 'Panel Admin' && isPlatformOwnerAccount ? <OwnerControlCenter db={db} user={user} onNotice={setNotice}/> :
       section === 'Panel Admin' ? <section className="content-section"><h2>Akses pemilik platform tidak tersedia</h2><p>Owner Control Center hanya dapat dibuka oleh akun pemilik platform yang telah terverifikasi dan memiliki klaim akses resmi.</p><button className="button button-dark" onClick={() => navigateSection('Beranda')}>Kembali</button></section> :
       section === 'Pesan' ? <MessagesPage db={db} user={user} initialTab={messageInitialTab} initialConversationId={openConversationId} initialFriend={messageTarget} onOpenMemberProfile={openMemberProfile}/> :
       section === 'Notifikasi' ? <NotificationCenter db={db} user={user} onOpenNotification={handleOpenNotification} onNotice={setNotice}/> :

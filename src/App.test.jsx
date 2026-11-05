@@ -188,6 +188,18 @@ describe('navigasi utama dan halaman pesan', () => {
     expect(screen.getByRole('button', { name: 'Buka notifikasi' })).toBeTruthy();
   });
 
+  it('membuka WARKOPLINK Reels dari Beranda, menampilkan empty state lokal, dan kembali ke Beranda', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    emitPosts([]);
+    const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
+    expect(within(nav).queryByRole('button', { name: 'Reels' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Lihat semua Reels' }));
+    expect(screen.getByRole('region', { name: 'WARKOPLINK Reels' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Tutup Reels' }));
+    expect(screen.getByRole('heading', { name: 'Reels WarkopLink' })).toBeTruthy();
+  });
+
   it('hanya menampilkan tab Pribadi dan Teman; diskusi komunitas tetap di halaman Obrolan', async () => {
     const user = userEvent.setup();
     render(<App />);

@@ -776,6 +776,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), 'Kopi racikan');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(screen.getByText(/Aktivitas: Nobar, Olahraga/)).toBeTruthy();
+    await user.upload(screen.getByLabelText(/Foto utama warkop/), new File(['foto'], 'warkop.jpg', { type: 'image/jpeg' }));
     await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
     await waitFor(() => expect(fs.addDoc).toHaveBeenCalledWith({ path: 'warungs' }, expect.objectContaining({ activities: ['nobar', 'olahraga'] })));
   });

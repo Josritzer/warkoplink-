@@ -845,7 +845,7 @@ describe('direktori dan pendaftaran warkop', () => {
     expect(screen.getByLabelText('Menu spesial, pisahkan dengan koma').value).toBe('Kopi racikan');
   });
 
-  it('mengisi koordinat dari GPS dan tetap membolehkan koreksi manual', async () => {
+  it('mengisi titik lokasi dari GPS tanpa input koordinat manual', async () => {
     const user = userEvent.setup();
     const originalGeolocation = navigator.geolocation;
     Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {

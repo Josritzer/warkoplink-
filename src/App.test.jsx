@@ -738,7 +738,7 @@ describe('direktori dan pendaftaran warkop', () => {
       createdAt: '__SERVER_TS__',
       updatedAt: '__SERVER_TS__',
     })));
-    expect(await screen.findByText(/Pendaftaran terkirim/)).toBeTruthy();
+    expect(await screen.findByText(/Pendaftaran dan foto warkop berhasil dikirim/)).toBeTruthy();
   });
 
   it('pendaftaran warkop mengutamakan menu khas tanpa mewajibkan kisaran harga', async () => {

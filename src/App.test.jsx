@@ -5,6 +5,16 @@ import userEvent from '@testing-library/user-event';
 
 const state = vi.hoisted(() => ({ authCallback: null, snapshotNext: null, snapshotError: null, warungsSnapshots: [], postSubscriptions: [] }));
 
+
+vi.mock('./directory/LeafletLocationPicker.jsx', () => ({
+  default: ({ onChange }) => (
+    <div>
+      <button type="button" onClick={() => onChange('-7.0001', '112.2810')}>Pilih titik lokasi (uji)</button>
+      <button type="button" onClick={() => onChange('200', '112')}>Pilih titik tidak valid (uji)</button>
+    </div>
+  ),
+}));
+
 vi.mock('./directory/OfficialRegionPicker.jsx', () => ({
   default: ({ onChange }) => <button type="button" onClick={() => onChange({
     provinceCode: '35', provinceName: 'Jawa Timur',
@@ -170,20 +180,19 @@ describe('navigasi utama dan halaman pesan', () => {
     render(<App />);
     const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
     const labels = within(nav).getAllByRole('button').map(button => button.textContent.trim());
-    expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
-    expect(within(nav).queryByRole('button', { name: /Daftar|Ajukan Warkop/ })).toBeNull();
+    expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Obrolan', 'Daftarkan Warkop', 'Akun']);
     const desktopNav = screen.getByRole('navigation', { name: 'Navigasi utama' });
     expect(within(desktopNav).getAllByRole('button').map(button => button.textContent.trim()))
-      .toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
-    expect(screen.getByRole('button', { name: 'Obrolan' })).toBeTruthy();
+      .toEqual(['Beranda', 'Cari Warkop', 'Obrolan', 'Daftarkan Warkop', 'Akun']);
+    expect(screen.getByRole('button', { name: 'Buka pesan pribadi' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Buka notifikasi' })).toBeTruthy();
   });
 
   it('hanya menampilkan tab Pribadi dan Teman; diskusi komunitas tetap di halaman Obrolan', async () => {
     const user = userEvent.setup();
     render(<App />);
     emitAuth(fakeUser());
-    const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
-    await user.click(within(nav).getByRole('button', { name: 'Pesan' }));
+    await user.click(screen.getByRole('button', { name: 'Buka pesan pribadi' }));
     expect(screen.getByRole('heading', { name: 'Pesan' })).toBeTruthy();
     expect(fs.where).toHaveBeenCalledWith('participantUids', 'array-contains', 'u1');
     expect(fs.orderBy).not.toHaveBeenCalledWith('lastMessageAt', 'desc');
@@ -698,8 +707,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
-    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
-    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.type(screen.getByLabelText('Fasilitas, pisahkan dengan koma'), 'Wi-Fi, parkir');
     await user.type(screen.getByLabelText('Menu utama, pisahkan dengan koma'), 'Kopi, teh, mi instan');
@@ -738,8 +746,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
-    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
-    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect(screen.getByLabelText('Menu utama, pisahkan dengan koma')).toBeTruthy();
     expect(screen.getByLabelText('Menu spesial, pisahkan dengan koma')).toBeTruthy();
@@ -756,8 +763,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Aktivitas');
     await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
-    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
-    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.click(screen.getByLabelText('Nobar'));
     await user.click(screen.getByLabelText('Olahraga'));
@@ -777,8 +783,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
-    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
-    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.upload(screen.getByLabelText(/Foto warkop/), new File(['foto'], 'warkop.jpg', { type: 'image/jpeg' }));
@@ -799,8 +804,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
-    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
-    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.click(screen.getByRole('button', { name: 'Kirim pendaftaran' }));
@@ -818,8 +822,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Pojok');
     await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
-    await user.type(screen.getByLabelText('Lintang (latitude)'), '200');
-    await user.type(screen.getByLabelText('Bujur (longitude)'), '112');
+    await user.click(screen.getByRole('button', { name: 'Pilih titik tidak valid (uji)' }));
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     expect((await screen.findByRole('alert')).textContent).toContain('koordinat');
     expect(fs.addDoc).not.toHaveBeenCalled();
@@ -833,8 +836,7 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(screen.getByLabelText('Nama warkop'), 'Warkop Tes');
     await user.click(screen.getByRole('button', { name: 'Pilih wilayah resmi (uji)' }));
     await user.type(screen.getByLabelText('Alamat lengkap'), 'Jl. Contoh No. 12, Lamongan');
-    await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.0001');
-    await user.type(screen.getByLabelText('Bujur (longitude)'), '112.2810');
+    await user.click(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' }));
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
     await user.type(screen.getByLabelText('Menu spesial, pisahkan dengan koma'), 'Kopi racikan');
     await user.click(screen.getByRole('button', { name: 'Kembali' }));
@@ -843,7 +845,7 @@ describe('direktori dan pendaftaran warkop', () => {
     expect(screen.getByLabelText('Menu spesial, pisahkan dengan koma').value).toBe('Kopi racikan');
   });
 
-  it('mengisi koordinat dari GPS dan tetap membolehkan koreksi manual', async () => {
+  it('mengisi titik lokasi dari GPS tanpa input koordinat manual', async () => {
     const user = userEvent.setup();
     const originalGeolocation = navigator.geolocation;
     Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
@@ -855,11 +857,9 @@ describe('direktori dan pendaftaran warkop', () => {
       await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
       await user.click(screen.getByRole('button', { name: 'Gunakan Lokasi Saya' }));
-      expect(screen.getByLabelText('Lintang (latitude)').value).toBe('-7.123457');
-      expect(screen.getByLabelText('Bujur (longitude)').value).toBe('112.765432');
-      await user.clear(screen.getByLabelText('Lintang (latitude)'));
-      await user.type(screen.getByLabelText('Lintang (latitude)'), '-7.2');
-      expect(screen.getByLabelText('Lintang (latitude)').value).toBe('-7.2');
+      expect(screen.getByText(/Titik lokasi sudah dipilih/)).toBeTruthy();
+      expect(screen.queryByLabelText('Lintang (latitude)')).toBeNull();
+      expect(screen.queryByLabelText('Bujur (longitude)')).toBeNull();
     } finally {
       Object.defineProperty(navigator, 'geolocation', { configurable: true, value: originalGeolocation });
     }
@@ -972,12 +972,10 @@ describe('aksesibilitas form pendaftaran warkop', () => {
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
     await user.click(await screen.findByRole('button', { name: 'Ajukan Warkop' }));
 
-    const latitude = screen.getByPlaceholderText('Contoh: -7.0001');
-    const longitude = screen.getByPlaceholderText('Contoh: 112.2810');
-    expect(latitude.getAttribute('inputmode')).toBe('decimal');
-    expect(longitude.getAttribute('inputmode')).toBe('decimal');
-    expect(screen.getByText(/Lintang: koordinat utara\/selatan/)).toBeTruthy();
-    expect(screen.getByText(/Bujur: koordinat timur\/barat/)).toBeTruthy();
+    expect(screen.queryByLabelText('Lintang (latitude)')).toBeNull();
+    expect(screen.queryByLabelText('Bujur (longitude)')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Pilih titik lokasi (uji)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Gunakan Lokasi Saya' })).toBeTruthy();
   });
 });
 

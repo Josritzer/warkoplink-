@@ -367,3 +367,39 @@ button:disabled {
     box-shadow: 0 2px 10px rgb(32 22 42 / 6%);
   }
 }
+
+
+/* Registration location selection: map-first, with GPS as the direct alternative. */
+.warung-location-selection {
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid var(--wl-border);
+  border-radius: 14px;
+  background: var(--wl-surface-soft);
+}
+.warung-location-selection strong {
+  color: var(--wl-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+.warung-location-selection p,
+.warung-location-status {
+  margin: 0;
+  color: var(--wl-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.warung-location-button {
+  justify-self: start;
+  min-height: 44px;
+}
+.warung-location-status {
+  padding: 10px 12px;
+  border-left: 3px solid var(--wl-brand);
+  border-radius: 0 10px 10px 0;
+  background: var(--wl-surface-soft);
+}
+@media (max-width: 620px) {
+  .warung-location-button { width: 100%; justify-content: center; }
+}

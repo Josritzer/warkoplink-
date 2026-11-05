@@ -20,7 +20,9 @@ import './messaging/messages.css';
 import './mobile-layout-safety.css';
 import './home/home-discovery.css';
 
+import './thematicGroups/thematicGroups.css';
+import './account-profile-coffee-overrides.css';
+
 createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>
 );
-import './thematicGroups/thematicGroups.css';

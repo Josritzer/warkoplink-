@@ -192,10 +192,11 @@ export function sortWarungsForDiscovery(items, category, {
       distances[a.id] - distances[b.id] || compareName(a, b)
     );
   }
-  if (category === 'newest') {
-    return rows.sort((a, b) =>
-      timestampMillis(b.createdAt) - timestampMillis(a.createdAt) || compareName(a, b)
-    );
+  if (category === 'specialties') {
+    return rows.filter((item) => Array.isArray(item.specialties)
+      && item.specialties.some((value) => typeof value === 'string' && value.trim()))
+      .sort((a, b) => b.specialties.filter((value) => typeof value === 'string' && value.trim()).length
+        - a.specialties.filter((value) => typeof value === 'string' && value.trim()).length || compareName(a, b));
   }
   return rows.sort(compareName);
 }

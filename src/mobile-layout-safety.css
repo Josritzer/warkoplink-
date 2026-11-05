@@ -612,9 +612,9 @@ html, body, #root, .app-shell, .desktop-layout, .desktop-layout > main,
   }
   #community-feed .post-actions .like-toggle[aria-pressed="true"],
   #community-feed .post-actions .like-toggle.liked {
-    border-color: #2563eb;
-    background: #dbeafe;
-    color: #1d4ed8;
+    border-color: var(--wl-coffee);
+    background: var(--wl-primary-tint);
+    color: var(--wl-dark-roast);
   }
   #community-feed .post-actions .post-action {
     border: 1px solid var(--wl-line);

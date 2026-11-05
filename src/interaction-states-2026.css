@@ -227,9 +227,9 @@ textarea:focus-visible, select:focus-visible {
 .warung-registration-progress-copy { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; }
 .warung-registration-progress-copy span { color: var(--muted, #687080); text-align: right; }
 .warung-registration-progress-track { height: 5px; overflow: hidden; border-radius: 99px; background: #eceaf4; }
-.warung-registration-progress-track span { display: block; height: 100%; border-radius: inherit; background: #7653c8; transition: width 180ms ease; }
+.warung-registration-progress-track span { display: block; height: 100%; border-radius: inherit; background: var(--wl-coffee); transition: width 180ms ease; }
 .warung-registration-step-labels { display: flex; justify-content: space-between; color: #8a8793; font-size: 11px; }
-.warung-registration-step-labels .active { color: #6543b2; font-weight: 700; }
+.warung-registration-step-labels .active { color: var(--wl-dark-roast); font-weight: 700; }
 .warung-location-button { display: inline-flex; width: fit-content; align-items: center; gap: 8px; }
 .warung-form-step-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
 .warung-form-step-actions .button { min-width: 112px; }

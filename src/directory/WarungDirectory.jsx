@@ -9,6 +9,7 @@ import OfficialRegionPicker from './OfficialRegionPicker.jsx';
 import { buildRegionIdentity } from './regionIdentity.js';
 import { buildGoogleMapsDirectionsUrl } from './mapLocation.js';
 import { filterWarungsByLocation } from '../home/locationDiscovery.js';
+import WarungDiscoveryMap from './WarungDiscoveryMap.jsx';
 
 function normalizeWhatsAppNumber(value) {
   const digits = String(value || '').replace(/[^0-9]/g, '');
@@ -45,6 +46,7 @@ export default function WarungDirectory({ mode, user, db, location = { mode: 'al
   const [eventsStatus, setEventsStatus] = useState('idle');
   const [visitorLocation, setVisitorLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('idle');
+  const [mapViewOpen, setMapViewOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -472,7 +474,8 @@ export default function WarungDirectory({ mode, user, db, location = { mode: 'al
     {status === 'ready' && searchingAll && visibleWarungs.length === 0 && <div className="empty-state" role="status"><h3>Menelusuri seluruh direktori…</h3><p>Memeriksa halaman warkop berikutnya agar hasil pencarian tidak terlewat.</p></div>}
     {status === 'ready' && !searchingAll && visibleWarungs.length === 0 && !(discoveryCategory === 'popular' && popularStatus === 'loading') && !(discoveryCategory === 'events' && eventsStatus === 'loading') && <div className="empty-state"><span><Store size={24}/></span><h3>{discoveryCategory === 'specialties' ? 'Belum ada menu spesial tercatat' : hasActiveFilter ? 'Warkop tidak ditemukan' : 'Belum ada warkop terverifikasi'}</h3><p>{discoveryCategory === 'specialties' ? 'Menu unggulan akan tampil setelah pemilik warkop melengkapi profilnya.' : hasActiveFilter ? 'Coba kata kunci atau filter lain.' : 'Warkop yang menunggu verifikasi tidak ditampilkan ke publik.'}</p></div>}
     {status === 'ready' && warungs.length > 0 && <p className="directory-result-count" aria-live="polite">Menampilkan {visibleWarungs.length} dari {locationScopedWarungs.length} warkop pada cakupan lokasi yang dipilih{searchingAll ? ' · sedang memeriksa halaman berikutnya' : hasMore ? ' · masih ada halaman berikutnya' : ''}.</p>}
-    <div className="warung-list">{visibleWarungs.map((item) => {
+    <div className="directory-view-switch"><button type="button" className="button button-quiet" aria-pressed={mapViewOpen} onClick={() => setMapViewOpen(current => !current)}>{mapViewOpen ? 'Lihat daftar' : 'Jelajahi Peta'}</button></div>
+    {mapViewOpen ? <WarungDiscoveryMap warungs={visibleWarungs} onOpenWarung={onOpenWarung}/> : <div className="warung-list">{visibleWarungs.map((item) => {
       const primaryPhoto = Array.isArray(item.photos) ? item.photos.find((photo) => typeof photo === 'string' && photo.trim()) : '';
       const openState = item.openingHours?.is24Hours === true ? true : isOpenNow(item, now);
       const event = eventByWarung.get(item.id);
@@ -504,7 +507,7 @@ export default function WarungDirectory({ mode, user, db, location = { mode: 'al
           </div>
         </div>
       </article>;
-    })}</div>
+    })}</div>}
     {moreError && <p className="form-error" role="alert">{moreError}</p>}
     {hasMore && <button className="button button-quiet" type="button" onClick={handleLoadMore} disabled={loadingMore || searchingAll}>{searchingAll ? 'Menelusuri direktori…' : loadingMore ? 'Memuat…' : 'Muat 30 warkop lagi'}</button>}
     <button className="button button-dark directory-register-cta" type="button" onClick={onRegister}><span className="directory-register-icon-wrap"><Store size={17} aria-hidden="true"/></span>Ajukan Warkop</button>

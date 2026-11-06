@@ -1029,7 +1029,7 @@ describe('beranda marketplace nasional', () => {
     render(<App />);
     emitAuth(null);
     emitPosts([]);
-    expect(screen.getByRole('button', { name: 'Jelajahi warkop di semua lokasi' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Lokasi penjelajahan: Semua Lokasi' })).toBeTruthy();
     expect(await screen.findByRole('heading', { name: 'Warkop pilihan' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Sedang ramai' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Reels WarkopLink' })).toBeTruthy();

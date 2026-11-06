@@ -10,7 +10,8 @@ const STEPS = [
 ];
 
 function nextStepIndex(selection) {
-  return STEPS.findIndex((step) => !selection?.[step.code] || !selection?.[step.name]);
+  const index = STEPS.findIndex((step) => !selection?.[step.code] || !selection?.[step.name]);
+  return index === -1 ? STEPS.length : index;
 }
 
 export default function GlobalRegionSearch({ value = null, onChange }) {

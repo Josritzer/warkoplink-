@@ -121,7 +121,7 @@ describe('ChatPostCard', () => {
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
     expect(screen.queryByLabelText('Ringkasan reaksi')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
-    expect(screen.getByText('4 suka')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '4 suka' })).toBeTruthy();
   });
 
   it('shows Suka / Disukai and delegates the action to the like handler', () => {
@@ -322,15 +322,21 @@ describe('ChatPostCard — tampilan 2026', () => {
     expect(screen.getByRole('button', { name: 'Komentar, 2' })).toBeTruthy();
   });
 
-  it('keeps all four post actions in one predictable action grid', () => {
-    const { container } = render(<ChatPostCard {...props()} />);
+  it('renders one compact icon row and preserves like, comment, reply, and share actions', () => {
+    const values = props({
+      likeCounts: { 'post-1': 12 },
+      replyCounts: { 'post-1': 0 },
+      openReplyPage: vi.fn().mockResolvedValue(undefined)
+    });
+    const { container } = render(<ChatPostCard {...values} />);
     const actions = container.querySelector('.post-actions');
     expect(actions.getAttribute('aria-label')).toBe('Aksi postingan');
     expect(actions.querySelectorAll(':scope > .post-action-wrap')).toHaveLength(4);
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Komentar, 0' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Balas' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Bagikan/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Bagikan postingan/ })).toBeTruthy();
+    expect(actions.textContent).not.toMatch(/Disukai|Suka|Komentar|Bagikan/);
     expect(container.querySelectorAll('.engagement-comment-count')).toHaveLength(0);
   });
 

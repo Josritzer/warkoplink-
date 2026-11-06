@@ -364,15 +364,15 @@ export default function ChatPostCard({
           <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
         </div>
         <div className="post-action-wrap">
-          <button className="post-action" type="button" onClick={openCommentsForReply} aria-label={`Komentar, ${commentCount.toLocaleString('id-ID')}`}>
-            <MessageSquare size={17} aria-hidden="true"/> <span>Komentar</span><span className="post-action-count">{commentCount.toLocaleString('id-ID')}</span>
+          <button className="post-action post-icon-action" type="button" onClick={openCommentsForReply} aria-label={`Komentar, ${commentCount.toLocaleString('id-ID')}`}>
+            <MessageSquare size={18} strokeWidth={1.8} aria-hidden="true"/><span className="post-action-count">{commentCount.toLocaleString('id-ID')}</span>
           </button>
         </div>
         <div className="post-action-wrap">
-          <button className="post-action" type="button" onClick={openReplyComposer} aria-label="Balas"><Send size={17} aria-hidden="true"/> <span>Balas</span></button>
+          <button className="post-action post-icon-action" type="button" onClick={openReplyComposer} aria-label="Balas"><Send size={18} strokeWidth={1.8} aria-hidden="true"/></button>
         </div>
         <div className="post-action-wrap">
-          <button className="post-action" type="button" onClick={() => sharePost(post)}><Share2 size={17} aria-hidden="true"/> <span>Bagikan</span></button>
+          <button className="post-action post-icon-action" type="button" onClick={() => sharePost(post)} aria-label="Bagikan postingan"><Share2 size={18} strokeWidth={1.8} aria-hidden="true"/></button>
         </div>
       </div>
       {category === 'Info & Acara' && <div className={"event-action-row event-card-actions" + (eventLifecycle.label === 'Dibatalkan' ? ' event-cancelled' : '')}>

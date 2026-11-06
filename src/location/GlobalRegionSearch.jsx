@@ -78,7 +78,7 @@ export default function GlobalRegionSearch({ value = null, onChange }) {
     if (stepIndex > 0 && stepIndex < STEPS.length) {
       const previous = stepIndex - 1;
       const next = { ...selection };
-      for (const later of STEPS.slice(previous)) {
+      for (const later of STEPS.slice(stepIndex)) {
         delete next[later.code];
         delete next[later.name];
       }

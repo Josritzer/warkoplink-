@@ -17,7 +17,7 @@ const warungs = [
 describe('filterWarungsByLocation', () => {
   it('keeps the nationwide discovery list when all locations is selected', () => {
     expect(filterWarungsByLocation(warungs, { mode: 'all' }).map(item => item.id))
-      .toEqual(['maduran', 'surabaya', 'no-coordinates']);
+      .toEqual(['maduran', 'other-village', 'surabaya', 'no-coordinates']);
   });
 
   it('filters by official administrative codes instead of free-text matching', () => {

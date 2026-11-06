@@ -31,14 +31,14 @@ describe('GlobalLocationSelector', () => {
     const onChange = vi.fn();
     render(<GlobalLocationSelector onChange={onChange}/>);
     fireEvent.click(screen.getByRole('button', { name: /Semua Lokasi/ }));
-    await waitFor(() => expect(screen.getByLabelText('Provinsi').options.length).toBe(2));
-    fireEvent.change(screen.getByLabelText('Provinsi'), { target: { value: '35' } });
-    await waitFor(() => expect(screen.getByLabelText('Kabupaten/Kota').options.length).toBe(2));
-    fireEvent.change(screen.getByLabelText('Kabupaten/Kota'), { target: { value: '35.24' } });
-    await waitFor(() => expect(screen.getByLabelText('Kecamatan').options.length).toBe(2));
-    fireEvent.change(screen.getByLabelText('Kecamatan'), { target: { value: '35.24.10' } });
-    await waitFor(() => expect(screen.getByLabelText('Desa/Kelurahan').options.length).toBe(2));
-    fireEvent.change(screen.getByLabelText('Desa/Kelurahan'), { target: { value: '35.24.10.2007' } });
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Provinsi' }).options.length).toBe(2));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Provinsi' }), { target: { value: '35' } });
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Kabupaten/Kota' }).options.length).toBe(2));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Kabupaten/Kota' }), { target: { value: '35.24' } });
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Kecamatan' }).options.length).toBe(2));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Kecamatan' }), { target: { value: '35.24.10' } });
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Desa/Kelurahan' }).options.length).toBe(2));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Desa/Kelurahan' }), { target: { value: '35.24.10.2007' } });
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({
       mode: 'region',
       region: expect.objectContaining({

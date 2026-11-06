@@ -16,7 +16,7 @@ describe('GlobalLocationSelector', () => {
   it('applies a manually entered region', () => {
     const onChange = vi.fn();
     render(<GlobalLocationSelector onChange={onChange}/>);
-    fireEvent.click(screen.getByRole('button', { name: /Semua Lokasi/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lokasi penjelajahan: Semua Lokasi' }));
     fireEvent.change(screen.getByLabelText('Pilih wilayah'), { target: { value: 'Kota Surabaya' } });
     fireEvent.click(screen.getByRole('button', { name: 'Terapkan' }));
     expect(onChange).toHaveBeenCalledWith({ mode: 'region', label: 'Kota Surabaya', query: 'Kota Surabaya', coordinates: null });

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import GlobalLocationSelector from './GlobalLocationSelector.jsx';
+import { clearOfficialRegionCache } from '../directory/OfficialRegionPicker.jsx';
 
 const responses = {
   'provinces.json': [{ id: '35', name: 'Jawa Timur' }],
@@ -24,6 +25,7 @@ describe('GlobalLocationSelector', () => {
   });
 
   it('selects a region from the official four-level catalogue instead of accepting free text', async () => {
+    clearOfficialRegionCache();
     vi.stubGlobal('fetch', vi.fn(async url => {
       const key = String(url).split('/v2/')[1];
       return { ok: true, json: async () => ({ data: responses[key] || [] }) };

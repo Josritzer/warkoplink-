@@ -24,7 +24,7 @@ describe('GlobalLocationSelector', () => {
     expect(onChange).toHaveBeenCalledWith({ mode: 'all', label: 'Semua Lokasi', query: '', coordinates: null });
   });
 
-  it('selects a region from the official four-level catalogue instead of accepting free text', async () => {
+  it('uses one search field to select the four official region levels in sequence', async () => {
     clearOfficialRegionCache();
     vi.stubGlobal('fetch', vi.fn(async url => {
       const key = String(url).split('/v2/')[1];
@@ -33,14 +33,25 @@ describe('GlobalLocationSelector', () => {
     const onChange = vi.fn();
     render(<GlobalLocationSelector onChange={onChange}/>);
     fireEvent.click(screen.getByRole('button', { name: /Semua Lokasi/ }));
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Provinsi' }).options.length).toBe(2));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Provinsi' }), { target: { value: '35' } });
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Kabupaten/Kota' }).options.length).toBe(2));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Kabupaten/Kota' }), { target: { value: '35.24' } });
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Kecamatan' }).options.length).toBe(2));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Kecamatan' }), { target: { value: '35.24.10' } });
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Desa/Kelurahan' }).options.length).toBe(2));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Desa/Kelurahan' }), { target: { value: '35.24.10.2007' } });
+
+    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari provinsi' })).toBeTruthy());
+    expect(screen.queryByRole('combobox')).toBeNull();
+    fireEvent.click(await screen.findByRole('option', { name: 'Jawa Timur' }));
+
+    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari kabupaten/kota' })).toBeTruthy());
+    fireEvent.click(await screen.findByRole('option', { name: 'Kabupaten Lamongan' }));
+
+    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari kecamatan' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: /Kembali/ }));
+    expect(screen.getByText('Jawa Timur › Kabupaten Lamongan')).toBeTruthy();
+    fireEvent.click(await screen.findByRole('option', { name: 'Kabupaten Lamongan' }));
+
+    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari kecamatan' })).toBeTruthy());
+    fireEvent.click(await screen.findByRole('option', { name: 'Maduran' }));
+
+    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari desa/kelurahan' })).toBeTruthy());
+    fireEvent.click(await screen.findByRole('option', { name: 'Maduran' }));
+
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({
       mode: 'region',
       region: expect.objectContaining({

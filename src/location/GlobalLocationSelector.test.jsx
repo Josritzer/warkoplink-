@@ -42,6 +42,11 @@ describe('GlobalLocationSelector', () => {
     fireEvent.click(await screen.findByRole('option', { name: 'Kabupaten Lamongan' }));
 
     await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari kecamatan' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: /Kembali/ }));
+    expect(screen.getByText('Jawa Timur › Kabupaten Lamongan')).toBeTruthy();
+    fireEvent.click(await screen.findByRole('option', { name: 'Kabupaten Lamongan' }));
+
+    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari kecamatan' })).toBeTruthy());
     fireEvent.click(await screen.findByRole('option', { name: 'Maduran' }));
 
     await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari desa/kelurahan' })).toBeTruthy());

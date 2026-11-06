@@ -109,7 +109,6 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
       </button>}
       <button className={liked ? 'post-action post-icon-action liked like-toggle' : 'post-action post-icon-action like-toggle'} type="button" aria-pressed={Boolean(liked)} aria-label={liked ? 'Batalkan suka pada postingan' : 'Sukai postingan'} onClick={onToggleLike}>
         <ThumbsUp size={18} strokeWidth={1.8} fill={liked ? 'currentColor' : 'none'} aria-hidden="true" />
-        <span className="post-action-count">{count.toLocaleString('id-ID')}</span>
       </button>
     </div>
     {dialogOpen && <div className="liker-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setDialogOpen(false); }}>

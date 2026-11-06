@@ -1,4 +1,4 @@
-import { MessageCircle, MoreHorizontal, Send, Share2, Trash2, Store, Play, Pause, RotateCcw } from 'lucide-react';
+import { MessageCircle, MessageSquare, MoreHorizontal, Send, Share2, Trash2, Store, Play, Pause, RotateCcw } from 'lucide-react';
 import LikeSummary from './LikeSummary.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { displayTopic, POST_SUBTYPES, POST_TOPICS } from '../lib.js';

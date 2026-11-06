@@ -34,7 +34,7 @@ export function buildHomeDiscoveryData(warungs = [], posts = [], now = new Date(
     typeof post?.videoURL === 'string' && post.videoURL.trim().length > 0
   );
   return {
-    warungs: safeWarungs.slice(0, 8),
+    warungs: safeWarungs,
     activities: activities.slice(0, 6),
     events: events.slice(0, 4),
     reels: reels.slice(0, 8)

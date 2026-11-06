@@ -63,3 +63,13 @@ describe('baris aksi postingan horizontal', () => {
     expect(finalActionStyles).not.toContain('flex-direction: column;');
   });
 });
+
+
+describe('identitas header mobile', () => {
+  it('menjaga WARKOPLINK tetap satu baris dan tidak bertabrakan dengan kontrol header pada layar sempit', () => {
+    expect(mobileSafetyStyles).toContain('.app-header .brand { flex: 0 0 auto;');
+    expect(mobileSafetyStyles).toContain('.app-header .brand strong { white-space: nowrap;');
+    expect(mobileSafetyStyles).toContain('.app-header .brand > span:last-child { flex: 0 1 auto;');
+    expect(mobileSafetyStyles).toContain('.app-header .header-actions { flex: 1 1 auto;');
+  });
+});

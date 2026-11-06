@@ -9,6 +9,7 @@ const region = {
 };
 const warungs = [
   { id: 'maduran', name: 'Kopi Maduran', regionCode: '35.24.10.2007', villageCode: '35.24.10.2007', districtCode: '35.24.10', regencyCode: '35.24', provinceCode: '35', regencyName: 'Kabupaten Lamongan', coordinates: { lat: -7.0, lng: 112.2 } },
+  { id: 'other-village', name: 'Kedai Desa Tetangga', regionCode: '35.24.10.2008', villageCode: '35.24.10.2008', districtCode: '35.24.10', regencyCode: '35.24', provinceCode: '35', villageName: 'Desa Tetangga', regencyName: 'Kabupaten Lamongan' },
   { id: 'surabaya', name: 'Kedai Surabaya', regencyName: 'Kota Surabaya', coordinates: { lat: -7.25, lng: 112.75 } },
   { id: 'no-coordinates', name: 'Kedai Tanpa Titik', regencyName: 'Kabupaten Lamongan' }
 ];

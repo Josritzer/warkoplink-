@@ -172,6 +172,19 @@ describe('kartu direktori warkop', () => {
     expect(screen.getByText('SEDANG BERLANGSUNG')).toBeTruthy();
   });
 
+  it('membuka peta interaktif dari hasil direktori yang sedang difilter', async () => {
+    fixture.rows = [{
+      id: 'warung-map', name: 'Kopi Peta', address: 'Maduran',
+      coordinates: { lat: -7.05, lng: 112.3 }, verificationStatus: 'verified'
+    }];
+    render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
+    expect(await screen.findByText('Kopi Peta')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Jelajahi Peta' }));
+    expect(screen.getByRole('application', { name: 'Peta interaktif WARKOPLINK' })).toBeTruthy();
+    expect(screen.queryByText('Kopi Peta')).toBeNull();
+    expect(screen.getByText('1 titik warkop')).toBeTruthy();
+  });
+
   it('menampilkan foto, menu spesial, status, dan membuka profil dari aksi utama', async () => {
     fixture.rows = [{
       id: 'warung-senja',

@@ -66,10 +66,13 @@ describe('baris aksi postingan horizontal', () => {
 
 
 describe('identitas header mobile', () => {
-  it('menjaga WARKOPLINK tetap satu baris dan tidak bertabrakan dengan kontrol header pada layar sempit', () => {
-    expect(mobileSafetyStyles).toContain('.app-header .brand { flex: 0 0 auto;');
-    expect(mobileSafetyStyles).toContain('.app-header .brand strong { white-space: nowrap;');
-    expect(mobileSafetyStyles).toContain('.app-header .brand > span:last-child { flex: 0 1 auto;');
-    expect(mobileSafetyStyles).toContain('.app-header .header-actions { flex: 1 1 auto;');
+  it('menjaga identitas merek satu baris pada layar sempit dan membatasi area kontrol', () => {
+    expect(mobileSafetyStyles).toContain('.app-header .brand {');
+    expect(mobileSafetyStyles).toContain('min-width: max-content;');
+    expect(mobileSafetyStyles).toContain('.app-header .brand strong {');
+    expect(mobileSafetyStyles).toContain('white-space: nowrap;');
+    expect(mobileSafetyStyles).toContain('word-break: keep-all;');
+    expect(mobileSafetyStyles).toContain('.app-header .header-actions {');
+    expect(mobileSafetyStyles).toContain('justify-content: flex-end;');
   });
 });

@@ -157,6 +157,13 @@ describe('kartu direktori warkop', () => {
     expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });
 
+  it('langsung membuka tampilan peta saat diminta dari menu lokasi global', async () => {
+    fixture.rows = [{ id: 'map-request', name: 'Warkop Peta', address: 'Lamongan', verificationStatus: 'verified' }];
+    render(<WarungDirectory mode="directory" mapViewRequested user={null} db={{}} {...callbacks} />);
+    expect(await screen.findByRole('application', { name: 'Peta interaktif WARKOPLINK' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Lihat daftar' })).toBeTruthy();
+  });
+
   it('menampilkan acara yang masih berlangsung pada kategori event', async () => {
     fixture.rows = [{ id: 'warung-event', name: 'Warkop Acara', address: 'Lamongan', verificationStatus: 'verified' }];
     fixture.events = [{

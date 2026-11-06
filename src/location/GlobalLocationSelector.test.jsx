@@ -22,6 +22,14 @@ describe('GlobalLocationSelector', () => {
     expect(onChange).toHaveBeenCalledWith({ mode: 'region', label: 'Kota Surabaya', query: 'Kota Surabaya', coordinates: null });
   });
 
+  it('opens the directory map when Jelajahi Peta is selected', () => {
+    const onOpenMap = vi.fn();
+    render(<GlobalLocationSelector onOpenMap={onOpenMap}/>);
+    fireEvent.click(screen.getByRole('button', { name: 'Lokasi penjelajahan: Semua Lokasi' }));
+    fireEvent.click(screen.getByRole('button', { name: /Jelajahi Peta/ }));
+    expect(onOpenMap).toHaveBeenCalledOnce();
+  });
+
   it('requests GPS only after the user selects Lokasi Saya', () => {
     const onChange = vi.fn();
     const getCurrentPosition = vi.fn(success => success({ coords: { latitude: -7.1, longitude: 112.2 } }));

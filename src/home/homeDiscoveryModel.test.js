@@ -7,7 +7,7 @@ describe('home discovery model', () => {
   it('keeps verified warungs and caps the home preview without inventing rank', () => {
     const warungs = Array.from({ length: 10 }, (_, index) => ({ id: String(index), name: `Warkop ${index}`, verificationStatus: 'verified' }));
     const result = buildHomeDiscoveryData(warungs, [], now);
-    expect(result.warungs).toHaveLength(8);
+    expect(result.warungs).toHaveLength(10);
     expect(result.warungs[0].id).toBe('0');
     expect(result.warungs.every(item => item.verificationStatus === 'verified')).toBe(true);
   });

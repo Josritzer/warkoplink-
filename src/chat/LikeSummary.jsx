@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { collection, documentId, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } from 'firebase/firestore';
+import { collection, getDocs, limit, orderBy, query, startAfter, where } from 'firebase/firestore';
 import { Heart, X } from 'lucide-react';
 import { db } from '../firebase.js';
 
@@ -24,8 +24,6 @@ async function fetchPublicProfiles(uids) {
 }
 
 export default function LikeSummary({ post, user, liked, count, onToggleLike, openAuth, setNotice, onOpenProfile }) {
-  const [preview, setPreview] = useState([]);
-  const [previewUids, setPreviewUids] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [likers, setLikers] = useState([]);
   const [cursor, setCursor] = useState(null);
@@ -34,34 +32,6 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
   const [listError, setListError] = useState('');
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
-
-  useEffect(() => {
-    if (!db || !post?.id || count < 1) { setPreview([]); return undefined; }
-    let active = true;
-    const stop = onSnapshot(
-      query(collection(db, 'posts', post.id, 'likes'), orderBy(documentId(), 'asc'), limit(3)),
-      async snapshot => {
-        if (active) setPreviewUids(snapshot.docs.map(item => item.id).slice(0, 3));
-      },
-      () => { if (active) setPreview([]); }
-    );
-    return () => { active = false; stop(); };
-  }, [post?.id, count]);
-
-  useEffect(() => {
-    if (!db || !previewUids.length) { setPreview([]); return undefined; }
-    let active = true;
-    const stop = onSnapshot(
-      query(collection(db, 'publicProfiles'), where('uid', 'in', previewUids)),
-      snapshot => {
-        if (!active) return;
-        const byUid = new Map(snapshot.docs.map(item => [item.id, { uid: item.id, ...item.data() }]));
-        setPreview(previewUids.map(uid => byUid.get(uid)).filter(profile => profile && profile.displayName));
-      },
-      () => { if (active) setPreview([]); }
-    );
-    return () => { active = false; stop(); };
-  }, [previewUids]);
 
   useEffect(() => {
     if (!dialogOpen) return undefined;
@@ -114,14 +84,12 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
 
   return <>
     <div className="like-summary" aria-label="Ringkasan suka">
-      {count > 0 && <button className="like-people-preview" type="button" onClick={openLikerList} aria-label={`Lihat ${count} pengguna yang menyukai postingan`}>
-        <span className="like-avatar-stack">{preview.map(profile => <Avatar key={profile.uid} profile={profile}/>)}</span>
-        <span className="like-count">{count} {count === 1 ? 'suka' : 'suka'}</span>
-      </button>}
-      <button className={liked ? 'post-action liked like-toggle' : 'post-action like-toggle'} type="button" aria-pressed={Boolean(liked)} aria-label={liked ? 'Batalkan suka pada postingan' : 'Sukai postingan'} onClick={onToggleLike}>
-        <Heart size={17} fill={liked ? 'currentColor' : 'none'} aria-hidden="true" />
-        <span>{liked ? 'Disukai' : 'Suka'}</span>
+      <button className={liked ? 'post-action post-icon-action liked like-toggle' : 'post-action post-icon-action like-toggle'} type="button" aria-pressed={Boolean(liked)} aria-label={liked ? 'Batalkan suka pada postingan' : 'Sukai postingan'} onClick={onToggleLike}>
+        <Heart size={18} strokeWidth={1.8} fill={liked ? 'currentColor' : 'none'} aria-hidden="true" />
       </button>
+      {count > 0
+        ? <button className="like-count like-count-trigger" type="button" onClick={openLikerList} aria-label={`Lihat ${count.toLocaleString('id-ID')} pengguna yang menyukai postingan`}>{count.toLocaleString('id-ID')}</button>
+        : <span className="like-count">0</span>}
     </div>
     {dialogOpen && <div className="liker-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setDialogOpen(false); }}>
       <section className="liker-dialog" role="dialog" aria-modal="true" aria-labelledby={`liker-title-${post.id}`} ref={dialogRef}>

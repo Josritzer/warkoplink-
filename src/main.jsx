@@ -19,6 +19,7 @@ import './notifications/notifications.css';
 import './messaging/messages.css';
 import './mobile-layout-safety.css';
 import './home/home-discovery.css';
+import './location/global-location-selector.css';
 
 import './thematicGroups/thematicGroups.css';
 import './account-profile-coffee-overrides.css';

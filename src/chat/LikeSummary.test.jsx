@@ -20,14 +20,16 @@ vi.mock('../firebase.js', () => ({ db: {} }));
 describe('navigasi profil publik dari daftar penyuka', () => {
   beforeEach(() => {
     mocks.onSnapshot.mockImplementation(() => () => {});
-    mocks.getDocs
-      .mockResolvedValueOnce({ docs: [{ id: 'user-2' }] })
-      .mockResolvedValueOnce({ docs: [{ id: 'user-2', data: () => ({ displayName: 'Dewi', photoURL: '' }) }] });
+    mocks.getDocs.mockReset().mockResolvedValue({ docs: [] });
   });
 
   it('mengirim anggota terpilih ke navigasi halaman profil penuh', async () => {
     const user = userEvent.setup();
     const onOpenProfile = vi.fn();
+    mocks.getDocs
+      .mockResolvedValueOnce({ docs: [] })
+      .mockResolvedValueOnce({ docs: [{ id: 'user-2' }] })
+      .mockResolvedValueOnce({ docs: [{ id: 'user-2', data: () => ({ displayName: 'Dewi', photoURL: '' }) }] });
     render(<LikeSummary post={{ id: 'post-1' }} user={null} liked={false} count={1} onToggleLike={() => {}} onOpenProfile={onOpenProfile} />);
 
     await user.click(screen.getByRole('button', { name: /lihat 1 pengguna/i }));

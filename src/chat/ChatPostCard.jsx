@@ -1,4 +1,4 @@
-import { MessageSquare, MoreHorizontal, Send, Share2, Trash2, Store, Play, Pause, RotateCcw } from 'lucide-react';
+import { MessageCircle, MessageSquare, MoreHorizontal, Send, Share2, Trash2, Store, Play, Pause, RotateCcw } from 'lucide-react';
 import LikeSummary from './LikeSummary.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { displayTopic, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
@@ -171,6 +171,7 @@ export default function ChatPostCard({
   const summary = reactionSummaries?.[post.id];
   const reactions = { ...EMPTY_REACTIONS, ...(summary?.reactions || post.reactions || {}) };
   const totalReactions = summary?.totalReactions ?? post.totalReactions ?? likeCounts[post.id] ?? 0;
+  const likeCount = reactions.like ?? 0;
   const menuTriggerRef = useRef(null);
   const [menuPosition, setMenuPosition] = useState(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
@@ -361,15 +362,12 @@ export default function ChatPostCard({
 
       <div className="post-actions" aria-label="Aksi postingan">
         <div className="post-action-wrap">
-          <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
+          <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={likeCount} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
         </div>
         <div className="post-action-wrap">
-          <button className="post-action post-icon-action" type="button" onClick={openCommentsForReply} aria-label={`Komentar, ${commentCount.toLocaleString('id-ID')}`}>
-            <MessageSquare size={18} strokeWidth={1.8} aria-hidden="true"/><span className="post-action-count">{commentCount.toLocaleString('id-ID')}</span>
+          <button className="post-action post-icon-action" type="button" onClick={openCommentsForReply} aria-label={`Komentar dan balas, ${commentCount.toLocaleString('id-ID')}`}>
+            <MessageCircle size={18} strokeWidth={1.8} aria-hidden="true"/><span className="post-action-count">{commentCount.toLocaleString('id-ID')}</span>
           </button>
-        </div>
-        <div className="post-action-wrap">
-          <button className="post-action post-icon-action" type="button" onClick={openReplyComposer} aria-label="Balas"><Send size={18} strokeWidth={1.8} aria-hidden="true"/></button>
         </div>
         <div className="post-action-wrap">
           <button className="post-action post-icon-action" type="button" onClick={() => sharePost(post)} aria-label="Bagikan postingan"><Share2 size={18} strokeWidth={1.8} aria-hidden="true"/></button>

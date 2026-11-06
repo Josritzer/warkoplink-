@@ -121,14 +121,14 @@ describe('ChatPostCard', () => {
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
     expect(screen.queryByLabelText('Ringkasan reaksi')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
-    expect(screen.getByRole('button', { name: /lihat 4 pengguna/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /lihat 1 pengguna/i })).toBeTruthy();
   });
 
   it('shows Suka / Disukai and delegates the action to the like handler', () => {
     const values = props({ likedPosts: { 'post-1': true } });
     render(<ChatPostCard {...values} />);
     const trigger = screen.getByRole('button', { name: 'Batalkan suka pada postingan' });
-    expect(trigger.textContent).toBe('');
+    expect(trigger.getAttribute('aria-pressed')).toBe('true');
     expect(trigger.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(trigger);
     expect(values.handleLikePost).toHaveBeenCalledWith(values.post);
@@ -138,19 +138,21 @@ describe('ChatPostCard', () => {
   it('uses one accessible Komentar action with the count and opens the dedicated thread', () => {
     const values = props({ replyCounts: { 'post-1': 3 }, openReplyPage: vi.fn().mockResolvedValue(undefined) });
     const { container } = render(<ChatPostCard {...values} />);
-    expect(screen.getByRole('button', { name: 'Komentar, 3' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Komentar dan balas, 3' })).toBeTruthy();
     expect(container.querySelectorAll('.engagement-comment-count')).toHaveLength(0);
     expect(screen.queryByText('Komentar')).toBeNull();
     expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Komentar, 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Komentar dan balas, 3' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
   });
 
-  it('Balas opens the thread with the reply composer focused', () => {
+  it('uses only three YouTube-style actions without a separate Balas button', () => {
     const values = props({ openReplyPage: vi.fn().mockResolvedValue(undefined) });
-    render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Balas' }));
-    expect(values.openReplyPage).toHaveBeenCalledWith(values.post, { focusComposer: true });
+    const { container } = render(<ChatPostCard {...values} />);
+    expect(screen.getByRole('button', { name: 'Komentar dan balas, 0' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Bagikan postingan' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Balas' })).toBeNull();
+    expect(container.querySelectorAll('.post-actions .post-action-wrap')).toHaveLength(3);
   });
 
   // Regresi: `repliesByPost[post.id] || []` menghasilkan array baru di tiap render, sehingga efek
@@ -180,7 +182,7 @@ describe('ChatPostCard', () => {
       openReplyPage: vi.fn().mockResolvedValue(undefined)
     });
     render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Komentar, 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Komentar dan balas, 1' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
     expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
     expect(counter.renders).toBeLessThanOrEqual(30);
@@ -318,14 +320,14 @@ describe('ChatPostCard — tampilan 2026', () => {
     });
     const { container } = render(<ChatPostCard {...values} />);
     expect(screen.queryByText('3 reaksi')).toBeNull();
-    expect(container.querySelectorAll('.post-actions > .post-action-wrap')).toHaveLength(4);
-    expect(screen.getByRole('button', { name: 'Komentar, 2' })).toBeTruthy();
+    expect(container.querySelectorAll('.post-actions > .post-action-wrap')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Komentar dan balas, 2' })).toBeTruthy();
   });
 
   it('renders one compact icon row and preserves like, comment, reply, and share actions', () => {
     const sharePost = vi.fn();
     const values = props({
-      likeCounts: { 'post-1': 12 },
+      reactionSummaries: { 'post-1': { reactions: { like: 12, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 12 } },
       replyCounts: { 'post-1': 0 },
       openReplyPage: vi.fn().mockResolvedValue(undefined),
       sharePost
@@ -333,10 +335,10 @@ describe('ChatPostCard — tampilan 2026', () => {
     const { container } = render(<ChatPostCard {...values} />);
     const actions = container.querySelector('.post-actions');
     expect(actions.getAttribute('aria-label')).toBe('Aksi postingan');
-    expect(actions.querySelectorAll(':scope > .post-action-wrap')).toHaveLength(4);
+    expect(actions.querySelectorAll(':scope > .post-action-wrap')).toHaveLength(3);
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Komentar, 0' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Balas' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Komentar dan balas, 0' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Balas' })).toBeNull();
     expect(screen.getByRole('button', { name: /lihat 12 pengguna/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Bagikan postingan/ })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Bagikan postingan/ }));

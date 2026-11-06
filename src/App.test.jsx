@@ -459,7 +459,7 @@ describe('balasan komentar', () => {
     emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
 
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
-    await user.click(await screen.findByRole('button', { name: 'Balas' }));
+    await user.click(await screen.findByRole('button', { name: /Komentar dan balas/ }));
     await user.type(await screen.findByLabelText('Tulis komentar'), 'Setuju, terima kasih');
     await user.click(screen.getByRole('button', { name: 'Kirim balasan' }));
 
@@ -484,7 +484,7 @@ describe('balasan komentar', () => {
     emitAuth(fakeUser());
     emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
-    await user.click(await screen.findByRole('button', { name: 'Balas' }));
+    await user.click(await screen.findByRole('button', { name: /Komentar dan balas/ }));
     await user.type(await screen.findByLabelText('Tulis komentar'), 'Satu balasan saja');
     const send = screen.getByRole('button', { name: 'Kirim balasan' });
     fireEvent.click(send);
@@ -501,7 +501,7 @@ describe('balasan komentar', () => {
     emitPosts([{ id: 'post-reply', authorId: 'u2', authorName: 'Budi', body: 'Diskusi contoh', topic: 'Obrolan Umum' }]);
 
     await user.click(screen.getByRole('button', { name: 'Obrolan' }));
-    await user.click(await screen.findByRole('button', { name: 'Balas' }));
+    await user.click(await screen.findByRole('button', { name: /Komentar dan balas/ }));
     await user.type(await screen.findByLabelText('Tulis komentar'), 'Balasan perlu dipulihkan');
     await user.click(screen.getByRole('button', { name: 'Kirim balasan' }));
 

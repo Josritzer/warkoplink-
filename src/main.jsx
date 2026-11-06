@@ -23,6 +23,8 @@ import './location/global-location-selector.css';
 import './directory/warung-discovery-map.css';
 
 import './thematicGroups/thematicGroups.css';
+// Keep compact feed action styling last so legacy theme layers cannot override it.
+import './feed-actions-compact.css';
 import './account-profile-coffee-overrides.css';
 
 createRoot(document.getElementById('root')).render(

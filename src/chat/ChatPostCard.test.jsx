@@ -128,7 +128,7 @@ describe('ChatPostCard', () => {
     const values = props({ likedPosts: { 'post-1': true } });
     render(<ChatPostCard {...values} />);
     const trigger = screen.getByRole('button', { name: 'Batalkan suka pada postingan' });
-    expect(trigger.textContent).toBe('');
+    expect(trigger.getAttribute('aria-pressed')).toBe('true');
     expect(trigger.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(trigger);
     expect(values.handleLikePost).toHaveBeenCalledWith(values.post);
@@ -320,7 +320,7 @@ describe('ChatPostCard — tampilan 2026', () => {
     });
     const { container } = render(<ChatPostCard {...values} />);
     expect(screen.queryByText('3 reaksi')).toBeNull();
-    expect(container.querySelectorAll('.post-actions > .post-action-wrap')).toHaveLength(4);
+    expect(container.querySelectorAll('.post-actions > .post-action-wrap')).toHaveLength(3);
     expect(screen.getByRole('button', { name: 'Komentar, 2' })).toBeTruthy();
   });
 
@@ -335,10 +335,10 @@ describe('ChatPostCard — tampilan 2026', () => {
     const { container } = render(<ChatPostCard {...values} />);
     const actions = container.querySelector('.post-actions');
     expect(actions.getAttribute('aria-label')).toBe('Aksi postingan');
-    expect(actions.querySelectorAll(':scope > .post-action-wrap')).toHaveLength(4);
+    expect(actions.querySelectorAll(':scope > .post-action-wrap')).toHaveLength(3);
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Komentar, 0' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Balas' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Balas' })).toBeNull();
     expect(screen.getByRole('button', { name: /lihat 12 pengguna/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Bagikan postingan/ })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Bagikan postingan/ }));

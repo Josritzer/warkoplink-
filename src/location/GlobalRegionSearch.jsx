@@ -55,7 +55,7 @@ export default function GlobalRegionSearch({ value = null, onChange }) {
   const filteredOptions = useMemo(() => {
     const normalize = (text) => text
       .normalize('NFD')
-      .replace(/[\\u0300-\\u036f]/g, '')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLocaleLowerCase('id-ID')
       .trim();
     const needle = normalize(query);

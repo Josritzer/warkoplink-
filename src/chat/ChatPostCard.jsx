@@ -171,6 +171,7 @@ export default function ChatPostCard({
   const summary = reactionSummaries?.[post.id];
   const reactions = { ...EMPTY_REACTIONS, ...(summary?.reactions || post.reactions || {}) };
   const totalReactions = summary?.totalReactions ?? post.totalReactions ?? likeCounts[post.id] ?? 0;
+  const likeCount = reactions.like ?? 0;
   const menuTriggerRef = useRef(null);
   const [menuPosition, setMenuPosition] = useState(null);
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
@@ -361,7 +362,7 @@ export default function ChatPostCard({
 
       <div className="post-actions" aria-label="Aksi postingan">
         <div className="post-action-wrap">
-          <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
+          <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={likeCount} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
         </div>
         <div className="post-action-wrap">
           <button className="post-action post-icon-action" type="button" onClick={openCommentsForReply} aria-label={`Komentar dan balas, ${commentCount.toLocaleString('id-ID')}`}>

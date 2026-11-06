@@ -6,10 +6,10 @@ const mobileSafetyStyles = readFileSync('src/mobile-layout-safety.css', 'utf8');
 
 describe('responsivitas navigasi WarkopLink', () => {
   it('menyembunyikan navigasi bawah di desktop', () => {
-    expect(styles).toMatch(/@media \(min-width: 761px\)\s*\{[\s\S]*?\.bottom-nav \{ display: none !important;/);
+    expect(styles).toMatch(/@media \\(min-width: 761px\\)\\s*\\{[\\s\\S]*?\\.bottom-nav \\{ display: none !important;/);
   });
   it('memakai navigasi bawah dan menyembunyikan sidebar di HP', () => {
-    expect(styles).toMatch(/@media \(max-width: 760px\)\s*\{[\s\S]*?\.desktop-sidebar, \.desktop-right-rail \{ display: none !important; \}/);
+    expect(styles).toMatch(/@media \\(max-width: 760px\\)\\s*\\{[\\s\\S]*?\\.desktop-sidebar, \\.desktop-right-rail \\{ display: none !important; \\}/);
     expect(styles).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
     expect(styles).toContain('env(safe-area-inset-bottom, 0px)');
   });
@@ -18,7 +18,6 @@ describe('responsivitas navigasi WarkopLink', () => {
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
   });
 });
-
 
 describe('penerimaan layout feed mobile', () => {
   it('menyisakan ruang scroll di bawah feed setelah navigasi tetap dan safe area', () => {
@@ -31,7 +30,6 @@ describe('penerimaan layout feed mobile', () => {
     expect(mobileSafetyStyles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(mobileSafetyStyles).toContain('min-height: 44px');
   });
-
 
   it('menjaga label aksi utuh, rasio video intrinsik, dan kontras state Suka pada 360–390 px', () => {
     expect(mobileSafetyStyles).toContain('white-space: nowrap;');
@@ -51,13 +49,13 @@ describe('penerimaan layout feed mobile', () => {
   });
 });
 
-
 describe('baris aksi postingan horizontal', () => {
   it('menjaga avatar penyuka dan ikon suka dalam satu baris tanpa menurunkan ikon komentar atau bagikan', () => {
     const actionStyles = readFileSync('src/feed-actions-compact.css', 'utf8');
-    expect(actionStyles).toMatch(/\.post-actions\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
-    expect(actionStyles).toMatch(/\.post-actions\s+\.like-summary\s*\{[^}]*display:\s*inline-flex;[^}]*flex-direction:\s*row;[^}]*align-items:\s*center;/s);
-    expect(actionStyles).not.toMatch(/\.post-actions\s+\.like-summary\s*\{[^}]*flex-direction:\s*column/s);
-    expect(actionStyles).toMatch(/\.post-actions\s+\.post-action-wrap\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s);
+    const finalActionStyles = actionStyles.split('/* Keep all three feed actions on one baseline; keep liker preview beside Like. */').at(-1);
+    expect(finalActionStyles).toMatch(/#community-feed \.post-actions \\{[^}]*display:\\s*grid;[^}]*grid-template-columns:\\s*repeat\\(3,\\s*minmax\\(0,\\s*1fr\\)\\)/s);
+    expect(finalActionStyles).toMatch(/#community-feed \.post-actions \.like-summary \\{[^}]*display:\\s*inline-flex;[^}]*flex-direction:\\s*row;[^}]*flex-wrap:\\s*nowrap;[^}]*align-items:\\s*center;/s);
+    expect(finalActionStyles).toMatch(/#community-feed \.post-actions > \.post-action-wrap \\{[^}]*align-items:\\s*center;[^}]*justify-content:\\s*center;/s);
+    expect(finalActionStyles).not.toMatch(/#community-feed \.post-actions \.like-summary \\{[^}]*flex-direction:\\s*column/s);
   });
 });

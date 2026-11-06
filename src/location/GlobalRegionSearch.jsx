@@ -53,9 +53,14 @@ export default function GlobalRegionSearch({ value = null, onChange }) {
   }, [path, retry]);
 
   const filteredOptions = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase('id-ID');
-    if (!needle) return options;
-    return options.filter((item) => item.name.toLocaleLowerCase('id-ID').includes(needle));
+    const normalize = (text) => text
+      .normalize('NFD')
+      .replace(/[\\u0300-\\u036f]/g, '')
+      .toLocaleLowerCase('id-ID')
+      .trim();
+    const needle = normalize(query);
+    if (!needle) return [];
+    return options.filter((item) => normalize(item.name).startsWith(needle));
   }, [options, query]);
 
   function choose(item) {
@@ -132,7 +137,8 @@ export default function GlobalRegionSearch({ value = null, onChange }) {
       <div className="global-region-options" role="listbox" aria-label={`Daftar ${step?.label || 'wilayah'}`}>
         {status === 'loading' && <p role="status">Memuat {step?.label.toLowerCase()}…</p>}
         {status === 'error' && <p role="alert">Data gagal dimuat. <button type="button" onClick={() => setRetry((count) => count + 1)}>Coba lagi</button></p>}
-        {status === 'ready' && filteredOptions.length === 0 && <p>Tidak ada hasil untuk “{query}”.</p>}
+        {status === 'ready' && !query.trim() && <p>Ketik nama {step?.label.toLowerCase()} untuk melihat rekomendasi.</p>}
+        {status === 'ready' && query.trim() && filteredOptions.length === 0 && <p>Tidak ada lokasi yang diawali “{query.trim()}”.</p>}
         {status === 'ready' && filteredOptions.slice(0, 80).map((item) => <button
           key={item.id}
           type="button"

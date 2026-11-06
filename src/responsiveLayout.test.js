@@ -50,3 +50,14 @@ describe('penerimaan layout feed mobile', () => {
     expect(mobileSafetyStyles).toContain('min-height: 44px');
   });
 });
+
+
+describe('baris aksi postingan horizontal', () => {
+  it('menjaga avatar penyuka dan ikon suka dalam satu baris tanpa menurunkan ikon komentar atau bagikan', () => {
+    const actionStyles = readFileSync('src/feed-actions-compact.css', 'utf8');
+    expect(actionStyles).toMatch(/\.post-actions\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
+    expect(actionStyles).toMatch(/\.post-actions\s+\.like-summary\s*\{[^}]*display:\s*inline-flex;[^}]*flex-direction:\s*row;[^}]*align-items:\s*center;/s);
+    expect(actionStyles).not.toMatch(/\.post-actions\s+\.like-summary\s*\{[^}]*flex-direction:\s*column/s);
+    expect(actionStyles).toMatch(/\.post-actions\s+\.post-action-wrap\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s);
+  });
+});

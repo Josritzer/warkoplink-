@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import GlobalLocationSelector from './GlobalLocationSelector.jsx';
-import { clearOfficialRegionCache } from '../directory/OfficialRegionPicker.jsx';
 
-const responses = {
-  'provinces.json': [{ id: '35', name: 'Jawa Timur' }, { id: '33', name: 'Jawa Tengah' }],
-  'regencies/35.json': [{ id: '35.24', name: 'Kabupaten Lamongan' }],
-  'districts/35.24.json': [{ id: '35.24.10', name: 'Maduran' }],
-  'villages/35.24.10.json': [{ id: '35.24.10.2007', name: 'Maduran' }]
-};
+const results = [
+  { code: '35', name: 'Jawa Timur', level: 'province' },
+  { code: '35.24', name: 'Kabupaten Lamongan', level: 'regency', nama_provinsi: 'Jawa Timur' },
+  { code: '35.24.10', name: 'Maduran', level: 'district', nama_kabupaten: 'Kabupaten Lamongan', nama_provinsi: 'Jawa Timur' },
+  { code: '35.24.10.2007', name: 'Maduran', level: 'village', nama_kecamatan: 'Maduran', nama_kabupaten: 'Kabupaten Lamongan', nama_provinsi: 'Jawa Timur' },
+  { code: '35.24.11', name: 'Deket', level: 'district', nama_kabupaten: 'Kabupaten Lamongan', nama_provinsi: 'Jawa Timur' }
+];
 
 afterEach(() => {
   cleanup();
@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 describe('GlobalLocationSelector', () => {
-  it('opens the location menu and restores nationwide discovery', () => {
+  it('restores nationwide discovery', () => {
     const onChange = vi.fn();
     render(<GlobalLocationSelector value={{ mode: 'region', label: 'Maduran' }} onChange={onChange}/>);
     fireEvent.click(screen.getByRole('button', { name: 'Lokasi penjelajahan: Maduran' }));
@@ -24,52 +24,51 @@ describe('GlobalLocationSelector', () => {
     expect(onChange).toHaveBeenCalledWith({ mode: 'all', label: 'Semua Lokasi', query: '', coordinates: null });
   });
 
-  it('uses one search field to select the four official region levels in sequence', async () => {
-    clearOfficialRegionCache();
-    vi.stubGlobal('fetch', vi.fn(async url => {
-      const key = String(url).split('/v2/')[1];
-      return { ok: true, json: async () => ({ data: responses[key] || [] }) };
-    }));
+  it('searches all four region levels in one autocomplete and filters by prefix', async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ data: results }) }));
+    vi.stubGlobal('fetch', fetchMock);
     const onChange = vi.fn();
     render(<GlobalLocationSelector onChange={onChange}/>);
     fireEvent.click(screen.getByRole('button', { name: /Semua Lokasi/ }));
-
-    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari provinsi' })).toBeTruthy());
+    const input = screen.getByRole('searchbox', { name: 'Cari wilayah' });
     expect(screen.queryByRole('option')).toBeNull();
-    expect(screen.queryByRole('combobox')).toBeNull();
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari provinsi' }), { target: { value: 'tim' } });
-    expect(await screen.findByText('Tidak ada lokasi yang diawali “tim”.')).toBeTruthy();
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari provinsi' }), { target: { value: 'ja' } });
-    expect(await screen.findByRole('option', { name: 'Jawa Timur' })).toBeTruthy();
-    expect(screen.getByRole('option', { name: 'Jawa Tengah' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('option', { name: 'Jawa Timur' }));
 
-    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari kabupaten/kota' })).toBeTruthy());
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari kabupaten/kota' }), { target: { value: 'kab' } });
-    fireEvent.click(await screen.findByRole('option', { name: 'Kabupaten Lamongan' }));
-
-    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari kecamatan' })).toBeTruthy());
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari kecamatan' }), { target: { value: 'mad' } });
-    fireEvent.click(screen.getByRole('button', { name: /Kembali/ }));
-    expect(screen.getByText('Jawa Timur › Kabupaten Lamongan')).toBeTruthy();
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari kabupaten/kota' }), { target: { value: 'kab' } });
-    fireEvent.click(await screen.findByRole('option', { name: 'Kabupaten Lamongan' }));
-
-    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari kecamatan' })).toBeTruthy());
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari kecamatan' }), { target: { value: 'mad' } });
-    fireEvent.click(await screen.findByRole('option', { name: 'Maduran' }));
-
-    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Cari desa/kelurahan' })).toBeTruthy());
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari desa/kelurahan' }), { target: { value: 'mad' } });
-    fireEvent.click(await screen.findByRole('option', { name: 'Maduran' }));
-
-    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({
+    fireEvent.change(input, { target: { value: 'mad' } });
+    expect(await screen.findByRole('option', { name: /Maduran/ })).toBeTruthy();
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('option', { name: /Kecamatan · Kabupaten Lamongan/ }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
       mode: 'region',
       region: expect.objectContaining({
-        provinceCode: '35', regencyCode: '35.24',
-        districtCode: '35.24.10', villageCode: '35.24.10.2007'
+        scopeLevel: 'district',
+        selectedCode: '35.24.10',
+        districtCode: '35.24.10',
+        regencyCode: '35.24',
+        provinceCode: '35'
       })
-    })));
+    }));
+  });
+
+  it('allows selecting a province without forcing lower administrative levels', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ data: results }) })));
+    const onChange = vi.fn();
+    render(<GlobalLocationSelector onChange={onChange}/>);
+    fireEvent.click(screen.getByRole('button', { name: /Semua Lokasi/ }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari wilayah' }), { target: { value: 'ja' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Provinsi/ }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+      mode: 'region',
+      label: 'Jawa Timur',
+      region: expect.objectContaining({ scopeLevel: 'province', provinceCode: '35' })
+    }));
+  });
+
+  it('does not return Maduran when the query is dur', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ data: results }) })));
+    render(<GlobalLocationSelector/>);
+    fireEvent.click(screen.getByRole('button', { name: /Semua Lokasi/ }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari wilayah' }), { target: { value: 'dur' } });
+    expect(await screen.findByText('Tidak ada wilayah yang diawali “dur”.')).toBeTruthy();
   });
 
   it('opens the directory map when Jelajahi Peta is selected', () => {

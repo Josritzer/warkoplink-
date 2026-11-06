@@ -1,0 +1,5 @@
+.warung-discovery-map{display:grid;gap:10px;margin:14px 0 20px}
+.warung-discovery-map-caption{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;color:var(--text-muted,#81796d)}
+.warung-discovery-map-caption b{color:var(--text-primary,#29251f)}
+.warung-discovery-map-canvas{width:100%;height:clamp(320px,55vh,560px);overflow:hidden;border:1px solid var(--border-subtle,rgba(120,110,90,.2));border-radius:20px;background:var(--surface-soft,#f4f0e8);z-index:0}
+@media(max-width:640px){.warung-discovery-map-canvas{height: min(58vh,440px);min-height:300px;border-radius:16px}}

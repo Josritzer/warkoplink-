@@ -130,6 +130,17 @@ describe('kartu direktori warkop', () => {
     expect(firestore.addDoc).not.toHaveBeenCalled();
   });
 
+  it('menerapkan cakupan wilayah global pada seluruh hasil direktori', async () => {
+    fixture.rows = [
+      { id: 'lamongan', name: 'Kopi Maduran', address: 'Maduran', regencyName: 'Kabupaten Lamongan', verificationStatus: 'verified' },
+      { id: 'surabaya', name: 'Kedai Tunjungan', address: 'Surabaya', regencyName: 'Kota Surabaya', verificationStatus: 'verified' }
+    ];
+    render(<WarungDirectory mode="directory" location={{ mode: 'region', label: 'Kota Surabaya', query: 'surabaya' }} user={null} db={{}} {...callbacks} />);
+    expect(await screen.findByText('Kedai Tunjungan')).toBeTruthy();
+    expect(screen.queryByText('Kopi Maduran')).toBeNull();
+    expect(screen.getByText(/1 dari 1 warkop pada cakupan lokasi yang dipilih/)).toBeTruthy();
+  });
+
   it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {
     fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', specialties: ['Kopi rempah'], verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
@@ -146,6 +157,13 @@ describe('kartu direktori warkop', () => {
     expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });
 
+  it('langsung membuka tampilan peta saat diminta dari menu lokasi global', async () => {
+    fixture.rows = [{ id: 'map-request', name: 'Warkop Peta', address: 'Lamongan', verificationStatus: 'verified' }];
+    render(<WarungDirectory mode="directory" mapViewRequested user={null} db={{}} {...callbacks} />);
+    expect(await screen.findByRole('application', { name: 'Peta interaktif WARKOPLINK' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Lihat daftar' })).toBeTruthy();
+  });
+
   it('menampilkan acara yang masih berlangsung pada kategori event', async () => {
     fixture.rows = [{ id: 'warung-event', name: 'Warkop Acara', address: 'Lamongan', verificationStatus: 'verified' }];
     fixture.events = [{
@@ -159,6 +177,19 @@ describe('kartu direktori warkop', () => {
     fireEvent.click(screen.getByRole('button', { name: /Ada Event/ }));
     expect(await screen.findByText(/Nobar · Nobar final/)).toBeTruthy();
     expect(screen.getByText('SEDANG BERLANGSUNG')).toBeTruthy();
+  });
+
+  it('membuka peta interaktif dari hasil direktori yang sedang difilter', async () => {
+    fixture.rows = [{
+      id: 'warung-map', name: 'Kopi Peta', address: 'Maduran',
+      coordinates: { lat: -7.05, lng: 112.3 }, verificationStatus: 'verified'
+    }];
+    render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
+    expect(await screen.findByText('Kopi Peta')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Jelajahi Peta' }));
+    expect(screen.getByRole('application', { name: 'Peta interaktif WARKOPLINK' })).toBeTruthy();
+    expect(screen.queryByText('Kopi Peta')).toBeNull();
+    expect(screen.getByText('1 titik warkop')).toBeTruthy();
   });
 
   it('menampilkan foto, menu spesial, status, dan membuka profil dari aksi utama', async () => {

@@ -17,6 +17,7 @@ import { PLATFORM_ROLES, platformRoleFromClaims } from './auth/platformRoles.js'
 import { emailVerificationErrorMessage, refreshAccountVerification, sendAccountVerificationEmail } from './auth/emailVerification.js';
 import ChatPanel from './chat/ChatPanel.jsx';
 import HomeDiscovery from './home/HomeDiscovery.jsx';
+import GlobalLocationSelector from './location/GlobalLocationSelector.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
 import { createPublicProfilePhotoPatch, withPublicAuthorProfile } from './chat/authorProfile.js';
@@ -81,6 +82,8 @@ function versionedPhotoURL(value) {
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('warkoplink:theme') === 'dark');
+  const [discoveryLocation, setDiscoveryLocation] = useState({ mode: 'all', label: 'Semua Lokasi', query: '', coordinates: null });
+  const [directoryMapRequested, setDirectoryMapRequested] = useState(false);
   const [profileEditorDirty, setProfileEditorDirty] = useState(false);
   const [section, setSection] = useState(() => { const params = new URLSearchParams(window.location.search); return params.get('member') ? 'Profil Anggota' : params.get('warung') ? 'Profil Warkop' : 'Beranda'; });
   const [selectedWarungId, setSelectedWarungId] = useState(() => new URLSearchParams(window.location.search).get('warung') || '');
@@ -1354,6 +1357,7 @@ export default function App() {
   const communityChatPanel = <>
     {section === 'Beranda' && <HomeDiscovery
       warungs={verifiedWarungs}
+      location={discoveryLocation}
       posts={allPosts}
       postsStatus={postsStatus}
       onOpenWarung={openWarungProfile}
@@ -1401,7 +1405,7 @@ export default function App() {
         <span><strong>WARKOPLINK</strong><small>Ngopi · Nongkrong · Terhubung</small></span>
       </a>
       <div className="header-actions">
-        <button className="button button-quiet header-location-action" type="button" onClick={() => navigateSection('Cari Warkop')} aria-label="Jelajahi warkop di semua lokasi" title="Jelajahi lokasi"><MapPin size={16}/><span>Semua Lokasi</span><ArrowUpRight size={14}/></button>
+        <GlobalLocationSelector value={discoveryLocation} onChange={setDiscoveryLocation} onOpenMap={() => { setDirectoryMapRequested(true); navigateSection('Cari Warkop'); }}/>
         <button className="button button-quiet header-utility-action" type="button" onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); }} aria-label="Buka pesan pribadi" title="Pesan"><MessageSquare size={17}/></button>
         <button className="button button-quiet header-utility-action" type="button" onClick={() => navigateSection('Notifikasi')} aria-label={notificationCount > 0 ? `Buka ${notificationCount} notifikasi` : 'Buka notifikasi'} title="Notifikasi"><Bell size={17}/>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}</button>
         <button className="button button-theme-toggle" type="button" onClick={() => setDarkMode(value => !value)} aria-label={darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'} title={darkMode ? 'Mode terang' : 'Mode gelap'}><span className="theme-toggle-icon" aria-hidden="true">{darkMode ? <Sun size={16}/> : <Moon size={16}/>}</span></button>
@@ -1489,7 +1493,7 @@ export default function App() {
       </section> :
       section === 'Tentang' ? <section className="content-section"><span className="eyebrow">TENTANG WARKOPLINK</span><h2>Temukan warkop, kenali lingkungan, terhubung.</h2><p>WarkopLink membantu masyarakat menemukan dan mengenal warkop di seluruh Indonesia. Pendaftaran tetap gratis.</p></section> :
       section === 'Profil Warkop' ? <WarungProfile warungId={selectedWarungId} db={db} user={user} onBack={() => navigateSection('Cari Warkop')} onRequestAuth={() => openAuth(false)} onNotice={setNotice}/> :
-      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={openWarungProfile} onRegister={() => navigateSection('Daftarkan Warkop')}/> :
+      (section === 'Cari Warkop' || section === 'Daftarkan Warkop') ? <WarungDirectory mode={section === 'Cari Warkop' ? 'directory' : 'register'} user={user} db={db} location={discoveryLocation} mapViewRequested={directoryMapRequested} onMapViewRequestHandled={() => setDirectoryMapRequested(false)} onRequestAuth={() => openAuth(false)} onNotice={setNotice} onOpenWarung={openWarungProfile} onRegister={() => navigateSection('Daftarkan Warkop')}/> :
       (section === 'Layanan' || section === 'Jelajahi') ? <section className="content-section explore-section"><span className="eyebrow">JELAJAHI</span><h2>Temukan komunitas lokal.</h2><p>Temukan informasi lokal dan mulai percakapan yang bermanfaat.</p><div className="service-grid"><article><MapPin size={24}/><h3>Direktori nasional</h3><p>Temukan dan daftarkan warkop dari berbagai provinsi di Indonesia.</p></article><article><Store size={24}/><h3>Pendaftaran gratis</h3><p>Tidak ada biaya untuk mendaftarkan warkop pada tahap awal.</p></article><article><ShieldCheck size={24}/><h3>Verifikasi bertahap</h3><p>Status verifikasi dan hak pemilik harus dikendalikan secara aman.</p></article></div><button className="button button-dark" onClick={() => navigateSection('Cari Warkop')}>Cari warkop</button></section> :
       communityChatPanel}
       {authOpen && <div className="modal-backdrop" role="presentation" onClick={() => setAuthOpen(false)}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={e => e.stopPropagation()}>

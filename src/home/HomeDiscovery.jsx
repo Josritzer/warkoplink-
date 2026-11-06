@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ArrowRight, ArrowUpRight, CalendarDays, Clock3, MapPin, Search, ShieldCheck, SlidersHorizontal, Store, Users, Utensils, Video } from 'lucide-react';
 import { isOpenNow } from '../directory/directoryFilters.js';
 import { buildHomeDiscoveryData, getHomeActivityStatus } from './homeDiscoveryModel.js';
+import { filterWarungsByLocation } from './locationDiscovery.js';
 
 const CATEGORIES = [
   { label: 'Warkop', icon: Store, target: 'home-warungs' },
@@ -33,12 +34,12 @@ function SectionHeading({ eyebrow, title, description, action, onAction }) {
   </div>;
 }
 
-export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 'ready', onOpenWarung, onOpenPost, onOpenDirectory, onOpenCommunity }) {
+export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 'ready', location = { mode: 'all' }, onOpenWarung, onOpenPost, onOpenDirectory, onOpenCommunity }) {
   const [search, setSearch] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
   const data = useMemo(() => buildHomeDiscoveryData(warungs, posts), [warungs, posts]);
   const needle = search.trim().toLocaleLowerCase('id-ID');
-  const visibleWarungs = useMemo(() => data.warungs.filter(item => !needle || searchableText(item).includes(needle)), [data.warungs, needle]);
+  const visibleWarungs = useMemo(() => filterWarungsByLocation(data.warungs, location).filter(item => !needle || searchableText(item).includes(needle)).slice(0, 8), [data.warungs, location, needle]);
   const visibleActivities = useMemo(() => data.activities.filter(item => {
     const status = getHomeActivityStatus(item);
     if (activityFilter === 'ongoing' && status !== 'ongoing') return false;

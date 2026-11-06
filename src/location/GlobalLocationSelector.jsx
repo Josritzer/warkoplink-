@@ -33,7 +33,12 @@ export default function GlobalLocationSelector({ value = { mode: 'all', label: '
   }
 
   function applyRegion(selection) {
-    if (!selection?.scopeLevel || !selection?.selectedCode || !selection?.selectedName) return;
+    if (!selection) {
+      onChange?.({ mode: 'all', label: 'Semua Lokasi', query: '', coordinates: null });
+      setGpsStatus('');
+      return;
+    }
+    if (!selection.scopeLevel || !selection.selectedCode || !selection.selectedName) return;
     const label = [selection.selectedName, selection.districtName, selection.regencyName, selection.provinceName]
       .filter((name, index, names) => name && names.indexOf(name) === index).join(', ');
     onChange?.({ mode: 'region', label, query: '', region: selection, coordinates: null });

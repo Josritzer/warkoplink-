@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown, Globe2, LocateFixed, MapPinned, MapPin, Search } from 'lucide-react';
+import OfficialRegionPicker from '../directory/OfficialRegionPicker.jsx';
+import { ChevronDown, Globe2, LocateFixed, MapPinned, MapPin } from 'lucide-react';
 
 export default function GlobalLocationSelector({ value = { mode: 'all', label: 'Semua Lokasi' }, onChange, onOpenMap }) {
   const [open, setOpen] = useState(false);
-  const [region, setRegion] = useState(value.mode === 'region' ? value.query || '' : '');
   const [gpsStatus, setGpsStatus] = useState('');
 
   function chooseAll() {
@@ -38,11 +38,11 @@ export default function GlobalLocationSelector({ value = { mode: 'all', label: '
     );
   }
 
-  function applyRegion(event) {
-    event.preventDefault();
-    const query = region.trim();
-    if (!query) return;
-    onChange?.({ mode: 'region', label: query, query, coordinates: null });
+  function applyRegion(selection) {
+    if (!selection?.villageCode) return;
+    const label = [selection.villageName, selection.districtName, selection.regencyName]
+      .filter(Boolean).join(', ');
+    onChange?.({ mode: 'region', label, query: '', region: selection, coordinates: null });
     setGpsStatus('');
     setOpen(false);
   }
@@ -70,10 +70,11 @@ export default function GlobalLocationSelector({ value = { mode: 'all', label: '
       <button type="button" className={value.mode === 'nearby' ? 'global-location-option active' : 'global-location-option'} aria-label="Gunakan Lokasi Saya" onClick={chooseNearby}>
         <LocateFixed size={17}/><span><b>Lokasi Saya</b><small>Urutkan warkop terdekat dari posisi GPS</small></span>{value.mode === 'nearby' && <span className="global-location-check">✓</span>}
       </button>
-      <form className="global-location-region" onSubmit={applyRegion}>
-        <label htmlFor="global-location-region-input">Pilih wilayah</label>
-        <div><Search size={16}/><input id="global-location-region-input" value={region} onChange={event => setRegion(event.target.value)} placeholder="Kota, kabupaten, kecamatan…"/><button type="submit" disabled={!region.trim()}>Terapkan</button></div>
-      </form>
+      <div className="global-location-region">
+        <label>Pilih wilayah resmi</label>
+        <p className="global-location-region-hint">Cari lalu pilih provinsi, kabupaten/kota, kecamatan, dan desa/kelurahan.</p>
+        <OfficialRegionPicker onChange={applyRegion} value={value.region || null}/>
+      </div>
       <button type="button" className="global-location-option" onClick={() => { setOpen(false); onOpenMap?.(); }}>
         <MapPinned size={17}/><span><b>Jelajahi Peta</b><small>Buka direktori untuk melihat lokasi di peta</small></span>
       </button>

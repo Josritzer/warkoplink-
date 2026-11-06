@@ -12,8 +12,9 @@ async function fetchRegionOptions(path) {
       .then(async (response) => {
         if (!response.ok) throw new Error('Data wilayah tidak dapat dimuat.');
         const payload = await response.json();
-        if (!Array.isArray(payload?.data)) throw new Error('Format data wilayah tidak valid.');
-        return payload.data
+        const records = Array.isArray(payload) ? payload : payload?.data;
+        if (!Array.isArray(records)) throw new Error('Format data wilayah tidak valid.');
+        return records
           .filter((item) => typeof item?.id === 'string' && typeof item?.name === 'string')
           .map(({ id, name }) => ({ id, name }));
       })
@@ -62,6 +63,11 @@ export default function OfficialRegionPicker({ onChange, value = null }) {
   const [regencyId, setRegencyId] = useState(value?.regencyCode || '');
   const [districtId, setDistrictId] = useState(value?.districtCode || '');
   const [villageId, setVillageId] = useState(value?.villageCode || '');
+  const [searches, setSearches] = useState({ province: '', regency: '', district: '', village: '' });
+  const filterOptions = (items, key) => {
+    const needle = searches[key].trim().toLocaleLowerCase('id-ID');
+    return needle ? items.filter((item) => item.name.toLocaleLowerCase('id-ID').includes(needle)) : items;
+  };
   const provinces = useRegionOptions('provinces');
   const regencies = useRegionOptions(provinceId ? `regencies/${provinceId}` : '');
   const districts = useRegionOptions(regencyId ? `districts/${regencyId}` : '');
@@ -72,6 +78,7 @@ export default function OfficialRegionPicker({ onChange, value = null }) {
     setRegencyId('');
     setDistrictId('');
     setVillageId('');
+    setSearches({ province: '', regency: '', district: '', village: '' });
     onChange(null);
   }
 
@@ -79,12 +86,14 @@ export default function OfficialRegionPicker({ onChange, value = null }) {
     setRegencyId(id);
     setDistrictId('');
     setVillageId('');
+    setSearches((current) => ({ ...current, district: '', village: '' }));
     onChange(null);
   }
 
   function chooseDistrict(id) {
     setDistrictId(id);
     setVillageId('');
+    setSearches((current) => ({ ...current, village: '' }));
     onChange(null);
   }
 
@@ -114,30 +123,34 @@ export default function OfficialRegionPicker({ onChange, value = null }) {
 
   return <div className="official-region-picker">
     <label>Provinsi
-      <select value={provinceId} disabled={provinces.status !== "ready"} onChange={(event) => chooseProvince(event.target.value)} required>
+      <input type="search" aria-label="Cari provinsi" placeholder="Cari provinsi…" value={searches.province} onChange={(event) => setSearches((current) => ({ ...current, province: event.target.value }))}/>
+      <select aria-label="Provinsi" value={provinceId} disabled={provinces.status !== "ready"} onChange={(event) => chooseProvince(event.target.value)} required>
         <option value="">Pilih provinsi</option>
-        {provinces.options.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        {filterOptions(provinces.options, 'province').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
     </label>
     {renderStatus('provinsi', provinces.status, provinces.retry)}
     <label>Kabupaten/Kota
-      <select value={regencyId} onChange={(event) => chooseRegency(event.target.value)} disabled={!provinceId || regencies.status !== 'ready'} required>
+      <input type="search" aria-label="Cari kabupaten/kota" placeholder="Cari kabupaten/kota…" value={searches.regency} onChange={(event) => setSearches((current) => ({ ...current, regency: event.target.value }))}/>
+      <select aria-label="Kabupaten/Kota" value={regencyId} onChange={(event) => chooseRegency(event.target.value)} disabled={!provinceId || regencies.status !== 'ready'} required>
         <option value="">Pilih kabupaten/kota</option>
-        {regencies.options.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        {filterOptions(regencies.options, 'regency').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
     </label>
     {renderStatus('kabupaten/kota', regencies.status, regencies.retry)}
     <label>Kecamatan
-      <select value={districtId} onChange={(event) => chooseDistrict(event.target.value)} disabled={!regencyId || districts.status !== 'ready'} required>
+      <input type="search" aria-label="Cari kecamatan" placeholder="Cari kecamatan…" value={searches.district} onChange={(event) => setSearches((current) => ({ ...current, district: event.target.value }))}/>
+      <select aria-label="Kecamatan" value={districtId} onChange={(event) => chooseDistrict(event.target.value)} disabled={!regencyId || districts.status !== 'ready'} required>
         <option value="">Pilih kecamatan</option>
-        {districts.options.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        {filterOptions(districts.options, 'district').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
     </label>
     {renderStatus('kecamatan', districts.status, districts.retry)}
     <label>Desa/Kelurahan
-      <select value={villageId} onChange={(event) => chooseVillage(event.target.value)} disabled={!districtId || villages.status !== 'ready'} required>
+      <input type="search" aria-label="Cari desa/kelurahan" placeholder="Cari desa/kelurahan…" value={searches.village} onChange={(event) => setSearches((current) => ({ ...current, village: event.target.value }))}/>
+      <select aria-label="Desa/Kelurahan" value={villageId} onChange={(event) => chooseVillage(event.target.value)} disabled={!districtId || villages.status !== 'ready'} required>
         <option value="">Pilih desa/kelurahan</option>
-        {villages.options.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        {filterOptions(villages.options, 'village').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
     </label>
     {renderStatus('desa/kelurahan', villages.status, villages.retry)}

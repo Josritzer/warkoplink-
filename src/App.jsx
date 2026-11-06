@@ -17,6 +17,7 @@ import { PLATFORM_ROLES, platformRoleFromClaims } from './auth/platformRoles.js'
 import { emailVerificationErrorMessage, refreshAccountVerification, sendAccountVerificationEmail } from './auth/emailVerification.js';
 import ChatPanel from './chat/ChatPanel.jsx';
 import HomeDiscovery from './home/HomeDiscovery.jsx';
+import { filterPostsByLocation } from './home/locationDiscovery.js';
 import GlobalLocationSelector from './location/GlobalLocationSelector.jsx';
 import PublicUserProfile from './chat/PublicUserProfile.jsx';
 import { relativePostTime } from './chat/postTime.js';
@@ -1361,7 +1362,9 @@ export default function App() {
   }
 
   const feedPosts = section === 'Grup Komunitas' ? [...communityPosts, ...olderCommunityPosts] : allPosts;
-  const visiblePosts = filterPosts(feedPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
+  const locationScopedFeedPosts = section === 'Beranda' ? filterPostsByLocation(feedPosts, discoveryLocation, verifiedWarungs) : feedPosts;
+  const visiblePosts = filterPosts(locationScopedFeedPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
+  const locationScopedHomePosts = filterPostsByLocation(allPosts, discoveryLocation, verifiedWarungs);
   const resolvedSelectedReplyPost = selectedReplyPost ? withPublicAuthorProfile(selectedReplyPost, publicAuthorProfiles[selectedReplyPost.authorId]) : null;
   const resolvedReplies = selectedReplyPost ? (repliesByPost[selectedReplyPost.id] || []).map(reply => withPublicAuthorProfile(reply, publicAuthorProfiles[reply.authorId])) : [];
   const activeCategory = composerTopic;
@@ -1373,7 +1376,7 @@ export default function App() {
     {section === 'Beranda' && <HomeDiscovery
       warungs={verifiedWarungs}
       location={discoveryLocation}
-      posts={allPosts}
+      posts={locationScopedHomePosts}
       postsStatus={postsStatus}
       onOpenWarung={openWarungProfile}
       onOpenPost={openReplyPage}

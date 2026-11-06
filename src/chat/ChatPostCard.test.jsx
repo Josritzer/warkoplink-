@@ -321,7 +321,7 @@ describe('ChatPostCard — tampilan 2026', () => {
     const { container } = render(<ChatPostCard {...values} />);
     expect(screen.queryByText('3 reaksi')).toBeNull();
     expect(container.querySelectorAll('.post-actions > .post-action-wrap')).toHaveLength(3);
-    expect(screen.getByRole('button', { name: 'Komentar, 2' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Komentar dan balas, 2' })).toBeTruthy();
   });
 
   it('renders one compact icon row and preserves like, comment, reply, and share actions', () => {
@@ -337,7 +337,7 @@ describe('ChatPostCard — tampilan 2026', () => {
     expect(actions.getAttribute('aria-label')).toBe('Aksi postingan');
     expect(actions.querySelectorAll(':scope > .post-action-wrap')).toHaveLength(3);
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Komentar, 0' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Komentar dan balas, 0' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Balas' })).toBeNull();
     expect(screen.getByRole('button', { name: /lihat 12 pengguna/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Bagikan postingan/ })).toBeTruthy();

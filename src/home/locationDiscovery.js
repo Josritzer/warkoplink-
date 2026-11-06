@@ -67,8 +67,9 @@ export function filterPostsByLocation(posts = [], location = { mode: 'all' }, wa
     }
     if (location.mode === 'nearby') return false;
     if (location.region && matchesOfficialRegion(post, location.region)) return true;
-    const level = location.region?.scopeLevel || location.region?.selectedLevel;
-    const name = String(location.region?.selectedName || location.region?.[level + 'Name'] || '').trim().toLocaleLowerCase('id-ID');
+    const region = location.region;
+    const level = region?.scopeLevel || region?.selectedLevel || (region?.villageCode ? 'village' : region?.districtCode ? 'district' : region?.regencyCode ? 'regency' : region?.provinceCode ? 'province' : '');
+    const name = String(region?.selectedName || region?.[level + 'Name'] || '').trim().toLocaleLowerCase('id-ID');
     const text = typeof post?.location === 'string' ? post.location.toLocaleLowerCase('id-ID') : '';
     if (location.region) return Boolean(name.length > 1 && text.includes(name));
     const query = String(location.query || '').trim().toLocaleLowerCase('id-ID');

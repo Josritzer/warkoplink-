@@ -327,7 +327,7 @@ describe('ChatPostCard — tampilan 2026', () => {
   it('renders one compact icon row and preserves like, comment, reply, and share actions', () => {
     const sharePost = vi.fn();
     const values = props({
-      likeCounts: { 'post-1': 12 },
+      reactionSummaries: { 'post-1': { reactions: { like: 12, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 }, totalReactions: 12 } },
       replyCounts: { 'post-1': 0 },
       openReplyPage: vi.fn().mockResolvedValue(undefined),
       sharePost

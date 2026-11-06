@@ -9,7 +9,7 @@ describe('GlobalLocationSelector', () => {
     const onChange = vi.fn();
     render(<GlobalLocationSelector value={{ mode: 'region', label: 'Surabaya', query: 'Surabaya' }} onChange={onChange}/>);
     fireEvent.click(screen.getByRole('button', { name: 'Lokasi penjelajahan: Surabaya' }));
-    fireEvent.click(screen.getByRole('button', { name: /Semua Lokasi/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih Semua Lokasi' }));
     expect(onChange).toHaveBeenCalledWith({ mode: 'all', label: 'Semua Lokasi', query: '', coordinates: null });
   });
 
@@ -28,7 +28,7 @@ describe('GlobalLocationSelector', () => {
     Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition } });
     render(<GlobalLocationSelector onChange={onChange}/>);
     fireEvent.click(screen.getByRole('button', { name: /Semua Lokasi/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Lokasi Saya/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gunakan Lokasi Saya' }));
     expect(getCurrentPosition).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
       mode: 'nearby', label: 'Lokasi Saya', coordinates: { lat: -7.1, lng: 112.2 }

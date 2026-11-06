@@ -27,16 +27,16 @@ function searchableRegion(warung) {
 function matchesOfficialRegion(record, region) {
   if (!region) return false;
   const levels = ['province', 'regency', 'district', 'village'];
-  const hasCodes = levels.some(level => region[`${level}Code`]);
-  if (hasCodes) {
-    return levels.some(level => {
-      const code = region[`${level}Code`];
-      return code && (record?.[`${level}Code`] === code
-        || (level === 'village' && record?.regionCode === code));
-    });
+  const selectedLevel = [...levels].reverse().find(level => region[`${level}Code`]);
+  if (selectedLevel) {
+    const code = region[`${selectedLevel}Code`];
+    const storedCode = record?.[`${selectedLevel}Code`]
+      || (selectedLevel === 'village' ? record?.regionCode : '');
+    if (storedCode === code) return true;
+    const name = String(region[`${selectedLevel}Name`] || '').trim().toLocaleLowerCase('id-ID');
+    return Boolean(name.length > 1 && searchableRegion(record).includes(name));
   }
-  const needle = String(region.villageName || '').trim().toLocaleLowerCase('id-ID');
-  return needle.length > 1 && searchableRegion(record).includes(needle);
+  return false;
 }
 
 export function filterWarungsByLocation(warungs = [], location = { mode: 'all' }) {

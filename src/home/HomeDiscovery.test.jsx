@@ -49,4 +49,13 @@ describe('HomeDiscovery', () => {
     expect(screen.getByText('Kopi Maduran')).toBeTruthy();
     expect(screen.queryByText('Kedai Kota')).toBeNull();
   });
+  it('scopes the warkop preview to the selected region before applying the preview limit', () => {
+    render(<HomeDiscovery location={{ mode: 'region', label: 'Surabaya', query: 'surabaya' }} warungs={[
+      { id: 'w1', name: 'Kopi Maduran', regencyName: 'Kabupaten Lamongan' },
+      { id: 'w2', name: 'Kedai Surabaya', regencyName: 'Kota Surabaya' }
+    ]} posts={[]} />);
+    expect(screen.getByText('Kedai Surabaya')).toBeTruthy();
+    expect(screen.queryByText('Kopi Maduran')).toBeNull();
+  });
+
 });

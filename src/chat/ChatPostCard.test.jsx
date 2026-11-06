@@ -128,7 +128,7 @@ describe('ChatPostCard', () => {
     const values = props({ likedPosts: { 'post-1': true } });
     render(<ChatPostCard {...values} />);
     const trigger = screen.getByRole('button', { name: 'Batalkan suka pada postingan' });
-    expect(trigger.textContent).toContain('Disukai');
+    expect(trigger.textContent).toBe('');
     expect(trigger.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(trigger);
     expect(values.handleLikePost).toHaveBeenCalledWith(values.post);
@@ -140,7 +140,7 @@ describe('ChatPostCard', () => {
     const { container } = render(<ChatPostCard {...values} />);
     expect(screen.getByRole('button', { name: 'Komentar, 3' })).toBeTruthy();
     expect(container.querySelectorAll('.engagement-comment-count')).toHaveLength(0);
-    expect(screen.getAllByText('Komentar')).toHaveLength(1);
+    expect(screen.queryByText('Komentar')).toBeNull();
     expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Komentar, 3' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);

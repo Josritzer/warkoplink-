@@ -25,10 +25,10 @@ describe('penerimaan layout feed mobile', () => {
     expect(mobileSafetyStyles).toContain('padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px))');
   });
 
-  it('memakai header ringkas dan empat aksi feed dalam grid dua kolom pada ponsel', () => {
+  it('memakai header ringkas dan tiga aksi feed tanpa kotak pada ponsel', () => {
     expect(mobileSafetyStyles).toContain('.app-header { height: 58px; min-height: 58px; }');
     expect(mobileSafetyStyles).toContain('#community-feed .post-card { gap: 8px; padding: 11px; border-radius: 12px; }');
-    expect(mobileSafetyStyles).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(mobileSafetyStyles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(mobileSafetyStyles).toContain('min-height: 44px');
   });
 

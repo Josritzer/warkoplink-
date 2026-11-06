@@ -121,7 +121,7 @@ describe('ChatPostCard', () => {
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
     expect(screen.queryByLabelText('Ringkasan reaksi')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
-    expect(screen.getByRole('button', { name: '4 suka' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /lihat daftar 4 pengguna/i })).toBeTruthy();
   });
 
   it('shows Suka / Disukai and delegates the action to the like handler', () => {
@@ -337,7 +337,7 @@ describe('ChatPostCard — tampilan 2026', () => {
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Komentar, 0' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Balas' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '12 suka' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /lihat daftar 12 pengguna/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Bagikan postingan/ })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Bagikan postingan/ }));
     expect(sharePost).toHaveBeenCalledWith(values.post);

@@ -59,6 +59,20 @@ describe('OfficialRegionPicker', () => {
     expect(screen.getByLabelText('Desa/Kelurahan').value).toBe('');
   });
 
+  it('menyaring daftar wilayah berdasarkan kata kunci tanpa mengubah kode pilihan', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url) => {
+      const key = String(url).split('/v2/')[1];
+      return { ok: true, json: async () => ({ data: key === 'provinces.json' ? [
+        { id: '31', name: 'DKI Jakarta' }, { id: '35', name: 'Jawa Timur' }
+      ] : [] }) };
+    }));
+    render(<OfficialRegionPicker onChange={vi.fn()}/>);
+    await waitFor(() => expect(screen.getByLabelText('Provinsi').options.length).toBe(3));
+    fireEvent.change(screen.getByLabelText('Cari provinsi'), { target: { value: 'jawa' } });
+    expect(screen.getByLabelText('Provinsi').options.length).toBe(2);
+    expect(screen.getByLabelText('Provinsi').options[1].textContent).toBe('Jawa Timur');
+  });
+
   it('menampilkan pesan saat sumber data wilayah tidak tersedia', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, json: async () => ({}) })));
     render(<OfficialRegionPicker onChange={vi.fn()} />);

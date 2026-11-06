@@ -323,10 +323,12 @@ describe('ChatPostCard — tampilan 2026', () => {
   });
 
   it('renders one compact icon row and preserves like, comment, reply, and share actions', () => {
+    const sharePost = vi.fn();
     const values = props({
       likeCounts: { 'post-1': 12 },
       replyCounts: { 'post-1': 0 },
-      openReplyPage: vi.fn().mockResolvedValue(undefined)
+      openReplyPage: vi.fn().mockResolvedValue(undefined),
+      sharePost
     });
     const { container } = render(<ChatPostCard {...values} />);
     const actions = container.querySelector('.post-actions');
@@ -335,7 +337,10 @@ describe('ChatPostCard — tampilan 2026', () => {
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Komentar, 0' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Balas' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '12 suka' })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Bagikan postingan/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Bagikan postingan/ }));
+    expect(sharePost).toHaveBeenCalledWith(values.post);
     expect(actions.textContent).not.toMatch(/Disukai|Suka|Komentar|Bagikan/);
     expect(container.querySelectorAll('.engagement-comment-count')).toHaveLength(0);
   });

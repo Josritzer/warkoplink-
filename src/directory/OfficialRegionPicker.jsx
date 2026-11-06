@@ -12,8 +12,9 @@ async function fetchRegionOptions(path) {
       .then(async (response) => {
         if (!response.ok) throw new Error('Data wilayah tidak dapat dimuat.');
         const payload = await response.json();
-        if (!Array.isArray(payload?.data)) throw new Error('Format data wilayah tidak valid.');
-        return payload.data
+        const records = Array.isArray(payload) ? payload : payload?.data;
+        if (!Array.isArray(records)) throw new Error('Format data wilayah tidak valid.');
+        return records
           .filter((item) => typeof item?.id === 'string' && typeof item?.name === 'string')
           .map(({ id, name }) => ({ id, name }));
       })
@@ -123,7 +124,7 @@ export default function OfficialRegionPicker({ onChange, value = null }) {
   return <div className="official-region-picker">
     <label>Provinsi
       <input type="search" aria-label="Cari provinsi" placeholder="Cari provinsi…" value={searches.province} onChange={(event) => setSearches((current) => ({ ...current, province: event.target.value }))}/>
-      <select value={provinceId} disabled={provinces.status !== "ready"} onChange={(event) => chooseProvince(event.target.value)} required>
+      <select aria-label="Provinsi" value={provinceId} disabled={provinces.status !== "ready"} onChange={(event) => chooseProvince(event.target.value)} required>
         <option value="">Pilih provinsi</option>
         {filterOptions(provinces.options, 'province').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
@@ -131,7 +132,7 @@ export default function OfficialRegionPicker({ onChange, value = null }) {
     {renderStatus('provinsi', provinces.status, provinces.retry)}
     <label>Kabupaten/Kota
       <input type="search" aria-label="Cari kabupaten/kota" placeholder="Cari kabupaten/kota…" value={searches.regency} onChange={(event) => setSearches((current) => ({ ...current, regency: event.target.value }))}/>
-      <select value={regencyId} onChange={(event) => chooseRegency(event.target.value)} disabled={!provinceId || regencies.status !== 'ready'} required>
+      <select aria-label="Kabupaten/Kota" value={regencyId} onChange={(event) => chooseRegency(event.target.value)} disabled={!provinceId || regencies.status !== 'ready'} required>
         <option value="">Pilih kabupaten/kota</option>
         {filterOptions(regencies.options, 'regency').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
@@ -139,7 +140,7 @@ export default function OfficialRegionPicker({ onChange, value = null }) {
     {renderStatus('kabupaten/kota', regencies.status, regencies.retry)}
     <label>Kecamatan
       <input type="search" aria-label="Cari kecamatan" placeholder="Cari kecamatan…" value={searches.district} onChange={(event) => setSearches((current) => ({ ...current, district: event.target.value }))}/>
-      <select value={districtId} onChange={(event) => chooseDistrict(event.target.value)} disabled={!regencyId || districts.status !== 'ready'} required>
+      <select aria-label="Kecamatan" value={districtId} onChange={(event) => chooseDistrict(event.target.value)} disabled={!regencyId || districts.status !== 'ready'} required>
         <option value="">Pilih kecamatan</option>
         {filterOptions(districts.options, 'district').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
@@ -147,7 +148,7 @@ export default function OfficialRegionPicker({ onChange, value = null }) {
     {renderStatus('kecamatan', districts.status, districts.retry)}
     <label>Desa/Kelurahan
       <input type="search" aria-label="Cari desa/kelurahan" placeholder="Cari desa/kelurahan…" value={searches.village} onChange={(event) => setSearches((current) => ({ ...current, village: event.target.value }))}/>
-      <select value={villageId} onChange={(event) => chooseVillage(event.target.value)} disabled={!districtId || villages.status !== 'ready'} required>
+      <select aria-label="Desa/Kelurahan" value={villageId} onChange={(event) => chooseVillage(event.target.value)} disabled={!districtId || villages.status !== 'ready'} required>
         <option value="">Pilih desa/kelurahan</option>
         {filterOptions(villages.options, 'village').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>

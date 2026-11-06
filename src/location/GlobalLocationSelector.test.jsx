@@ -34,7 +34,7 @@ describe('GlobalLocationSelector', () => {
     expect(screen.queryByRole('option')).toBeNull();
 
     fireEvent.change(input, { target: { value: 'mad' } });
-    expect(await screen.findByRole('option', { name: /Maduran/ })).toBeTruthy();
+    expect(await screen.findAllByRole('option', { name: /Maduran/ })).toHaveLength(2);
     expect(screen.getAllByRole('option')).toHaveLength(2);
     fireEvent.click(screen.getByRole('option', { name: /Kecamatan · Kabupaten Lamongan/ }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({

@@ -121,7 +121,7 @@ describe('ChatPostCard', () => {
     expect(screen.getByRole('button', { name: 'Sukai postingan' })).toBeTruthy();
     expect(screen.queryByLabelText('Ringkasan reaksi')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Reaksi' })).toBeNull();
-    expect(screen.getByRole('button', { name: /lihat 4 pengguna/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /lihat 1 pengguna/i })).toBeTruthy();
   });
 
   it('shows Suka / Disukai and delegates the action to the like handler', () => {
@@ -138,19 +138,21 @@ describe('ChatPostCard', () => {
   it('uses one accessible Komentar action with the count and opens the dedicated thread', () => {
     const values = props({ replyCounts: { 'post-1': 3 }, openReplyPage: vi.fn().mockResolvedValue(undefined) });
     const { container } = render(<ChatPostCard {...values} />);
-    expect(screen.getByRole('button', { name: 'Komentar, 3' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Komentar dan balas, 3' })).toBeTruthy();
     expect(container.querySelectorAll('.engagement-comment-count')).toHaveLength(0);
     expect(screen.queryByText('Komentar')).toBeNull();
     expect(screen.queryByRole('textbox', { name: 'Tulis komentar' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Komentar, 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Komentar dan balas, 3' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
   });
 
-  it('Balas opens the thread with the reply composer focused', () => {
+  it('uses only three YouTube-style actions without a separate Balas button', () => {
     const values = props({ openReplyPage: vi.fn().mockResolvedValue(undefined) });
     render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Balas' }));
-    expect(values.openReplyPage).toHaveBeenCalledWith(values.post, { focusComposer: true });
+    expect(screen.getByRole('button', { name: 'Komentar dan balas, 0' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Bagikan postingan' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Balas' })).toBeNull();
+    expect(container.querySelectorAll('.post-actions .post-action-wrap')).toHaveLength(3);
   });
 
   // Regresi: `repliesByPost[post.id] || []` menghasilkan array baru di tiap render, sehingga efek
@@ -180,7 +182,7 @@ describe('ChatPostCard', () => {
       openReplyPage: vi.fn().mockResolvedValue(undefined)
     });
     render(<ChatPostCard {...values} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Komentar, 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Komentar dan balas, 1' }));
     expect(values.openReplyPage).toHaveBeenCalledWith(values.post);
     expect(screen.queryByLabelText('Komentar dan balasan')).toBeNull();
     expect(counter.renders).toBeLessThanOrEqual(30);

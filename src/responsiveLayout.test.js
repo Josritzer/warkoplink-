@@ -63,3 +63,16 @@ describe('baris aksi postingan horizontal', () => {
     expect(finalActionStyles).not.toContain('flex-direction: column;');
   });
 });
+
+
+describe('identitas header mobile', () => {
+  it('menjaga identitas merek satu baris pada layar sempit dan membatasi area kontrol', () => {
+    expect(mobileSafetyStyles).toContain('.app-header .brand {');
+    expect(mobileSafetyStyles).toContain('min-width: max-content;');
+    expect(mobileSafetyStyles).toContain('.app-header .brand strong {');
+    expect(mobileSafetyStyles).toContain('white-space: nowrap;');
+    expect(mobileSafetyStyles).toContain('word-break: keep-all;');
+    expect(mobileSafetyStyles).toContain('.app-header .header-actions {');
+    expect(mobileSafetyStyles).toContain('justify-content: flex-end;');
+  });
+});

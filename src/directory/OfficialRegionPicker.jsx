@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 const API_BASE = 'https://www.emsifa.com/api-wilayah-indonesia/v2';
 const optionCache = new Map();
 
-async function fetchRegionOptions(path) {
+export async function fetchOfficialRegionOptions(path) {
   if (!optionCache.has(path)) {
     const request = fetch(`${API_BASE}/${path}.json`, { headers: { Accept: 'application/json' } })
       .then(async (response) => {
@@ -43,7 +43,7 @@ function useRegionOptions(path) {
     }
     let active = true;
     setStatus('loading');
-    fetchRegionOptions(path).then((items) => {
+    fetchOfficialRegionOptions(path).then((items) => {
       if (!active) return;
       setOptions(items);
       setStatus('ready');

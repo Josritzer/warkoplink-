@@ -682,3 +682,32 @@ html, body, #root, .app-shell, .desktop-layout, .desktop-layout > main,
   width: 100%;
   min-width: 0;
 }
+
+
+/* Header brand must stay intact on narrow Android viewports. */
+@media (max-width: 380px) {
+  .app-header .brand {
+    flex: 0 0 auto;
+    min-width: max-content;
+    gap: 6px;
+  }
+  .app-header .brand > span:last-child {
+    flex: 0 0 auto;
+    min-width: max-content;
+  }
+  .app-header .brand strong {
+    display: block;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: keep-all;
+    font-size: 12px;
+    letter-spacing: .02em;
+    line-height: 1.2;
+  }
+  .app-header .header-actions {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    min-width: 0;
+    gap: 3px;
+  }
+}

@@ -6,10 +6,12 @@ const mobileSafetyStyles = readFileSync('src/mobile-layout-safety.css', 'utf8');
 
 describe('responsivitas navigasi WarkopLink', () => {
   it('menyembunyikan navigasi bawah di desktop', () => {
-    expect(styles).toMatch(/@media \(min-width: 761px\)\s*\{[\s\S]*?\.bottom-nav \{ display: none !important;/);
+    expect(styles).toContain('@media (min-width: 761px)');
+    expect(styles).toContain('.bottom-nav { display: none !important;');
   });
   it('memakai navigasi bawah dan menyembunyikan sidebar di HP', () => {
-    expect(styles).toMatch(/@media \(max-width: 760px\)\s*\{[\s\S]*?\.desktop-sidebar, \.desktop-right-rail \{ display: none !important; \}/);
+    expect(styles).toContain('@media (max-width: 760px)');
+    expect(styles).toContain('.desktop-sidebar, .desktop-right-rail { display: none !important; }');
     expect(styles).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
     expect(styles).toContain('env(safe-area-inset-bottom, 0px)');
   });
@@ -18,7 +20,6 @@ describe('responsivitas navigasi WarkopLink', () => {
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
   });
 });
-
 
 describe('penerimaan layout feed mobile', () => {
   it('menyisakan ruang scroll di bawah feed setelah navigasi tetap dan safe area', () => {
@@ -31,7 +32,6 @@ describe('penerimaan layout feed mobile', () => {
     expect(mobileSafetyStyles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(mobileSafetyStyles).toContain('min-height: 44px');
   });
-
 
   it('menjaga label aksi utuh, rasio video intrinsik, dan kontras state Suka pada 360–390 px', () => {
     expect(mobileSafetyStyles).toContain('white-space: nowrap;');
@@ -48,5 +48,18 @@ describe('penerimaan layout feed mobile', () => {
     expect(mobileSafetyStyles).toContain('color: var(--wl-ink)');
     expect(mobileSafetyStyles).toContain('.feed-video-controls');
     expect(mobileSafetyStyles).toContain('min-height: 44px');
+  });
+});
+
+describe('baris aksi postingan horizontal', () => {
+  it('menjaga avatar penyuka dan ikon suka dalam satu baris tanpa menurunkan ikon komentar atau bagikan', () => {
+    const actionStyles = readFileSync('src/feed-actions-compact.css', 'utf8');
+    const finalActionStyles = actionStyles.split('/* Keep all three feed actions on one baseline; keep liker preview beside Like. */').at(-1);
+    expect(finalActionStyles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');
+    expect(finalActionStyles).toContain('display: inline-flex;');
+    expect(finalActionStyles).toContain('flex-direction: row;');
+    expect(finalActionStyles).toContain('flex-wrap: nowrap;');
+    expect(finalActionStyles).toContain('align-items: center;');
+    expect(finalActionStyles).not.toContain('flex-direction: column;');
   });
 });

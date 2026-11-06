@@ -88,7 +88,7 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
         <Heart size={18} strokeWidth={1.8} fill={liked ? 'currentColor' : 'none'} aria-hidden="true" />
       </button>
       {count > 0
-        ? <button className="like-count like-count-trigger" type="button" onClick={openLikerList} aria-label={`${count.toLocaleString('id-ID')} suka`}>{count.toLocaleString('id-ID')}</button>
+        ? <button className="like-count like-count-trigger" type="button" onClick={openLikerList} aria-label={`Lihat daftar ${count.toLocaleString('id-ID')} pengguna yang menyukai postingan`}>{count.toLocaleString('id-ID')}</button>
         : <span className="like-count">0</span>}
     </div>
     {dialogOpen && <div className="liker-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setDialogOpen(false); }}>

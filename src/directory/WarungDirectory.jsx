@@ -107,7 +107,7 @@ export default function WarungDirectory({ mode, user, db, location = { mode: 'al
   }, [mode, db, directoryRetry]);
 
   const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua' || priceFilter !== 'semua';
-  const shouldLoadAllWarungs = hasActiveFilter || discoveryCategory !== 'all' || (location?.mode && location.mode !== 'all');
+  const shouldLoadAllWarungs = hasActiveFilter || discoveryCategory !== 'all' || mapViewOpen || mapViewRequested || (location?.mode && location.mode !== 'all');
 
   // Ketika pengguna mencari atau memfilter, perluas seluruh halaman verified secara otomatis.
   // Tanpa ini, hasil di halaman ke-2 dan seterusnya tidak pernah ikut diperiksa.

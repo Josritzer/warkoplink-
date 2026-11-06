@@ -1,4 +1,4 @@
-import { MessageSquare, MoreHorizontal, Send, Share2, Trash2, Store, Play, Pause, RotateCcw } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Send, Share2, Trash2, Store, Play, Pause, RotateCcw } from 'lucide-react';
 import LikeSummary from './LikeSummary.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { displayTopic, POST_SUBTYPES, POST_TOPICS } from '../lib.js';
@@ -364,12 +364,9 @@ export default function ChatPostCard({
           <LikeSummary post={post} user={user} liked={likedPosts[post.id]} count={totalReactions} onToggleLike={() => handleLikePost(post)} openAuth={openAuth} setNotice={setNotice} onOpenProfile={onOpenProfile} />
         </div>
         <div className="post-action-wrap">
-          <button className="post-action post-icon-action" type="button" onClick={openCommentsForReply} aria-label={`Komentar, ${commentCount.toLocaleString('id-ID')}`}>
-            <MessageSquare size={18} strokeWidth={1.8} aria-hidden="true"/><span className="post-action-count">{commentCount.toLocaleString('id-ID')}</span>
+          <button className="post-action post-icon-action" type="button" onClick={openCommentsForReply} aria-label={`Komentar dan balas, ${commentCount.toLocaleString('id-ID')}`}>
+            <MessageCircle size={18} strokeWidth={1.8} aria-hidden="true"/><span className="post-action-count">{commentCount.toLocaleString('id-ID')}</span>
           </button>
-        </div>
-        <div className="post-action-wrap">
-          <button className="post-action post-icon-action" type="button" onClick={openReplyComposer} aria-label="Balas"><Send size={18} strokeWidth={1.8} aria-hidden="true"/></button>
         </div>
         <div className="post-action-wrap">
           <button className="post-action post-icon-action" type="button" onClick={() => sharePost(post)} aria-label="Bagikan postingan"><Share2 size={18} strokeWidth={1.8} aria-hidden="true"/></button>

@@ -32,7 +32,7 @@ describe('filterWarungsByLocation', () => {
     expect(filterWarungsByLocation(warungs, { mode: 'region', region: province }).map(item => item.id))
       .toEqual(['maduran', 'other-village']);
     expect(filterWarungsByLocation(warungs, { mode: 'region', region: regency }).map(item => item.id))
-      .toEqual(['maduran', 'other-village']);
+      .toEqual(['maduran', 'other-village', 'no-coordinates']);
     expect(filterWarungsByLocation(warungs, { mode: 'region', region: district }).map(item => item.id))
       .toEqual(['maduran', 'other-village']);
   });

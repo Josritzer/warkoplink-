@@ -25,7 +25,7 @@ class WarungFormValidationError extends Error {
   }
 }
 
-export default function WarungDirectory({ mode, user, db, location = { mode: 'all' }, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
+export default function WarungDirectory({ mode, user, db, location = { mode: 'all' }, mapViewRequested = false, onMapViewRequestHandled, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
   const [warungs, setWarungs] = useState([]);
   const [status, setStatus] = useState(db ? 'loading' : 'error');
   const [directoryRetry, setDirectoryRetry] = useState(0);
@@ -70,6 +70,13 @@ export default function WarungDirectory({ mode, user, db, location = { mode: 'al
   const [formError, setFormError] = useState('');
   const [registrationStep, setRegistrationStep] = useState(1);
   const [locating, setLocating] = useState(false);
+
+  useEffect(() => {
+    if (mode === 'directory' && mapViewRequested) {
+      setMapViewOpen(true);
+      onMapViewRequestHandled?.();
+    }
+  }, [mode, mapViewRequested, onMapViewRequestHandled]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);

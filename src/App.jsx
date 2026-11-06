@@ -1362,7 +1362,7 @@ export default function App() {
   }
 
   const feedPosts = section === 'Grup Komunitas' ? [...communityPosts, ...olderCommunityPosts] : allPosts;
-  const locationScopedFeedPosts = section === 'Beranda' ? filterPostsByLocation(feedPosts, discoveryLocation, verifiedWarungs) : feedPosts;
+  const locationScopedFeedPosts = ['Beranda', 'Obrolan', 'Grup Komunitas'].includes(section) ? filterPostsByLocation(feedPosts, discoveryLocation, verifiedWarungs) : feedPosts;
   const visiblePosts = filterPosts(locationScopedFeedPosts, topic, search).map(post => withPublicAuthorProfile(post, publicAuthorProfiles[post.authorId]));
   const locationScopedHomePosts = filterPostsByLocation(allPosts, discoveryLocation, verifiedWarungs);
   const resolvedSelectedReplyPost = selectedReplyPost ? withPublicAuthorProfile(selectedReplyPost, publicAuthorProfiles[selectedReplyPost.authorId]) : null;

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { cleanup } from '@testing-library/react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import HomeDiscovery from './HomeDiscovery.jsx';
@@ -58,4 +59,30 @@ describe('HomeDiscovery', () => {
     expect(screen.queryByText('Kopi Maduran')).toBeNull();
   });
 
+});
+
+describe('Coffee Culture home visual system', () => {
+  const styles = readFileSync('src/home/home-discovery.css', 'utf8');
+
+  it('uses the official espresso-to-milk palette instead of the obsolete violet discovery palette', () => {
+    expect(styles).toContain('--wl-espresso, #211A16');
+    expect(styles).toContain('--wl-dark-roast, #493126');
+    expect(styles).toContain('--wl-coffee, #98613B');
+    expect(styles).toContain('--wl-caramel, #C58A52');
+    expect(styles).toContain('--wl-cream, #F1E7D7');
+    expect(styles).toContain('--wl-milk, #FAF7F1');
+    expect(styles).toContain('home-view .home-explore-categories button');
+  });
+
+  it('places a real coffee photograph behind a translucent glass hero copy surface', () => {
+    expect(styles).toContain('photo-1442512595331-e89e73853f31');
+    expect(styles).toContain('backdrop-filter: blur(14px) saturate(125%)');
+    expect(styles).toContain('rgba(33,26,22,.36)');
+  });
+
+  it('keeps the hero and discovery photography proportionate on mobile widths', () => {
+    expect(styles).toContain('min-height: 470px');
+    expect(styles).toContain('aspect-ratio: .94');
+    expect(styles).toContain('@media (max-width: 380px)');
+  });
 });

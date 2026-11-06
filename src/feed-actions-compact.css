@@ -188,3 +188,98 @@
   #community-feed .post-actions .like-toggle { min-width: 25px; padding-inline: 2px; }
   #community-feed .post-actions .post-action-wrap > .post-action { min-width: 25px; }
 }
+
+/* Final contract: Like, Comment, Share stay on one horizontal row at every width. */
+#community-feed .post-actions {
+  /* Override the legacy mobile grid declaration marked !important. */
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 0;
+}
+
+#community-feed .post-actions > .post-action-wrap {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+#community-feed .post-actions .like-summary {
+  display: inline-flex;
+  flex: 1 1 auto;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#community-feed .post-actions .liker-preview {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  max-width: calc(100% - 30px);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#community-feed .post-actions .liker-avatar-stack {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-width: 0;
+}
+
+#community-feed .post-actions .like-count,
+#community-feed .post-actions .post-action-count {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+#community-feed .post-actions .like-toggle {
+  display: inline-flex;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-width: 0;
+  max-width: 30px;
+  padding-inline: 2px;
+  white-space: nowrap;
+}
+
+#community-feed .post-actions .post-action-wrap > .post-action {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding-inline: 2px;
+  white-space: nowrap;
+}
+
+#community-feed .post-actions .post-action svg {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 430px) {
+  #community-feed .post-actions { gap: 0; }
+  #community-feed .post-actions .like-summary { gap: 1px; }
+  #community-feed .post-actions .like-toggle { flex-basis: 28px; width: 28px; max-width: 28px; }
+  #community-feed .post-actions .post-action-wrap > .post-action { gap: 2px; }
+}

@@ -148,7 +148,7 @@ describe('ChatPostCard', () => {
 
   it('uses only three YouTube-style actions without a separate Balas button', () => {
     const values = props({ openReplyPage: vi.fn().mockResolvedValue(undefined) });
-    render(<ChatPostCard {...values} />);
+    const { container } = render(<ChatPostCard {...values} />);
     expect(screen.getByRole('button', { name: 'Komentar dan balas, 0' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Bagikan postingan' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Balas' })).toBeNull();

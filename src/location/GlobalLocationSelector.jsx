@@ -64,10 +64,10 @@ export default function GlobalLocationSelector({ value = { mode: 'all', label: '
         <span className="global-location-icon"><MapPinned size={17}/></span>
         <div><b>Jelajahi berdasarkan lokasi</b><small>Ubah wilayah tanpa mengubah lokasi asli warkop.</small></div>
       </div>
-      <button type="button" className={value.mode === 'all' ? 'global-location-option active' : 'global-location-option'} onClick={chooseAll}>
+      <button type="button" className={value.mode === 'all' ? 'global-location-option active' : 'global-location-option'} aria-label="Pilih Semua Lokasi" onClick={chooseAll}>
         <Globe2 size={17}/><span><b>Semua Lokasi</b><small>Jelajahi warkop dari seluruh Indonesia</small></span>{value.mode === 'all' && <span className="global-location-check">✓</span>}
       </button>
-      <button type="button" className={value.mode === 'nearby' ? 'global-location-option active' : 'global-location-option'} onClick={chooseNearby}>
+      <button type="button" className={value.mode === 'nearby' ? 'global-location-option active' : 'global-location-option'} aria-label="Gunakan Lokasi Saya" onClick={chooseNearby}>
         <LocateFixed size={17}/><span><b>Lokasi Saya</b><small>Urutkan warkop terdekat dari posisi GPS</small></span>{value.mode === 'nearby' && <span className="global-location-check">✓</span>}
       </button>
       <form className="global-location-region" onSubmit={applyRegion}>

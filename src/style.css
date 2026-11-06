@@ -823,3 +823,98 @@
 .owner-login-card .button { flex: 0 0 auto; }
 @media (max-width: 560px) { .owner-login-card { align-items: stretch; flex-direction: column; } .owner-login-card .button { width: 100%; justify-content: center; } }
 
+
+
+/* Minimal feed engagement row — icon-first, one line, no action tiles. */
+#community-feed .post-actions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  align-items:center;
+  gap:2px;
+  margin-top:8px;
+  padding-top:5px;
+  border-top:1px solid var(--wl-line-soft);
+}
+#community-feed .post-actions > .post-action-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+}
+#community-feed .post-actions .like-summary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:nowrap;
+  gap:3px;
+  min-width:0;
+}
+#community-feed .post-actions .post-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  width:100%;
+  min-width:0;
+  min-height:38px;
+  padding:4px 5px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--wl-muted);
+  font-size:12px;
+  font-weight:600;
+  line-height:1;
+  box-shadow:none;
+}
+#community-feed .post-actions .post-action:hover,
+#community-feed .post-actions .post-action:active{
+  background:transparent;
+  color:var(--wl-ink);
+  transform:none;
+}
+#community-feed .post-actions .post-action.liked{
+  color:var(--wl-primary-deep);
+  background:transparent;
+}
+#community-feed .post-actions .post-icon-action svg{
+  flex:0 0 auto;
+}
+#community-feed .post-actions .post-action-count,
+#community-feed .post-actions .like-count{
+  color:inherit;
+  font-size:12px;
+  font-weight:600;
+  line-height:1;
+  white-space:nowrap;
+}
+#community-feed .post-actions .like-count-trigger{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:16px;
+  min-height:38px;
+  padding:0 2px;
+  border:0;
+  background:transparent;
+  color:var(--wl-muted);
+  cursor:pointer;
+}
+#community-feed .post-actions .like-count-trigger:hover{
+  color:var(--wl-ink);
+  text-decoration:underline;
+}
+#community-feed .post-actions .post-action:focus-visible,
+#community-feed .post-actions .like-count-trigger:focus-visible{
+  outline:2px solid var(--wl-primary);
+  outline-offset:2px;
+  border-radius:6px;
+}
+@media(max-width:520px){
+  #community-feed .post-actions{gap:0;margin-top:6px;padding-top:4px}
+  #community-feed .post-actions .post-action{min-height:36px;padding-inline:3px}
+  #community-feed .post-actions .post-action svg{width:17px;height:17px}
+  #community-feed .post-actions .post-action-count,
+  #community-feed .post-actions .like-count{font-size:11px}
+  #community-feed .post-actions .like-count-trigger{min-height:36px}
+}

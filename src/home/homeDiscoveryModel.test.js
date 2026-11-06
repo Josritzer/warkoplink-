@@ -4,7 +4,7 @@ import { buildHomeDiscoveryData, getHomeActivityStatus } from './homeDiscoveryMo
 const now = new Date('2026-11-05T05:00:00+07:00');
 
 describe('home discovery model', () => {
-  it('keeps verified warungs and caps the home preview without inventing rank', () => {
+  it('keeps the complete verified source list before the UI preview is sliced', () => {
     const warungs = Array.from({ length: 10 }, (_, index) => ({ id: String(index), name: `Warkop ${index}`, verificationStatus: 'verified' }));
     const result = buildHomeDiscoveryData(warungs, [], now);
     expect(result.warungs).toHaveLength(10);

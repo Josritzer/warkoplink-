@@ -52,3 +52,10 @@
 .global-region-result{display:flex;align-items:flex-start;gap:8px;padding:10px;border:1px solid var(--border-subtle,rgba(120,110,90,.2));border-radius:11px;background:var(--surface-soft,#f5f1e9);color:var(--text-primary,#25231f);font-size:12px;line-height:1.5}
 .global-region-result>span{flex:1;min-width:0}
 .global-region-result>svg:last-child{flex:0 0 auto;color:var(--accent-strong,#765a35)}
+
+.global-region-options>button>span{display:grid;gap:3px;min-width:0}
+.global-region-options>button>span>b{font-size:12px;font-weight:750}
+.global-region-options>button>span>small{font-size:10px;line-height:1.4;color:var(--text-muted,#81796d)}
+.global-region-result>span{display:grid;gap:3px}
+.global-region-result>span>small{font-size:10px;color:var(--text-muted,#81796d)}
+.global-region-options>button{align-items:flex-start}

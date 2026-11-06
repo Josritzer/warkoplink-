@@ -1,146 +1,142 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, ChevronRight, MapPin, RotateCcw } from 'lucide-react';
-import { fetchOfficialRegionOptions } from '../directory/OfficialRegionPicker.jsx';
+import { Check, MapPin, RotateCcw } from 'lucide-react';
 
-const STEPS = [
-  { key: 'province', label: 'Provinsi', search: 'Cari provinsi…', path: 'provinces', code: 'provinceCode', name: 'provinceName' },
-  { key: 'regency', label: 'Kabupaten/Kota', search: 'Cari kabupaten/kota…', code: 'regencyCode', name: 'regencyName' },
-  { key: 'district', label: 'Kecamatan', search: 'Cari kecamatan…', code: 'districtCode', name: 'districtName' },
-  { key: 'village', label: 'Desa/Kelurahan', search: 'Cari desa/kelurahan…', code: 'villageCode', name: 'villageName' },
-];
+const SEARCH_ENDPOINT = 'https://wilayah-id-api.dhanypedia.com/api/v1/regions/search';
+const RESULT_LIMIT = 100;
+const cache = new Map();
 
-function nextStepIndex(selection) {
-  const index = STEPS.findIndex((step) => !selection?.[step.code] || !selection?.[step.name]);
-  return index === -1 ? STEPS.length : index;
+function normalize(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('id-ID').trim();
+}
+
+function regionFromResult(item) {
+  const parts = String(item.code || '').split('.');
+  const provinceCode = parts[0] || '';
+  const regencyCode = parts.length >= 2 ? parts.slice(0, 2).join('.') : '';
+  const districtCode = parts.length >= 3 ? parts.slice(0, 3).join('.') : '';
+  const villageCode = parts.length >= 4 ? parts.slice(0, 4).join('.') : '';
+  const region = {
+    scopeLevel: item.level,
+    selectedLevel: item.level,
+    selectedCode: String(item.code || ''),
+    selectedName: String(item.name || ''),
+    provinceCode,
+    provinceName: item.level === 'province' ? item.name : item.nama_provinsi || '',
+    regencyCode,
+    regencyName: item.level === 'regency' ? item.name : item.nama_kabupaten || '',
+    districtCode,
+    districtName: item.level === 'district' ? item.name : item.nama_kecamatan || '',
+    villageCode,
+    villageName: item.level === 'village' ? item.name : '',
+  };
+  return Object.fromEntries(Object.entries(region).filter(([, value]) => value !== ''));
+}
+
+function displayLevel(level) {
+  return ({ province: 'Provinsi', regency: 'Kabupaten / Kota', district: 'Kecamatan', village: 'Desa / Kelurahan' }[level] || 'Wilayah');
+}
+
+function resultSubtitle(item) {
+  return [item.nama_kecamatan, item.nama_kabupaten, item.nama_provinsi].filter(Boolean).join(' · ')
+    || displayLevel(item.level);
+}
+
+async function searchRegions(query, signal) {
+  const key = normalize(query);
+  if (cache.has(key)) return cache.get(key);
+  const url = SEARCH_ENDPOINT + '?q=' + encodeURIComponent(query.trim()) + '&limit=' + RESULT_LIMIT;
+  const response = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error('Region search unavailable');
+  const payload = await response.json();
+  if (!Array.isArray(payload?.data)) throw new Error('Invalid region search response');
+  const needle = normalize(query);
+  const results = payload.data
+    .filter(item => normalize(item.name).startsWith(needle))
+    .sort((a, b) => {
+      const order = { province: 0, regency: 1, district: 2, village: 3 };
+      return (order[a.level] ?? 9) - (order[b.level] ?? 9) || String(a.name).localeCompare(String(b.name), 'id');
+    });
+  cache.set(key, results);
+  if (cache.size > 80) cache.delete(cache.keys().next().value);
+  return results;
 }
 
 export default function GlobalRegionSearch({ value = null, onChange }) {
-  const [selection, setSelection] = useState(value || {});
-  const [stepIndex, setStepIndex] = useState(nextStepIndex(value));
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState([]);
   const [status, setStatus] = useState('idle');
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    setSelection(value || {});
-    setStepIndex(nextStepIndex(value));
-    setQuery('');
-  }, [value]);
-
-  const step = STEPS[stepIndex] || null;
-  const parentPath = stepIndex === 0 ? '' : selection[STEPS[stepIndex - 1].code];
-  const path = !step ? '' : stepIndex === 0 ? step.path : `${step.key === 'regency' ? 'regencies' : step.key === 'district' ? 'districts' : 'villages'}/${parentPath}`;
-
-  useEffect(() => {
-    if (!path) {
+    const term = query.trim();
+    if (term.length < 2) {
       setOptions([]);
       setStatus('idle');
       return undefined;
     }
+    const controller = new AbortController();
     let active = true;
     setStatus('loading');
-    fetchOfficialRegionOptions(path).then((items) => {
-      if (!active) return;
-      setOptions(items);
-      setStatus('ready');
-    }).catch(() => {
-      if (!active) return;
-      setOptions([]);
-      setStatus('error');
-    });
-    return () => { active = false; };
-  }, [path, retry]);
+    const timeout = window.setTimeout(() => {
+      searchRegions(term, controller.signal).then(items => {
+        if (!active) return;
+        setOptions(items);
+        setStatus('ready');
+      }).catch(error => {
+        if (!active || error?.name === 'AbortError') return;
+        setOptions([]);
+        setStatus('error');
+      });
+    }, 220);
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [query, retry]);
 
-  const filteredOptions = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase('id-ID');
-    if (!needle) return options;
-    return options.filter((item) => item.name.toLocaleLowerCase('id-ID').includes(needle));
-  }, [options, query]);
+  const selectedLabel = useMemo(() => {
+    if (!value?.selectedName) return '';
+    return [value.selectedName, value.districtName, value.regencyName, value.provinceName]
+      .filter((name, index, names) => name && names.indexOf(name) === index).join(', ');
+  }, [value]);
 
   function choose(item) {
-    const next = { ...selection, [step.code]: item.id, [step.name]: item.name };
-    for (const later of STEPS.slice(stepIndex + 1)) {
-      delete next[later.code];
-      delete next[later.name];
-    }
-    setSelection(next);
+    onChange?.(regionFromResult(item));
     setQuery('');
-    if (stepIndex === STEPS.length - 1) {
-      onChange?.(next);
-      setStepIndex(STEPS.length);
-      return;
-    }
-    setStepIndex(stepIndex + 1);
+    setOptions([]);
+    setStatus('idle');
   }
 
-  function goBack() {
-    if (stepIndex > 0 && stepIndex < STEPS.length) {
-      const previous = stepIndex - 1;
-      const next = { ...selection };
-      for (const later of STEPS.slice(stepIndex)) {
-        delete next[later.code];
-        delete next[later.name];
-      }
-      setSelection(next);
-      setStepIndex(previous);
-      setQuery('');
-    } else if (stepIndex === STEPS.length) {
-      setStepIndex(STEPS.length - 1);
-      setQuery('');
-    }
-  }
-
-  function restart() {
-    setSelection({});
-    setStepIndex(0);
-    setQuery('');
+  function clearSelection() {
     onChange?.(null);
+    setQuery('');
+    setOptions([]);
+    setStatus('idle');
   }
-
-  const completed = stepIndex === STEPS.length && STEPS.every((item) => selection[item.code] && selection[item.name]);
-  const breadcrumb = STEPS.filter((item) => selection[item.name]).map((item) => selection[item.name]);
 
   return <div className="global-region-search">
-    {completed ? <>
-      <div className="global-region-result" aria-live="polite">
-        <MapPin size={16}/>
-        <span>{breadcrumb.slice().reverse().join(', ')}</span>
-        <Check size={16}/>
-      </div>
-      <button className="global-region-change" type="button" onClick={restart}><RotateCcw size={13}/> Ganti wilayah</button>
-    </> : <>
-      <div className="global-region-progress" aria-label={`Tahap ${stepIndex + 1} dari 4`}>
-        {STEPS.map((item, index) => <span key={item.key} className={index < stepIndex ? 'done' : index === stepIndex ? 'current' : ''}>{index + 1}</span>)}
-        <small>{step?.label}</small>
-      </div>
-      {stepIndex > 0 && <button className="global-region-back" type="button" onClick={goBack}><ArrowLeft size={13}/> Kembali</button>}
-      <label className="global-region-searchbox">
-        <MapPin size={16}/>
-        <input
-          type="search"
-          aria-label={step?.search.replace('…', '')}
-          placeholder={step?.search || 'Cari wilayah…'}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          autoComplete="off"
-        />
-      </label>
-      <div className="global-region-trail" aria-live="polite">
-        {breadcrumb.length ? breadcrumb.join(' › ') : 'Pilih wilayah secara bertahap'}
-      </div>
-      <div className="global-region-options" role="listbox" aria-label={`Daftar ${step?.label || 'wilayah'}`}>
-        {status === 'loading' && <p role="status">Memuat {step?.label.toLowerCase()}…</p>}
-        {status === 'error' && <p role="alert">Data gagal dimuat. <button type="button" onClick={() => setRetry((count) => count + 1)}>Coba lagi</button></p>}
-        {status === 'ready' && filteredOptions.length === 0 && <p>Tidak ada hasil untuk “{query}”.</p>}
-        {status === 'ready' && filteredOptions.slice(0, 80).map((item) => <button
-          key={item.id}
-          type="button"
-          role="option"
-          aria-selected={selection[step?.code] === item.id}
-          onClick={() => choose(item)}
-        ><span>{item.name}</span><ChevronRight size={15}/></button>)}
-      </div>
-    </>}
+    {selectedLabel && <div className="global-region-result" aria-live="polite">
+      <MapPin size={16}/>
+      <span><b>{selectedLabel}</b><small>Cakupan: {displayLevel(value.scopeLevel || value.selectedLevel)}</small></span>
+      <Check size={16}/>
+    </div>}
+    {selectedLabel && <button className="global-region-change" type="button" onClick={clearSelection}><RotateCcw size={13}/> Ganti wilayah</button>}
+    <label className="global-region-searchbox">
+      <MapPin size={16}/>
+      <input type="search" aria-label="Cari wilayah" placeholder="Cari provinsi, kota, kecamatan, atau desa…"
+        value={query} onChange={event => setQuery(event.target.value)} autoComplete="off" minLength={2}/>
+    </label>
+    <div className="global-region-options" role="listbox" aria-label="Rekomendasi wilayah" aria-live="polite">
+      {query.trim().length < 2 && <p>Ketik minimal 2 huruf. Pilih hasil di tingkat wilayah mana pun.</p>}
+      {status === 'loading' && <p role="status">Mencari wilayah…</p>}
+      {status === 'error' && <p role="alert">Pencarian wilayah gagal dimuat. <button type="button" onClick={() => setRetry(count => count + 1)}>Coba lagi</button></p>}
+      {status === 'ready' && options.length === 0 && <p>Tidak ada wilayah yang diawali “{query.trim()}”.</p>}
+      {status === 'ready' && options.slice(0, 40).map(item => <button key={item.level + ':' + item.code}
+        type="button" role="option" aria-selected={value?.selectedCode === String(item.code)} onClick={() => choose(item)}>
+        <span><b>{item.name}</b><small>{displayLevel(item.level)} · {resultSubtitle(item)}</small></span>
+        {value?.selectedCode === String(item.code) && <Check size={15}/>}
+      </button>)}
+    </div>
   </div>;
 }

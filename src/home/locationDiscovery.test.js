@@ -25,6 +25,18 @@ describe('filterWarungsByLocation', () => {
     expect(result.map(item => item.id)).toEqual(['maduran']);
   });
 
+  it('applies province, regency, and district scopes to all descendant warkops', () => {
+    const province = { scopeLevel: 'province', selectedCode: '35', selectedName: 'Jawa Timur', provinceCode: '35' };
+    const regency = { scopeLevel: 'regency', selectedCode: '35.24', selectedName: 'Kabupaten Lamongan', regencyCode: '35.24' };
+    const district = { scopeLevel: 'district', selectedCode: '35.24.10', selectedName: 'Maduran', districtCode: '35.24.10' };
+    expect(filterWarungsByLocation(warungs, { mode: 'region', region: province }).map(item => item.id))
+      .toEqual(['maduran', 'other-village']);
+    expect(filterWarungsByLocation(warungs, { mode: 'region', region: regency }).map(item => item.id))
+      .toEqual(['maduran', 'other-village', 'no-coordinates']);
+    expect(filterWarungsByLocation(warungs, { mode: 'region', region: district }).map(item => item.id))
+      .toEqual(['maduran', 'other-village']);
+  });
+
   it('keeps legacy text matching available while old records are being normalized', () => {
     const result = filterWarungsByLocation(warungs, { mode: 'region', query: 'surabaya' });
     expect(result.map(item => item.id)).toEqual(['surabaya']);
@@ -52,6 +64,19 @@ describe('filterPostsByLocation', () => {
   it('filters linked events and local posts through their warkop administrative identity', () => {
     expect(filterPostsByLocation(posts, { mode: 'region', region }, warungs).map(post => post.id))
       .toEqual(['linked-local', 'legacy-local']);
+  });
+
+  it('filters standalone and warkop-linked posts using the selected district scope', () => {
+    const district = { scopeLevel: 'district', selectedCode: '35.24.10', selectedName: 'Maduran', districtCode: '35.24.10' };
+    const scopedPosts = [
+      { id: 'linked-local', warungId: 'maduran' },
+      { id: 'linked-neighbor', warungId: 'other-village' },
+      { id: 'linked-city', warungId: 'surabaya' },
+      { id: 'standalone-local', location: 'Maduran, Lamongan' },
+      { id: 'standalone-other', location: 'Surabaya' }
+    ];
+    expect(filterPostsByLocation(scopedPosts, { mode: 'region', region: district }, warungs).map(post => post.id))
+      .toEqual(['linked-local', 'linked-neighbor', 'standalone-local']);
   });
 
   it('keeps every post when all locations is selected', () => {

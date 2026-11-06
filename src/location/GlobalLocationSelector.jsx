@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import OfficialRegionPicker from '../directory/OfficialRegionPicker.jsx';
-import { ChevronDown, Globe2, LocateFixed, MapPinned, MapPin, Search } from 'lucide-react';
+import { ChevronDown, Globe2, LocateFixed, MapPinned, MapPin } from 'lucide-react';
 
 export default function GlobalLocationSelector({ value = { mode: 'all', label: 'Semua Lokasi' }, onChange, onOpenMap }) {
   const [open, setOpen] = useState(false);

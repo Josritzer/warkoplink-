@@ -24,6 +24,11 @@ function searchableRegion(warung) {
   ].filter(Boolean).join(' ').toLocaleLowerCase('id-ID');
 }
 
+function searchableAdministrativeAddress(warung) {
+  return [warung?.address, warung?.villageName, warung?.districtName, warung?.regencyName, warung?.provinceName, warung?.regionName]
+    .filter(Boolean).join(' ').toLocaleLowerCase('id-ID');
+}
+
 function matchesOfficialRegion(record, region) {
   if (!region) return false;
   const levels = ['province', 'regency', 'district', 'village'];
@@ -32,9 +37,9 @@ function matchesOfficialRegion(record, region) {
     const code = region[`${selectedLevel}Code`];
     const storedCode = record?.[`${selectedLevel}Code`]
       || (selectedLevel === 'village' ? record?.regionCode : '');
-    if (storedCode === code) return true;
+    if (storedCode) return storedCode === code;
     const name = String(region[`${selectedLevel}Name`] || '').trim().toLocaleLowerCase('id-ID');
-    return Boolean(name.length > 1 && searchableRegion(record).includes(name));
+    return Boolean(name.length > 1 && searchableAdministrativeAddress(record).includes(name));
   }
   return false;
 }

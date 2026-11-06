@@ -268,11 +268,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let refreshing = false;
+    const handleControllerChange = () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    };
+
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {
-        // Aplikasi tetap dapat digunakan jika browser menolak service worker.
-      });
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+        .then((registration) => registration.update())
+        .catch(() => {
+          // Aplikasi tetap dapat digunakan jika browser menolak service worker.
+        });
     }
+
     const captureInstallPrompt = (event) => {
       event.preventDefault();
       setInstallPrompt(event);
@@ -281,6 +293,9 @@ export default function App() {
     window.addEventListener('beforeinstallprompt', captureInstallPrompt);
     window.addEventListener('appinstalled', clearInstallPrompt);
     return () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      }
       window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
       window.removeEventListener('appinstalled', clearInstallPrompt);
     };

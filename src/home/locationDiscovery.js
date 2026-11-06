@@ -24,9 +24,25 @@ function searchableRegion(warung) {
   ].filter(Boolean).join(' ').toLocaleLowerCase('id-ID');
 }
 
+function matchesOfficialRegion(record, region) {
+  if (!region) return false;
+  const levels = ['province', 'regency', 'district', 'village'];
+  const hasCodes = levels.some(level => region[`${level}Code`]);
+  if (hasCodes) {
+    return levels.some(level => {
+      const code = region[`${level}Code`];
+      return code && (record?.[`${level}Code`] === code
+        || (level === 'village' && record?.regionCode === code));
+    });
+  }
+  const needle = String(region.villageName || '').trim().toLocaleLowerCase('id-ID');
+  return needle.length > 1 && searchableRegion(record).includes(needle);
+}
+
 export function filterWarungsByLocation(warungs = [], location = { mode: 'all' }) {
   const records = Array.isArray(warungs) ? warungs : [];
   if (location?.mode === 'region') {
+    if (location.region) return records.filter(warung => matchesOfficialRegion(warung, location.region));
     const query = String(location.query || '').trim().toLocaleLowerCase('id-ID');
     return query ? records.filter(warung => searchableRegion(warung).includes(query)) : records;
   }
@@ -40,4 +56,30 @@ export function filterWarungsByLocation(warungs = [], location = { mode: 'all' }
     if (!coordinates) return [];
     return [{ ...warung, distanceKm: distanceInKm(origin, coordinates) }];
   }).sort((left, right) => left.distanceKm - right.distanceKm);
+}
+
+
+export function filterPostsByLocation(posts = [], location = { mode: 'all' }, warungs = []) {
+  const records = Array.isArray(posts) ? posts : [];
+  if (!location || location.mode === 'all') return records;
+  const warungById = new Map((Array.isArray(warungs) ? warungs : []).map(item => [item.id, item]));
+  const nearbyWarungIds = location.mode === 'nearby'
+    ? new Set(filterWarungsByLocation(warungs, location).map(item => item.id))
+    : null;
+  return records.filter(post => {
+    if (post?.warungId && warungById.has(post.warungId)) {
+      if (location.mode === 'nearby') return nearbyWarungIds.has(post.warungId);
+      return matchesOfficialRegion(warungById.get(post.warungId), location.region)
+        || (!location.region && searchableRegion(warungById.get(post.warungId)).includes(String(location.query || '').toLocaleLowerCase('id-ID')));
+    }
+    if (location.mode === 'nearby') return false;
+    const text = String(post?.location || '').toLocaleLowerCase('id-ID');
+    const region = location.region;
+    if (region) {
+      const village = String(region.villageName || '').trim().toLocaleLowerCase('id-ID');
+      return village.length > 1 && text.includes(village);
+    }
+    const query = String(location.query || '').trim().toLocaleLowerCase('id-ID');
+    return Boolean(query && text.includes(query));
+  });
 }

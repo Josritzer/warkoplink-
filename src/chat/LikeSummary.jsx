@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, getDocs, limit, orderBy, query, startAfter, where } from 'firebase/firestore';
-import { Heart, X } from 'lucide-react';
+import { ThumbsUp, X } from 'lucide-react';
 import { db } from '../firebase.js';
 
 function initial(name) {
@@ -26,12 +26,31 @@ async function fetchPublicProfiles(uids) {
 export default function LikeSummary({ post, user, liked, count, onToggleLike, openAuth, setNotice, onOpenProfile }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [likers, setLikers] = useState([]);
+  const [previewLikers, setPreviewLikers] = useState([]);
   const [cursor, setCursor] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState('');
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!db || !post?.id || count < 1) {
+      setPreviewLikers([]);
+      return () => { active = false; };
+    }
+    (async () => {
+      try {
+        const snapshot = await getDocs(query(collection(db, 'posts', post.id, 'likes'), orderBy('createdAt', 'desc'), limit(3)));
+        const profiles = await fetchPublicProfiles(snapshot.docs.map(item => item.id));
+        if (active) setPreviewLikers(profiles.slice(0, 3));
+      } catch {
+        if (active) setPreviewLikers([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [post?.id, count]);
 
   useEffect(() => {
     if (!dialogOpen) return undefined;
@@ -84,12 +103,14 @@ export default function LikeSummary({ post, user, liked, count, onToggleLike, op
 
   return <>
     <div className="like-summary" aria-label="Ringkasan suka">
+      {count > 0 && <button className="liker-preview" type="button" onClick={openLikerList} aria-label={`Lihat ${count.toLocaleString('id-ID')} pengguna yang menyukai postingan`}>
+        <span className="liker-avatar-stack">{previewLikers.map(profile => <Avatar key={profile.uid} profile={profile} />)}</span>
+        <span className="like-count">{count.toLocaleString('id-ID')}</span>
+      </button>}
       <button className={liked ? 'post-action post-icon-action liked like-toggle' : 'post-action post-icon-action like-toggle'} type="button" aria-pressed={Boolean(liked)} aria-label={liked ? 'Batalkan suka pada postingan' : 'Sukai postingan'} onClick={onToggleLike}>
-        <Heart size={18} strokeWidth={1.8} fill={liked ? 'currentColor' : 'none'} aria-hidden="true" />
+        <ThumbsUp size={18} strokeWidth={1.8} fill={liked ? 'currentColor' : 'none'} aria-hidden="true" />
+        <span className="post-action-count">{count.toLocaleString('id-ID')}</span>
       </button>
-      {count > 0
-        ? <button className="like-count like-count-trigger" type="button" onClick={openLikerList} aria-label={`Lihat ${count.toLocaleString('id-ID')} pengguna yang menyukai postingan`}>{count.toLocaleString('id-ID')}</button>
-        : <span className="like-count">0</span>}
     </div>
     {dialogOpen && <div className="liker-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setDialogOpen(false); }}>
       <section className="liker-dialog" role="dialog" aria-modal="true" aria-labelledby={`liker-title-${post.id}`} ref={dialogRef}>

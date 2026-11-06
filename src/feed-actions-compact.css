@@ -191,8 +191,9 @@
 
 /* Final contract: Like, Comment, Share stay on one horizontal row at every width. */
 #community-feed .post-actions {
-  display: flex;
-  flex-flow: row nowrap;
+  /* Override the legacy mobile grid declaration marked !important. */
+  display: flex !important;
+  flex-flow: row nowrap !important;
   align-items: center;
   width: 100%;
   min-width: 0;

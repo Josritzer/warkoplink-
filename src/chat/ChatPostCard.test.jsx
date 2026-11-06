@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ChatPostCard from './ChatPostCard.jsx';
 
@@ -415,7 +416,6 @@ describe('ChatPostCard — tampilan 2026', () => {
 
 describe('Feed action alignment — responsive CSS contract', () => {
   it('feed actions enforce a non-wrapping horizontal CSS contract', () => {
-    const { readFileSync } = require('node:fs');
     const css = readFileSync('src/feed-actions-compact.css', 'utf8');
 
     expect(css).toMatch(/#community-feed\\s+\\.post-actions\\s*\\{[^}]*display\\s*:\\s*flex\\s*;[^}]*flex-flow\\s*:\\s*row\\s+nowrap\\s*;/s);

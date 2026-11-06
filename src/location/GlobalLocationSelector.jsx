@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import OfficialRegionPicker from '../directory/OfficialRegionPicker.jsx';
+import GlobalRegionSearch from './GlobalRegionSearch.jsx';
 import { ChevronDown, Globe2, LocateFixed, MapPinned, MapPin } from 'lucide-react';
 
 export default function GlobalLocationSelector({ value = { mode: 'all', label: 'Semua Lokasi' }, onChange, onOpenMap }) {
@@ -71,9 +71,11 @@ export default function GlobalLocationSelector({ value = { mode: 'all', label: '
         <LocateFixed size={17}/><span><b>Lokasi Saya</b><small>Urutkan warkop terdekat dari posisi GPS</small></span>{value.mode === 'nearby' && <span className="global-location-check">✓</span>}
       </button>
       <div className="global-location-region">
-        <label>Pilih wilayah resmi</label>
-        <p className="global-location-region-hint">Cari lalu pilih provinsi, kabupaten/kota, kecamatan, dan desa/kelurahan.</p>
-        <OfficialRegionPicker onChange={applyRegion} value={value.region || null}/>
+        <div className="global-location-region-title">
+          <label>Pilih wilayah</label>
+          <p className="global-location-region-hint">Cari dan pilih wilayah satu per satu.</p>
+        </div>
+        <GlobalRegionSearch onChange={applyRegion} value={value.region || null}/>
       </div>
       <button type="button" className="global-location-option" onClick={() => { setOpen(false); onOpenMap?.(); }}>
         <MapPinned size={17}/><span><b>Jelajahi Peta</b><small>Buka direktori untuk melihat lokasi di peta</small></span>

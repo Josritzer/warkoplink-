@@ -130,6 +130,17 @@ describe('kartu direktori warkop', () => {
     expect(firestore.addDoc).not.toHaveBeenCalled();
   });
 
+  it('menerapkan cakupan wilayah global pada seluruh hasil direktori', async () => {
+    fixture.rows = [
+      { id: 'lamongan', name: 'Kopi Maduran', address: 'Maduran', regencyName: 'Kabupaten Lamongan', verificationStatus: 'verified' },
+      { id: 'surabaya', name: 'Kedai Tunjungan', address: 'Surabaya', regencyName: 'Kota Surabaya', verificationStatus: 'verified' }
+    ];
+    render(<WarungDirectory mode="directory" location={{ mode: 'region', label: 'Kota Surabaya', query: 'surabaya' }} user={null} db={{}} {...callbacks} />);
+    expect(await screen.findByText('Kedai Tunjungan')).toBeTruthy();
+    expect(screen.queryByText('Kopi Maduran')).toBeNull();
+    expect(screen.getByText(/1 dari 1 warkop pada cakupan lokasi yang dipilih/)).toBeTruthy();
+  });
+
   it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {
     fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', specialties: ['Kopi rempah'], verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);

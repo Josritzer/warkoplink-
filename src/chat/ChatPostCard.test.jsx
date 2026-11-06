@@ -418,9 +418,9 @@ describe('Feed action alignment — responsive CSS contract', () => {
   it('feed actions enforce a non-wrapping horizontal CSS contract', () => {
     const css = readFileSync('src/feed-actions-compact.css', 'utf8');
 
-    expect(css).toMatch(/#community-feed\\s+\\.post-actions\\s*\\{[^}]*display\\s*:\\s*flex\\s*;[^}]*flex-flow\\s*:\\s*row\\s+nowrap\\s*;/s);
-    expect(css).toMatch(/#community-feed\\s+\\.post-actions\\s*>\\s*\\.post-action-wrap\\s*\\{[^}]*flex\\s*:\\s*1\\s+1\\s+0\\s*;[^}]*min-width\\s*:\\s*0\\s*;/s);
-    expect(css).toMatch(/#community-feed\\s+\\.post-actions\\s+\\.like-summary\\s*\\{[^}]*display\\s*:\\s*inline-flex\\s*;[^}]*flex-flow\\s*:\\s*row\\s+nowrap\\s*;/s);
-    expect(css).toMatch(/#community-feed\\s+\\.post-actions\\s+\\.like-toggle\\s*\\{[^}]*min-width\\s*:\\s*0\\s*;/s);
+    expect(css).toMatch(/#community-feed\s+\.post-actions\s*\{[^}]*display\s*:\s*flex\s*;[^}]*flex-flow\s*:\s*row\s+nowrap\s*;/s);
+    expect(css).toMatch(/#community-feed\s+\.post-actions\s*>\s*\.post-action-wrap\s*\{[^}]*flex\s*:\s*1\s+1\s+0\s*;[^}]*min-width\s*:\s*0\s*;/s);
+    expect(css).toMatch(/#community-feed\s+\.post-actions\s+\.like-summary\s*\{[^}]*display\s*:\s*inline-flex\s*;[^}]*flex-flow\s*:\s*row\s+nowrap\s*;/s);
+    expect(css).toMatch(/#community-feed\s+\.post-actions\s+\.like-toggle\s*\{[^}]*min-width\s*:\s*0\s*;/s);
   });
 });

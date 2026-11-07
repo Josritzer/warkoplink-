@@ -118,6 +118,7 @@ export default function WarungDiscoveryPage({
       {status === 'loading' && <div className="wl-discovery-state"><h3>Menyiapkan tempat untuk dijelajahi…</h3><p>Mohon tunggu sebentar.</p></div>}
       {status === 'error' && <div className="wl-discovery-state"><h3>Direktori belum tersedia</h3><p>Periksa koneksi lalu coba lagi.</p><button type="button" onClick={onRetry}>Coba lagi</button></div>}
       {searchingAll && <p className="wl-discovery-status" role="status">Menelusuri halaman berikutnya…</p>}
+      {category === 'nearby' && locationStatus === 'loading' && <p className="wl-discovery-status" role="status">Mencari tempat di sekitar lokasi perangkat…</p>}
       {category === 'nearby' && !effectiveVisitorLocation && locationStatus !== 'loading' && <p className="wl-discovery-status">Lokasi GPS belum tersedia. Anda tetap dapat menjelajah berdasarkan wilayah.</p>}
       {category === 'events' && eventsStatus === 'loading' && <p className="wl-discovery-status">Memuat acara warkop…</p>}
       {category === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="wl-discovery-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}

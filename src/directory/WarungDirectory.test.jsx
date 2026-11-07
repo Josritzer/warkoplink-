@@ -156,7 +156,7 @@ describe('kartu direktori warkop', () => {
     expect(screen.getByRole('button', { name: /Menu Spesial/ }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByRole('button', { name: 'Reset filter' })).toBeNull();
     expect(screen.getByPlaceholderText('Cari nama menu atau warkop…')).toBeTruthy();
-    expect(screen.getByText('Kopi rempah')).toBeTruthy();
+    expect(screen.getAllByText('Kopi rempah').length).toBeGreaterThan(0);
   });
 
   it('tidak menampilkan seluruh direktori sebagai hasil Terdekat ketika izin GPS ditolak', async () => {

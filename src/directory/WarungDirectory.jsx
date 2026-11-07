@@ -51,6 +51,7 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   }, [location]);
   const [discoveryEvents, setDiscoveryEvents] = useState([]);
   const [followerCounts, setFollowerCounts] = useState({});
+  const [followerCountErrors, setFollowerCountErrors] = useState([]);
   const [followerCountsStatus, setFollowerCountsStatus] = useState('idle');
   const [eventsStatus, setEventsStatus] = useState('idle');
   const [visitorLocation, setVisitorLocation] = useState(null);
@@ -123,9 +124,9 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
       return undefined;
     }
     const ids = filterWarungsByLocation(warungs, location).map((item) => item.id).filter(Boolean);
-    const missingIds = ids.filter((id) => !Object.prototype.hasOwnProperty.call(followerCounts, id));
+    const missingIds = ids.filter((id) => !Object.prototype.hasOwnProperty.call(followerCounts, id) && !followerCountErrors.includes(id));
     if (!missingIds.length) {
-      setFollowerCountsStatus('ready');
+      setFollowerCountsStatus(ids.some((id) => followerCountErrors.includes(id)) ? 'error' : 'ready');
       return undefined;
     }
     let cancelled = false;
@@ -136,16 +137,17 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
     })).then((results) => {
       if (cancelled) return;
       const nextCounts = {};
-      let failed = false;
+      const failedIds = [];
       results.forEach((result) => {
         if (result.status === 'fulfilled') nextCounts[result.value[0]] = result.value[1];
-        else failed = true;
+        else failedIds.push(missingIds[results.indexOf(result)]);
       });
       setFollowerCounts((current) => ({ ...current, ...nextCounts }));
-      setFollowerCountsStatus(failed ? 'error' : 'ready');
+      setFollowerCountErrors((current) => [...new Set([...current, ...failedIds])]);
+      setFollowerCountsStatus(failedIds.length ? 'error' : 'ready');
     });
     return () => { cancelled = true; };
-  }, [mode, db, discoveryCategory, warungs, locationScopeKey, followerCounts]);
+  }, [mode, db, discoveryCategory, warungs, locationScopeKey, followerCounts, followerCountErrors]);
 
   const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua';
 

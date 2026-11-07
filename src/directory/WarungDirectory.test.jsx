@@ -288,11 +288,14 @@ describe('kategori Terdekat dan ketersediaan GPS', () => {
 
   it('memuat jumlah pengikut aktual saat kategori Populer dipilih', async () => {
     fixture.rows = nearbyRows;
-    vi.mocked(firestore.getCountFromServer)
-      .mockImplementationOnce(async () => ({ data: () => ({ count: 2 }) }))
-      .mockImplementationOnce(async () => ({ data: () => ({ count: 7 }) }))
-      .mockImplementationOnce(async () => ({ data: () => ({ count: 0 }) }))
-      .mockImplementationOnce(async () => ({ data: () => ({ count: 1 }) }));
+    vi.mocked(firestore.getCountFromServer).mockImplementation(async (reference) => ({
+      data: () => ({ count: ({
+        'warungs/jauh/followers': 2,
+        'warungs/dekat/followers': 7,
+        'warungs/tanpa/followers': 0,
+        'warungs/rusak/followers': 1,
+      })[reference.path] ?? 0 })
+    }));
     await openDirectory();
 
     fireEvent.click(screen.getByRole('button', { name: 'Populer' }));

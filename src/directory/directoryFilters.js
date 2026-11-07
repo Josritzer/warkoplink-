@@ -134,14 +134,26 @@ export function filterWarungs(items, { search = '', facilities = [], activities 
 }
 
 
+// Number(null), Number('') dan Number(true) bernilai 0/1, sehingga data rusak tampak
+// sebagai koordinat valid. Hanya angka atau string numerik yang diterima.
+function coordinateNumber(value) {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.trim() !== '') return Number(value);
+  return NaN;
+}
+
+export function isValidCoordinate(point) {
+  const lat = coordinateNumber(point?.lat);
+  const lng = coordinateNumber(point?.lng);
+  return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+}
+
 export function calculateDistanceKm(origin, destination) {
-  const lat1 = Number(origin?.lat);
-  const lng1 = Number(origin?.lng);
-  const lat2 = Number(destination?.lat);
-  const lng2 = Number(destination?.lng);
-  if (![lat1, lng1, lat2, lng2].every(Number.isFinite)
-    || Math.abs(lat1) > 90 || Math.abs(lat2) > 90
-    || Math.abs(lng1) > 180 || Math.abs(lng2) > 180) return null;
+  if (!isValidCoordinate(origin) || !isValidCoordinate(destination)) return null;
+  const lat1 = coordinateNumber(origin.lat);
+  const lng1 = coordinateNumber(origin.lng);
+  const lat2 = coordinateNumber(destination.lat);
+  const lng2 = coordinateNumber(destination.lng);
   const radians = (degrees) => degrees * Math.PI / 180;
   const dLat = radians(lat2 - lat1);
   const dLng = radians(lng2 - lng1);

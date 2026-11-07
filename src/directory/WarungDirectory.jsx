@@ -3,7 +3,7 @@ import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, query, ser
 import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { Store, ShieldCheck, LocateFixed } from 'lucide-react';
-import { ACTIVITY_OPTIONS, collectFacilities, collectActivities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, sortWarungsForDiscovery } from './directoryFilters.js';
+import { ACTIVITY_OPTIONS, collectFacilities, collectActivities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, isValidCoordinate, sortWarungsForDiscovery } from './directoryFilters.js';
 import LeafletLocationPicker from './LeafletLocationPicker.jsx';
 import OfficialRegionPicker from './OfficialRegionPicker.jsx';
 import { buildRegionIdentity } from './regionIdentity.js';
@@ -355,7 +355,8 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   }
 
   const locationScopedWarungs = filterWarungsByLocation(warungs, location);
-  const effectiveVisitorLocation = location?.mode === 'nearby' && location.coordinates ? location.coordinates : visitorLocation;
+  const requestedVisitorLocation = location?.mode === 'nearby' && location.coordinates ? location.coordinates : visitorLocation;
+  const effectiveVisitorLocation = isValidCoordinate(requestedVisitorLocation) ? requestedVisitorLocation : null;
   const facilityOptions = collectFacilities(locationScopedWarungs);
   const distances = effectiveVisitorLocation ? Object.fromEntries(locationScopedWarungs.map((item) => [
     item.id, calculateDistanceKm(effectiveVisitorLocation, item.coordinates)
@@ -368,7 +369,7 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   const eventWarungIds = [...eventByWarung.keys()];
   const eventStarts = Object.fromEntries([...eventByWarung.entries()].map(([id, event]) => [id, event.eventStartAt || event.eventDate]));
   const categoryWarungs = discoveryCategory === 'nearby' && !effectiveVisitorLocation
-    ? locationScopedWarungs
+    ? []
     : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { distances, eventWarungIds, eventStarts, now });
   const sortedWarungs = sort === 'name'
     ? [...categoryWarungs].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'id'))

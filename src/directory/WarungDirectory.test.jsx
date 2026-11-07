@@ -47,6 +47,7 @@ const callbacks = { onOpenWarung: vi.fn(), onRegister: vi.fn(), onNotice: vi.fn(
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
   fixture.rows = [];
   fixture.events = [];
@@ -158,6 +159,29 @@ describe('kartu direktori warkop', () => {
     expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });
 
+  it('tidak menampilkan seluruh direktori sebagai hasil Terdekat ketika izin GPS ditolak', async () => {
+    fixture.rows = [{
+      id: 'warung-lokasi',
+      name: 'Warkop Tanpa Jarak',
+      address: 'Maduran, Lamongan',
+      coordinates: { lat: -7.05, lng: 112.3 },
+      verificationStatus: 'verified',
+    }];
+    vi.stubGlobal('navigator', {
+      geolocation: {
+        getCurrentPosition: (_onSuccess, onError) => onError({ code: 1 }),
+      },
+    });
+
+    render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
+    await screen.findAllByText('Warkop Tanpa Jarak');
+    fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
+
+    expect(await screen.findByText('Aktifkan lokasi untuk menemukan warkop terdekat.')).toBeTruthy();
+    expect(screen.queryAllByRole('article')).toHaveLength(0);
+    expect(screen.queryByText(/Anda tetap dapat menjelajah berdasarkan wilayah/)).toBeNull();
+  });
+
   it('langsung membuka tampilan peta saat diminta dari menu lokasi global', async () => {
     fixture.rows = [{ id: 'map-request', name: 'Warkop Peta', address: 'Lamongan', verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" mapViewRequested user={null} db={{}} {...callbacks} />);
@@ -244,5 +268,116 @@ describe('kartu direktori warkop', () => {
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
 
     expect(await screen.findByLabelText('Foto warkop belum tersedia untuk Warkop Baru')).toBeTruthy();
+  });
+});
+
+describe('kategori Terdekat dan ketersediaan GPS', () => {
+  const nearbyRows = [
+    { id: 'jauh', name: 'Warkop Jauh', address: 'Surabaya', coordinates: { lat: -7.2, lng: 112.3 }, verificationStatus: 'verified' },
+    { id: 'dekat', name: 'Warkop Dekat', address: 'Maduran', coordinates: { lat: -7.06, lng: 112.3 }, verificationStatus: 'verified' },
+    { id: 'tanpa', name: 'Warkop Tanpa Titik', address: 'Lamongan', verificationStatus: 'verified' },
+    { id: 'rusak', name: 'Warkop Titik Rusak', address: 'Lamongan', coordinates: { lat: null, lng: null }, verificationStatus: 'verified' },
+  ];
+  const visitorPosition = { coords: { latitude: -7.05, longitude: 112.3 } };
+  const stubGeolocation = (getCurrentPosition) => vi.stubGlobal('navigator', getCurrentPosition ? { geolocation: { getCurrentPosition } } : {});
+  const cardTitles = () => screen.getAllByRole('article').map((card) => within(card).getByRole('heading').textContent);
+  const openDirectory = async () => {
+    render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
+    await screen.findAllByText('Warkop Dekat');
+  };
+
+  it('mengurutkan Terdekat menurut jarak dan hanya memuat warkop dengan koordinat valid', async () => {
+    fixture.rows = nearbyRows;
+    stubGeolocation((onSuccess) => onSuccess(visitorPosition));
+    await openDirectory();
+    expect(cardTitles()).toHaveLength(4);
+
+    fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
+    await waitFor(() => expect(cardTitles()).toEqual(['Warkop Dekat', 'Warkop Jauh']));
+    expect(screen.getByText(/2 dari 4 tempat yang sudah dimuat/)).toBeTruthy();
+    expect(screen.getAllByText(/km · garis lurus/)).toHaveLength(2);
+    expect(screen.queryByText('Aktifkan lokasi untuk menemukan warkop terdekat.')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Semua' }));
+    await waitFor(() => expect(cardTitles()).toHaveLength(4));
+  });
+
+  it.each([
+    ['izin ditolak', { code: 1 }, /Izin lokasi ditolak/],
+    ['waktu habis', { code: 3 }, /Lokasi perangkat belum tersedia/],
+    ['posisi tidak tersedia', { code: 2 }, /Lokasi perangkat belum tersedia/],
+  ])('tidak menampilkan hasil Terdekat ketika GPS gagal: %s', async (_label, error, explanation) => {
+    fixture.rows = nearbyRows;
+    stubGeolocation((_onSuccess, onError) => onError(error));
+    await openDirectory();
+
+    fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
+    expect(await screen.findByText('Aktifkan lokasi untuk menemukan warkop terdekat.')).toBeTruthy();
+    expect(screen.getByText(explanation)).toBeTruthy();
+    expect(screen.queryAllByRole('article')).toHaveLength(0);
+    expect(screen.queryByText(/tempat yang sudah dimuat/)).toBeNull();
+    expect(screen.queryByText('Belum ada tempat yang cocok.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Coba lagi' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Semua' }));
+    await waitFor(() => expect(cardTitles()).toHaveLength(4));
+    expect(screen.queryByText('Aktifkan lokasi untuk menemukan warkop terdekat.')).toBeNull();
+  });
+
+  it('menjelaskan browser tanpa geolocation dan tidak menawarkan coba lagi', async () => {
+    fixture.rows = nearbyRows;
+    stubGeolocation(null);
+    await openDirectory();
+
+    fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
+    expect(await screen.findByText('Lokasi tidak tersedia di browser ini.')).toBeTruthy();
+    expect(screen.queryAllByRole('article')).toHaveLength(0);
+    expect(screen.queryByRole('button', { name: 'Coba lagi' })).toBeNull();
+  });
+
+  it('menunggu posisi tanpa menampilkan hasil dan tidak meminta GPS dua kali', async () => {
+    fixture.rows = nearbyRows;
+    const getCurrentPosition = vi.fn();
+    stubGeolocation(getCurrentPosition);
+    await openDirectory();
+
+    fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
+    expect(await screen.findByText('Mencari tempat di sekitar lokasi perangkat…')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
+    expect(getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(screen.queryAllByRole('article')).toHaveLength(0);
+    expect(screen.queryByText('Aktifkan lokasi untuk menemukan warkop terdekat.')).toBeNull();
+    expect(screen.queryByText(/tempat yang sudah dimuat/)).toBeNull();
+  });
+
+  it('Coba lagi meminta GPS ulang dan menampilkan hasil bila izin kini diberikan', async () => {
+    fixture.rows = nearbyRows;
+    const getCurrentPosition = vi.fn()
+      .mockImplementationOnce((_onSuccess, onError) => onError({ code: 1 }))
+      .mockImplementationOnce((onSuccess) => onSuccess(visitorPosition));
+    stubGeolocation(getCurrentPosition);
+    await openDirectory();
+
+    fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Coba lagi' }));
+    await waitFor(() => expect(cardTitles()).toEqual(['Warkop Dekat', 'Warkop Jauh']));
+    expect(getCurrentPosition).toHaveBeenCalledTimes(2);
+  });
+
+  it('menyembunyikan muat lebih banyak saat Terdekat belum memiliki lokasi', async () => {
+    fixture.rows = Array.from({ length: 30 }, (_, index) => ({
+      id: `warung-${index}`,
+      name: `Warkop ${String(index).padStart(2, '0')}`,
+      address: 'Lamongan',
+      coordinates: { lat: -7.05, lng: 112.3 },
+      verificationStatus: 'verified',
+    }));
+    stubGeolocation((_onSuccess, onError) => onError({ code: 1 }));
+    render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
+    expect(await screen.findByRole('button', { name: 'Muat 30 tempat lagi' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
+    expect(await screen.findByText('Aktifkan lokasi untuk menemukan warkop terdekat.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Muat 30 tempat lagi' })).toBeNull();
   });
 });

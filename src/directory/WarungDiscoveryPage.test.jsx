@@ -24,7 +24,6 @@ const baseProps = {
   hasActiveFilter: false,
   onResetFilters: vi.fn(),
   status: 'ready',
-  searchingAll: false,
   visibleWarungs: [],
   locationScopedWarungs: [],
   locationStatus: 'idle',

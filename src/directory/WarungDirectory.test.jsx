@@ -174,7 +174,7 @@ describe('kartu direktori warkop', () => {
     });
 
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    await screen.findByText('Warkop Tanpa Jarak');
+    await screen.findAllByText('Warkop Tanpa Jarak');
     fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
 
     expect(await screen.findByText('Aktifkan lokasi untuk menemukan warkop terdekat.')).toBeTruthy();

@@ -1,4 +1,5 @@
-import { ArrowUpRight, Coffee, Compass, MapPin, Search, SlidersHorizontal, Store, Clock3, Navigation, CalendarDays, Wifi, Laptop, Users, Tv, Sparkles, List, Map as MapIcon } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowUpRight, Coffee, Compass, MapPin, Search, SlidersHorizontal, Store, Clock3, Navigation, CalendarDays, Wifi, Laptop, Users, Tv, Sparkles, List, Map as MapIcon, X } from 'lucide-react';
 import WarungDiscoveryMap from './WarungDiscoveryMap.jsx';
 import { ACTIVITY_OPTIONS, isOpenNow } from './directoryFilters.js';
 

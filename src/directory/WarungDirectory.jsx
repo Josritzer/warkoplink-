@@ -3,7 +3,7 @@ import { addDoc, collection, doc, getCountFromServer, getDoc, getDocs, limit, on
 import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, LocateFixed } from 'lucide-react';
-import { ACTIVITY_OPTIONS, collectFacilities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, sortWarungsForDiscovery } from './directoryFilters.js';
+import { ACTIVITY_OPTIONS, collectFacilities, collectActivities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, sortWarungsForDiscovery } from './directoryFilters.js';
 import LeafletLocationPicker from './LeafletLocationPicker.jsx';
 import OfficialRegionPicker from './OfficialRegionPicker.jsx';
 import { buildRegionIdentity } from './regionIdentity.js';
@@ -366,7 +366,7 @@ export default function WarungDirectory({ mode, user, db, location = { mode: 'al
     : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { followerCounts, distances, eventWarungIds, eventStarts, now });
   const visibleWarungs = filterWarungs(categoryWarungs, {
     search: searchTerm, facilities: facilityFilter, activities: activityFilter,
-    operational: operationalFilter, priceRange: priceFilter, now
+    operational: operationalFilter, priceRange: 'semua', now
   });
   function toggleFacility(key) {
     dispatchDiscovery({ type: 'TOGGLE_FACILITY', value: key });

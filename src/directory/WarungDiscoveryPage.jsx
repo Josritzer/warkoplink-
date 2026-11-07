@@ -9,6 +9,7 @@ const MOODS = [
   { value: 'hangout', label: 'Nongkrong', icon: Users, activity: 'komunitas' },
   { value: 'community', label: 'Komunitas', icon: Users, activity: 'komunitas' },
   { value: 'nobar', label: 'Nobar', icon: Tv, activity: 'nobar' },
+  { value: 'nearby', label: 'Terdekat', icon: MapPin },
   { value: 'events', label: 'Ada Event', icon: CalendarDays },
   { value: 'specialties', label: 'Menu Spesial', icon: Sparkles },
 ];

@@ -136,24 +136,23 @@ describe('kartu direktori warkop', () => {
       { id: 'surabaya', name: 'Kedai Tunjungan', address: 'Surabaya', regencyName: 'Kota Surabaya', verificationStatus: 'verified' }
     ];
     render(<WarungDirectory mode="directory" location={{ mode: 'region', label: 'Kota Surabaya', query: 'surabaya' }} user={null} db={{}} {...callbacks} />);
-    expect(await screen.findByText('Kedai Tunjungan')).toBeTruthy();
+    expect((await screen.findAllByText('Kedai Tunjungan')).length).toBeGreaterThan(0);
     expect(screen.queryByText('Kopi Maduran')).toBeNull();
-    expect(screen.getByText(/1 dari 1 warkop pada cakupan lokasi yang dipilih/)).toBeTruthy();
+    expect(screen.getByText(/1 dari 1 tempat yang sudah dimuat/)).toBeTruthy();
   });
 
-  it('menyediakan empat kategori penemuan yang dapat dipilih', async () => {
+  it('menyediakan kategori discovery berbasis suasana dan aktivitas', async () => {
     fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', specialties: ['Kopi rempah'], verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    expect(await screen.findByRole('button', { name: /Populer/ })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /Ngopi Santai/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Ada Event/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Terdekat/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Kerja & Laptop/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Menu Spesial/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Warkop Terbaru/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Menu Spesial/ }));
     expect(screen.getByRole('button', { name: /Menu Spesial/ }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.queryByRole('button', { name: 'Hapus filter' })).toBeNull();
-    expect(screen.queryByLabelText('Filter kisaran harga')).toBeNull();
-    expect(screen.getByPlaceholderText('Cari nama, alamat, menu, menu spesial, fasilitas…')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reset filter' })).toBeNull();
+    expect(screen.getByPlaceholderText('Cari warkop, menu, suasana, atau lokasi…')).toBeTruthy();
     expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });
 
@@ -161,7 +160,7 @@ describe('kartu direktori warkop', () => {
     fixture.rows = [{ id: 'map-request', name: 'Warkop Peta', address: 'Lamongan', verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" mapViewRequested user={null} db={{}} {...callbacks} />);
     expect(await screen.findByRole('application', { name: 'Peta interaktif WARKOPLINK' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Lihat daftar' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Daftar/ })).toBeTruthy();
   });
 
   it('menampilkan acara yang masih berlangsung pada kategori event', async () => {
@@ -173,10 +172,10 @@ describe('kartu direktori warkop', () => {
       eventEndAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
     }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    await screen.findByText('Warkop Acara');
+    expect((await screen.findAllByText('Warkop Acara')).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: /Ada Event/ }));
     expect(await screen.findByText(/Nobar · Nobar final/)).toBeTruthy();
-    expect(screen.getByText('SEDANG BERLANGSUNG')).toBeTruthy();
+    expect(screen.getByText(/SEDANG BERLANGSUNG/)).toBeTruthy();
   });
 
   it('membuka peta interaktif dari hasil direktori yang sedang difilter', async () => {
@@ -185,8 +184,8 @@ describe('kartu direktori warkop', () => {
       coordinates: { lat: -7.05, lng: 112.3 }, verificationStatus: 'verified'
     }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    expect(await screen.findByText('Kopi Peta')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Jelajahi Peta' }));
+    expect((await screen.findAllByText('Kopi Peta')).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Peta' }));
     expect(screen.getByRole('application', { name: 'Peta interaktif WARKOPLINK' })).toBeTruthy();
     expect(screen.queryByText('Kopi Peta')).toBeNull();
     expect(screen.getByText('1 titik warkop')).toBeTruthy();
@@ -206,7 +205,7 @@ describe('kartu direktori warkop', () => {
 
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
 
-    expect(await screen.findByRole('img', { name: 'Foto utama Kopi Senja' })).toBeTruthy();
+    expect((await screen.findAllByRole('img', { name: 'Foto utama Kopi Senja' })).length).toBeGreaterThan(0);
     expect(screen.getByText('Kopi susu gula aren')).toBeTruthy();
     expect(within(screen.getByRole('article')).getByText('Buka 24 jam')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Lihat detail Kopi Senja' }));
@@ -214,27 +213,21 @@ describe('kartu direktori warkop', () => {
   });
 
 
-  it('pencarian otomatis memeriksa halaman berikutnya, bukan hanya 30 warkop pertama', async () => {
+  it('pencarian hanya memeriksa data yang sudah dimuat tanpa memindai seluruh direktori', async () => {
     fixture.rows = Array.from({ length: 30 }, (_, index) => ({
       id: `warung-${index}`,
       name: `Warkop ${String(index).padStart(2, '0')}`,
       address: 'Lamongan',
       verificationStatus: 'verified',
     }));
-    firestore.getDocs.mockResolvedValueOnce({
-      docs: [{ id: 'target-warung', data: () => ({
-        name: 'Kopi Target', address: 'Maduran, Lamongan', verificationStatus: 'verified',
-        photos: [], specialties: ['Kopi rempah']
-      }) }]
-    });
 
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    await screen.findByText(/30 dari 30 warkop/);
+    await screen.findByText(/30 dari 30 tempat yang sudah dimuat/);
     fireEvent.change(screen.getByRole('textbox', { name: 'Cari warkop' }), { target: { value: 'Kopi Target' } });
 
-    expect(await screen.findByText('Kopi Target')).toBeTruthy();
-    expect(firestore.getDocs).toHaveBeenCalledOnce();
-    expect(screen.getByText(/1 dari 31 warkop/)).toBeTruthy();
+    expect(await screen.findByText('Belum ada tempat yang cocok.')).toBeTruthy();
+    expect(firestore.getDocs).not.toHaveBeenCalled();
+    expect(screen.getByText(/0 dari 30 tempat yang sudah dimuat/)).toBeTruthy();
   });
 
   it('menampilkan placeholder elegan ketika warkop belum memiliki foto', async () => {

@@ -21,6 +21,7 @@ import './mobile-layout-safety.css';
 import './home/home-discovery.css';
 import './location/global-location-selector.css';
 import './directory/warung-discovery-map.css';
+import './directory/warung-discovery.css';
 
 import './thematicGroups/thematicGroups.css';
 // Keep compact feed action styling last so legacy theme layers cannot override it.

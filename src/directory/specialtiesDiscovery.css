@@ -18,7 +18,8 @@
 .wl-specialty-menu-rail button:hover, .wl-specialty-menu-rail button[aria-pressed="true"] { border-color: #c8a979; background: rgba(200,169,121,.17); }
 .wl-specialty-menu-rail button span { overflow: hidden; font-size: .86rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .wl-specialty-menu-rail button small { color: rgba(244,239,231,.62); font-size: .72rem; }
-.wl-specialty-place-card .wl-discovery-place-media { aspect-ratio: 16 / 10; min-height: 0; }
+.wl-specialty-place-card .wl-discovery-place-media { aspect-ratio: 16 / 10; width: 100%; height: auto; min-height: 0; }
+.wl-specialty-place-card .wl-discovery-place-media img { width: 100%; height: 100%; object-fit: cover; }
 .wl-specialty-place-card .wl-discovery-place-body { padding-top: .95rem; }
 .wl-specialty-place-card .wl-discovery-highlights { margin-top: .8rem; }
 .wl-specialty-place-card .wl-discovery-highlights span { border-color: rgba(176,138,85,.3); background: rgba(176,138,85,.1); color: #6f4c2e; }

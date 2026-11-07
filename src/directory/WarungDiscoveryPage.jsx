@@ -34,7 +34,7 @@ export default function WarungDiscoveryPage({
   onToggleFacility, onToggleActivity, operationalFilter, onOperationalChange,
   sort, onSortChange, hasLocation, hasActiveFilter, onResetFilters, status, visibleWarungs,
   locationScopedWarungs, locationStatus, effectiveVisitorLocation,
-  eventsStatus, discoveryEvents, distances,
+  eventsStatus, discoveryEvents, followerCountsStatus = 'idle', distances,
   eventByWarung, now, mapViewOpen, onToggleMap, onOpenWarung,
   hasMore, loadingMore, onLoadMore, moreError, onRegister, onRetry,
 }) {

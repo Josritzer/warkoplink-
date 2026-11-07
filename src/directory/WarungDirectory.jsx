@@ -368,7 +368,7 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   const eventWarungIds = [...eventByWarung.keys()];
   const eventStarts = Object.fromEntries([...eventByWarung.entries()].map(([id, event]) => [id, event.eventStartAt || event.eventDate]));
   const categoryWarungs = discoveryCategory === 'nearby' && !effectiveVisitorLocation
-    ? locationScopedWarungs
+    ? []
     : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { distances, eventWarungIds, eventStarts, now });
   const sortedWarungs = sort === 'name'
     ? [...categoryWarungs].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'id'))

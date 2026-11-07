@@ -78,7 +78,9 @@ describe('WarungDiscoveryPage', () => {
   });
 
   it('opens advanced filters in an accessible sheet and closes after applying', () => {
-    render(<WarungDiscoveryPage {...baseProps} />);
+    render(<WarungDiscoveryPage {...baseProps}
+      activityOptions={[{ key: 'nobar', label: 'Nobar' }]}
+      facilityOptions={[{ key: 'wifi', label: 'Wi-Fi', count: 2 }]} />);
     fireEvent.click(screen.getByRole('button', { name: /Filter/ }));
     const dialog = screen.getByRole('dialog', { name: 'Filter warkop' });
     expect(dialog).toBeTruthy();
@@ -87,8 +89,8 @@ describe('WarungDiscoveryPage', () => {
     expect(screen.getByRole('heading', { name: 'Fasilitas yang tersedia' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Waktu operasional' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Urutan hasil' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Populer/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Menu Spesial/ })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Populer/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /Menu Spesial/ }).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Terapkan filter' }));
     expect(screen.queryByRole('dialog', { name: 'Filter warkop' })).toBeNull();
   });

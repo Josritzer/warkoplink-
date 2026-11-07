@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ArrowUpRight, Coffee, Compass, MapPin, Search, SlidersHorizontal, Store, Clock3, Navigation, CalendarDays, Laptop, Users, Tv, Sparkles, List, Map as MapIcon, X } from 'lucide-react';
 import WarungDiscoveryMap from './WarungDiscoveryMap.jsx';
+import { collectSpecialtyMenuOptions } from './specialtyDiscovery.js';
+import './specialtiesDiscovery.css';
 import { ACTIVITY_OPTIONS, isOpenNow } from './directoryFilters.js';
 
 const MOODS = [
@@ -38,6 +40,7 @@ export default function WarungDiscoveryPage({
   const heroWarung = visibleWarungs.find((item) => photoFor(item)) || locationScopedWarungs.find((item) => photoFor(item));
   const heroPhoto = photoFor(heroWarung);
   const featured = visibleWarungs.slice(0, 3);
+  const specialtyMenuOptions = collectSpecialtyMenuOptions(locationScopedWarungs);
   const countLabel = location?.mode && location.mode !== 'all'
     ? (location.label || location.query || 'Wilayah pilihan')
     : 'Seluruh Indonesia';
@@ -59,11 +62,11 @@ export default function WarungDiscoveryPage({
       <div className="wl-discovery-hero-grain" aria-hidden="true" />
       <div className="wl-discovery-hero-content">
         <span className="wl-discovery-eyebrow"><Coffee size={14}/> WARKOPLINK · COFFEE DISCOVERY</span>
-        <h1>Temukan tempat singgah<span>.</span></h1>
-        <p>Ruang untuk menikmati kopi, menemukan suasana, dan mengenal tempat lokal di seluruh Indonesia.</p>
+        <h1>{category === 'specialties' ? <>Temukan menu <em>andalan.</em></> : <>Temukan tempat singgah<span>.</span></>}</h1>
+        <p>{category === 'specialties' ? 'Jelajahi racikan kopi dan hidangan khas dari warkop terverifikasi di wilayah pilihan Anda.' : 'Ruang untuk menikmati kopi, menemukan suasana, dan mengenal tempat lokal di seluruh Indonesia.'}</p>
         <label className="wl-discovery-search">
           <Search size={19} aria-hidden="true"/>
-          <input value={searchTerm} onChange={(event) => onSearchChange(event.target.value)} placeholder="Cari warkop, menu, suasana, atau lokasi…" aria-label="Cari warkop"/>
+          <input value={searchTerm} onChange={(event) => onSearchChange(event.target.value)} placeholder={category === 'specialties' ? "Cari nama menu atau warkop…" : "Cari warkop, menu, suasana, atau lokasi…"} aria-label={category === 'specialties' ? "Cari menu spesial atau warkop" : "Cari warkop"}/>
           <span className="wl-discovery-search-hint">Cari</span>
         </label>
         <div className="wl-discovery-region"><MapPin size={15}/><span>Menjelajah: <strong>{countLabel}</strong></span></div>
@@ -87,7 +90,7 @@ export default function WarungDiscoveryPage({
       </div>
     </section>
 
-    {featured.length > 0 && !mapViewOpen && <section className="wl-discovery-section wl-discovery-featured">
+    {featured.length > 0 && !mapViewOpen && category !== 'specialties' && <section className="wl-discovery-section wl-discovery-featured">
       <div className="wl-discovery-section-heading">
         <div><span className="wl-discovery-kicker">DARI DIREKTORI WARKOP</span><h2>Kenali tempat lokal.</h2></div>
         <span className="wl-discovery-muted">Dari warkop terverifikasi</span>
@@ -107,9 +110,21 @@ export default function WarungDiscoveryPage({
 
     <section className="wl-discovery-section wl-discovery-results">
       <div className="wl-discovery-section-heading">
-        <div><span className="wl-discovery-kicker">DISCOVER MORE</span><h2>Jelajahi warkop.</h2><p>Tempat terverifikasi dengan informasi yang tersedia.</p></div>
+        <div><span className="wl-discovery-kicker">{category === 'specialties' ? 'SIGNATURE MENU DISCOVERY' : 'DISCOVER MORE'}</span><h2>{category === 'specialties' ? 'Menu andalan di sekitar Anda.' : 'Jelajahi warkop.'}</h2><p>{category === 'specialties' ? 'Temukan hidangan dan racikan yang benar-benar dicantumkan oleh pemilik warkop.' : 'Tempat terverifikasi dengan informasi yang tersedia.'}</p></div>
         <div className="wl-discovery-result-actions"><button type="button" className="wl-discovery-filter-toggle" onClick={() => setFiltersOpen(true)} aria-expanded={filtersOpen}><SlidersHorizontal size={16}/> Filter</button><button type="button" className="wl-discovery-view-toggle" onClick={onToggleMap} aria-pressed={mapViewOpen}>{mapViewOpen ? <><List size={16}/> Daftar</> : <><MapIcon size={16}/> Peta</>}</button></div>
       </div>
+      {category === 'specialties' && <div className="wl-specialty-discovery-intro">
+        <div className="wl-specialty-discovery-copy">
+          <span className="wl-discovery-kicker">DARI MENU PEMILIK WARKOP</span>
+          <strong>Rasa khas, cerita lokal.</strong>
+          <span>Pilih menu untuk menemukan warkop yang menyediakannya.</span>
+        </div>
+        {specialtyMenuOptions.length > 0 && <div className="wl-specialty-menu-rail" aria-label="Pilihan menu yang tersedia">
+          {specialtyMenuOptions.map((item) => <button type="button" key={item.name} onClick={() => onSearchChange(item.name)} aria-pressed={searchTerm.trim().toLowerCase() === item.name.toLowerCase()}>
+            <span>{item.name}</span><small>{item.count} warkop</small>
+          </button>)}
+        </div>}
+      </div>}
       {filtersOpen && <button type="button" className="wl-discovery-filter-backdrop" aria-label="Tutup filter" onClick={() => setFiltersOpen(false)}/>}
       {filtersOpen && <div className="wl-discovery-filter-panel" role="dialog" aria-modal="true" aria-label="Filter warkop">
         <div className="wl-discovery-filter-panel-head"><div><span className="wl-discovery-kicker">REFINE YOUR DISCOVERY</span><strong>Filter pencarian</strong></div><button type="button" aria-label="Tutup filter" onClick={() => setFiltersOpen(false)}><X size={18}/></button></div>
@@ -139,15 +154,15 @@ export default function WarungDiscoveryPage({
       </div>}
       {category === 'events' && eventsStatus === 'loading' && <p className="wl-discovery-status">Memuat acara warkop…</p>}
       {category === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="wl-discovery-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}
-      {status === 'ready' && visibleWarungs.length === 0 && !nearbyUnavailable && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>Belum ada tempat yang cocok.</h3><p>Coba suasana, kata kunci, atau filter yang berbeda.</p></div>}
+      {status === 'ready' && visibleWarungs.length === 0 && !nearbyUnavailable && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>{category === 'specialties' ? 'Menu spesial belum ditemukan.' : 'Belum ada tempat yang cocok.'}</h3><p>{category === 'specialties' ? 'Coba nama menu lain atau hapus kata kunci pencarian.' : 'Coba suasana, kata kunci, atau filter yang berbeda.'}</p></div>}
       {status === 'ready' && !nearbyUnavailable && <p className="wl-discovery-count" aria-live="polite">{visibleWarungs.length} dari {locationScopedWarungs.length} tempat yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}</p>}
       {mapViewOpen ? <WarungDiscoveryMap warungs={visibleWarungs} onOpenWarung={onOpenWarung}/> : <div className="wl-discovery-card-grid">
         {visibleWarungs.map((warung) => {
           const photo = photoFor(warung);
           const open = isOpenNow(warung, now);
           const event = eventByWarung.get(warung.id);
-          const highlights = [...(warung.specialties || []), ...(warung.activities || []).map((value) => ACTIVITY_OPTIONS.find((item) => item.value === value)?.label || value), ...(warung.facilities || [])].filter(Boolean).slice(0, 3);
-          return <article className="wl-discovery-place-card" key={warung.id}>
+          const highlights = category === 'specialties' ? (warung.specialties || []).filter(Boolean).slice(0, 4) : [...(warung.specialties || []), ...(warung.activities || []).map((value) => ACTIVITY_OPTIONS.find((item) => item.value === value)?.label || value), ...(warung.facilities || [])].filter(Boolean).slice(0, 3);
+          return <article className={category === 'specialties' ? "wl-discovery-place-card wl-specialty-place-card" : "wl-discovery-place-card"} key={warung.id}>
             <button type="button" className="wl-discovery-place-media" onClick={() => onOpenWarung?.(warung.id)} aria-label={`Lihat ${warung.name}`}>
               {photo ? <img src={photo} alt={`Foto utama ${warung.name}`} loading="lazy" decoding="async"/> : <span className="wl-discovery-no-photo" role="img" aria-label={`Foto warkop belum tersedia untuk ${warung.name}`}><Store size={28}/></span>}
               {warung.openingHours?.is24Hours === true ? <span className="wl-discovery-open">Buka 24 jam</span> : open === true ? <span className="wl-discovery-open">Buka sekarang</span> : null}

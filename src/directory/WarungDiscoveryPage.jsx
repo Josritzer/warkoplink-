@@ -9,6 +9,7 @@ const MOODS = [
   { value: 'hangout', label: 'Nongkrong', icon: Users, activity: 'komunitas' },
   { value: 'community', label: 'Komunitas', icon: Users, activity: 'komunitas' },
   { value: 'nobar', label: 'Nobar', icon: Tv, activity: 'nobar' },
+  { value: 'events', label: 'Ada Event', icon: CalendarDays },
   { value: 'specialties', label: 'Menu Spesial', icon: Sparkles },
 ];
 
@@ -117,6 +118,7 @@ export default function WarungDiscoveryPage({
       {searchingAll && <p className="wl-discovery-status" role="status">Menelusuri halaman berikutnya…</p>}
       {category === 'nearby' && !effectiveVisitorLocation && locationStatus !== 'loading' && <p className="wl-discovery-status">Lokasi GPS belum tersedia. Anda tetap dapat menjelajah berdasarkan wilayah.</p>}
       {category === 'events' && eventsStatus === 'loading' && <p className="wl-discovery-status">Memuat acara warkop…</p>}
+      {category === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="wl-discovery-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}
       {category === 'popular' && popularStatus === 'loading' && <p className="wl-discovery-status">Memuat data popularitas…</p>}
       {status === 'ready' && visibleWarungs.length === 0 && !searchingAll && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>Belum ada tempat yang cocok.</h3><p>Coba suasana, kata kunci, atau filter yang berbeda.</p></div>}
       {status === 'ready' && <p className="wl-discovery-count" aria-live="polite">{visibleWarungs.length} dari {locationScopedWarungs.length} tempat yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}</p>}
@@ -128,16 +130,16 @@ export default function WarungDiscoveryPage({
           const highlights = [...(warung.specialties || []), ...(warung.activities || []).map((value) => ACTIVITY_OPTIONS.find((item) => item.value === value)?.label || value), ...(warung.facilities || [])].filter(Boolean).slice(0, 3);
           return <article className="wl-discovery-place-card" key={warung.id}>
             <button type="button" className="wl-discovery-place-media" onClick={() => onOpenWarung?.(warung.id)} aria-label={`Lihat ${warung.name}`}>
-              {photo ? <img src={photo} alt={`Foto utama ${warung.name}`} loading="lazy" decoding="async"/> : <span className="wl-discovery-no-photo"><Store size={28}/></span>}
-              {open === true && <span className="wl-discovery-open">Buka sekarang</span>}
+              {photo ? <img src={photo} alt={`Foto utama ${warung.name}`} loading="lazy" decoding="async"/> : <span className="wl-discovery-no-photo" role="img" aria-label={`Foto warkop belum tersedia untuk ${warung.name}`}><Store size={28}/></span>}
+              {warung.openingHours?.is24Hours === true ? <span className="wl-discovery-open">Buka 24 jam</span> : open === true ? <span className="wl-discovery-open">Buka sekarang</span> : null}
             </button>
             <div className="wl-discovery-place-body">
               <div className="wl-discovery-place-top"><div><h3>{warung.name}</h3><p><MapPin size={13}/>{locationLabel(warung) || warung.address || 'Lokasi belum dilengkapi'}</p></div><ArrowUpRight size={17}/></div>
               {highlights.length > 0 && <div className="wl-discovery-highlights">{highlights.map((value, index) => <span key={`${value}-${index}`}>{value}</span>)}</div>}
               {Number.isFinite(distances[warung.id]) && <small className="wl-discovery-distance"><Navigation size={12}/> ±{distances[warung.id] < 10 ? distances[warung.id].toFixed(1) : Math.round(distances[warung.id])} km · garis lurus</small>}
-              {event && <small className="wl-discovery-event"><CalendarDays size={12}/>{event.eventKind || 'Acara warkop'}</small>}
+              {event && <small className="wl-discovery-event"><CalendarDays size={12}/>{new Date(event.eventStartAt || event.eventDate).getTime() <= now.getTime() && event.eventEndAt && new Date(event.eventEndAt).getTime() >= now.getTime() ? 'SEDANG BERLANGSUNG · ' : 'AKAN DATANG · '}{event.eventKind || 'Acara warkop'} · {event.body?.split('\\n')[0] || 'Lihat detail acara'}</small>}
               {category === 'popular' && Number.isFinite(followerCounts[warung.id]) && <small className="wl-discovery-distance">{followerCounts[warung.id]} pengikut</small>}
-              <button type="button" className="wl-discovery-detail-link" onClick={() => onOpenWarung?.(warung.id)}>Lihat detail <ArrowUpRight size={14}/></button>
+              <button type="button" className="wl-discovery-detail-link" onClick={() => onOpenWarung?.(warung.id)} aria-label={`Lihat detail ${warung.name}`}>Lihat detail <ArrowUpRight size={14}/></button>
             </div>
           </article>;
         })}

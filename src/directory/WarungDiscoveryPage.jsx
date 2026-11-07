@@ -95,7 +95,7 @@ export default function WarungDiscoveryPage({
           return <button type="button" className={index === 0 ? 'wl-discovery-feature-card is-lead' : 'wl-discovery-feature-card'} key={warung.id} onClick={() => onOpenWarung?.(warung.id)}>
             {photo ? <img src={photo} alt={`Foto utama ${warung.name}`} loading="lazy" decoding="async"/> : <span className="wl-discovery-no-photo"><Store size={26}/></span>}
             <span className="wl-discovery-feature-shade"/>
-            <span className="wl-discovery-feature-copy"><small>{index === 0 ? 'DISCOVERY PICK' : 'WARKOP TERKURASI'}</small><strong>{warung.name}</strong><span>{locationLabel(warung) || warung.address || 'Lokasi belum dilengkapi'}</span></span>
+            <span className="wl-discovery-feature-copy"><small>{index === 0 ? 'DIREKTORI WARKOP' : 'WARKOP TERVERIFIKASI'}</small><strong>{warung.name}</strong><span>{locationLabel(warung) || warung.address || 'Lokasi belum dilengkapi'}</span></span>
             <span className="wl-discovery-feature-arrow"><ArrowUpRight size={17}/></span>
           </button>;
         })}

@@ -31,8 +31,6 @@ const baseProps = {
   effectiveVisitorLocation: null,
   eventsStatus: 'idle',
   discoveryEvents: [],
-  popularStatus: 'idle',
-  followerCounts: {},
   distances: {},
   eventByWarung: new Map(),
   now: new Date('2026-11-07T00:00:00.000Z'),

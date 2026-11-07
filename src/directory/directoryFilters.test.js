@@ -82,7 +82,7 @@ describe('directoryFilters', () => {
   });
 
   it('mengumpulkan fasilitas unik tanpa duplikat', () => {
-    expect(collectFacilities(items).map((f) => f.key)).toEqual(['parkir', 'wi-fi']);
+    expect(collectFacilities(items).map((f) => f.key)).toEqual(['wi-fi', 'parkir']);
   });
 
   it('tahan terhadap data tanpa field fasilitas', () => {

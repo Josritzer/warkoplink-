@@ -1,15 +1,13 @@
 import { useEffect, useReducer, useState } from 'react';
-import { addDoc, collection, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
 import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
-import { MapPin, Store, ShieldCheck, ArrowUpRight, Clock, LocateFixed } from 'lucide-react';
+import { Store, ShieldCheck, LocateFixed } from 'lucide-react';
 import { ACTIVITY_OPTIONS, collectFacilities, collectActivities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, sortWarungsForDiscovery } from './directoryFilters.js';
 import LeafletLocationPicker from './LeafletLocationPicker.jsx';
 import OfficialRegionPicker from './OfficialRegionPicker.jsx';
 import { buildRegionIdentity } from './regionIdentity.js';
-import { buildGoogleMapsDirectionsUrl } from './mapLocation.js';
 import { filterWarungsByLocation } from '../home/locationDiscovery.js';
-import WarungDiscoveryMap from './WarungDiscoveryMap.jsx';
 import WarungDiscoveryPage from './WarungDiscoveryPage.jsx';
 import { createInitialDiscoveryState, discoveryReducer } from './discoveryState.js';
 
@@ -41,6 +39,14 @@ export default function WarungDirectory({ mode, user, db, location = { mode: 'al
   const setSearchTerm = (value) => dispatchDiscovery({ type: 'SET_QUERY', value });
   const setOperationalFilter = (value) => dispatchDiscovery({ type: 'SET_OPERATIONAL', value });
   const setDiscoveryCategory = (value) => dispatchDiscovery({ type: 'SET_CATEGORY', value });
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+  useEffect(() => {
+    dispatchDiscovery({ type: 'SET_REGION', value: location });
+  }, [location]);
   const [followerCounts] = useState({});
   const [popularStatus] = useState('idle');
   const [discoveryEvents, setDiscoveryEvents] = useState([]);
@@ -365,7 +371,7 @@ export default function WarungDirectory({ mode, user, db, location = { mode: 'al
     ? locationScopedWarungs
     : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { followerCounts, distances, eventWarungIds, eventStarts, now });
   const visibleWarungs = filterWarungs(categoryWarungs, {
-    search: searchTerm, facilities: facilityFilter, activities: activityFilter,
+    search: debouncedSearchTerm, facilities: facilityFilter, activities: activityFilter,
     operational: operationalFilter, priceRange: 'semua', now
   });
   function toggleFacility(key) {

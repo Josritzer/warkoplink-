@@ -34,7 +34,6 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   const [lastDocument, setLastDocument] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [searchingAll, setSearchingAll] = useState(false);
   const [moreError, setMoreError] = useState('');
   const [discoveryState, dispatchDiscovery] = useReducer(discoveryReducer, location, createInitialDiscoveryState);
   const { query: searchTerm, category: discoveryCategory, facilities: facilityFilter, activities: activityFilter, operational: operationalFilter, sort, viewMode } = discoveryState;
@@ -278,7 +277,7 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   }
 
   async function handleLoadMore() {
-    if (!db || !lastDocument || loadingMore || searchingAll || !hasMore) return;
+    if (!db || !lastDocument || loadingMore || !hasMore) return;
     setLoadingMore(true);
     setMoreError('');
     try {
@@ -406,7 +405,6 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
     hasActiveFilter={hasActiveFilter}
     onResetFilters={() => dispatchDiscovery({ type: 'RESET_FILTERS' })}
     status={status}
-    searchingAll={searchingAll}
     visibleWarungs={visibleWarungs}
     locationScopedWarungs={locationScopedWarungs}
     locationStatus={locationStatus}

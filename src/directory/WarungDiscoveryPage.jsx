@@ -84,7 +84,7 @@ export default function WarungDiscoveryPage({
       </div>
     </section>
 
-    {featured.length > 0 && <section className="wl-discovery-section wl-discovery-featured">
+    {featured.length > 0 && !mapViewOpen && <section className="wl-discovery-section wl-discovery-featured">
       <div className="wl-discovery-section-heading">
         <div><span className="wl-discovery-kicker">DARI DIREKTORI WARKOP</span><h2>Kenali tempat lokal.</h2></div>
         <span className="wl-discovery-muted">Dari warkop terverifikasi</span>

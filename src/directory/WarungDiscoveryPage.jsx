@@ -128,7 +128,7 @@ export default function WarungDiscoveryPage({
       {category === 'events' && eventsStatus === 'loading' && <p className="wl-discovery-status">Memuat acara warkop…</p>}
       {category === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="wl-discovery-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}
       {status === 'ready' && visibleWarungs.length === 0 && !(category === 'nearby' && !effectiveVisitorLocation) && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>Belum ada tempat yang cocok.</h3><p>Coba suasana, kata kunci, atau filter yang berbeda.</p></div>}
-      {status === 'ready' && <p className="wl-discovery-count" aria-live="polite">{visibleWarungs.length} dari {locationScopedWarungs.length} tempat yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}</p>}
+      {status === 'ready' && !(category === 'nearby' && !effectiveVisitorLocation) && <p className="wl-discovery-count" aria-live="polite">{visibleWarungs.length} dari {locationScopedWarungs.length} tempat yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}</p>}
       {mapViewOpen ? <WarungDiscoveryMap warungs={visibleWarungs} onOpenWarung={onOpenWarung}/> : <div className="wl-discovery-card-grid">
         {visibleWarungs.map((warung) => {
           const photo = photoFor(warung);

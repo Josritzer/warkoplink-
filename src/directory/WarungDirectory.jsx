@@ -371,11 +371,9 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   const categoryWarungs = discoveryCategory === 'nearby' && !effectiveVisitorLocation
     ? []
     : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { distances, eventWarungIds, eventStarts, now });
-  const sortedWarungs = sort === 'name'
-    ? [...categoryWarungs].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'id'))
-    : sort === 'distance' && effectiveVisitorLocation
-      ? [...categoryWarungs].sort((a, b) => (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity))
-      : categoryWarungs;
+  const sortedWarungs = sort === 'distance' && effectiveVisitorLocation
+    ? [...categoryWarungs].sort((a, b) => (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity))
+    : categoryWarungs;
   const visibleWarungs = filterWarungs(sortedWarungs, {
     search: debouncedSearchTerm, facilities: facilityFilter, activities: activityFilter,
     operational: operationalFilter, priceRange: 'semua', now

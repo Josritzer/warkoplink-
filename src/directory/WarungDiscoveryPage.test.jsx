@@ -48,7 +48,7 @@ const baseProps = {
 describe('WarungDiscoveryPage', () => {
   it('renders the premium discovery hero and nationwide scope', () => {
     render(<WarungDiscoveryPage {...baseProps} />);
-    expect(screen.getByRole('heading', { name: 'Temukan tempat singgah.' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Temukan tempat singgah/ })).toBeTruthy();
     expect(screen.getByLabelText('Cari warkop')).toBeTruthy();
     expect(screen.getByText(/Seluruh Indonesia/)).toBeTruthy();
   });

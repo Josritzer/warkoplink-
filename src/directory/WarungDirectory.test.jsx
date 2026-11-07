@@ -144,9 +144,11 @@ describe('kartu direktori warkop', () => {
   it('menyediakan kategori discovery berbasis suasana dan aktivitas', async () => {
     fixture.rows = [{ id: 'warung-1', name: 'Warkop Satu', address: 'Maduran, Lamongan', specialties: ['Kopi rempah'], verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    expect(await screen.findByRole('button', { name: /Ngopi Santai/ })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /Ngopi Bareng/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Ada Event/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Kerja & Laptop/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Komunitas/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Nongkrong/ })).toBeNull();
     expect(screen.getByRole('button', { name: /Menu Spesial/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Warkop Terbaru/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Menu Spesial/ }));

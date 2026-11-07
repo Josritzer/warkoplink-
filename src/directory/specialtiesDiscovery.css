@@ -31,3 +31,16 @@
 @media (prefers-reduced-motion: reduce) {
   .wl-specialty-menu-rail button { transition: none; }
 }
+
+/* Search filters are classified by user intent and real profile coverage, never A–Z. */
+.wl-discovery-filter-classifications { display: grid; gap: 1.1rem; margin-top: 1.15rem; }
+.wl-discovery-filter-group { display: grid; gap: .7rem; }
+.wl-discovery-filter-group h3 { margin: 0; color: #493126; font-size: .92rem; font-weight: 750; }
+.wl-discovery-filter-subgroup { display: grid; gap: .45rem; }
+.wl-discovery-filter-subgroup > strong { color: #80654d; font-size: .78rem; font-weight: 700; }
+.wl-discovery-filter-subgroup .wl-discovery-filter-chips,
+.wl-discovery-facility-group .wl-discovery-filter-chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.wl-discovery-facility-group { margin-top: 1.1rem; }
+.wl-discovery-facility-group > p { margin: -.3rem 0 .15rem; color: #806f60; font-size: .76rem; }
+.wl-discovery-facility-group .wl-discovery-filter-chips button { display: inline-flex; align-items: center; gap: .4rem; }
+.wl-discovery-facility-group .wl-discovery-filter-chips small { color: #98613b; font-size: .68rem; font-weight: 750; }

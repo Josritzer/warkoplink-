@@ -155,7 +155,7 @@ describe('kartu direktori warkop', () => {
     fireEvent.click(screen.getByRole('button', { name: /Menu Spesial/ }));
     expect(screen.getByRole('button', { name: /Menu Spesial/ }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByRole('button', { name: 'Reset filter' })).toBeNull();
-    expect(screen.getByPlaceholderText('Cari warkop, menu, suasana, atau lokasi…')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Cari nama menu atau warkop…')).toBeTruthy();
     expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });
 

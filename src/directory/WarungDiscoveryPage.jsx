@@ -29,7 +29,7 @@ export default function WarungDiscoveryPage({
   location, category, onCategoryChange, searchTerm, onSearchChange,
   facilityOptions, activityOptions, facilityFilter, activityFilter,
   onToggleFacility, onToggleActivity, operationalFilter, onOperationalChange,
-  sort, onSortChange, hasLocation, hasActiveFilter, onResetFilters, status, searchingAll, visibleWarungs,
+  sort, onSortChange, hasLocation, hasActiveFilter, onResetFilters, status, visibleWarungs,
   locationScopedWarungs, locationStatus, effectiveVisitorLocation,
   eventsStatus, discoveryEvents, distances,
   eventByWarung, now, mapViewOpen, onToggleMap, onOpenWarung,
@@ -124,12 +124,11 @@ export default function WarungDiscoveryPage({
 
       {status === 'loading' && <div className="wl-discovery-state"><h3>Menyiapkan tempat untuk dijelajahi…</h3><p>Mohon tunggu sebentar.</p></div>}
       {status === 'error' && <div className="wl-discovery-state"><h3>Direktori belum tersedia</h3><p>Periksa koneksi lalu coba lagi.</p><button type="button" onClick={onRetry}>Coba lagi</button></div>}
-      {searchingAll && <p className="wl-discovery-status" role="status">Menelusuri halaman berikutnya…</p>}
       {category === 'nearby' && locationStatus === 'loading' && <p className="wl-discovery-status" role="status">Mencari tempat di sekitar lokasi perangkat…</p>}
       {category === 'nearby' && !effectiveVisitorLocation && locationStatus !== 'loading' && <p className="wl-discovery-status">Lokasi GPS belum tersedia. Anda tetap dapat menjelajah berdasarkan wilayah.</p>}
       {category === 'events' && eventsStatus === 'loading' && <p className="wl-discovery-status">Memuat acara warkop…</p>}
       {category === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="wl-discovery-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}
-      {status === 'ready' && visibleWarungs.length === 0 && !searchingAll && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>Belum ada tempat yang cocok.</h3><p>Coba suasana, kata kunci, atau filter yang berbeda.</p></div>}
+      {status === 'ready' && visibleWarungs.length === 0 && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>Belum ada tempat yang cocok.</h3><p>Coba suasana, kata kunci, atau filter yang berbeda.</p></div>}
       {status === 'ready' && <p className="wl-discovery-count" aria-live="polite">{visibleWarungs.length} dari {locationScopedWarungs.length} tempat yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}</p>}
       {mapViewOpen ? <WarungDiscoveryMap warungs={visibleWarungs} onOpenWarung={onOpenWarung}/> : <div className="wl-discovery-card-grid">
         {visibleWarungs.map((warung) => {
@@ -154,7 +153,7 @@ export default function WarungDiscoveryPage({
         })}
       </div>}
       {moreError && <p className="wl-discovery-status" role="alert">{moreError}</p>}
-      {hasMore && <button type="button" className="wl-discovery-load-more" onClick={onLoadMore} disabled={loadingMore || searchingAll}>{loadingMore ? 'Memuat…' : 'Muat 30 tempat lagi'}</button>}
+      {hasMore && <button type="button" className="wl-discovery-load-more" onClick={onLoadMore} disabled={loadingMore}>{loadingMore ? 'Memuat…' : 'Muat 30 tempat lagi'}</button>}
     </section>
 
     <section className="wl-discovery-owner-cta"><div><span className="wl-discovery-kicker">PUNYA TEMPAT NGOPI?</span><h2>Jadikan warkop Anda bagian dari cerita.</h2><p>Daftarkan tempat Anda agar bisa ditemukan penikmat kopi di seluruh Indonesia.</p></div><button type="button" onClick={onRegister}>Ajukan Warkop <ArrowUpRight size={16}/></button></section>

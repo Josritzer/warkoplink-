@@ -34,6 +34,7 @@ export default function WarungDiscoveryPage({
   eventByWarung, now, mapViewOpen, onToggleMap, onOpenWarung,
   hasMore, loadingMore, onLoadMore, moreError, onRegister, onRetry,
 }) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const heroWarung = visibleWarungs.find((item) => photoFor(item)) || locationScopedWarungs.find((item) => photoFor(item));
   const heroPhoto = photoFor(heroWarung);
   const featured = visibleWarungs.slice(0, 3);
@@ -103,16 +104,21 @@ export default function WarungDiscoveryPage({
     <section className="wl-discovery-section wl-discovery-results">
       <div className="wl-discovery-section-heading">
         <div><span className="wl-discovery-kicker">DISCOVER MORE</span><h2>Jelajahi warkop.</h2><p>Tempat terverifikasi dengan informasi yang tersedia.</p></div>
-        <button type="button" className="wl-discovery-view-toggle" onClick={onToggleMap} aria-pressed={mapViewOpen}>{mapViewOpen ? <><List size={16}/> Daftar</> : <><MapIcon size={16}/> Peta</>}</button>
+        <div className="wl-discovery-result-actions"><button type="button" className="wl-discovery-filter-toggle" onClick={() => setFiltersOpen(true)} aria-expanded={filtersOpen}><SlidersHorizontal size={16}/> Filter</button><button type="button" className="wl-discovery-view-toggle" onClick={onToggleMap} aria-pressed={mapViewOpen}>{mapViewOpen ? <><List size={16}/> Daftar</> : <><MapIcon size={16}/> Peta</>}</button></div>
       </div>
-      <div className="wl-discovery-filter-bar">
-        <label><SlidersHorizontal size={16}/><select aria-label="Filter operasional" value={operationalFilter} onChange={(event) => onOperationalChange(event.target.value)}><option value="semua">Semua status</option><option value="buka-sekarang">Buka sekarang</option><option value="buka-24-jam">Buka 24 jam</option></select></label>
-        <label className="wl-discovery-sort"><span>Urutkan</span><select aria-label="Urutkan warkop" value={sort} onChange={(event) => onSortChange(event.target.value)}><option value="relevance">Rekomendasi</option><option value="name">Nama A–Z</option><option value="distance" disabled={!hasLocation}>Terdekat</option></select></label>
-        {hasActiveFilter && <button type="button" onClick={onResetFilters}>Reset filter</button>}
-      </div>
-      {(activityOptions.length > 0 || facilityOptions.length > 0) && <div className="wl-discovery-filter-chips">
-        {activityOptions.map((item) => <button type="button" key={item.key} className={activityFilter.includes(item.key) ? 'active' : ''} aria-pressed={activityFilter.includes(item.key)} onClick={() => onToggleActivity(item.key)}>{item.label}</button>)}
-        {facilityOptions.map((item) => <button type="button" key={item.key} className={facilityFilter.includes(item.key) ? 'active' : ''} aria-pressed={facilityFilter.includes(item.key)} onClick={() => onToggleFacility(item.key)}>{item.label}</button>)}
+      {filtersOpen && <button type="button" className="wl-discovery-filter-backdrop" aria-label="Tutup filter" onClick={() => setFiltersOpen(false)}/>}
+      {filtersOpen && <div className="wl-discovery-filter-panel" role="dialog" aria-modal="true" aria-label="Filter warkop">
+        <div className="wl-discovery-filter-panel-head"><div><span className="wl-discovery-kicker">REFINE YOUR DISCOVERY</span><strong>Filter pencarian</strong></div><button type="button" aria-label="Tutup filter" onClick={() => setFiltersOpen(false)}><X size={18}/></button></div>
+        <div className="wl-discovery-filter-bar">
+          <label><SlidersHorizontal size={16}/><select aria-label="Filter operasional" value={operationalFilter} onChange={(event) => onOperationalChange(event.target.value)}><option value="semua">Semua status</option><option value="buka-sekarang">Buka sekarang</option><option value="buka-24-jam">Buka 24 jam</option></select></label>
+          <label className="wl-discovery-sort"><span>Urutkan</span><select aria-label="Urutkan warkop" value={sort} onChange={(event) => onSortChange(event.target.value)}><option value="relevance">Rekomendasi</option><option value="name">Nama A–Z</option><option value="distance" disabled={!hasLocation}>Terdekat</option></select></label>
+          {hasActiveFilter && <button type="button" onClick={onResetFilters}>Reset filter</button>}
+        </div>
+        {(activityOptions.length > 0 || facilityOptions.length > 0) && <div className="wl-discovery-filter-chips">
+          {activityOptions.map((item) => <button type="button" key={item.key} className={activityFilter.includes(item.key) ? 'active' : ''} aria-pressed={activityFilter.includes(item.key)} onClick={() => onToggleActivity(item.key)}>{item.label}</button>)}
+          {facilityOptions.map((item) => <button type="button" key={item.key} className={facilityFilter.includes(item.key) ? 'active' : ''} aria-pressed={facilityFilter.includes(item.key)} onClick={() => onToggleFacility(item.key)}>{item.label}</button>)}
+        </div>}
+        <button type="button" className="wl-discovery-filter-done" onClick={() => setFiltersOpen(false)}>Terapkan filter</button>
       </div>}
 
       {status === 'loading' && <div className="wl-discovery-state"><h3>Menyiapkan tempat untuk dijelajahi…</h3><p>Mohon tunggu sebentar.</p></div>}

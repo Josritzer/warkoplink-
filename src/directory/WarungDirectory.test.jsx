@@ -147,6 +147,8 @@ describe('kartu direktori warkop', () => {
     expect(await screen.findByRole('button', { name: /Ngopi Santai/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Ada Event/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Kerja & Laptop/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Komunitas/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Nongkrong/ })).toBeNull();
     expect(screen.getByRole('button', { name: /Menu Spesial/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Warkop Terbaru/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Menu Spesial/ }));

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowUpRight, Coffee, Compass, MapPin, Search, SlidersHorizontal, Store, Clock3, Navigation, CalendarDays, Wifi, Laptop, Users, Tv, Sparkles, List, Map as MapIcon, X } from 'lucide-react';
+import { ArrowUpRight, Coffee, Compass, MapPin, Search, SlidersHorizontal, Store, Clock3, Navigation, CalendarDays, Laptop, Users, Tv, Sparkles, List, Map as MapIcon, X } from 'lucide-react';
 import WarungDiscoveryMap from './WarungDiscoveryMap.jsx';
 import { ACTIVITY_OPTIONS, isOpenNow } from './directoryFilters.js';
 
@@ -31,7 +31,7 @@ export default function WarungDiscoveryPage({
   onToggleFacility, onToggleActivity, operationalFilter, onOperationalChange,
   sort, onSortChange, hasLocation, hasActiveFilter, onResetFilters, status, searchingAll, visibleWarungs,
   locationScopedWarungs, locationStatus, effectiveVisitorLocation,
-  eventsStatus, discoveryEvents, popularStatus, followerCounts, distances,
+  eventsStatus, discoveryEvents, distances,
   eventByWarung, now, mapViewOpen, onToggleMap, onOpenWarung,
   hasMore, loadingMore, onLoadMore, moreError, onRegister, onRetry,
 }) {
@@ -129,7 +129,6 @@ export default function WarungDiscoveryPage({
       {category === 'nearby' && !effectiveVisitorLocation && locationStatus !== 'loading' && <p className="wl-discovery-status">Lokasi GPS belum tersedia. Anda tetap dapat menjelajah berdasarkan wilayah.</p>}
       {category === 'events' && eventsStatus === 'loading' && <p className="wl-discovery-status">Memuat acara warkop…</p>}
       {category === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="wl-discovery-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}
-      {category === 'popular' && popularStatus === 'loading' && <p className="wl-discovery-status">Memuat data popularitas…</p>}
       {status === 'ready' && visibleWarungs.length === 0 && !searchingAll && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>Belum ada tempat yang cocok.</h3><p>Coba suasana, kata kunci, atau filter yang berbeda.</p></div>}
       {status === 'ready' && <p className="wl-discovery-count" aria-live="polite">{visibleWarungs.length} dari {locationScopedWarungs.length} tempat yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}</p>}
       {mapViewOpen ? <WarungDiscoveryMap warungs={visibleWarungs} onOpenWarung={onOpenWarung}/> : <div className="wl-discovery-card-grid">
@@ -149,7 +148,6 @@ export default function WarungDiscoveryPage({
               {warung.openingHours?.is24Hours === true ? <small className="wl-discovery-distance"><Clock3 size={12}/> Buka 24 jam</small> : warung.openingHours?.keterangan && !warung.openingHours?.schedule ? <small className="wl-discovery-distance"><Clock3 size={12}/> Jam buka: {warung.openingHours.keterangan}</small> : null}
               {Number.isFinite(distances[warung.id]) && <small className="wl-discovery-distance"><Navigation size={12}/> ±{distances[warung.id] < 10 ? distances[warung.id].toFixed(1) : Math.round(distances[warung.id])} km · garis lurus</small>}
               {event && <small className="wl-discovery-event"><CalendarDays size={12}/>{new Date(event.eventStartAt || event.eventDate).getTime() <= now.getTime() && event.eventEndAt && new Date(event.eventEndAt).getTime() >= now.getTime() ? 'SEDANG BERLANGSUNG · ' : 'AKAN DATANG · '}{event.eventKind || 'Acara warkop'} · {event.body?.split('\n')[0] || 'Lihat detail acara'}</small>}
-              {category === 'popular' && Number.isFinite(followerCounts[warung.id]) && <small className="wl-discovery-distance">{followerCounts[warung.id]} pengikut</small>}
               <button type="button" className="wl-discovery-detail-link" onClick={() => onOpenWarung?.(warung.id)} aria-label={`Lihat detail ${warung.name}`}>Lihat detail <ArrowUpRight size={14}/></button>
             </div>
           </article>;

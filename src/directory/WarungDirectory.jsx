@@ -377,7 +377,7 @@ export default function WarungDirectory({ mode, user, db, location = { mode: 'al
   return <WarungDiscoveryPage
     location={location}
     category={discoveryCategory}
-    onCategoryChange={setDiscoveryCategory}
+    onCategoryChange={selectDiscoveryCategory}
     searchTerm={searchTerm}
     onSearchChange={setSearchTerm}
     facilityOptions={facilityOptions}

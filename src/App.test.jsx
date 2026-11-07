@@ -650,7 +650,7 @@ describe('direktori dan pendaftaran warkop', () => {
     render(<App />);
     emitAuth(null);
     await user.click(screen.getByRole('button', { name: 'Cari Warkop' }));
-    expect(await screen.findByText('Memuat direktori…')).toBeTruthy();
+    expect(await screen.findByText('Menyiapkan tempat untuk dijelajahi…')).toBeTruthy();
     expect(fs.where).toHaveBeenCalledWith('verificationStatus', '==', 'verified');
     expect(fs.limit).toHaveBeenCalledWith(30);
     const directorySnapshot = state.warungsSnapshots.at(-1);
@@ -664,12 +664,12 @@ describe('direktori dan pendaftaran warkop', () => {
     await user.type(searchInput, '  WARKOP   POJOK  ');
     expect(screen.getByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
     await user.clear(searchInput);
-    expect(screen.getByRole('link', { name: 'Navigasi ke Warkop Pojok dengan Google Maps' }).getAttribute('href')).toContain('destination=-7.0001%2C112.281');
+    expect(screen.queryByRole('link', { name: /Navigasi ke Warkop Pojok/ })).toBeNull();
     await user.type(screen.getByRole('textbox', { name: 'Cari warkop' }), 'wifi');
     expect(screen.getByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
     await user.clear(screen.getByRole('textbox', { name: 'Cari warkop' }));
     await user.type(screen.getByRole('textbox', { name: 'Cari warkop' }), 'tidak ada');
-    expect(await screen.findByText('Warkop tidak ditemukan')).toBeTruthy();
+    expect(await screen.findByText('Belum ada tempat yang cocok.')).toBeTruthy();
   });
 
   it('memuat direktori secara bertahap tanpa mengambil seluruh koleksi sekaligus', async () => {
@@ -691,7 +691,7 @@ describe('direktori dan pendaftaran warkop', () => {
       { id: 'w31', name: 'Warkop 31', address: 'Jl. Contoh, Lamongan', facilities: [] },
     ]);
     fs.getDocs.mockResolvedValueOnce(nextPage);
-    await user.click(screen.getByRole('button', { name: 'Muat 30 warkop lagi' }));
+    await user.click(screen.getByRole('button', { name: 'Muat 30 tempat lagi' }));
     expect(await screen.findByRole('heading', { name: 'Warkop 31' })).toBeTruthy();
     expect(fs.getDocs).toHaveBeenCalledTimes(1);
     expect(fs.startAfter).toHaveBeenCalledWith(expect.objectContaining({ id: 'w30' }));

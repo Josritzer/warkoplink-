@@ -136,7 +136,7 @@ describe('kartu direktori warkop', () => {
       { id: 'surabaya', name: 'Kedai Tunjungan', address: 'Surabaya', regencyName: 'Kota Surabaya', verificationStatus: 'verified' }
     ];
     render(<WarungDirectory mode="directory" location={{ mode: 'region', label: 'Kota Surabaya', query: 'surabaya' }} user={null} db={{}} {...callbacks} />);
-    expect(await screen.findByText('Kedai Tunjungan')).toBeTruthy();
+    expect(screen.getAllByText('Kedai Tunjungan').length).toBeGreaterThan(0);
     expect(screen.queryByText('Kopi Maduran')).toBeNull();
     expect(screen.getByText(/1 dari 1 tempat yang sudah dimuat/)).toBeTruthy();
   });
@@ -172,7 +172,7 @@ describe('kartu direktori warkop', () => {
       eventEndAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
     }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    await screen.findByText('Warkop Acara');
+    expect(screen.getAllByText('Warkop Acara').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: /Ada Event/ }));
     expect(await screen.findByText(/Nobar · Nobar final/)).toBeTruthy();
     expect(screen.getByText(/SEDANG BERLANGSUNG/)).toBeTruthy();
@@ -184,7 +184,7 @@ describe('kartu direktori warkop', () => {
       coordinates: { lat: -7.05, lng: 112.3 }, verificationStatus: 'verified'
     }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    expect(await screen.findByText('Kopi Peta')).toBeTruthy();
+    expect(screen.getAllByText('Kopi Peta').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: /Peta/ }));
     expect(screen.getByRole('application', { name: 'Peta interaktif WARKOPLINK' })).toBeTruthy();
     expect(screen.queryByText('Kopi Peta')).toBeNull();

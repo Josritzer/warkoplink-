@@ -5,7 +5,7 @@ import { ACTIVITY_OPTIONS, isOpenNow } from './directoryFilters.js';
 
 const MOODS = [
   { value: 'all', label: 'Semua', icon: Compass },
-  { value: 'relax', label: 'Ngopi Santai', icon: Coffee, activity: 'ngopi-bareng' },
+  { value: 'relax', label: 'Ngopi Bareng', icon: Coffee, activity: 'ngopi-bareng' },
   { value: 'work', label: 'Kerja & Laptop', icon: Laptop, activity: 'kerja-laptop' },
   { value: 'community', label: 'Komunitas', icon: Users, activity: 'komunitas' },
   { value: 'nobar', label: 'Nobar', icon: Tv, activity: 'nobar' },

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowUpRight, Coffee, Compass, MapPin, Search, SlidersHorizontal, Store, Clock3, Navigation, CalendarDays, Laptop, Users, Tv, Sparkles, List, Map as MapIcon, X } from 'lucide-react';
+import { ArrowUpRight, Coffee, Compass, Flame, MapPin, Search, SlidersHorizontal, Store, Clock3, Navigation, CalendarDays, Laptop, Users, Tv, Sparkles, List, Map as MapIcon, X } from 'lucide-react';
 import WarungDiscoveryMap from './WarungDiscoveryMap.jsx';
 import { collectSpecialtyMenuOptions } from './specialtyDiscovery.js';
 import { groupActivityOptions } from './discoveryClassification.js';
@@ -8,6 +8,7 @@ import { ACTIVITY_OPTIONS, isOpenNow } from './directoryFilters.js';
 
 const MOODS = [
   { value: 'all', label: 'Semua', icon: Compass },
+  { value: 'popular', label: 'Populer', icon: Flame },
   { value: 'relax', label: 'Ngopi Bareng', icon: Coffee, activity: 'ngopi-bareng' },
   { value: 'work', label: 'Kerja & Laptop', icon: Laptop, activity: 'kerja-laptop' },
   { value: 'community', label: 'Komunitas', icon: Users, activity: 'komunitas' },
@@ -52,7 +53,7 @@ export default function WarungDiscoveryPage({
   const canRetryLocation = locationStatus === 'denied' || locationStatus === 'error';
 
   const selectMood = (mood) => {
-    if (['all', 'specialties', 'events', 'nearby'].includes(mood.value)) onCategoryChange(mood.value);
+    if (['all', 'popular', 'specialties', 'events', 'nearby'].includes(mood.value)) onCategoryChange(mood.value);
     else {
       onCategoryChange('all');
       if (mood.activity) onToggleActivity(mood.activity);
@@ -162,9 +163,11 @@ export default function WarungDiscoveryPage({
             : 'Lokasi perangkat belum tersedia. Pastikan GPS aktif, lalu coba lagi untuk melihat hasil berdasarkan jarak sebenarnya.'}</p></>}
         {canRetryLocation && <button type="button" onClick={() => onCategoryChange('nearby')}>Coba lagi</button>}
       </div>}
+      {category === 'popular' && followerCountsStatus === 'loading' && <p className="wl-discovery-status" role="status">Menghitung jumlah pengikut warkop…</p>}
+      {category === 'popular' && followerCountsStatus === 'error' && <p className="wl-discovery-status" role="status">Sebagian data pengikut tidak dapat dimuat. Daftar populer mungkin belum lengkap.</p>}
       {category === 'events' && eventsStatus === 'loading' && <p className="wl-discovery-status">Memuat acara warkop…</p>}
       {category === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="wl-discovery-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}
-      {status === 'ready' && visibleWarungs.length === 0 && !nearbyUnavailable && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>{category === 'specialties' ? 'Menu spesial belum ditemukan.' : 'Belum ada tempat yang cocok.'}</h3><p>{category === 'specialties' ? 'Coba nama menu lain atau hapus kata kunci pencarian.' : 'Coba suasana, kata kunci, atau filter yang berbeda.'}</p></div>}
+      {status === 'ready' && visibleWarungs.length === 0 && !nearbyUnavailable && !(category === 'popular' && followerCountsStatus === 'loading') && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>{category === 'specialties' ? 'Menu spesial belum ditemukan.' : 'Belum ada tempat yang cocok.'}</h3><p>{category === 'specialties' ? 'Coba nama menu lain atau hapus kata kunci pencarian.' : 'Coba suasana, kata kunci, atau filter yang berbeda.'}</p></div>}
       {status === 'ready' && !nearbyUnavailable && <p className="wl-discovery-count" aria-live="polite">{visibleWarungs.length} dari {locationScopedWarungs.length} tempat yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}</p>}
       {mapViewOpen ? <WarungDiscoveryMap warungs={visibleWarungs} onOpenWarung={onOpenWarung}/> : <div className="wl-discovery-card-grid">
         {visibleWarungs.map((warung) => {

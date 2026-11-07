@@ -47,7 +47,7 @@ const baseProps = {
 describe('WarungDiscoveryPage', () => {
   it('renders the premium discovery hero and nationwide scope', () => {
     render(<WarungDiscoveryPage {...baseProps} />);
-    expect(screen.getByText('Temukan tempat singgah.')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Temukan tempat singgah.' })).toBeTruthy();
     expect(screen.getByLabelText('Cari warkop')).toBeTruthy();
     expect(screen.getByText(/Seluruh Indonesia/)).toBeTruthy();
   });
@@ -66,7 +66,7 @@ describe('WarungDiscoveryPage', () => {
       specialties: ['Kopi rempah'], provinceName: 'Jawa Timur',
     }]} locationScopedWarungs={[{ id: 'warung-1' }]} />);
     expect(screen.getAllByText('Kopi Senja').length).toBeGreaterThan(0);
-    expect(screen.getByAltText('Foto utama Kopi Senja')).toBeTruthy();
+    expect(screen.getAllByAltText('Foto utama Kopi Senja').length).toBeGreaterThan(0);
     expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });
 

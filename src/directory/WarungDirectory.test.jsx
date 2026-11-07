@@ -136,7 +136,7 @@ describe('kartu direktori warkop', () => {
       { id: 'surabaya', name: 'Kedai Tunjungan', address: 'Surabaya', regencyName: 'Kota Surabaya', verificationStatus: 'verified' }
     ];
     render(<WarungDirectory mode="directory" location={{ mode: 'region', label: 'Kota Surabaya', query: 'surabaya' }} user={null} db={{}} {...callbacks} />);
-    expect(screen.getAllByText('Kedai Tunjungan').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Kedai Tunjungan')).length).toBeGreaterThan(0);
     expect(screen.queryByText('Kopi Maduran')).toBeNull();
     expect(screen.getByText(/1 dari 1 tempat yang sudah dimuat/)).toBeTruthy();
   });
@@ -172,7 +172,7 @@ describe('kartu direktori warkop', () => {
       eventEndAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
     }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    expect(screen.getAllByText('Warkop Acara').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Warkop Acara')).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: /Ada Event/ }));
     expect(await screen.findByText(/Nobar · Nobar final/)).toBeTruthy();
     expect(screen.getByText(/SEDANG BERLANGSUNG/)).toBeTruthy();
@@ -184,7 +184,7 @@ describe('kartu direktori warkop', () => {
       coordinates: { lat: -7.05, lng: 112.3 }, verificationStatus: 'verified'
     }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    expect(screen.getAllByText('Kopi Peta').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Kopi Peta')).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: /Peta/ }));
     expect(screen.getByRole('application', { name: 'Peta interaktif WARKOPLINK' })).toBeTruthy();
     expect(screen.queryByText('Kopi Peta')).toBeNull();
@@ -205,7 +205,7 @@ describe('kartu direktori warkop', () => {
 
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
 
-    expect(screen.getAllByRole('img', { name: 'Foto utama Kopi Senja' }).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole('img', { name: 'Foto utama Kopi Senja' })).length).toBeGreaterThan(0);
     expect(screen.getByText('Kopi susu gula aren')).toBeTruthy();
     expect(within(screen.getByRole('article')).getByText('Buka 24 jam')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Lihat detail Kopi Senja' }));

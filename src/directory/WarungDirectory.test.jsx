@@ -205,7 +205,7 @@ describe('kartu direktori warkop', () => {
 
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
 
-    expect(await screen.findByRole('img', { name: 'Foto utama Kopi Senja' })).toBeTruthy();
+    expect(screen.getAllByRole('img', { name: 'Foto utama Kopi Senja' }).length).toBeGreaterThan(0);
     expect(screen.getByText('Kopi susu gula aren')).toBeTruthy();
     expect(within(screen.getByRole('article')).getByText('Buka 24 jam')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Lihat detail Kopi Senja' }));

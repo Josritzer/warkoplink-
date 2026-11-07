@@ -37,9 +37,10 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   const [searchingAll, setSearchingAll] = useState(false);
   const [moreError, setMoreError] = useState('');
   const [discoveryState, dispatchDiscovery] = useReducer(discoveryReducer, location, createInitialDiscoveryState);
-  const { query: searchTerm, category: discoveryCategory, facilities: facilityFilter, activities: activityFilter, operational: operationalFilter, viewMode } = discoveryState;
+  const { query: searchTerm, category: discoveryCategory, facilities: facilityFilter, activities: activityFilter, operational: operationalFilter, sort, viewMode } = discoveryState;
   const setSearchTerm = (value) => dispatchDiscovery({ type: 'SET_QUERY', value });
   const setOperationalFilter = (value) => dispatchDiscovery({ type: 'SET_OPERATIONAL', value });
+  const setSort = (value) => dispatchDiscovery({ type: 'SET_SORT', value });
   const setDiscoveryCategory = (value) => dispatchDiscovery({ type: 'SET_CATEGORY', value });
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
   useEffect(() => {
@@ -372,7 +373,12 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   const categoryWarungs = discoveryCategory === 'nearby' && !effectiveVisitorLocation
     ? locationScopedWarungs
     : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { followerCounts, distances, eventWarungIds, eventStarts, now });
-  const visibleWarungs = filterWarungs(categoryWarungs, {
+  const sortedWarungs = sort === 'name'
+    ? [...categoryWarungs].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'id'))
+    : sort === 'distance' && effectiveVisitorLocation
+      ? [...categoryWarungs].sort((a, b) => (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity))
+      : categoryWarungs;
+  const visibleWarungs = filterWarungs(sortedWarungs, {
     search: debouncedSearchTerm, facilities: facilityFilter, activities: activityFilter,
     operational: operationalFilter, priceRange: 'semua', now
   });
@@ -396,6 +402,9 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
     onToggleActivity={toggleActivity}
     operationalFilter={operationalFilter}
     onOperationalChange={setOperationalFilter}
+    sort={sort}
+    onSortChange={setSort}
+    hasLocation={Boolean(effectiveVisitorLocation)}
     hasActiveFilter={hasActiveFilter}
     onResetFilters={() => dispatchDiscovery({ type: 'RESET_FILTERS' })}
     status={status}

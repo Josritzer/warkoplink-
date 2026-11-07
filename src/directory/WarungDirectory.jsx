@@ -11,6 +11,8 @@ import { filterWarungsByLocation } from '../home/locationDiscovery.js';
 import WarungDiscoveryPage from './WarungDiscoveryPage.jsx';
 import { createInitialDiscoveryState, discoveryReducer } from './discoveryState.js';
 
+const DEFAULT_LOCATION = Object.freeze({ mode: 'all', label: 'Semua Lokasi', query: '' });
+
 function normalizeWhatsAppNumber(value) {
   const digits = String(value || '').replace(/[^0-9]/g, '');
   if (digits.startsWith('0')) return `62${digits.slice(1)}`;
@@ -25,7 +27,7 @@ class WarungFormValidationError extends Error {
   }
 }
 
-export default function WarungDirectory({ mode, user, db, location = { mode: 'all' }, mapViewRequested = false, onMapViewRequestHandled, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
+export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOCATION, mapViewRequested = false, onMapViewRequestHandled, onRequestAuth, onNotice, onOpenWarung, onRegister }) {
   const [warungs, setWarungs] = useState([]);
   const [status, setStatus] = useState(db ? 'loading' : 'error');
   const [directoryRetry, setDirectoryRetry] = useState(0);

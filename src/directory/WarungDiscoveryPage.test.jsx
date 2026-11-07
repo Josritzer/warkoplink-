@@ -91,7 +91,7 @@ describe('WarungDiscoveryPage', () => {
     expect(screen.getByRole('heading', { name: 'Urutan hasil' })).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /Populer/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /Menu Spesial/ }).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Terapkan filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan hasil pencarian' }));
     expect(screen.queryByRole('dialog', { name: 'Filter warkop' })).toBeNull();
   });
 

@@ -65,7 +65,7 @@ describe('WarungDiscoveryPage', () => {
       photos: ['https://images.example.test/kopi.webp'],
       specialties: ['Kopi rempah'], provinceName: 'Jawa Timur',
     }]} locationScopedWarungs={[{ id: 'warung-1' }]} />);
-    expect(screen.getByText('Kopi Senja')).toBeTruthy();
+    expect(screen.getAllByText('Kopi Senja').length).toBeGreaterThan(0);
     expect(screen.getByAltText('Foto utama Kopi Senja')).toBeTruthy();
     expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });

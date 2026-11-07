@@ -158,6 +158,29 @@ describe('kartu direktori warkop', () => {
     expect(screen.getByText('Kopi rempah')).toBeTruthy();
   });
 
+  it('tidak menampilkan seluruh direktori sebagai hasil Terdekat ketika izin GPS ditolak', async () => {
+    fixture.rows = [{
+      id: 'warung-lokasi',
+      name: 'Warkop Tanpa Jarak',
+      address: 'Maduran, Lamongan',
+      coordinates: { lat: -7.05, lng: 112.3 },
+      verificationStatus: 'verified',
+    }];
+    vi.stubGlobal('navigator', {
+      geolocation: {
+        getCurrentPosition: (_onSuccess, onError) => onError({ code: 1 }),
+      },
+    });
+
+    render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
+    await screen.findByText('Warkop Tanpa Jarak');
+    fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
+
+    expect(await screen.findByText('Aktifkan lokasi untuk menemukan warkop terdekat.')).toBeTruthy();
+    expect(screen.queryByText('Warkop Tanpa Jarak')).toBeNull();
+    expect(screen.queryByText(/Anda tetap dapat menjelajah berdasarkan wilayah/)).toBeNull();
+  });
+
   it('langsung membuka tampilan peta saat diminta dari menu lokasi global', async () => {
     fixture.rows = [{ id: 'map-request', name: 'Warkop Peta', address: 'Lamongan', verificationStatus: 'verified' }];
     render(<WarungDirectory mode="directory" mapViewRequested user={null} db={{}} {...callbacks} />);

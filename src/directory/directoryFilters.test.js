@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateDistanceKm, collectActivities, collectFacilities, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, normalizeSearchText, sortWarungsForDiscovery } from './directoryFilters.js';
+import { calculateDistanceKm, collectActivities, collectFacilities, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, isValidCoordinate, normalizeSearchText, sortWarungsForDiscovery } from './directoryFilters.js';
 
 const items = [
   { id: '1', name: 'Warkop Pojok', address: 'Jl. Kembangbahu, Lamongan', facilities: ['Wi-Fi', 'parkir'], priceRange: 'hemat' },
@@ -105,6 +105,32 @@ describe('kategori penemuan direktori', () => {
   it('menghitung jarak garis lurus dan menolak koordinat tidak valid', () => {
     expect(calculateDistanceKm({ lat: -7.0, lng: 112.0 }, { lat: -7.0, lng: 112.01 })).toBeCloseTo(1.11, 1);
     expect(calculateDistanceKm({ lat: 91, lng: 0 }, { lat: 0, lng: 0 })).toBeNull();
+  });
+
+  it('tidak menghitung koordinat null, kosong, boolean, atau hilang sebagai titik 0,0', () => {
+    const origin = { lat: -7.05, lng: 112.3 };
+    expect(calculateDistanceKm(origin, undefined)).toBeNull();
+    expect(calculateDistanceKm(origin, { lat: null, lng: null })).toBeNull();
+    expect(calculateDistanceKm(origin, { lat: '', lng: '' })).toBeNull();
+    expect(calculateDistanceKm(origin, { lat: true, lng: true })).toBeNull();
+    expect(calculateDistanceKm({ lat: null, lng: null }, origin)).toBeNull();
+    expect(calculateDistanceKm({ lat: '-7.05', lng: '112.3' }, { lat: '-7.06', lng: '112.3' })).toBeCloseTo(1.11, 1);
+  });
+
+  it('isValidCoordinate hanya menerima pasangan angka dalam rentang lintang dan bujur', () => {
+    expect(isValidCoordinate({ lat: -7.05, lng: 112.3 })).toBe(true);
+    expect(isValidCoordinate({ lat: 0, lng: 0 })).toBe(true);
+    expect(isValidCoordinate(null)).toBe(false);
+    expect(isValidCoordinate({})).toBe(false);
+    expect(isValidCoordinate({ lat: null, lng: null })).toBe(false);
+    expect(isValidCoordinate({ lat: 91, lng: 0 })).toBe(false);
+    expect(isValidCoordinate({ lat: 0, lng: 181 })).toBe(false);
+  });
+
+  it('Terdekat hanya memuat warkop yang jaraknya dapat dihitung', () => {
+    const rows = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }];
+    expect(sortWarungsForDiscovery(rows, 'nearby', { distances: { a: 2 } }).map(x => x.id)).toEqual(['a']);
+    expect(sortWarungsForDiscovery(rows, 'nearby', { distances: {} })).toEqual([]);
   });
 
 

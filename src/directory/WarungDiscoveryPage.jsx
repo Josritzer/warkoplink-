@@ -42,7 +42,7 @@ export default function WarungDiscoveryPage({
     : 'Seluruh Indonesia';
 
   const selectMood = (mood) => {
-    if (mood.value === 'all' || mood.value === 'specialties') onCategoryChange(mood.value);
+    if (['all', 'specialties', 'events', 'nearby'].includes(mood.value)) onCategoryChange(mood.value);
     else {
       onCategoryChange('all');
       if (mood.activity) onToggleActivity(mood.activity);
@@ -84,7 +84,7 @@ export default function WarungDiscoveryPage({
 
     {featured.length > 0 && <section className="wl-discovery-section wl-discovery-featured">
       <div className="wl-discovery-section-heading">
-        <div><span className="wl-discovery-kicker">PILIHAN UNTUK DIJELAJAHI</span><h2>Tempat dengan cerita.</h2></div>
+        <div><span className="wl-discovery-kicker">DARI DIREKTORI WARKOP</span><h2>Kenali tempat lokal.</h2></div>
         <span className="wl-discovery-muted">Dari warkop terverifikasi</span>
       </div>
       <div className="wl-discovery-featured-grid">

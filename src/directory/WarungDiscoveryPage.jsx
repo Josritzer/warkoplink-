@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { ArrowUpRight, Coffee, Compass, MapPin, Search, SlidersHorizontal, Store, Clock3, Navigation, CalendarDays, Laptop, Users, Tv, Sparkles, List, Map as MapIcon, X } from 'lucide-react';
+import { ArrowUpRight, Coffee, Compass, Flame, MapPin, Search, SlidersHorizontal, Store, Clock3, Navigation, CalendarDays, Laptop, Users, Tv, Sparkles, List, Map as MapIcon, X } from 'lucide-react';
 import WarungDiscoveryMap from './WarungDiscoveryMap.jsx';
 import { collectSpecialtyMenuOptions } from './specialtyDiscovery.js';
+import { groupActivityOptions } from './discoveryClassification.js';
 import './specialtiesDiscovery.css';
 import { ACTIVITY_OPTIONS, isOpenNow } from './directoryFilters.js';
 
 const MOODS = [
   { value: 'all', label: 'Semua', icon: Compass },
+  { value: 'popular', label: 'Populer', icon: Flame },
   { value: 'relax', label: 'Ngopi Bareng', icon: Coffee, activity: 'ngopi-bareng' },
   { value: 'work', label: 'Kerja & Laptop', icon: Laptop, activity: 'kerja-laptop' },
   { value: 'community', label: 'Komunitas', icon: Users, activity: 'komunitas' },
@@ -32,7 +34,7 @@ export default function WarungDiscoveryPage({
   onToggleFacility, onToggleActivity, operationalFilter, onOperationalChange,
   sort, onSortChange, hasLocation, hasActiveFilter, onResetFilters, status, visibleWarungs,
   locationScopedWarungs, locationStatus, effectiveVisitorLocation,
-  eventsStatus, discoveryEvents, distances,
+  eventsStatus, discoveryEvents, followerCountsStatus = 'idle', distances,
   eventByWarung, now, mapViewOpen, onToggleMap, onOpenWarung,
   hasMore, loadingMore, onLoadMore, moreError, onRegister, onRetry,
 }) {
@@ -41,6 +43,7 @@ export default function WarungDiscoveryPage({
   const heroPhoto = photoFor(heroWarung);
   const featured = visibleWarungs.slice(0, 3);
   const specialtyMenuOptions = collectSpecialtyMenuOptions(locationScopedWarungs);
+  const activityGroups = groupActivityOptions(activityOptions);
   const countLabel = location?.mode && location.mode !== 'all'
     ? (location.label || location.query || 'Wilayah pilihan')
     : 'Seluruh Indonesia';
@@ -50,7 +53,7 @@ export default function WarungDiscoveryPage({
   const canRetryLocation = locationStatus === 'denied' || locationStatus === 'error';
 
   const selectMood = (mood) => {
-    if (['all', 'specialties', 'events', 'nearby'].includes(mood.value)) onCategoryChange(mood.value);
+    if (['all', 'popular', 'specialties', 'events', 'nearby'].includes(mood.value)) onCategoryChange(mood.value);
     else {
       onCategoryChange('all');
       if (mood.activity) onToggleActivity(mood.activity);
@@ -127,19 +130,50 @@ export default function WarungDiscoveryPage({
       </div>}
       {filtersOpen && <button type="button" className="wl-discovery-filter-backdrop" aria-label="Tutup filter" onClick={() => setFiltersOpen(false)}/>}
       {filtersOpen && <div className="wl-discovery-filter-panel" role="dialog" aria-modal="true" aria-label="Filter warkop">
-        <div className="wl-discovery-filter-panel-head"><div><span className="wl-discovery-kicker">REFINE YOUR DISCOVERY</span><strong>Filter pencarian</strong></div><button type="button" aria-label="Tutup filter" onClick={() => setFiltersOpen(false)}><X size={18}/></button></div>
-        <div className="wl-discovery-filter-bar">
-          <label><SlidersHorizontal size={16}/><select aria-label="Filter operasional" value={operationalFilter} onChange={(event) => onOperationalChange(event.target.value)}><option value="semua">Semua status</option><option value="buka-sekarang">Buka sekarang</option><option value="buka-24-jam">Buka 24 jam</option></select></label>
-          <label className="wl-discovery-sort"><span>Urutkan</span><select aria-label="Urutkan warkop" value={sort} onChange={(event) => onSortChange(event.target.value)}><option value="relevance">Rekomendasi</option><option value="name">Nama A–Z</option><option value="distance" disabled={!hasLocation}>Terdekat</option></select></label>
-          {hasActiveFilter && <button type="button" onClick={onResetFilters}>Reset filter</button>}
+        <div className="wl-discovery-filter-panel-head">
+          <div><span className="wl-discovery-kicker">DISCOVERY PREFERENCES</span><strong>Atur pencarian warkop</strong><p>Temukan tempat berdasarkan kebutuhan dan pengalaman Anda.</p></div>
+          <button type="button" aria-label="Tutup filter" onClick={() => setFiltersOpen(false)}><X size={18}/></button>
         </div>
-        {(activityOptions.length > 0 || facilityOptions.length > 0) && <div className="wl-discovery-filter-chips">
-          {activityOptions.map((item) => <button type="button" key={item.key} className={activityFilter.includes(item.key) ? 'active' : ''} aria-pressed={activityFilter.includes(item.key)} onClick={() => onToggleActivity(item.key)}>{item.label}</button>)}
-          {facilityOptions.map((item) => <button type="button" key={item.key} className={facilityFilter.includes(item.key) ? 'active' : ''} aria-pressed={facilityFilter.includes(item.key)} onClick={() => onToggleFacility(item.key)}>{item.label}</button>)}
-        </div>}
-        <button type="button" className="wl-discovery-filter-done" onClick={() => setFiltersOpen(false)}>Terapkan filter</button>
+        <section className="wl-discovery-filter-group wl-discovery-category-group">
+          <div className="wl-discovery-filter-title"><h3>Jelajahi berdasarkan kebutuhan</h3><span>PILIH KATEGORI</span></div>
+          <div className="wl-discovery-category-grid">
+            {MOODS.filter((mood) => ['all', 'popular', 'nearby', 'specialties', 'events'].includes(mood.value)).map((mood) => {
+              const Icon = mood.icon;
+              const active = category === mood.value;
+              return <button type="button" key={mood.value} className={active ? 'active' : ''} aria-pressed={active} onClick={() => onCategoryChange(mood.value)}>
+                <Icon size={17}/><span>{mood.label}</span><small>{mood.value === 'all' ? 'Semua tempat' : mood.value === 'popular' ? 'Banyak pengikut' : mood.value === 'nearby' ? 'Berdasarkan jarak' : mood.value === 'specialties' ? 'Menu unggulan' : 'Agenda warkop'}</small>
+              </button>;
+            })}
+          </div>
+        </section>
+        <div className="wl-discovery-filter-controls">
+          <section className="wl-discovery-filter-group wl-discovery-operational-group">
+            <div className="wl-discovery-filter-title"><h3>Waktu operasional</h3><span>STATUS</span></div>
+            <div className="wl-discovery-select-control"><Clock3 size={16}/><select aria-label="Filter operasional" value={operationalFilter} onChange={(event) => onOperationalChange(event.target.value)}><option value="semua">Semua status</option><option value="buka-sekarang">Buka sekarang</option><option value="buka-24-jam">Buka 24 jam</option></select></div>
+          </section>
+          <section className="wl-discovery-filter-group wl-discovery-sort-group">
+            <div className="wl-discovery-filter-title"><h3>Urutan hasil</h3><span>URUTKAN</span></div>
+            <div className="wl-discovery-select-control"><SlidersHorizontal size={16}/><select aria-label="Urutkan warkop" value={sort} onChange={(event) => onSortChange(event.target.value)}><option value="relevance">Paling relevan</option><option value="distance" disabled={!hasLocation}>Jarak terdekat</option></select></div>
+          </section>
+        </div>
+        {activityGroups.length > 0 && <section className="wl-discovery-filter-group wl-discovery-filter-classifications">
+          <div className="wl-discovery-filter-title"><h3>Aktivitas & suasana</h3><span>SESUAIKAN VIBE</span></div>
+          {activityGroups.map((group) => <div className="wl-discovery-filter-subgroup" key={group.key}>
+            <strong>{group.label}</strong><div className="wl-discovery-filter-chips">
+              {group.options.map((item) => <button type="button" key={item.key} className={activityFilter.includes(item.key) ? 'active' : ''} aria-pressed={activityFilter.includes(item.key)} onClick={() => onToggleActivity(item.key)}>{item.label}</button>)}
+            </div>
+          </div>)}
+        </section>}
+        {facilityOptions.length > 0 && <section className="wl-discovery-filter-group wl-discovery-facility-group">
+          <div className="wl-discovery-filter-title"><h3>Fasilitas yang tersedia</h3><span>FASILITAS</span></div>
+          <p>Pilihan diurutkan berdasarkan jumlah warkop yang memilikinya.</p>
+          <div className="wl-discovery-filter-chips">{facilityOptions.map((item) => <button type="button" key={item.key} className={facilityFilter.includes(item.key) ? 'active' : ''} aria-pressed={facilityFilter.includes(item.key)} onClick={() => onToggleFacility(item.key)}>{item.label}<small>{item.count}</small></button>)}</div>
+        </section>}
+        <div className="wl-discovery-filter-footer">
+          {hasActiveFilter && <button type="button" className="wl-discovery-filter-reset" onClick={onResetFilters}>Reset semua filter</button>}
+          <button type="button" className="wl-discovery-filter-done" onClick={() => setFiltersOpen(false)}>Tampilkan hasil pencarian</button>
+        </div>
       </div>}
-
       {status === 'loading' && <div className="wl-discovery-state"><h3>Menyiapkan tempat untuk dijelajahi…</h3><p>Mohon tunggu sebentar.</p></div>}
       {status === 'error' && <div className="wl-discovery-state"><h3>Direktori belum tersedia</h3><p>Periksa koneksi lalu coba lagi.</p><button type="button" onClick={onRetry}>Coba lagi</button></div>}
       {category === 'nearby' && locationStatus === 'loading' && <p className="wl-discovery-status" role="status">Mencari tempat di sekitar lokasi perangkat…</p>}
@@ -152,9 +186,11 @@ export default function WarungDiscoveryPage({
             : 'Lokasi perangkat belum tersedia. Pastikan GPS aktif, lalu coba lagi untuk melihat hasil berdasarkan jarak sebenarnya.'}</p></>}
         {canRetryLocation && <button type="button" onClick={() => onCategoryChange('nearby')}>Coba lagi</button>}
       </div>}
+      {category === 'popular' && followerCountsStatus === 'loading' && <p className="wl-discovery-status" role="status">Menghitung jumlah pengikut warkop…</p>}
+      {category === 'popular' && followerCountsStatus === 'error' && <p className="wl-discovery-status" role="status">Sebagian data pengikut tidak dapat dimuat. Daftar populer mungkin belum lengkap.</p>}
       {category === 'events' && eventsStatus === 'loading' && <p className="wl-discovery-status">Memuat acara warkop…</p>}
       {category === 'events' && eventsStatus === 'ready' && discoveryEvents.length === 0 && <p className="wl-discovery-status">Belum ada acara aktif atau mendatang yang terhubung ke warkop terverifikasi.</p>}
-      {status === 'ready' && visibleWarungs.length === 0 && !nearbyUnavailable && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>{category === 'specialties' ? 'Menu spesial belum ditemukan.' : 'Belum ada tempat yang cocok.'}</h3><p>{category === 'specialties' ? 'Coba nama menu lain atau hapus kata kunci pencarian.' : 'Coba suasana, kata kunci, atau filter yang berbeda.'}</p></div>}
+      {status === 'ready' && visibleWarungs.length === 0 && !nearbyUnavailable && !(category === 'popular' && followerCountsStatus === 'loading') && <div className="wl-discovery-state"><span><Coffee size={22}/></span><h3>{category === 'specialties' ? 'Menu spesial belum ditemukan.' : 'Belum ada tempat yang cocok.'}</h3><p>{category === 'specialties' ? 'Coba nama menu lain atau hapus kata kunci pencarian.' : 'Coba suasana, kata kunci, atau filter yang berbeda.'}</p></div>}
       {status === 'ready' && !nearbyUnavailable && <p className="wl-discovery-count" aria-live="polite">{visibleWarungs.length} dari {locationScopedWarungs.length} tempat yang sudah dimuat{hasMore ? ' · masih ada halaman berikutnya' : ''}</p>}
       {mapViewOpen ? <WarungDiscoveryMap warungs={visibleWarungs} onOpenWarung={onOpenWarung}/> : <div className="wl-discovery-card-grid">
         {visibleWarungs.map((warung) => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import WarungDiscoveryPage from './WarungDiscoveryPage.jsx';
 
 afterEach(cleanup);
@@ -45,6 +45,13 @@ const baseProps = {
 };
 
 describe('WarungDiscoveryPage', () => {
+  it('offers a Popular category and selects it as a real discovery category', () => {
+    const onCategoryChange = vi.fn();
+    render(<WarungDiscoveryPage {...baseProps} onCategoryChange={onCategoryChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Populer' }));
+    expect(onCategoryChange).toHaveBeenCalledWith('popular');
+  });
+
   it('renders the premium discovery hero and nationwide scope', () => {
     render(<WarungDiscoveryPage {...baseProps} />);
     expect(screen.getByRole('heading', { name: /Temukan tempat singgah/ })).toBeTruthy();
@@ -71,11 +78,30 @@ describe('WarungDiscoveryPage', () => {
   });
 
   it('opens advanced filters in an accessible sheet and closes after applying', () => {
-    render(<WarungDiscoveryPage {...baseProps} />);
+    render(<WarungDiscoveryPage {...baseProps}
+      activityOptions={[{ key: 'nobar', label: 'Nobar' }]}
+      facilityOptions={[{ key: 'wifi', label: 'Wi-Fi', count: 2 }]} />);
     fireEvent.click(screen.getByRole('button', { name: /Filter/ }));
-    expect(screen.getByRole('dialog', { name: 'Filter warkop' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Terapkan filter' }));
+    const dialog = screen.getByRole('dialog', { name: 'Filter warkop' });
+    expect(dialog).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Jelajahi berdasarkan kebutuhan' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Aktivitas & suasana' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Fasilitas yang tersedia' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Waktu operasional' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Urutan hasil' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Populer/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /Menu Spesial/ }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan hasil pencarian' }));
     expect(screen.queryByRole('dialog', { name: 'Filter warkop' })).toBeNull();
+  });
+
+  it('lets users select a discovery category directly from the filter sheet', () => {
+    const onCategoryChange = vi.fn();
+    render(<WarungDiscoveryPage {...baseProps} onCategoryChange={onCategoryChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /Filter/ }));
+    const dialog = screen.getByRole('dialog', { name: 'Filter warkop' });
+    fireEvent.click(within(dialog).getByRole('button', { name: /Populer/ }));
+    expect(onCategoryChange).toHaveBeenCalledWith('popular');
   });
 
   it('shows a truthful loaded-result count and keeps load-more explicit', () => {

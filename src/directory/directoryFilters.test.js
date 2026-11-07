@@ -67,8 +67,22 @@ describe('directoryFilters', () => {
     expect(filterWarungs(items, { priceRange: 'sedang', facilities: ['parkir'] })).toEqual([]);
   });
 
+  it('mengurutkan fasilitas berdasarkan jumlah warkop yang memilikinya, bukan A–Z', () => {
+    const rows = [
+      { facilities: ['Wi-Fi', 'Parkir'] },
+      { facilities: ['Wi-Fi', 'Toilet'] },
+      { facilities: ['Wi-Fi'] },
+      { facilities: ['Parkir'] },
+    ];
+    expect(collectFacilities(rows)).toEqual([
+      { key: 'wi-fi', label: 'Wi-Fi', count: 3 },
+      { key: 'parkir', label: 'Parkir', count: 2 },
+      { key: 'toilet', label: 'Toilet', count: 1 },
+    ]);
+  });
+
   it('mengumpulkan fasilitas unik tanpa duplikat', () => {
-    expect(collectFacilities(items).map((f) => f.key)).toEqual(['parkir', 'wi-fi']);
+    expect(collectFacilities(items).map((f) => f.key)).toEqual(['wi-fi', 'parkir']);
   });
 
   it('tahan terhadap data tanpa field fasilitas', () => {
@@ -133,6 +147,15 @@ describe('kategori penemuan direktori', () => {
     expect(sortWarungsForDiscovery(rows, 'nearby', { distances: {} })).toEqual([]);
   });
 
+
+  it('mengurutkan rekomendasi berdasarkan kelengkapan profil, bukan nama A–Z', () => {
+    const rows = [
+      { id: 'a', name: 'A Warkop', photos: [], specialties: [], activities: [], facilities: [] },
+      { id: 'z', name: 'Z Warkop', photos: ['cover.webp'], specialties: ['Kopi rempah'], activities: ['nobar'], facilities: ['Wi-Fi'], coordinates: { lat: -7, lng: 112 }, openingHours: { is24Hours: true } },
+      { id: 'b', name: 'B Warkop', photos: ['cover.webp'], specialties: ['Mi nyemek'] },
+    ];
+    expect(sortWarungsForDiscovery(rows, 'all').map((item) => item.id)).toEqual(['z', 'b', 'a']);
+  });
 
   it('memfilter kategori menu spesial hanya untuk warkop yang memiliki menu unggulan', () => {
     const rows = [

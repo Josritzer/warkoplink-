@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from 'react';
-import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, startAfter, where } from 'firebase/firestore';
 import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { Store, ShieldCheck, LocateFixed } from 'lucide-react';
@@ -50,6 +50,9 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
     dispatchDiscovery({ type: 'SET_REGION', value: location });
   }, [location]);
   const [discoveryEvents, setDiscoveryEvents] = useState([]);
+  const [followerCounts, setFollowerCounts] = useState({});
+  const [followerCountErrors, setFollowerCountErrors] = useState([]);
+  const [followerCountsStatus, setFollowerCountsStatus] = useState('idle');
   const [eventsStatus, setEventsStatus] = useState('idle');
   const [visitorLocation, setVisitorLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('idle');
@@ -113,6 +116,38 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
       setStatus('ready');
     }, () => setStatus('error'));
   }, [mode, db, directoryRetry]);
+
+  const locationScopeKey = JSON.stringify(location ?? {});
+  useEffect(() => {
+    if (mode !== 'directory' || discoveryCategory !== 'popular' || !db) {
+      if (discoveryCategory !== 'popular') setFollowerCountsStatus('idle');
+      return undefined;
+    }
+    const ids = filterWarungsByLocation(warungs, location).map((item) => item.id).filter(Boolean);
+    const missingIds = ids.filter((id) => !Object.prototype.hasOwnProperty.call(followerCounts, id) && !followerCountErrors.includes(id));
+    if (!missingIds.length) {
+      setFollowerCountsStatus(ids.some((id) => followerCountErrors.includes(id)) ? 'error' : 'ready');
+      return undefined;
+    }
+    let cancelled = false;
+    setFollowerCountsStatus('loading');
+    Promise.allSettled(missingIds.map(async (id) => {
+      const result = await getCountFromServer(collection(db, 'warungs', id, 'followers'));
+      return [id, result.data().count];
+    })).then((results) => {
+      if (cancelled) return;
+      const nextCounts = {};
+      const failedIds = [];
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') nextCounts[result.value[0]] = result.value[1];
+        else failedIds.push(missingIds[results.indexOf(result)]);
+      });
+      setFollowerCounts((current) => ({ ...current, ...nextCounts }));
+      setFollowerCountErrors((current) => [...new Set([...current, ...failedIds])]);
+      setFollowerCountsStatus(failedIds.length ? 'error' : 'ready');
+    });
+    return () => { cancelled = true; };
+  }, [mode, db, discoveryCategory, warungs, locationScopeKey, followerCounts, followerCountErrors]);
 
   const hasActiveFilter = Boolean(searchTerm.trim()) || facilityFilter.length > 0 || activityFilter.length > 0 || operationalFilter !== 'semua';
 
@@ -370,12 +405,10 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   const eventStarts = Object.fromEntries([...eventByWarung.entries()].map(([id, event]) => [id, event.eventStartAt || event.eventDate]));
   const categoryWarungs = discoveryCategory === 'nearby' && !effectiveVisitorLocation
     ? []
-    : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { distances, eventWarungIds, eventStarts, now });
-  const sortedWarungs = sort === 'name'
-    ? [...categoryWarungs].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'id'))
-    : sort === 'distance' && effectiveVisitorLocation
-      ? [...categoryWarungs].sort((a, b) => (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity))
-      : categoryWarungs;
+    : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { followerCounts, distances, eventWarungIds, eventStarts, now });
+  const sortedWarungs = sort === 'distance' && effectiveVisitorLocation
+    ? [...categoryWarungs].sort((a, b) => (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity))
+    : categoryWarungs;
   const visibleWarungs = filterWarungs(sortedWarungs, {
     search: debouncedSearchTerm, facilities: facilityFilter, activities: activityFilter,
     operational: operationalFilter, priceRange: 'semua', now
@@ -411,6 +444,7 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
     locationStatus={locationStatus}
     effectiveVisitorLocation={effectiveVisitorLocation}
     eventsStatus={eventsStatus}
+    followerCountsStatus={followerCountsStatus}
     discoveryEvents={discoveryEvents}
     distances={distances}
     eventByWarung={eventByWarung}

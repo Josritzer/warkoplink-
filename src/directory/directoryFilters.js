@@ -32,16 +32,20 @@ export function normalizeSearchText(value) {
 }
 
 export function collectFacilities(items) {
-  const seen = new Map();
+  const counts = new Map();
   for (const item of items || []) {
+    const unique = new Map();
     for (const facility of Array.isArray(item?.facilities) ? item.facilities : []) {
       const key = normalizeSearchText(facility);
-      if (key && !seen.has(key)) seen.set(key, String(facility).trim());
+      if (key && !unique.has(key)) unique.set(key, String(facility).trim());
+    }
+    for (const [key, label] of unique) {
+      const current = counts.get(key) || { key, label, count: 0 };
+      current.count += 1;
+      counts.set(key, current);
     }
   }
-  return [...seen.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0], 'id'))
-    .map(([key, label]) => ({ key, label }));
+  return [...counts.values()].sort((a, b) => b.count - a.count || a.key.localeCompare(b.key, 'id'));
 }
 
 export function collectActivities(items) {
@@ -210,5 +214,15 @@ export function sortWarungsForDiscovery(items, category, {
       .sort((a, b) => b.specialties.filter((value) => typeof value === 'string' && value.trim()).length
         - a.specialties.filter((value) => typeof value === 'string' && value.trim()).length || compareName(a, b));
   }
-  return rows.sort(compareName);
+  if (category === 'newest') {
+    return rows.sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt) || compareName(a, b));
+  }
+  const relevanceScore = (item) =>
+    (Array.isArray(item.photos) && item.photos.some((photo) => typeof photo === 'string' && photo.trim()) ? 3 : 0)
+    + (Array.isArray(item.specialties) ? Math.min(item.specialties.filter(Boolean).length, 3) * 2 : 0)
+    + (Array.isArray(item.activities) ? Math.min(item.activities.length, 3) : 0)
+    + (Array.isArray(item.facilities) ? Math.min(item.facilities.length, 3) : 0)
+    + (isValidCoordinate(item.coordinates) ? 1 : 0)
+    + (item.openingHours?.is24Hours === true || item.openingHours?.schedule ? 1 : 0);
+  return rows.sort((a, b) => relevanceScore(b) - relevanceScore(a) || compareName(a, b));
 }

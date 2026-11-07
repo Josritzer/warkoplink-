@@ -286,6 +286,25 @@ describe('kategori Terdekat dan ketersediaan GPS', () => {
     await screen.findAllByText('Warkop Dekat');
   };
 
+  it('memuat jumlah pengikut aktual saat kategori Populer dipilih', async () => {
+    fixture.rows = nearbyRows;
+    vi.mocked(firestore.getCountFromServer).mockImplementation(async (reference) => ({
+      data: () => ({ count: ({
+        'warungs/jauh/followers': 2,
+        'warungs/dekat/followers': 7,
+        'warungs/tanpa/followers': 0,
+        'warungs/rusak/followers': 1,
+      })[reference.path] ?? 0 })
+    }));
+    await openDirectory();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Populer' }));
+    await waitFor(() => expect(firestore.getCountFromServer).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(cardTitles()).toEqual(['Warkop Dekat', 'Warkop Jauh', 'Warkop Titik Rusak']));
+    expect(firestore.getCountFromServer).toHaveBeenCalledWith({ path: 'warungs/jauh/followers' });
+    expect(firestore.getCountFromServer).toHaveBeenCalledWith({ path: 'warungs/dekat/followers' });
+  });
+
   it('mengurutkan Terdekat menurut jarak dan hanya memuat warkop dengan koordinat valid', async () => {
     fixture.rows = nearbyRows;
     stubGeolocation((onSuccess) => onSuccess(visitorPosition));

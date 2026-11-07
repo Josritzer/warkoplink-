@@ -107,6 +107,7 @@ export default function WarungDiscoveryPage({
       </div>
       <div className="wl-discovery-filter-bar">
         <label><SlidersHorizontal size={16}/><select aria-label="Filter operasional" value={operationalFilter} onChange={(event) => onOperationalChange(event.target.value)}><option value="semua">Semua status</option><option value="buka-sekarang">Buka sekarang</option><option value="buka-24-jam">Buka 24 jam</option></select></label>
+        <label className="wl-discovery-sort"><span>Urutkan</span><select aria-label="Urutkan warkop" value={sort} onChange={(event) => onSortChange(event.target.value)}><option value="relevance">Rekomendasi</option><option value="name">Nama A–Z</option><option value="distance" disabled={!hasLocation}>Terdekat</option></select></label>
         {hasActiveFilter && <button type="button" onClick={onResetFilters}>Reset filter</button>}
       </div>
       {(activityOptions.length > 0 || facilityOptions.length > 0) && <div className="wl-discovery-filter-chips">

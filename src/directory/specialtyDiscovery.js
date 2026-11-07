@@ -4,7 +4,7 @@ export function collectSpecialtyMenuOptions(warungs = [], limit = 10) {
     const uniqueMenus = new Map();
     for (const rawMenu of Array.isArray(warung?.specialties) ? warung.specialties : []) {
       if (typeof rawMenu !== 'string') continue;
-      const name = rawMenu.trim().replace(/\\s+/g, ' ');
+      const name = rawMenu.trim().replace(/\s+/g, ' ');
       if (!name) continue;
       const key = name.toLocaleLowerCase('id');
       if (!uniqueMenus.has(key)) uniqueMenus.set(key, name);

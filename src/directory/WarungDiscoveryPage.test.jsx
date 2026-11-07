@@ -45,6 +45,13 @@ const baseProps = {
 };
 
 describe('WarungDiscoveryPage', () => {
+  it('offers a Popular category and selects it as a real discovery category', () => {
+    const onCategoryChange = vi.fn();
+    render(<WarungDiscoveryPage {...baseProps} onCategoryChange={onCategoryChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Populer' }));
+    expect(onCategoryChange).toHaveBeenCalledWith('popular');
+  });
+
   it('renders the premium discovery hero and nationwide scope', () => {
     render(<WarungDiscoveryPage {...baseProps} />);
     expect(screen.getByRole('heading', { name: /Temukan tempat singgah/ })).toBeTruthy();

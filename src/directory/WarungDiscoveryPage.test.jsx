@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import WarungDiscoveryPage from './WarungDiscoveryPage.jsx';
 
 afterEach(cleanup);
@@ -71,6 +71,14 @@ describe('WarungDiscoveryPage', () => {
     expect(screen.getAllByText('Kopi Senja').length).toBeGreaterThan(0);
     expect(screen.getAllByAltText('Foto utama Kopi Senja').length).toBeGreaterThan(0);
     expect(screen.getByText('Kopi rempah')).toBeTruthy();
+  });
+
+  it('opens advanced filters in an accessible sheet and closes after applying', () => {
+    render(<WarungDiscoveryPage {...baseProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /Filter/ }));
+    expect(screen.getByRole('dialog', { name: 'Filter warkop' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Terapkan filter' }));
+    expect(screen.queryByRole('dialog', { name: 'Filter warkop' })).toBeNull();
   });
 
   it('shows a truthful loaded-result count and keeps load-more explicit', () => {

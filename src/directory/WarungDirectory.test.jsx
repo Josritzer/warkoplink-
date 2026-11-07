@@ -175,7 +175,7 @@ describe('kartu direktori warkop', () => {
     await screen.findByText('Warkop Acara');
     fireEvent.click(screen.getByRole('button', { name: /Ada Event/ }));
     expect(await screen.findByText(/Nobar · Nobar final/)).toBeTruthy();
-    expect(screen.getByText('SEDANG BERLANGSUNG')).toBeTruthy();
+    expect(screen.getByText(/SEDANG BERLANGSUNG/)).toBeTruthy();
   });
 
   it('membuka peta interaktif dari hasil direktori yang sedang difilter', async () => {
@@ -220,20 +220,14 @@ describe('kartu direktori warkop', () => {
       address: 'Lamongan',
       verificationStatus: 'verified',
     }));
-    firestore.getDocs.mockResolvedValueOnce({
-      docs: [{ id: 'target-warung', data: () => ({
-        name: 'Kopi Target', address: 'Maduran, Lamongan', verificationStatus: 'verified',
-        photos: [], specialties: ['Kopi rempah']
-      }) }]
-    });
 
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
-    await screen.findByText(/30 dari 30 warkop/);
+    await screen.findByText(/30 dari 30 tempat yang sudah dimuat/);
     fireEvent.change(screen.getByRole('textbox', { name: 'Cari warkop' }), { target: { value: 'Kopi Target' } });
 
-    expect(await screen.findByText('Kopi Target')).toBeTruthy();
-    expect(firestore.getDocs).toHaveBeenCalledOnce();
-    expect(screen.getByText(/1 dari 31 warkop/)).toBeTruthy();
+    expect(await screen.findByText('Belum ada tempat yang cocok.')).toBeTruthy();
+    expect(firestore.getDocs).not.toHaveBeenCalled();
+    expect(screen.getByText(/0 dari 30 tempat yang sudah dimuat/)).toBeTruthy();
   });
 
   it('menampilkan placeholder elegan ketika warkop belum memiliki foto', async () => {

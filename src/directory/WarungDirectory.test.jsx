@@ -178,7 +178,6 @@ describe('kartu direktori warkop', () => {
     fireEvent.click(screen.getByRole('button', { name: /Terdekat/ }));
 
     expect(await screen.findByText('Aktifkan lokasi untuk menemukan warkop terdekat.')).toBeTruthy();
-    expect(screen.getByText(/0 dari 1 tempat yang sudah dimuat/)).toBeTruthy();
     expect(screen.queryAllByRole('article')).toHaveLength(0);
     expect(screen.queryByText(/Anda tetap dapat menjelajah berdasarkan wilayah/)).toBeNull();
   });

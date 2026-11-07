@@ -50,8 +50,6 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   useEffect(() => {
     dispatchDiscovery({ type: 'SET_REGION', value: location });
   }, [location]);
-  const [followerCounts] = useState({});
-  const [popularStatus] = useState('idle');
   const [discoveryEvents, setDiscoveryEvents] = useState([]);
   const [eventsStatus, setEventsStatus] = useState('idle');
   const [visitorLocation, setVisitorLocation] = useState(null);
@@ -372,7 +370,7 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   const eventStarts = Object.fromEntries([...eventByWarung.entries()].map(([id, event]) => [id, event.eventStartAt || event.eventDate]));
   const categoryWarungs = discoveryCategory === 'nearby' && !effectiveVisitorLocation
     ? locationScopedWarungs
-    : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { followerCounts, distances, eventWarungIds, eventStarts, now });
+    : sortWarungsForDiscovery(locationScopedWarungs, discoveryCategory, { distances, eventWarungIds, eventStarts, now });
   const sortedWarungs = sort === 'name'
     ? [...categoryWarungs].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'id'))
     : sort === 'distance' && effectiveVisitorLocation
@@ -415,8 +413,6 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
     effectiveVisitorLocation={effectiveVisitorLocation}
     eventsStatus={eventsStatus}
     discoveryEvents={discoveryEvents}
-    popularStatus={popularStatus}
-    followerCounts={followerCounts}
     distances={distances}
     eventByWarung={eventByWarung}
     now={now}

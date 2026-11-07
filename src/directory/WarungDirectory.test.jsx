@@ -185,7 +185,7 @@ describe('kartu direktori warkop', () => {
     }];
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
     expect((await screen.findAllByText('Kopi Peta')).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: /Peta/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Peta' }));
     expect(screen.getByRole('application', { name: 'Peta interaktif WARKOPLINK' })).toBeTruthy();
     expect(screen.queryByText('Kopi Peta')).toBeNull();
     expect(screen.getByText('1 titik warkop')).toBeTruthy();

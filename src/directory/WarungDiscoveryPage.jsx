@@ -7,7 +7,6 @@ const MOODS = [
   { value: 'all', label: 'Semua', icon: Compass },
   { value: 'relax', label: 'Ngopi Santai', icon: Coffee, activity: 'ngopi-bareng' },
   { value: 'work', label: 'Kerja & Laptop', icon: Laptop, activity: 'kerja-laptop' },
-  { value: 'hangout', label: 'Nongkrong', icon: Users, activity: 'komunitas' },
   { value: 'community', label: 'Komunitas', icon: Users, activity: 'komunitas' },
   { value: 'nobar', label: 'Nobar', icon: Tv, activity: 'nobar' },
   { value: 'nearby', label: 'Terdekat', icon: MapPin },

@@ -52,9 +52,13 @@ service cloud.firestore {
     }
 
     function validAdminDecision(warungId, data) {
+      let previousStatus = resource.data.verificationStatus;
+      let nextStatus = data.verificationStatus;
       return isSuperAdmin()
-        && data.verificationStatus in ['verified', 'rejected']
-        && (data.verificationStatus != 'verified' || resource.data.get('registrationPolicyVersion', 1) != 2
+        && ((previousStatus == 'pending' && nextStatus in ['verified', 'rejected'])
+          || (previousStatus == 'verified' && nextStatus == 'suspended')
+          || (previousStatus == 'suspended' && nextStatus == 'verified'))
+        && (nextStatus != 'verified' || resource.data.get('registrationPolicyVersion', 1) != 2
           || (resource.data.whatsapp is string && resource.data.whatsapp.matches('^628[0-9]{7,11}$')
             && resource.data.specialties is list && resource.data.specialties.size() >= 1
             && resource.data.photos is list && resource.data.photos.size() >= 1))
@@ -63,13 +67,73 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'verificationStatus', 'verificationAuditId', 'updatedAt'
         ])
-        && resource.data.verificationStatus == 'pending'
         && getAfter(auditPath(data.verificationAuditId)).data.warungId == warungId
-        && getAfter(auditPath(data.verificationAuditId)).data.previousStatus == 'pending'
-        && getAfter(auditPath(data.verificationAuditId)).data.newStatus == data.verificationStatus
+        && getAfter(auditPath(data.verificationAuditId)).data.previousStatus == previousStatus
+        && getAfter(auditPath(data.verificationAuditId)).data.newStatus == nextStatus
         && getAfter(auditPath(data.verificationAuditId)).data.warungName == resource.data.name
         && getAfter(auditPath(data.verificationAuditId)).data.actorUid == request.auth.uid
         && getAfter(auditPath(data.verificationAuditId)).data.createdAt == request.time;
+    }
+
+    function validMenuPhotoUrl(photoUrl, warungId, menuItemId) {
+      return photoUrl == null || (photoUrl is string && photoUrl.size() <= 2048
+        && photoUrl.matches('https://klikvxuronunonymmiqv[.]supabase[.]co/storage/v1/object/public/warkoplink-media/menus/'
+          + warungId + '/' + menuItemId + '/[A-Za-z0-9._-]{1,180}[.]webp'));
+    }
+
+    function validMenuItem(data, menuItemId) {
+      return data.keys().hasAll([
+          'schemaVersion', 'warungId', 'ownerUid', 'name', 'nameNormalized', 'description',
+          'categoryId', 'tags', 'priceType', 'priceAmount', 'currency', 'photoUrl', 'status',
+          'availability', 'isPublic', 'source', 'sortOrder', 'searchTokens', 'regionCode',
+          'provinceCode', 'regencyCode', 'districtCode', 'villageCode', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'schemaVersion', 'warungId', 'ownerUid', 'name', 'nameNormalized', 'description',
+          'categoryId', 'tags', 'priceType', 'priceAmount', 'currency', 'photoUrl', 'status',
+          'availability', 'isPublic', 'source', 'sortOrder', 'searchTokens', 'regionCode',
+          'provinceCode', 'regencyCode', 'districtCode', 'villageCode', 'createdAt', 'updatedAt'
+        ])
+        && data.schemaVersion == 1
+        && data.warungId is string && data.warungId.size() > 0
+        && data.ownerUid is string && data.ownerUid.size() > 0
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 80
+        && data.nameNormalized is string && data.nameNormalized.size() >= 1 && data.nameNormalized.size() <= 100
+        && data.description is string && data.description.size() <= 300
+        && data.categoryId in ['coffee', 'non_coffee', 'snacks', 'main_meals', 'bakery_dessert', 'bundles_promos', 'other']
+        && data.tags is list && data.tags.size() <= 12
+        && data.tags.hasOnly(['best_seller', 'signature', 'new', 'recommended', 'promo', 'spicy', 'non_spicy', 'vegetarian', 'halal', 'hot', 'iced', 'seasonal'])
+        && data.priceType in ['fixed', 'starting', 'unlisted']
+        && ((data.priceType == 'unlisted' && data.priceAmount == null)
+          || (data.priceType in ['fixed', 'starting'] && data.priceAmount is number && data.priceAmount >= 0))
+        && data.currency == 'IDR'
+        && validMenuPhotoUrl(data.photoUrl, data.warungId, menuItemId)
+        && data.status in ['draft', 'published', 'archived']
+        && data.availability in ['available', 'limited', 'sold_out']
+        && data.isPublic is bool
+        && data.source in ['native', 'legacy-specialties']
+        && data.sortOrder is int && data.sortOrder >= 0
+        && data.searchTokens is list && data.searchTokens.size() <= 12
+        && data.searchTokens.hasOnly(data.searchTokens)
+        && data.regionCode == data.villageCode
+        && (data.regionCode == null || data.regionCode is string)
+        && (data.provinceCode == null || data.provinceCode is string)
+        && (data.regencyCode == null || data.regencyCode is string)
+        && (data.districtCode == null || data.districtCode is string)
+        && (data.villageCode == null || data.villageCode is string)
+        && data.createdAt == request.time && data.updatedAt == request.time;
+    }
+
+    function menuOwnerUpdateIsSafe() {
+      return request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.warungId == resource.data.warungId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.source == resource.data.source
+        && validMenuItem(request.resource.data, resource.id)
+        && (request.resource.data.isPublic == false
+          || (resource.data.isPublic == true
+            || (get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.verificationStatus == 'verified'
+              && request.resource.data.status == 'published')));
     }
 
 
@@ -682,6 +746,28 @@ service cloud.firestore {
 
     // Pengikut hanya dapat ditambahkan oleh akun sendiri untuk warkop terverifikasi.
     // Daftar pengikut boleh dihitung publik; dokumen identitas hanya berisi UID dan waktu.
+    // Menu Spesial: public reads are queryable only when isPublic == true.
+    // Admin writes avoid parent-warung lookups so large moderation batches stay bounded.
+    match /warungMenuItems/{menuItemId} {
+      allow read: if resource.data.isPublic == true
+        || (signedIn() && resource.data.ownerUid == request.auth.uid)
+        || isSuperAdmin();
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.isPublic == false
+        && exists(/databases/$(database)/documents/warungs/$(request.resource.data.warungId))
+        && get(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.ownerUid == request.auth.uid
+        && validMenuItem(request.resource.data, menuItemId);
+      allow update: if isSuperAdmin()
+        ? request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isPublic', 'updatedAt'])
+          && request.resource.data.isPublic is bool
+          && request.resource.data.updatedAt == request.time
+        : (signedIn() && resource.data.ownerUid == request.auth.uid
+          && menuOwnerUpdateIsSafe()
+          && request.resource.data.updatedAt == request.time);
+      allow delete: if false;
+    }
+
     match /warungs/{warungId}/followers/{userId} {
       allow read: if (
         get(/databases/$(database)/documents/warungs/$(warungId)).data.verificationStatus == 'verified'

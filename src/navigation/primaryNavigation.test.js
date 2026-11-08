@@ -6,8 +6,8 @@ describe('PRIMARY_NAVIGATION', () => {
     expect(PRIMARY_NAVIGATION.map(({ label, section }) => [label, section])).toEqual([
       ['Beranda', 'Beranda'],
       ['Cari Warkop', 'Cari Warkop'],
-      ['Obrolan', 'Obrolan'],
-      ['Daftarkan Warkop', 'Daftarkan Warkop'],
+      ['Pesan', 'Pesan'],
+      ['Notifikasi', 'Notifikasi'],
       ['Akun', 'Akun'],
     ]);
   });

@@ -55,6 +55,19 @@ async function approvePendingWarung(db, actorUid) {
   await batch.commit();
 }
 
+async function changeWarungStatus(db, previousStatus, nextStatus, warungId = 'pending-warung') {
+  const batch = writeBatch(db);
+  const auditRef = doc(collection(db, 'verificationAudit'));
+  batch.update(doc(db, `warungs/${warungId}`), {
+    verificationStatus: nextStatus, verificationAuditId: auditRef.id, updatedAt: serverTimestamp(),
+  });
+  batch.set(auditRef, {
+    warungId, warungName: 'Warkop Uji', previousStatus, newStatus: nextStatus,
+    actorUid: OWNER_UID, reason: 'Uji transisi status', createdAt: serverTimestamp(),
+  });
+  await batch.commit();
+}
+
 async function moderateReport(db, actorUid) {
   const batch = writeBatch(db);
   const auditRef = doc(collection(db, 'postReportAudit'));
@@ -72,6 +85,30 @@ async function moderateReport(db, actorUid) {
 describe('platform role claims', () => {
   it('super_admin can verify a warung and create its atomic audit record', async () => {
     await assertSucceeds(approvePendingWarung(asSuperAdmin(), OWNER_UID));
+  });
+
+  it('super_admin can suspend a verified warung and restore a suspended warung with audit records', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'warungs/verified-warung'), {
+        name: 'Warkop Uji', nameNormalized: 'warkop uji', ownerUid: 'member',
+        coordinates: { lat: -7, lng: 112 }, address: 'Jl. Uji No. 1, Lamongan',
+        regionCode: 'lamongan-kab', facilities: [], priceRange: 'hemat', openingHours: {}, photos: [],
+        verificationStatus: 'verified', createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+      });
+      await setDoc(doc(ctx.firestore(), 'warungs/suspended-warung'), {
+        name: 'Warkop Uji', nameNormalized: 'warkop uji', ownerUid: 'member',
+        coordinates: { lat: -7, lng: 112 }, address: 'Jl. Uji No. 1, Lamongan',
+        regionCode: 'lamongan-kab', facilities: [], priceRange: 'hemat', openingHours: {}, photos: [],
+        verificationStatus: 'suspended', createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+      });
+    });
+    await assertSucceeds(changeWarungStatus(asSuperAdmin(), 'verified', 'suspended', 'verified-warung'));
+    await assertSucceeds(changeWarungStatus(asSuperAdmin(), 'suspended', 'verified', 'suspended-warung'));
+  });
+
+  it('suspended warungs are not publicly readable from the directory', async () => {
+    const anon = env.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(anon, 'warungs/pending-warung')));
   });
 
   it('moderator cannot read reports or perform report moderation', async () => {

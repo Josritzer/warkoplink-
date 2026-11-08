@@ -131,9 +131,8 @@ service cloud.firestore {
         && request.resource.data.source == resource.data.source
         && validMenuItem(request.resource.data, resource.id)
         && (request.resource.data.isPublic == false
-          || (resource.data.isPublic == true
-            || (get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.verificationStatus == 'verified'
-              && request.resource.data.status == 'published')));
+          || (get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.verificationStatus == 'verified'
+            && request.resource.data.status == 'published'));
     }
 
 

@@ -249,7 +249,7 @@ describe('kartu direktori warkop', () => {
 
     render(<WarungDirectory mode="directory" user={null} db={{}} {...callbacks} />);
     await screen.findByText(/30 dari 30 tempat yang sudah dimuat/);
-    fireEvent.change(screen.getByRole('textbox', { name: 'Cari warkop' }), { target: { value: 'Kopi Target' } });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Cari warkop' }), { target: { value: 'Kopi Target' } });
 
     expect(await screen.findByText('Belum ada tempat yang cocok.')).toBeTruthy();
     expect(firestore.getDocs).not.toHaveBeenCalled();

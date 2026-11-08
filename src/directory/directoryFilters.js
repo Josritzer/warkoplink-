@@ -121,7 +121,7 @@ export function filterWarungs(items, { search = '', facilities = [], activities 
     const itemFacilities = (Array.isArray(item?.facilities) ? item.facilities : []).map(normalizeSearchText);
     const itemActivities = (Array.isArray(item?.activities) ? item.activities : []).map(normalizeSearchText);
     if (!wantedFacilities.every((facility) => itemFacilities.includes(facility))) return false;
-    if (!wantedActivities.every((activity) => itemActivities.includes(activity))) return false;
+    if (wantedActivities.length && !wantedActivities.some((activity) => itemActivities.includes(activity))) return false;
     if (priceRange !== 'semua' && item?.priceRange !== priceRange) return false;
     if (operational === 'buka-24-jam' && item?.openingHours?.is24Hours !== true) return false;
     if (operational === 'buka-sekarang' && isOpenNow(item, now) !== true) return false;
@@ -137,6 +137,29 @@ export function filterWarungs(items, { search = '', facilities = [], activities 
   });
 }
 
+
+// Mendahulukan kecocokan nama, lalu menu, lokasi, dan metadata lain yang dicari pengguna.
+function searchMatchScore(item, needle) {
+  const name = normalizeSearchText(item?.nameNormalized || item?.name);
+  if (name === needle) return 100;
+  if (name.startsWith(needle)) return 90;
+  if (name.includes(needle)) return 80;
+  const menu = [...(Array.isArray(item?.menuItems) ? item.menuItems : []), ...(Array.isArray(item?.specialties) ? item.specialties : [])].map(normalizeSearchText);
+  if (menu.some((value) => value === needle)) return 70;
+  if (menu.some((value) => value.startsWith(needle))) return 60;
+  if (menu.some((value) => value.includes(needle))) return 50;
+  const locations = [item?.address, item?.villageName, item?.districtName, item?.regencyName, item?.provinceName].map(normalizeSearchText);
+  if (locations.some((value) => value === needle)) return 45;
+  if (locations.some((value) => value.includes(needle))) return 40;
+  const other = [item?.ambience, ...(Array.isArray(item?.facilities) ? item.facilities : []), ...(Array.isArray(item?.activities) ? item.activities : [])].map(normalizeSearchText);
+  return other.some((value) => value.includes(needle)) ? 30 : 0;
+}
+
+export function sortWarungsBySearchRelevance(items, search) {
+  const needle = normalizeSearchText(search);
+  if (!needle) return [...(items || [])];
+  return [...(items || [])].sort((a, b) => searchMatchScore(b, needle) - searchMatchScore(a, needle));
+}
 
 // Number(null), Number('') dan Number(true) bernilai 0/1, sehingga data rusak tampak
 // sebagai koordinat valid. Hanya angka atau string numerik yang diterima.

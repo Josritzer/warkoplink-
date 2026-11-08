@@ -66,6 +66,17 @@ describe('WarungDiscoveryPage', () => {
     expect(screen.getByRole('button', { name: /Menu Spesial/ })).toBeTruthy();
   });
 
+  it('places filter and map controls immediately after search and before discovery sections', () => {
+    render(<WarungDiscoveryPage {...baseProps} />);
+    const search = screen.getByRole('textbox', { name: 'Cari warkop' });
+    const controls = screen.getByRole('group', { name: 'Kontrol pencarian' });
+    const moods = screen.getByRole('group', { name: 'Jelajahi berdasarkan suasana' });
+    expect(search.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(controls.compareDocumentPosition(moods) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(controls).getByRole('button', { name: /Filter/ })).toBeTruthy();
+    expect(within(controls).getByRole('button', { name: /Peta/ })).toBeTruthy();
+  });
+
   it('renders real verified warung cards with their available photo and details', () => {
     render(<WarungDiscoveryPage {...baseProps} visibleWarungs={[{
       id: 'warung-1', name: 'Kopi Senja', address: 'Jl. Merdeka',

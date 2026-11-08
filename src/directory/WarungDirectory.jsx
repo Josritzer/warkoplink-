@@ -3,7 +3,7 @@ import { addDoc, collection, doc, getCountFromServer, getDoc, getDocs, limit, on
 import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { Store, ShieldCheck, LocateFixed } from 'lucide-react';
-import { ACTIVITY_OPTIONS, collectFacilities, collectActivities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, isValidCoordinate, sortWarungsForDiscovery } from './directoryFilters.js';
+import { ACTIVITY_OPTIONS, collectFacilities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, isValidCoordinate, sortWarungsForDiscovery } from './directoryFilters.js';
 import LeafletLocationPicker from './LeafletLocationPicker.jsx';
 import OfficialRegionPicker from './OfficialRegionPicker.jsx';
 import { buildRegionIdentity } from './regionIdentity.js';
@@ -426,7 +426,6 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
     searchTerm={searchTerm}
     onSearchChange={setSearchTerm}
     facilityOptions={facilityOptions}
-    activityOptions={collectActivities(locationScopedWarungs)}
     facilityFilter={facilityFilter}
     activityFilter={activityFilter}
     onToggleFacility={toggleFacility}

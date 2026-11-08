@@ -104,6 +104,20 @@ describe('WarungDiscoveryPage', () => {
     expect(onCategoryChange).toHaveBeenCalledWith('popular');
   });
 
+  it('always shows the complete activity classification and facility section when the loaded directory has no metadata', () => {
+    render(<WarungDiscoveryPage {...baseProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /Filter/ }));
+    const dialog = screen.getByRole('dialog', { name: 'Filter warkop' });
+    expect(within(dialog).getByRole('heading', { name: 'Aktivitas & suasana' })).toBeTruthy();
+    expect(within(dialog).getByText('Kerja & produktivitas')).toBeTruthy();
+    expect(within(dialog).getByText('Ngopi & komunitas')).toBeTruthy();
+    expect(within(dialog).getByText('Hiburan & kegiatan')).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Nobar' })).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Bekerja dengan laptop' })).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Fasilitas yang tersedia' })).toBeTruthy();
+    expect(within(dialog).getByText(/Belum ada fasilitas yang dicantumkan oleh warkop di wilayah ini/)).toBeTruthy();
+  });
+
   it('shows a truthful loaded-result count and keeps load-more explicit', () => {
     render(<WarungDiscoveryPage {...baseProps} visibleWarungs={[]} locationScopedWarungs={[{ id: 'a' }, { id: 'b' }]} hasMore />);
     expect(screen.getByText(/0 dari 2 tempat yang sudah dimuat/)).toBeTruthy();

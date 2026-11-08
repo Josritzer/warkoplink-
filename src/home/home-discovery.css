@@ -749,3 +749,6 @@ html[data-theme="dark"] .home-view .home-activity-meta,
 html[data-theme="dark"] .home-view .home-activity-details,
 html[data-theme="dark"] .home-view .home-event-copy p,
 html[data-theme="dark"] .home-view .home-event-copy small { color: #E0CDB9 !important; }
+
+/* Beranda starts directly at discovery categories; the global header remains on other pages. */
+.home-view > .app-header { display: none !important; }

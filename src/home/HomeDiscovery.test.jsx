@@ -14,7 +14,8 @@ describe('HomeDiscovery', () => {
       posts={[]}
       onOpenWarung={onOpenWarung}
     />);
-    expect(screen.getByRole('heading', { name: 'Temukan tempat singgah, temukan cerita.' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Temukan tempat singgah, temukan cerita.' })).toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Kategori penjelajahan' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Warkop pilihan' })).toBeTruthy();
     expect(screen.getByText('Kopi Maduran')).toBeTruthy();
     expect(screen.getByText('Kopi tubruk')).toBeTruthy();
@@ -41,15 +42,6 @@ describe('HomeDiscovery', () => {
     expect(screen.getByText('Belum ada agenda mendatang')).toBeTruthy();
   });
 
-  it('filters visible warungs using the discovery search field', () => {
-    render(<HomeDiscovery warungs={[
-      { id: 'w1', name: 'Kopi Maduran', verificationStatus: 'verified' },
-      { id: 'w2', name: 'Kedai Kota', verificationStatus: 'verified' }
-    ]} posts={[]} />);
-    fireEvent.change(screen.getByRole('textbox', { name: 'Cari warkop, menu, atau kegiatan' }), { target: { value: 'maduran' } });
-    expect(screen.getByText('Kopi Maduran')).toBeTruthy();
-    expect(screen.queryByText('Kedai Kota')).toBeNull();
-  });
   it('scopes the warkop preview to the selected region before applying the preview limit', () => {
     render(<HomeDiscovery location={{ mode: 'region', label: 'Surabaya', query: 'surabaya' }} warungs={[
       { id: 'w1', name: 'Kopi Maduran', regencyName: 'Kabupaten Lamongan' },
@@ -74,15 +66,12 @@ describe('Coffee Culture home visual system', () => {
     expect(styles).toContain('home-view .home-explore-categories button');
   });
 
-  it('places a real coffee photograph behind a translucent glass hero copy surface', () => {
-    expect(styles).toContain('photo-1442512595331-e89e73853f31');
-    expect(styles).toContain('backdrop-filter: blur(14px) saturate(125%)');
-    expect(styles).toContain('rgba(33,26,22,.36)');
+  it('removes the global header on Beranda without hiding it on other pages', () => {
+    expect(styles).toContain('.home-view > .app-header { display: none !important; }');
   });
 
-  it('keeps the hero and discovery photography proportionate on mobile widths', () => {
-    expect(styles).toContain('min-height: 470px');
-    expect(styles).toContain('aspect-ratio: .94');
-    expect(styles).toContain('@media (max-width: 380px)');
+  it('does not reserve hero space before discovery categories', () => {
+    expect(styles).toContain('home-view .home-explore-categories');
+    expect(styles).toContain('.home-view > .app-header { display: none !important; }');
   });
 });

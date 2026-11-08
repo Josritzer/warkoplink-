@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, ArrowUpRight, CalendarDays, Clock3, MapPin, Search, ShieldCheck, SlidersHorizontal, Store, Users, Utensils, Video } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarDays, Clock3, MapPin, ShieldCheck, Store, Users, Utensils, Video } from 'lucide-react';
 import { isOpenNow } from '../directory/directoryFilters.js';
 import { buildHomeDiscoveryData, getHomeActivityStatus } from './homeDiscoveryModel.js';
 import { filterWarungsByLocation } from './locationDiscovery.js';
@@ -18,15 +18,6 @@ function eventDateLabel(value) {
   return new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date);
 }
 
-function searchableText(record) {
-  return [
-    record?.name, record?.address, record?.regencyName, record?.districtName,
-    ...(Array.isArray(record?.specialties) ? record.specialties : []),
-    ...(Array.isArray(record?.menuItems) ? record.menuItems : []),
-    record?.body, record?.eventKind, record?.postType, record?.location
-  ].filter(Boolean).join(' ').toLocaleLowerCase('id-ID');
-}
-
 function SectionHeading({ eyebrow, title, description, action, onAction }) {
   return <div className="home-discovery-heading">
     <div><span className="home-discovery-eyebrow">{eyebrow}</span><h2>{title}</h2>{description && <p>{description}</p>}</div>
@@ -35,11 +26,9 @@ function SectionHeading({ eyebrow, title, description, action, onAction }) {
 }
 
 export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 'ready', location = { mode: 'all' }, onOpenWarung, onOpenPost, onOpenDirectory, onOpenCommunity }) {
-  const [search, setSearch] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
   const data = useMemo(() => buildHomeDiscoveryData(warungs, posts), [warungs, posts]);
-  const needle = search.trim().toLocaleLowerCase('id-ID');
-  const visibleWarungs = useMemo(() => filterWarungsByLocation(data.warungs, location).filter(item => !needle || searchableText(item).includes(needle)).slice(0, 8), [data.warungs, location, needle]);
+  const visibleWarungs = useMemo(() => filterWarungsByLocation(data.warungs, location).slice(0, 8), [data.warungs, location]);
   const visibleActivities = useMemo(() => data.activities.filter(item => {
     const status = getHomeActivityStatus(item);
     if (activityFilter === 'ongoing' && status !== 'ongoing') return false;
@@ -49,25 +38,16 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
       if (!Number.isFinite(start.getTime()) || start.toDateString() !== now.toDateString()) return false;
     }
     if (activityFilter === 'scheduled' && status !== 'scheduled') return false;
-    return !needle || searchableText(item).includes(needle);
-  }), [data.activities, activityFilter, needle]);
-  const visibleEvents = useMemo(() => data.events.filter(item => !needle || searchableText(item).includes(needle)), [data.events, needle]);
-  const visibleReels = useMemo(() => data.reels.filter(item => !needle || searchableText(item).includes(needle)), [data.reels, needle]);
+    return true;
+  }), [data.activities, activityFilter]);
+  const visibleEvents = data.events;
+  const visibleReels = data.reels;
 
   function scrollTo(id) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   return <div className="home-discovery" aria-label="Jelajahi WarkopLink">
-    <section className="home-discovery-hero" aria-label="Pencarian WarkopLink">
-      <div className="home-discovery-hero-copy">
-        <span className="home-discovery-eyebrow">WARKOPLINK · LOCAL DISCOVERY</span>
-        <h1 id="home-discovery-title">Temukan tempat singgah, <em>temukan cerita.</em></h1>
-        <p>Jelajahi warkop, menu spesial, aktivitas, dan komunitas dari berbagai daerah di Indonesia.</p>
-        <label className="home-discovery-search"><Search size={21}/><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Cari warkop, menu, atau kegiatan…" aria-label="Cari warkop, menu, atau kegiatan"/>{search && <button type="button" onClick={() => setSearch('')} aria-label="Hapus pencarian">×</button>}<button className="home-search-filter" type="button" onClick={onOpenDirectory} aria-label="Buka filter pencarian"><SlidersHorizontal size={21}/></button></label>
-      </div>
-    </section>
-
     <nav className="home-explore-categories" aria-label="Kategori penjelajahan">
       {CATEGORIES.map(({ label, icon: Icon, target }) => <button key={label} type="button" onClick={() => label === 'Komunitas' ? onOpenCommunity?.() : scrollTo(target)}><span><Icon size={20}/></span><b>{label}</b><small>{label === 'Warkop' ? 'Temukan tempat' : label === 'Menu' ? 'Menu spesial' : label === 'Komunitas' ? 'Cerita warga' : 'Agenda lokal'}</small></button>)}
     </nav>
@@ -89,7 +69,7 @@ export default function HomeDiscovery({ warungs = [], posts = [], postsStatus = 
             <button className="home-card-action" type="button" onClick={() => onOpenWarung?.(warung.id)}>Lihat profil <ArrowUpRight size={14}/></button>
           </div>
         </article>;
-      })}</div> : <div className="home-discovery-empty"><Store size={22}/><b>{needle ? 'Warkop tidak ditemukan' : 'Belum ada warkop untuk ditampilkan'}</b><span>{needle ? 'Coba kata kunci lain.' : 'Warkop terverifikasi akan muncul di sini.'}</span></div>}
+      })}</div> : <div className="home-discovery-empty"><Store size={22}/><b>{'Belum ada warkop untuk ditampilkan'}</b><span>{'Warkop terverifikasi akan muncul di sini.'}</span></div>}
     </section>
 
     <section className="home-discovery-section" id="home-activities">

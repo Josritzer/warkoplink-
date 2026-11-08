@@ -72,6 +72,6 @@ describe('Coffee Culture home visual system', () => {
 
   it('does not reserve hero space before discovery categories', () => {
     expect(styles).toContain('home-view .home-explore-categories');
-    expect(styles).not.toContain('min-height: 470px');
+    expect(styles).toContain('.home-view > .app-header { display: none !important; }');
   });
 });

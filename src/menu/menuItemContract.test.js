@@ -47,10 +47,12 @@ describe('Menu Spesial data contract', () => {
   it('normalizes repeated spaces and excessive punctuation', () => {
     expect(normalizeMenuName('  Kopi---   Susu!!! @@@ ')).toBe('kopi susu');
     expect(normalizeMenuName('!!!')).toBe('');
+    expect(validateMenuItem(validMenuItem({ name: '!!!', nameNormalized: '' })).valid).toBe(false);
   });
   it('builds unique search tokens within the configured limit', () => {
     expect(buildMenuSearchTokens(['Kopi Susu', 'kopi gula aren', 'Signature'], 4)).toEqual(['kopi', 'susu', 'gula', 'aren']);
     expect(buildMenuSearchTokens('Kopi Susu')).toEqual(['kopi', 'susu']);
+    expect(buildMenuSearchTokens('Kopi Susu', 0)).toEqual([]);
   });
   it('creates the same SHA-256 ID for equivalent normalized names', async () => {
     const first = await createLegacyMenuItemId('warung-1', 'Kopi Susu');

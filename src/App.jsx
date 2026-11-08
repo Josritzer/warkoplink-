@@ -46,6 +46,8 @@ const PRIMARY_NAVIGATION_ICONS = Object.freeze({
   home: Home,
   compass: Compass,
   'message-circle': MessageCircle,
+  'message-square': MessageSquare,
+  bell: Bell,
   store: Store,
   'user-round': UserRound,
 });
@@ -1441,15 +1443,13 @@ export default function App() {
         <nav className="sidebar-nav" aria-label="Navigasi utama">
           {PRIMARY_NAVIGATION.map(item => {
             const NavigationIcon = PRIMARY_NAVIGATION_ICONS[item.icon];
-            return <button key={item.section} type="button" aria-label={`Desktop: ${item.label}`} aria-current={section === item.section ? 'page' : undefined} className={section === item.section ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { navigateSection(item.section); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+            return <button key={item.section} type="button" aria-label={`Desktop: ${item.label}`} aria-current={section === item.section ? 'page' : undefined} className={section === item.section ? 'sidebar-nav-item active' : 'sidebar-nav-item'} onClick={() => { if (item.section === 'Pesan') setMessageInitialTab('pribadi'); navigateSection(item.section); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
               <NavigationIcon size={18}/><span>{item.label}</span>
             </button>;
           })}
         </nav>
         <div className="sidebar-secondary-nav" aria-label="Aktivitas dan kategori">
           <span className="sidebar-group-label">AKTIVITAS</span>
-          <button type="button" aria-label="Pesan pribadi" className={section === 'Pesan' ? 'sidebar-nav-item sidebar-nav-item-secondary active' : 'sidebar-nav-item sidebar-nav-item-secondary'} onClick={() => { setMessageInitialTab('pribadi'); navigateSection('Pesan'); window.scrollTo({ top: 0, behavior: 'auto' }); }}><MessageSquare size={17}/><span>Pesan</span></button>
-          <button type="button" aria-label="Notifikasi" className={section === 'Notifikasi' ? 'sidebar-nav-item sidebar-nav-item-secondary active' : 'sidebar-nav-item sidebar-nav-item-secondary'} onClick={() => navigateSection('Notifikasi')}><Bell size={17}/><span>Notifikasi</span>{notificationCount > 0 && <span className="notification-nav-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}</button>
           <span className="sidebar-group-label">JELAJAHI</span>
           <button type="button" aria-label="Desktop: Agenda & acara" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={17}/><span>Agenda & acara</span></button>
           <button type="button" aria-label="Desktop: Jual beli & jasa" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={17}/><span>Jual beli</span></button>
@@ -1547,7 +1547,7 @@ export default function App() {
     <nav className="bottom-nav" aria-label="Navigasi aplikasi">
       {PRIMARY_NAVIGATION.map(item => {
         const NavigationIcon = PRIMARY_NAVIGATION_ICONS[item.icon];
-        return <button key={item.section} type="button" className={section === item.section ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => navigateSection(item.section)} aria-current={section === item.section ? 'page' : undefined} aria-label={item.label}>
+        return <button key={item.section} type="button" className={section === item.section ? 'bottom-nav-item active' : 'bottom-nav-item'} onClick={() => { if (item.section === 'Pesan') setMessageInitialTab('pribadi'); navigateSection(item.section); }} aria-current={section === item.section ? 'page' : undefined} aria-label={item.label}>
           <NavigationIcon size={20}/><span>{item.label}</span>
         </button>;
       })}

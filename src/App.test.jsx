@@ -180,10 +180,10 @@ describe('navigasi utama dan halaman pesan', () => {
     render(<App />);
     const nav = screen.getByRole('navigation', { name: 'Navigasi aplikasi' });
     const labels = within(nav).getAllByRole('button').map(button => button.textContent.trim());
-    expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Obrolan', 'Daftarkan Warkop', 'Akun']);
+    expect(labels).toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
     const desktopNav = screen.getByRole('navigation', { name: 'Navigasi utama' });
     expect(within(desktopNav).getAllByRole('button').map(button => button.textContent.trim()))
-      .toEqual(['Beranda', 'Cari Warkop', 'Obrolan', 'Daftarkan Warkop', 'Akun']);
+      .toEqual(['Beranda', 'Cari Warkop', 'Pesan', 'Notifikasi', 'Akun']);
     expect(screen.getByRole('button', { name: 'Buka pesan pribadi' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Buka notifikasi' })).toBeTruthy();
   });

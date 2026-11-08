@@ -1448,8 +1448,7 @@ export default function App() {
             </button>;
           })}
         </nav>
-        <div className="sidebar-secondary-nav" aria-label="Aktivitas dan kategori">
-          <span className="sidebar-group-label">AKTIVITAS</span>
+        <div className="sidebar-secondary-nav" aria-label="Kategori tambahan">
           <span className="sidebar-group-label">JELAJAHI</span>
           <button type="button" aria-label="Desktop: Agenda & acara" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Info & Acara'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><BookOpen size={17}/><span>Agenda & acara</span></button>
           <button type="button" aria-label="Desktop: Jual beli & jasa" className="sidebar-nav-item sidebar-nav-item-secondary" onClick={() => { navigateSection('Obrolan'); setTopic('Jual Beli'); setSearch(''); window.scrollTo({ top: 0, behavior: 'auto' }); }}><Store size={17}/><span>Jual beli</span></button>

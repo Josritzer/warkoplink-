@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateDistanceKm, collectActivities, collectFacilities, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, isValidCoordinate, normalizeSearchText, sortWarungsForDiscovery } from './directoryFilters.js';
+import { calculateDistanceKm, collectActivities, collectFacilities, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, isValidCoordinate, normalizeSearchText, sortWarungsForDiscovery, sortWarungsBySearchRelevance } from './directoryFilters.js';
 
 const items = [
   { id: '1', name: 'Warkop Pojok', address: 'Jl. Kembangbahu, Lamongan', facilities: ['Wi-Fi', 'parkir'], priceRange: 'hemat' },
@@ -49,6 +49,15 @@ describe('directoryFilters', () => {
     expect(filterWarungs(rich, { search: 'mi nyemek' }).map((item) => item.id)).toEqual(['special']);
   });
 
+  it('mengurutkan nama tepat dan awalan nama sebelum kecocokan menu', () => {
+    const matches = [
+      { id: 'menu', name: 'Warkop Pojok', specialties: ['Kopi Rempah'] },
+      { id: 'prefix', name: 'Kopi Rempah Pojok' },
+      { id: 'exact', name: 'Kopi Rempah' },
+    ];
+    expect(sortWarungsBySearchRelevance(matches, 'kopi rempah').map((item) => item.id)).toEqual(['exact', 'prefix', 'menu']);
+  });
+
   it('fasilitas terpilih harus terpenuhi semuanya', () => {
     expect(filterWarungs(items, { facilities: ['wi-fi'] }).map((i) => i.id)).toEqual(['1', '2']);
     expect(filterWarungs(items, { facilities: ['wi-fi', 'parkir'] }).map((i) => i.id)).toEqual(['1']);
@@ -90,15 +99,18 @@ describe('directoryFilters', () => {
     expect(collectFacilities([{ id: 'x' }, null])).toEqual([]);
   });
 
-  it('memfilter aktivitas berdasarkan field eksplisit dan menggabungkan filter', () => {
+  it('mencocokkan salah satu aktivitas terpilih dan tetap menggabungkan fasilitas dengan AND', () => {
     const withActivities = [
       { id: 'a', name: 'Warkop Bola', activities: ['nobar', 'komunitas', 'olahraga'] },
       { id: 'b', name: 'Kopi Laptop', activities: ['kerja-laptop'], facilities: ['Wi-Fi'] },
-      { id: 'c', name: 'Warung Gim', activities: ['gim'] }
+      { id: 'c', name: 'Warung Gim', activities: ['gim'] },
+      { id: 'd', name: 'Warkop Nongkrong', activities: ['gim'], facilities: ['Wi-Fi'] }
     ];
     expect(filterWarungs(withActivities, { activities: ['nobar'] }).map((item) => item.id)).toEqual(['a']);
     expect(filterWarungs(withActivities, { activities: ['olahraga'] }).map((item) => item.id)).toEqual(['a']);
     expect(filterWarungs(withActivities, { activities: ['komunitas', 'nobar'] }).map((item) => item.id)).toEqual(['a']);
+    expect(filterWarungs(withActivities, { activities: ['nobar', 'gim'] }).map((item) => item.id)).toEqual(['a', 'c', 'd']);
+    expect(filterWarungs(withActivities, { activities: ['nobar', 'gim'], facilities: ['Wi-Fi'] }).map((item) => item.id)).toEqual(['d']);
     expect(filterWarungs(withActivities, { activities: ['nobar'], search: 'laptop' })).toEqual([]);
     expect(collectActivities(withActivities).map((item) => item.key)).toEqual(['nobar', 'komunitas', 'gim', 'kerja-laptop', 'olahraga']);
   });

@@ -3,7 +3,7 @@ import { addDoc, collection, doc, getCountFromServer, getDoc, getDocs, limit, on
 import { photoUploadErrorMessage, uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { MAX_WARUNG_PHOTOS, validateImageFiles } from '../media/imagePolicy.js';
 import { Store, ShieldCheck, LocateFixed } from 'lucide-react';
-import { ACTIVITY_OPTIONS, collectFacilities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, isValidCoordinate, sortWarungsForDiscovery } from './directoryFilters.js';
+import { ACTIVITY_OPTIONS, collectFacilities, calculateDistanceKm, filterWarungs, isCurrentOrUpcomingEvent, isOpenNow, isValidCoordinate, sortWarungsForDiscovery, sortWarungsBySearchRelevance } from './directoryFilters.js';
 import LeafletLocationPicker from './LeafletLocationPicker.jsx';
 import OfficialRegionPicker from './OfficialRegionPicker.jsx';
 import { buildRegionIdentity } from './regionIdentity.js';
@@ -409,10 +409,13 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
   const sortedWarungs = sort === 'distance' && effectiveVisitorLocation
     ? [...categoryWarungs].sort((a, b) => (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity))
     : categoryWarungs;
-  const visibleWarungs = filterWarungs(sortedWarungs, {
+  const matchingWarungs = filterWarungs(sortedWarungs, {
     search: debouncedSearchTerm, facilities: facilityFilter, activities: activityFilter,
     operational: operationalFilter, priceRange: 'semua', now
   });
+  const visibleWarungs = debouncedSearchTerm.trim() && sort === 'relevance' && discoveryCategory === 'all'
+    ? sortWarungsBySearchRelevance(matchingWarungs, debouncedSearchTerm)
+    : matchingWarungs;
   function toggleFacility(key) {
     dispatchDiscovery({ type: 'TOGGLE_FACILITY', value: key });
   }
@@ -425,6 +428,7 @@ export default function WarungDirectory({ mode, user, db, location = DEFAULT_LOC
     onCategoryChange={selectDiscoveryCategory}
     searchTerm={searchTerm}
     onSearchChange={setSearchTerm}
+    onSearchSubmit={(value) => setDebouncedSearchTerm(typeof value === 'string' ? value : searchTerm)}
     facilityOptions={facilityOptions}
     facilityFilter={facilityFilter}
     activityFilter={activityFilter}

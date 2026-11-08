@@ -66,20 +66,25 @@ export default function WarungDiscoveryPage({
       <div className="wl-discovery-hero-content">
         <span className="wl-discovery-eyebrow"><Coffee size={14}/> WARKOPLINK · COFFEE DISCOVERY</span>
         <h1>{category === 'specialties' ? <>Temukan menu <em>andalan.</em></> : <>Temukan tempat singgah<span>.</span></>}</h1>
-        <p>{category === 'specialties' ? 'Jelajahi racikan kopi dan hidangan khas dari warkop terverifikasi di wilayah pilihan Anda.' : 'Ruang untuk menikmati kopi, menemukan suasana, dan mengenal tempat lokal di seluruh Indonesia.'}</p>
+        <p>{category === 'specialties' ? 'Racikan kopi dan hidangan pilihan dari warkop terverifikasi di wilayah Anda.' : 'Temukan kopi, suasana, dan cerita lokal—dari kota Anda hingga seluruh Indonesia.'}</p>
         <label className="wl-discovery-search">
           <Search size={19} aria-hidden="true"/>
           <input value={searchTerm} onChange={(event) => onSearchChange(event.target.value)} placeholder={category === 'specialties' ? "Cari nama menu atau warkop…" : "Cari warkop, menu, suasana, atau lokasi…"} aria-label={category === 'specialties' ? "Cari menu spesial atau warkop" : "Cari warkop"}/>
           <span className="wl-discovery-search-hint">Cari</span>
         </label>
-        <div className="wl-discovery-region"><MapPin size={15}/><span>Menjelajah: <strong>{countLabel}</strong></span></div>
+        <div className="wl-discovery-region" aria-label={`Wilayah penjelajahan: ${countLabel}`}><MapPin size={15}/><span>Menjelajah <strong>{countLabel}</strong></span></div>
       </div>
-      <div className="wl-discovery-hero-index"><span>01</span><i/> DISCOVER LOCAL COFFEE CULTURE</div>
+      <div className="wl-discovery-hero-index"><span>01</span><i/> KOPI LOKAL, CERITA DEKAT</div>
     </section>
+
+    <div className="wl-discovery-result-actions wl-discovery-quick-actions" role="group" aria-label="Kontrol pencarian">
+      <button type="button" className="wl-discovery-filter-toggle" onClick={() => setFiltersOpen(true)} aria-expanded={filtersOpen}><SlidersHorizontal size={16}/> Filter{hasActiveFilter && <i className="wl-discovery-filter-active-dot" aria-label="Filter aktif"/>}</button>
+      <button type="button" className="wl-discovery-view-toggle" onClick={onToggleMap} aria-pressed={mapViewOpen}>{mapViewOpen ? <><List size={16}/> Daftar</> : <><MapIcon size={16}/> Peta</>}</button>
+    </div>
 
     <section className="wl-discovery-section wl-discovery-moods">
       <div className="wl-discovery-section-heading">
-        <div><span className="wl-discovery-kicker">MULAI DARI SUASANA</span><h2>Hari ini ingin ke mana?</h2></div>
+        <div><span className="wl-discovery-kicker">MULAI DARI SUASANA</span><h2>Ngopi dengan suasana apa?</h2></div>
         <span className="wl-discovery-muted">Pilih pengalaman</span>
       </div>
       <div className="wl-discovery-mood-rail" role="group" aria-label="Jelajahi berdasarkan suasana">
@@ -95,8 +100,8 @@ export default function WarungDiscoveryPage({
 
     {featured.length > 0 && !mapViewOpen && category !== 'specialties' && <section className="wl-discovery-section wl-discovery-featured">
       <div className="wl-discovery-section-heading">
-        <div><span className="wl-discovery-kicker">DARI DIREKTORI WARKOP</span><h2>Kenali tempat lokal.</h2></div>
-        <span className="wl-discovery-muted">Dari warkop terverifikasi</span>
+        <div><span className="wl-discovery-kicker">PILIHAN KAMI</span><h2>Singgah yang berkesan.</h2></div>
+        <span className="wl-discovery-muted">Warkop terverifikasi</span>
       </div>
       <div className="wl-discovery-featured-grid">
         {featured.map((warung, index) => {
@@ -113,8 +118,7 @@ export default function WarungDiscoveryPage({
 
     <section className="wl-discovery-section wl-discovery-results">
       <div className="wl-discovery-section-heading">
-        <div><span className="wl-discovery-kicker">{category === 'specialties' ? 'SIGNATURE MENU DISCOVERY' : 'DISCOVER MORE'}</span><h2>{category === 'specialties' ? 'Menu andalan di sekitar Anda.' : 'Jelajahi warkop.'}</h2><p>{category === 'specialties' ? 'Temukan hidangan dan racikan yang benar-benar dicantumkan oleh pemilik warkop.' : 'Tempat terverifikasi dengan informasi yang tersedia.'}</p></div>
-        <div className="wl-discovery-result-actions"><button type="button" className="wl-discovery-filter-toggle" onClick={() => setFiltersOpen(true)} aria-expanded={filtersOpen}><SlidersHorizontal size={16}/> Filter</button><button type="button" className="wl-discovery-view-toggle" onClick={onToggleMap} aria-pressed={mapViewOpen}>{mapViewOpen ? <><List size={16}/> Daftar</> : <><MapIcon size={16}/> Peta</>}</button></div>
+        <div><span className="wl-discovery-kicker">{category === 'specialties' ? 'MENU PILIHAN PEMILIK' : 'TEMUKAN TEMPAT LOKAL'}</span><h2>{category === 'specialties' ? 'Menu andalan di sekitar Anda.' : 'Warkop pilihan untuk disinggahi.'}</h2><p>{category === 'specialties' ? 'Menu yang dicantumkan langsung oleh pemilik warkop.' : 'Tempat terverifikasi dengan informasi yang tersedia.'}</p></div>
       </div>
       {category === 'specialties' && <div className="wl-specialty-discovery-intro">
         <div className="wl-specialty-discovery-copy">
@@ -131,7 +135,7 @@ export default function WarungDiscoveryPage({
       {filtersOpen && <button type="button" className="wl-discovery-filter-backdrop" aria-label="Tutup filter" onClick={() => setFiltersOpen(false)}/>}
       {filtersOpen && <div className="wl-discovery-filter-panel" role="dialog" aria-modal="true" aria-label="Filter warkop">
         <div className="wl-discovery-filter-panel-head">
-          <div><span className="wl-discovery-kicker">DISCOVERY PREFERENCES</span><strong>Atur pencarian warkop</strong><p>Temukan tempat berdasarkan kebutuhan dan pengalaman Anda.</p></div>
+          <div><span className="wl-discovery-kicker">SESUAIKAN PENCARIAN</span><strong>Atur preferensi Anda</strong><p>Temukan tempat berdasarkan kebutuhan dan suasana yang dicari.</p></div>
           <button type="button" aria-label="Tutup filter" onClick={() => setFiltersOpen(false)}><X size={18}/></button>
         </div>
         <section className="wl-discovery-filter-group wl-discovery-category-group">

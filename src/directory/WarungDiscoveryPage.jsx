@@ -156,14 +156,14 @@ export default function WarungDiscoveryPage({
             <div className="wl-discovery-select-control"><SlidersHorizontal size={16}/><select aria-label="Urutkan warkop" value={sort} onChange={(event) => onSortChange(event.target.value)}><option value="relevance">Paling relevan</option><option value="distance" disabled={!hasLocation}>Jarak terdekat</option></select></div>
           </section>
         </div>
-        {<section className="wl-discovery-filter-group wl-discovery-filter-classifications">
+        <section className="wl-discovery-filter-group wl-discovery-filter-classifications">
           <div className="wl-discovery-filter-title"><h3>Aktivitas & suasana</h3><span>SESUAIKAN VIBE</span></div>
           {activityGroups.map((group) => <div className="wl-discovery-filter-subgroup" key={group.key}>
             <strong>{group.label}</strong><div className="wl-discovery-filter-chips">
               {group.options.map((item) => <button type="button" key={item.key} className={activityFilter.includes(item.key) ? 'active' : ''} aria-pressed={activityFilter.includes(item.key)} onClick={() => onToggleActivity(item.key)}>{item.label}</button>)}
             </div>
           </div>)}
-        </section>}
+        </section>
         <section className="wl-discovery-filter-group wl-discovery-facility-group">
           <div className="wl-discovery-filter-title"><h3>Fasilitas yang tersedia</h3><span>FASILITAS</span></div>
           {facilityOptions.length > 0 ? <><p>Pilihan diurutkan berdasarkan jumlah warkop yang memilikinya.</p><div className="wl-discovery-filter-chips">{facilityOptions.map((item) => <button type="button" key={item.key} className={facilityFilter.includes(item.key) ? 'active' : ''} aria-pressed={facilityFilter.includes(item.key)} onClick={() => onToggleFacility(item.key)}>{item.label}<small>{item.count}</small></button>)}</div></> : <p className="wl-discovery-filter-empty" role="status">Belum ada fasilitas yang dicantumkan oleh warkop di wilayah ini. Pilihan fasilitas akan muncul setelah pemilik melengkapi profil warkop.</p>}

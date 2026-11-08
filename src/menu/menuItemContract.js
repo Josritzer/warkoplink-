@@ -35,6 +35,7 @@ export function normalizeMenuName(value) {
 
 export function buildMenuSearchTokens(values, limit = MAX_MENU_SEARCH_TOKENS) {
   const maxTokens = Number.isInteger(limit) ? Math.min(MAX_MENU_SEARCH_TOKENS, Math.max(0, limit)) : MAX_MENU_SEARCH_TOKENS;
+  if (maxTokens === 0) return [];
   const sourceValues = Array.isArray(values) ? values : [values];
   const tokens = [];
   const seen = new Set();
@@ -89,7 +90,7 @@ export function validateMenuItem(input) {
   if (!hasText(data.warungId)) errors.push('warungId wajib berupa teks.');
   if (!hasText(data.ownerUid)) errors.push('ownerUid wajib berupa teks.');
   if (typeof data.name !== 'string' || data.name.trim().length < 2 || data.name.trim().length > 80) errors.push('name harus 2–80 karakter.');
-  if (typeof data.nameNormalized !== 'string' || data.nameNormalized !== normalizeMenuName(data.name)) errors.push('nameNormalized harus sesuai hasil normalisasi name.');
+  if (typeof data.nameNormalized !== 'string' || !data.nameNormalized || data.nameNormalized !== normalizeMenuName(data.name)) errors.push('nameNormalized harus sesuai hasil normalisasi name dan tidak boleh kosong.');
   if (typeof data.description !== 'string' || data.description.length > 300) errors.push('description wajib berupa teks maksimal 300 karakter.');
   if (!MENU_CATEGORY_IDS.includes(data.categoryId)) errors.push('categoryId tidak termasuk kategori resmi.');
   if (!Array.isArray(data.tags) || data.tags.some((tag) => !MENU_TAGS.includes(tag))) errors.push('tags harus berupa daftar tag resmi.');

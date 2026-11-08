@@ -30,7 +30,7 @@ function locationLabel(warung) {
 
 export default function WarungDiscoveryPage({
   location, category, onCategoryChange, searchTerm, onSearchChange,
-  facilityOptions, activityOptions, facilityFilter, activityFilter,
+  facilityOptions, facilityFilter, activityFilter,
   onToggleFacility, onToggleActivity, operationalFilter, onOperationalChange,
   sort, onSortChange, hasLocation, hasActiveFilter, onResetFilters, status, visibleWarungs,
   locationScopedWarungs, locationStatus, effectiveVisitorLocation,
@@ -43,7 +43,7 @@ export default function WarungDiscoveryPage({
   const heroPhoto = photoFor(heroWarung);
   const featured = visibleWarungs.slice(0, 3);
   const specialtyMenuOptions = collectSpecialtyMenuOptions(locationScopedWarungs);
-  const activityGroups = groupActivityOptions(activityOptions);
+  const activityGroups = groupActivityOptions(ACTIVITY_OPTIONS.map(({ value, label }) => ({ key: value, label })));
   const countLabel = location?.mode && location.mode !== 'all'
     ? (location.label || location.query || 'Wilayah pilihan')
     : 'Seluruh Indonesia';
@@ -156,19 +156,18 @@ export default function WarungDiscoveryPage({
             <div className="wl-discovery-select-control"><SlidersHorizontal size={16}/><select aria-label="Urutkan warkop" value={sort} onChange={(event) => onSortChange(event.target.value)}><option value="relevance">Paling relevan</option><option value="distance" disabled={!hasLocation}>Jarak terdekat</option></select></div>
           </section>
         </div>
-        {activityGroups.length > 0 && <section className="wl-discovery-filter-group wl-discovery-filter-classifications">
+        <section className="wl-discovery-filter-group wl-discovery-filter-classifications">
           <div className="wl-discovery-filter-title"><h3>Aktivitas & suasana</h3><span>SESUAIKAN VIBE</span></div>
           {activityGroups.map((group) => <div className="wl-discovery-filter-subgroup" key={group.key}>
             <strong>{group.label}</strong><div className="wl-discovery-filter-chips">
               {group.options.map((item) => <button type="button" key={item.key} className={activityFilter.includes(item.key) ? 'active' : ''} aria-pressed={activityFilter.includes(item.key)} onClick={() => onToggleActivity(item.key)}>{item.label}</button>)}
             </div>
           </div>)}
-        </section>}
-        {facilityOptions.length > 0 && <section className="wl-discovery-filter-group wl-discovery-facility-group">
+        </section>
+        <section className="wl-discovery-filter-group wl-discovery-facility-group">
           <div className="wl-discovery-filter-title"><h3>Fasilitas yang tersedia</h3><span>FASILITAS</span></div>
-          <p>Pilihan diurutkan berdasarkan jumlah warkop yang memilikinya.</p>
-          <div className="wl-discovery-filter-chips">{facilityOptions.map((item) => <button type="button" key={item.key} className={facilityFilter.includes(item.key) ? 'active' : ''} aria-pressed={facilityFilter.includes(item.key)} onClick={() => onToggleFacility(item.key)}>{item.label}<small>{item.count}</small></button>)}</div>
-        </section>}
+          {facilityOptions.length > 0 ? <><p>Pilihan diurutkan berdasarkan jumlah warkop yang memilikinya.</p><div className="wl-discovery-filter-chips">{facilityOptions.map((item) => <button type="button" key={item.key} className={facilityFilter.includes(item.key) ? 'active' : ''} aria-pressed={facilityFilter.includes(item.key)} onClick={() => onToggleFacility(item.key)}>{item.label}<small>{item.count}</small></button>)}</div></> : <p className="wl-discovery-filter-empty" role="status">Belum ada fasilitas yang dicantumkan oleh warkop di wilayah ini. Pilihan fasilitas akan muncul setelah pemilik melengkapi profil warkop.</p>}
+        </section>
         <div className="wl-discovery-filter-footer">
           {hasActiveFilter && <button type="button" className="wl-discovery-filter-reset" onClick={onResetFilters}>Reset semua filter</button>}
           <button type="button" className="wl-discovery-filter-done" onClick={() => setFiltersOpen(false)}>Tampilkan hasil pencarian</button>

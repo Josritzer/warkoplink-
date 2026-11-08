@@ -100,3 +100,14 @@
   .wl-discovery-filter-title h3 { font-size:.86rem; }
 }
 @media (prefers-reduced-motion:reduce) { .wl-discovery-category-grid button { transition:none; } }
+
+.wl-discovery-filter-empty {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px dashed rgba(152, 97, 59, .32);
+  border-radius: 12px;
+  color: var(--wl-muted, #8b7869);
+  background: rgba(197, 138, 82, .07);
+  font-size: .86rem;
+  line-height: 1.55;
+}

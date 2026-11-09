@@ -54,6 +54,7 @@ service cloud.firestore {
     function validAdminDecision(warungId, data) {
       let previousStatus = resource.data.verificationStatus;
       let nextStatus = data.verificationStatus;
+      let audit = getAfter(auditPath(data.get('verificationAuditId', ''))).data;
       return isSuperAdmin()
         && ((previousStatus == 'pending' && nextStatus in ['verified', 'rejected'])
           || (previousStatus == 'verified' && nextStatus == 'suspended')
@@ -67,12 +68,43 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'verificationStatus', 'verificationAuditId', 'updatedAt'
         ])
-        && getAfter(auditPath(data.verificationAuditId)).data.warungId == warungId
-        && getAfter(auditPath(data.verificationAuditId)).data.previousStatus == previousStatus
-        && getAfter(auditPath(data.verificationAuditId)).data.newStatus == nextStatus
-        && getAfter(auditPath(data.verificationAuditId)).data.warungName == resource.data.name
-        && getAfter(auditPath(data.verificationAuditId)).data.actorUid == request.auth.uid
-        && getAfter(auditPath(data.verificationAuditId)).data.createdAt == request.time;
+        && audit.warungId == warungId
+        && audit.previousStatus == previousStatus
+        && audit.newStatus == nextStatus
+        && audit.warungName == resource.data.name
+        && audit.actorUid == request.auth.uid
+        && audit.createdAt == request.time;
+    }
+
+    function validVerificationAudit(auditId, data) {
+      let warungPath = /databases/$(database)/documents/warungs/$(data.warungId);
+      let previousStatus = data.previousStatus;
+      let nextStatus = data.newStatus;
+      let warungBefore = get(warungPath).data;
+      let warungAfter = getAfter(warungPath).data;
+      return isSuperAdmin()
+        && data.keys().hasAll([
+          'warungId', 'warungName', 'previousStatus', 'newStatus',
+          'actorUid', 'reason', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'warungId', 'warungName', 'previousStatus', 'newStatus',
+          'actorUid', 'reason', 'createdAt'
+        ])
+        && data.warungId is string
+        && data.warungName is string
+        && data.warungName == warungBefore.name
+        && ((previousStatus == 'pending' && nextStatus in ['verified', 'rejected'])
+          || (previousStatus == 'verified' && nextStatus == 'suspended')
+          || (previousStatus == 'suspended' && nextStatus == 'verified'))
+        && data.actorUid == request.auth.uid
+        && data.reason is string
+        && data.reason.size() <= 500
+        && (nextStatus != 'rejected' || data.reason.size() > 0)
+        && data.createdAt == request.time
+        && warungBefore.verificationStatus == previousStatus
+        && warungAfter.verificationStatus == nextStatus
+        && warungAfter.verificationAuditId == auditId;
     }
 
     function validMenuPhotoUrl(photoUrl, warungId, menuItemId) {
@@ -81,7 +113,7 @@ service cloud.firestore {
           + warungId + '/' + menuItemId + '/[A-Za-z0-9._-]{1,180}[.]webp'));
     }
 
-    function validMenuItem(data, menuItemId) {
+    function validMenuItem(data, menuItemId, isCreate) {
       return data.keys().hasAll([
           'schemaVersion', 'warungId', 'ownerUid', 'name', 'nameNormalized', 'description',
           'categoryId', 'tags', 'priceType', 'priceAmount', 'currency', 'photoUrl', 'status',
@@ -121,7 +153,8 @@ service cloud.firestore {
         && (data.regencyCode == null || data.regencyCode is string)
         && (data.districtCode == null || data.districtCode is string)
         && (data.villageCode == null || data.villageCode is string)
-        && data.createdAt == request.time && data.updatedAt == request.time;
+        && (!isCreate || data.createdAt == request.time)
+        && data.updatedAt == request.time;
     }
 
     function menuOwnerUpdateIsSafe() {
@@ -129,7 +162,7 @@ service cloud.firestore {
         && request.resource.data.warungId == resource.data.warungId
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.source == resource.data.source
-        && validMenuItem(request.resource.data, resource.id)
+        && validMenuItem(request.resource.data, resource.id, false)
         && (request.resource.data.isPublic == false
           || (get(/databases/$(database)/documents/warungs/$(resource.data.warungId)).data.verificationStatus == 'verified'
             && request.resource.data.status == 'published'));
@@ -756,7 +789,7 @@ service cloud.firestore {
         && request.resource.data.isPublic == false
         && exists(/databases/$(database)/documents/warungs/$(request.resource.data.warungId))
         && get(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.ownerUid == request.auth.uid
-        && validMenuItem(request.resource.data, menuItemId);
+        && validMenuItem(request.resource.data, menuItemId, true);
       allow update: if isSuperAdmin()
         ? request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isPublic', 'updatedAt'])
           && request.resource.data.isPublic is bool
@@ -785,27 +818,7 @@ service cloud.firestore {
     // Catatan audit hanya dapat dibuat sebagai bagian dari keputusan admin atomik.
     match /verificationAudit/{auditId} {
       allow read: if isSuperAdmin();
-      allow create: if isSuperAdmin()
-        && request.resource.data.keys().hasAll([
-          'warungId', 'warungName', 'previousStatus', 'newStatus',
-          'actorUid', 'reason', 'createdAt'
-        ])
-        && request.resource.data.keys().hasOnly([
-          'warungId', 'warungName', 'previousStatus', 'newStatus',
-          'actorUid', 'reason', 'createdAt'
-        ])
-        && request.resource.data.warungId is string
-        && request.resource.data.warungName is string
-        && request.resource.data.previousStatus == 'pending'
-        && request.resource.data.newStatus in ['verified', 'rejected']
-        && request.resource.data.actorUid == request.auth.uid
-        && request.resource.data.reason is string
-        && request.resource.data.reason.size() <= 500
-        && (request.resource.data.newStatus != 'rejected' || request.resource.data.reason.size() > 0)
-        && request.resource.data.createdAt == request.time
-        && get(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.verificationStatus == 'pending'
-        && getAfter(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.verificationStatus == request.resource.data.newStatus
-        && getAfter(/databases/$(database)/documents/warungs/$(request.resource.data.warungId)).data.verificationAuditId == auditId;
+      allow create: if validVerificationAudit(auditId, request.resource.data);
       allow update, delete: if false;
     }
     // Laporan bersifat privat dan hanya Moderator atau Super Admin yang boleh membacanya.

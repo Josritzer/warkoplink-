@@ -9,12 +9,17 @@ import {
   validateImageBytes,
   mediaObjectPath,
   expiredOrphanPaths,
+  isMenuUploadAuthorized,
+  isMenuPhotoPubliclyPublishable,
+  menuPhotoReferenceUpdate,
+  firestoreDocumentPath,
 } from "./policy.ts";
 
-Deno.test("accepts only avatar, warung and event media", () => {
+Deno.test("recognizes avatar, warung, event, and video media without category fallthrough", () => {
   assertEquals(normalizeUploadRequest({ mediaType: "avatar", contentType: "image/jpeg", size: 100 }).mediaType, "avatar");
   assertEquals(normalizeUploadRequest({ mediaType: "warung", resourceId: "warung-1", slot: 4, contentType: "image/png", size: 100 }).slot, 4);
   assertEquals(normalizeUploadRequest({ mediaType: "event", resourceId: "post-1", contentType: "image/webp", size: 100 }).mediaType, "event");
+  assertEquals(normalizeUploadRequest({ mediaType: "video", resourceId: "post-1", contentType: "video/mp4", size: 100 }).mediaType, "video");
   for (const mediaType of ["post", "document", ""]) {
     assertThrows(() => normalizeUploadRequest({ mediaType, contentType: "image/jpeg", size: 100 }));
   }
@@ -175,4 +180,52 @@ Deno.test("applies the approved feed-video duration tiers", () => {
   assertEquals(videoDurationForAccount({ verifiedWarkopOwner: false, thematicGroupMember: true }), 60);
   assertEquals(videoDurationForAccount({ verifiedWarkopOwner: true, thematicGroupMember: false }), 180);
   assertEquals(videoDurationForAccount({ verifiedWarkopOwner: true, thematicGroupMember: true }), 180);
+});
+
+Deno.test("normalizes menu uploads with explicit warungId and menuItemId", () => {
+  const request = normalizeUploadRequest({ mediaType: "menu", warungId: "warung_1", menuItemId: "menu_1", contentType: "image/webp", size: 2048 });
+  assertEquals(request.mediaType, "menu"); assertEquals(request.warungId, "warung_1"); assertEquals(request.menuItemId, "menu_1"); assertEquals(request.resourceId, undefined);
+  assertThrows(() => normalizeUploadRequest({ mediaType: "menu", menuItemId: "menu_1", contentType: "image/webp", size: 100 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "menu", warungId: "warung_1", contentType: "image/webp", size: 100 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "menu", warungId: "../warung", menuItemId: "menu_1", contentType: "image/webp", size: 100 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "menu", warungId: "warung_1", menuItemId: "../event", contentType: "image/webp", size: 100 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "menu", warungId: "warung_1", menuItemId: "menu_1", contentType: "image/svg+xml", size: 100 }));
+  assertThrows(() => normalizeUploadRequest({ mediaType: "menu", warungId: "warung_1", menuItemId: "menu_1", contentType: "image/webp", size: MAX_IMAGE_BYTES + 1 }));
+});
+
+Deno.test("builds a menu-specific object path and never an event path", () => {
+  const id = "a12b4567-89ab-4cde-8fab-1234567890ab";
+  assertEquals(mediaObjectPath("user_1", "menu", "warung_1", id, undefined, "menu_1"), `menus/warung_1/menu_1/${id}.webp`);
+  assertEquals(mediaObjectPath("user_1", "event", "post_1", id), `events/post_1/${id}.webp`);
+  assertThrows(() => mediaObjectPath("user_1", "menu", "warung_1", id));
+});
+
+Deno.test("requires ownership of both the menu item and parent warkop", () => {
+  const menu = { ownerUid: "owner_1", warungId: "warung_1", status: "draft", isPublic: false };
+  const warung = { ownerUid: "owner_1", verificationStatus: "pending" };
+  assertEquals(isMenuUploadAuthorized(menu, warung, "owner_1", "warung_1"), true);
+  assertEquals(isMenuUploadAuthorized({ ...menu, ownerUid: "other" }, warung, "owner_1", "warung_1"), false);
+  assertEquals(isMenuUploadAuthorized(menu, { ...warung, ownerUid: "other" }, "owner_1", "warung_1"), false);
+  assertEquals(isMenuUploadAuthorized(menu, warung, "owner_1", "different-warung"), false);
+});
+
+Deno.test("keeps draft and unverified menu photos quarantined until publication is allowed", () => {
+  const warung = { ownerUid: "owner_1", verificationStatus: "verified" };
+  const base = { ownerUid: "owner_1", warungId: "warung_1", status: "draft", isPublic: false };
+  assertEquals(isMenuPhotoPubliclyPublishable(base, warung, "owner_1", "warung_1"), false);
+  assertEquals(isMenuPhotoPubliclyPublishable({ ...base, status: "published", isPublic: true }, { ...warung, verificationStatus: "pending" }, "owner_1", "warung_1"), false);
+  assertEquals(isMenuPhotoPubliclyPublishable({ ...base, status: "published", isPublic: true }, warung, "owner_1", "warung_1"), true);
+  assertEquals(isMenuPhotoPubliclyPublishable({ ...base, status: "archived", isPublic: true }, warung, "owner_1", "warung_1"), false);
+  assertEquals(isMenuPhotoPubliclyPublishable({ ...base, status: "published", isPublic: true, ownerUid: "other" }, warung, "owner_1", "warung_1"), false);
+});
+
+Deno.test("replaces a menu photo reference while preserving the previous URL for cleanup", () => {
+  assertEquals(menuPhotoReferenceUpdate("https://old.example/menu.webp", "https://new.example/menu.webp"), { oldUrl: "https://old.example/menu.webp", fieldPatch: { photoUrl: "https://new.example/menu.webp" } });
+  assertEquals(menuPhotoReferenceUpdate(null, "https://new.example/menu.webp"), { oldUrl: null, fieldPatch: { photoUrl: "https://new.example/menu.webp" } });
+});
+
+Deno.test("resolves menu item documents without changing existing Firestore resource paths", () => {
+  assertEquals(firestoreDocumentPath("warungMenuItems", "menu_1"), "warungMenuItems/menu_1");
+  assertEquals(firestoreDocumentPath("warungs", "warung_1"), "warungs/warung_1");
+  assertThrows(() => firestoreDocumentPath("warungMenuItems", "../other"));
 });

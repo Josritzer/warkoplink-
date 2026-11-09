@@ -56,4 +56,4 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Deploy WarkopLink media gateway
-        run: npx --yes supabase@latest functions deploy media-gateway --project-ref klikvxuronunonymmiqv
+        run: npx --yes supabase@latest functions deploy media-gateway --project-ref klikvxuronunonymmiqv --yes

@@ -11,6 +11,10 @@ import {
   parseFirestoreDocument,
   parseMp4Metadata,
   videoDurationForAccount,
+  validateImageBytes,
+  isMenuUploadAuthorized,
+  isMenuPhotoPubliclyPublishable,
+  menuPhotoReferenceUpdate,
 } from "./policy.ts";
 
 const PROJECT_ID = "sl-community-platform";
@@ -31,6 +35,7 @@ const ORIGINS = new Set([
 
 type Identity = { uid: string; authTime: number };
 type Resource = { data: Record<string, any>; updateTime: string; name: string };
+type AuthorizedResource = Resource & { parentWarung?: Resource };
 
 const firebaseApiKey = Deno.env.get("FIREBASE_WEB_API_KEY") ?? "";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -190,7 +195,7 @@ async function videoDurationLimit(token: string, uid: string, post: Resource): P
   return videoDurationForAccount({ verifiedWarkopOwner, thematicGroupMember });
 }
 
-async function authorizeResource(token: string, uid: string, request: ReturnType<typeof normalizeUploadRequest>): Promise<Resource> {
+async function authorizeResource(token: string, uid: string, request: ReturnType<typeof normalizeUploadRequest>): Promise<AuthorizedResource> {
   if (request.mediaType === "avatar") {
     const profile = await getResource(token, "profiles", uid);
     if (!profile) throw new Error("Profile not found");
@@ -218,16 +223,30 @@ async function authorizeResource(token: string, uid: string, request: ReturnType
     }
     return warung;
   }
-  const post = await getResource(token, "posts", request.resourceId!);
-  if (!post || post.data.authorId !== uid || post.data.topic !== "Info & Acara" ||
-      typeof post.data.warungId !== "string") {
-    throw new Error("Event ownership check failed");
+  if (request.mediaType === "menu") {
+    const menu = await getResource(token, "warungMenuItems", request.menuItemId!);
+    const warung = await getResource(token, "warungs", request.warungId!);
+    if (!menu || !warung || !isMenuUploadAuthorized(menu.data, warung.data, uid, request.warungId!)) {
+      throw new Error("Menu item and parent warkop ownership check failed");
+    }
+    if (!["pending", "verified"].includes(warung.data.verificationStatus)) {
+      throw new Error("Menu parent warkop status check failed");
+    }
+    return { ...menu, parentWarung: warung };
   }
-  const warung = await getResource(token, "warungs", post.data.warungId);
-  if (!warung || warung.data.ownerUid !== uid || warung.data.verificationStatus !== "verified") {
-    throw new Error("Verified warkop ownership required for event posters");
+  if (request.mediaType === "event") {
+    const post = await getResource(token, "posts", request.resourceId!);
+    if (!post || post.data.authorId !== uid || post.data.topic !== "Info & Acara" ||
+        typeof post.data.warungId !== "string") {
+      throw new Error("Event ownership check failed");
+    }
+    const warung = await getResource(token, "warungs", post.data.warungId);
+    if (!warung || warung.data.ownerUid !== uid || warung.data.verificationStatus !== "verified") {
+      throw new Error("Verified warkop ownership required for event posters");
+    }
+    return post;
   }
-  return post;
+  throw new Error("Unsupported media category");
 }
 
 async function cleanExpiredPending(uid: string, bucket = BUCKET_PENDING): Promise<void> {
@@ -261,9 +280,14 @@ async function cleanOrphanedPublicMedia(
   } else if (request.mediaType === "video") {
     folder = `posts/${request.resourceId}`;
     if (typeof resource.data.videoURL === "string") referencedUrls = [resource.data.videoURL];
-  } else {
+  } else if (request.mediaType === "menu") {
+    folder = `menus/${request.warungId}/${request.menuItemId}`;
+    if (typeof resource.data.photoUrl === "string") referencedUrls = [resource.data.photoUrl];
+  } else if (request.mediaType === "event") {
     folder = `events/${request.resourceId}`;
     if (typeof resource.data.eventPhotoURL === "string") referencedUrls = [resource.data.eventPhotoURL];
+  } else {
+    throw new Error("Unsupported media category");
   }
   const cleanupBucket = request.mediaType === "video" ? BUCKET_VIDEO_PUBLIC : BUCKET_PUBLIC;
   const referencedPaths = new Set(referencedUrls.map((value) => {
@@ -310,9 +334,18 @@ async function setMediaReference(
     } else if (request.mediaType === "video") {
       oldUrl = typeof resource.data.videoURL === "string" ? resource.data.videoURL : null;
       fieldPatch = { videoURL: url };
-    } else {
+    } else if (request.mediaType === "menu") {
+      if (!isMenuPhotoPubliclyPublishable(resource.data, resource.parentWarung?.data, uid, request.warungId!)) {
+        throw new Error("Menu publication status check failed");
+      }
+      const update = menuPhotoReferenceUpdate(resource.data.photoUrl, url);
+      oldUrl = update.oldUrl;
+      fieldPatch = update.fieldPatch;
+    } else if (request.mediaType === "event") {
       oldUrl = typeof resource.data.eventPhotoURL === "string" ? resource.data.eventPhotoURL : null;
       fieldPatch = { eventPhotoURL: url };
+    } else {
+      throw new Error("Unsupported media category");
     }
     try {
       await patchResource(token, resource, fieldPatch);
@@ -437,15 +470,22 @@ async function finalizeUpload(token: string, uid: string, body: Record<string, u
   if (!uploadId) throw new Error("Invalid upload ID");
   const authorized = await authorizeResource(token, uid, request);
   const video = request.mediaType === "video";
+  const menu = request.mediaType === "menu";
+  const publishMenu = menu && isMenuPhotoPubliclyPublishable(
+    authorized.data, authorized.parentWarung?.data, uid, request.warungId!,
+  );
+  const quarantineMenu = menu && !publishMenu;
   const publicBucket = video ? BUCKET_VIDEO_PUBLIC : BUCKET_PUBLIC;
   const pendingBucket = video ? BUCKET_VIDEO_PENDING : BUCKET_PENDING;
-  const finalPath = mediaObjectPath(uid, request.mediaType, request.resourceId || uid, uploadId, request.slot);
-  const url = admin.storage.from(publicBucket).getPublicUrl(finalPath).data.publicUrl;
+  const finalPath = mediaObjectPath(uid, request.mediaType, menu ? request.warungId! : (request.resourceId || uid), uploadId, request.slot, request.menuItemId);
+  const url = quarantineMenu ? null : admin.storage.from(publicBucket).getPublicUrl(finalPath).data.publicUrl;
   const existingReference = request.mediaType === "avatar" ? authorized.data.photoURL
     : request.mediaType === "warung" ? (authorized.data.photos || [])[request.slot!]
     : request.mediaType === "video" ? authorized.data.videoURL
-    : authorized.data.eventPhotoURL;
-  if (existingReference === url) {
+    : request.mediaType === "menu" ? authorized.data.photoUrl
+    : request.mediaType === "event" ? authorized.data.eventPhotoURL
+    : null;
+  if (url && existingReference === url) {
     return { url, path: finalPath, contentType: video ? "video/mp4" : "image/webp", idempotent: true };
   }
   const pendingPath = `pending/${uid}/${uploadId}`;
@@ -477,14 +517,19 @@ async function finalizeUpload(token: string, uid: string, body: Record<string, u
     publishBytes = sanitized.bytes;
     publishType = "image/webp";
   }
-  const { error: uploadError } = await admin.storage.from(publicBucket).upload(finalPath, publishBytes, {
+  const targetBucket = quarantineMenu ? BUCKET_PENDING : publicBucket;
+  const { error: uploadError } = await admin.storage.from(targetBucket).upload(finalPath, publishBytes, {
     contentType: publishType,
-    cacheControl: "31536000",
+    cacheControl: quarantineMenu ? "no-store" : "31536000",
     upsert: true,
   });
-  if (uploadError) throw new Error(video ? "Could not publish validated video" : "Could not publish validated image");
+  if (uploadError) throw new Error(quarantineMenu ? "Could not retain menu photo in quarantine" : (video ? "Could not publish validated video" : "Could not publish validated image"));
+  if (quarantineMenu) {
+    await admin.storage.from(pendingBucket).remove([pendingPath]);
+    return { path: finalPath, uploadId, quarantined: true, retryWhenPublished: true, contentType: publishType };
+  }
   try {
-    const previousUrl = await setMediaReference(token, uid, request, url);
+    const previousUrl = await setMediaReference(token, uid, request, url!);
     await admin.storage.from(pendingBucket).remove([pendingPath]);
     const previousPath = video ? null : isOwnMediaUrl(previousUrl);
     if (previousPath && previousPath !== finalPath) await admin.storage.from(BUCKET_PUBLIC).remove([previousPath]);
@@ -495,8 +540,42 @@ async function finalizeUpload(token: string, uid: string, body: Record<string, u
     const current = request.mediaType === "avatar" ? resource?.data.photoURL
       : request.mediaType === "warung" ? resource?.data.photos?.[request.slot!]
       : request.mediaType === "video" ? resource?.data.videoURL
-      : resource?.data.eventPhotoURL;
+      : request.mediaType === "menu" ? resource?.data.photoUrl
+      : request.mediaType === "event" ? resource?.data.eventPhotoURL
+      : null;
     if (current !== url) await admin.storage.from(publicBucket).remove([finalPath]);
+    throw error;
+  }
+}
+
+async function publishMenuPhoto(token: string, uid: string, body: Record<string, unknown>) {
+  const request = normalizeUploadRequest({ mediaType: "menu", warungId: body.warungId, menuItemId: body.menuItemId, contentType: "image/webp", size: 1 });
+  const uploadId = typeof body.uploadId === "string" && /^[0-9a-f-]{36}$/i.test(body.uploadId) ? body.uploadId : "";
+  if (!uploadId) throw new Error("Invalid menu photo upload ID");
+  const menu = await authorizeResource(token, uid, request);
+  if (!isMenuPhotoPubliclyPublishable(menu.data, menu.parentWarung?.data, uid, request.warungId!)) {
+    throw new Error("Menu publication status check failed: photo remains quarantined until the menu is public and its parent warkop is verified");
+  }
+  const path = mediaObjectPath(uid, "menu", request.warungId!, uploadId, undefined, request.menuItemId);
+  const { data: blob, error } = await admin.storage.from(BUCKET_PENDING).download(path);
+  if (error || !blob) {
+    if (typeof menu.data.photoUrl === "string" && isOwnMediaUrl(menu.data.photoUrl) === path) return { url: menu.data.photoUrl, path, contentType: "image/webp", idempotent: true };
+    throw new Error("Quarantined menu photo not found");
+  }
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  if (!validateImageBytes(bytes, "image/webp")) throw new Error("Invalid quarantined menu photo signature");
+  const url = publicUrl(path);
+  const { error: publishError } = await admin.storage.from(BUCKET_PUBLIC).upload(path, bytes, { contentType: "image/webp", cacheControl: "31536000", upsert: true });
+  if (publishError) throw new Error("Could not publish validated menu photo");
+  try {
+    const previousUrl = await setMediaReference(token, uid, request, url);
+    await admin.storage.from(BUCKET_PENDING).remove([path]);
+    const previousPath = isOwnMediaUrl(previousUrl);
+    if (previousPath && previousPath !== path) await admin.storage.from(BUCKET_PUBLIC).remove([previousPath]);
+    return { url, path, contentType: "image/webp" };
+  } catch (error) {
+    const latest = await authorizeResource(token, uid, request).catch(() => null);
+    if (latest?.data.photoUrl !== url) await admin.storage.from(BUCKET_PUBLIC).remove([path]);
     throw error;
   }
 }
@@ -531,6 +610,10 @@ async function handler(request: Request): Promise<Response> {
     if (action === "finalize") {
       stage = "validate-and-finalize-upload";
       return response({ media: await finalizeUpload(token, identity.uid, body) }, 200, origin);
+    }
+    if (action === "publishMenuPhoto") {
+      stage = "publish-menu-photo";
+      return response({ media: await publishMenuPhoto(token, identity.uid, body) }, 200, origin);
     }
     if (action === "removeAvatar") {
       stage = "remove-avatar";

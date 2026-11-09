@@ -1,7 +1,7 @@
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 export const MAX_VIDEO_BYTES = 50_000_000;
 export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-export const MEDIA_TYPES = new Set(["avatar", "warung", "event", "video"]);
+export const MEDIA_TYPES = new Set(["avatar", "warung", "event", "video", "menu"]);
 
 export function videoDurationForAccount(access: {
   verifiedWarkopOwner: boolean;
@@ -14,8 +14,10 @@ export function videoDurationForAccount(access: {
 
 
 export type MediaUploadRequest = {
-  mediaType: "avatar" | "warung" | "event" | "video";
+  mediaType: "avatar" | "warung" | "event" | "video" | "menu";
   resourceId?: string;
+  warungId?: string;
+  menuItemId?: string;
   slot?: number;
   contentType: string;
   size: number;
@@ -38,6 +40,15 @@ export function normalizeUploadRequest(input: Record<string, unknown>): MediaUpl
   const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
   if (typeof input.size !== "number" || !Number.isSafeInteger(input.size) || input.size < 1 || input.size > maxBytes) {
     return fail(isVideo ? "Video size must be between 1 byte and 50 MB" : "Image size must be between 1 byte and 2 MiB");
+  }
+  if (mediaType === "menu") {
+    const warungId = typeof input.warungId === "string" ? input.warungId.trim() : "";
+    const menuItemId = typeof input.menuItemId === "string" ? input.menuItemId.trim() : "";
+    if (!/^[A-Za-z0-9_-]{1,150}$/.test(warungId) || !/^[A-Za-z0-9_-]{1,150}$/.test(menuItemId)) {
+      return fail("Menu upload requires valid warungId and menuItemId");
+    }
+    if (input.slot !== undefined || input.resourceId !== undefined) return fail("Menu upload uses warungId and menuItemId only");
+    return { mediaType, warungId, menuItemId, contentType: input.contentType as string, size: input.size as number };
   }
   const resourceId = typeof input.resourceId === "string" ? input.resourceId.trim() : "";
   if (mediaType !== "avatar" && (!resourceId || resourceId.length > 150 || !/^[A-Za-z0-9_-]+$/.test(resourceId))) {
@@ -197,7 +208,7 @@ export function encodeFirestoreValue(value: unknown): Record<string, unknown> {
   return fail("Unsupported Firestore value");
 }
 
-export function mediaObjectPath(uid: string, mediaType: string, resourceId: string, uploadId: string, slot?: number): string {
+export function mediaObjectPath(uid: string, mediaType: string, resourceId: string, uploadId: string, slot?: number, menuItemId?: string): string {
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(uid) || !/^[0-9a-f-]{36}$/i.test(uploadId)) {
     return fail("Invalid upload identity");
   }
@@ -205,11 +216,15 @@ export function mediaObjectPath(uid: string, mediaType: string, resourceId: stri
   if (mediaType === "warung" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `warungs/${resourceId}/${slot}/${uploadId}.webp`;
   if (mediaType === "event" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `events/${resourceId}/${uploadId}.webp`;
   if (mediaType === "video" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId)) return `posts/${resourceId}/${uploadId}.mp4`;
+  if (mediaType === "menu" && /^[A-Za-z0-9_-]{1,150}$/.test(resourceId) &&
+      typeof menuItemId === "string" && /^[A-Za-z0-9_-]{1,150}$/.test(menuItemId)) {
+    return `menus/${resourceId}/${menuItemId}/${uploadId}.webp`;
+  }
   return fail("Unsupported media category");
 }
 
 export function firestoreDocumentPath(collection: string, id: string): string {
-  if (!["profiles", "publicProfiles", "warungs", "posts"].includes(collection) ||
+  if (!["profiles", "publicProfiles", "warungs", "posts", "warungMenuItems"].includes(collection) ||
       !id || id.length > 150 || id.includes("/")) return fail("Invalid Firestore document path");
   return `${collection}/${id}`;
 }
@@ -231,4 +246,17 @@ export function expiredOrphanPaths(
       return Number.isFinite(createdAt) && createdAt < cutoff && !referencedPaths.has(`${folder}/${item.name}`);
     })
     .map((item) => `${folder}/${item.name}`);
+}
+
+
+export function isMenuUploadAuthorized(menu: Record<string, any> | null | undefined, warung: Record<string, any> | null | undefined, uid: string, warungId: string): boolean {
+  return Boolean(menu && warung && typeof uid === "string" && uid && menu.ownerUid === uid && menu.warungId === warungId && warung.ownerUid === uid);
+}
+
+export function isMenuPhotoPubliclyPublishable(menu: Record<string, any> | null | undefined, warung: Record<string, any> | null | undefined, uid: string, warungId: string): boolean {
+  return isMenuUploadAuthorized(menu, warung, uid, warungId) && menu!.status === "published" && menu!.isPublic === true && warung!.verificationStatus === "verified";
+}
+
+export function menuPhotoReferenceUpdate(currentPhotoUrl: unknown, nextPhotoUrl: string): { oldUrl: string | null; fieldPatch: { photoUrl: string } } {
+  return { oldUrl: typeof currentPhotoUrl === "string" ? currentPhotoUrl : null, fieldPatch: { photoUrl: nextPhotoUrl } };
 }

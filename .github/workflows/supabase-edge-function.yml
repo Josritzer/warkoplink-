@@ -35,7 +35,7 @@ jobs:
         run: deno check supabase/functions/media-gateway/index.ts supabase/functions/media-gateway/policy_test.ts supabase/functions/media-gateway/image-validation_test.ts
 
   deploy-firebase-auth-gateway:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(join(github.event.head_commit.modified, ' '), 'supabase/functions/firebase-auth-check/')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(toJSON(github.event.commits), 'supabase/functions/firebase-auth-check/')
     needs: firebase-auth-gateway
     runs-on: ubuntu-latest
     env:
@@ -47,7 +47,7 @@ jobs:
         run: npx --yes supabase@latest functions deploy firebase-auth-check --project-ref klikvxuronunonymmiqv
 
   deploy-media-gateway:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(join(github.event.head_commit.modified, ' '), 'supabase/functions/media-gateway/')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (contains(toJSON(github.event.commits), 'supabase/functions/media-gateway/') || contains(toJSON(github.event.commits), '.github/workflows/supabase-edge-function.yml'))
     needs: firebase-auth-gateway
     runs-on: ubuntu-latest
     env:

@@ -47,7 +47,7 @@ jobs:
         run: npx --yes supabase@latest functions deploy firebase-auth-check --project-ref klikvxuronunonymmiqv
 
   deploy-media-gateway:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (contains(toJSON(github.event.commits), 'supabase/functions/media-gateway/') || contains(toJSON(github.event.commits), '.github/workflows/supabase-edge-function.yml'))
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: firebase-auth-gateway
     runs-on: ubuntu-latest
     env:

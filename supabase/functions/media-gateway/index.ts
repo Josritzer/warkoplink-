@@ -14,6 +14,7 @@ import {
   validateImageBytes,
   isMenuUploadAuthorized,
   isMenuPhotoPubliclyPublishable,
+  isPendingMenuPhotoUpload,
   menuPhotoReferenceUpdate,
 } from "./policy.ts";
 
@@ -556,6 +557,7 @@ async function publishMenuPhoto(token: string, uid: string, body: Record<string,
   if (!isMenuPhotoPubliclyPublishable(menu.data, menu.parentWarung?.data, uid, request.warungId!)) {
     throw new Error("Menu publication status check failed: photo remains quarantined until the menu is public and its parent warkop is verified");
   }
+  if (!isPendingMenuPhotoUpload(menu.data, uploadId)) throw new Error("Quarantined menu photo upload ID does not match the menu record");
   const path = mediaObjectPath(uid, "menu", request.warungId!, uploadId, undefined, request.menuItemId);
   const { data: blob, error } = await admin.storage.from(BUCKET_PENDING).download(path);
   if (error || !blob) {

@@ -5,6 +5,7 @@ import { ACTIVITY_OPTIONS } from './directoryFilters.js';
 import { buildGoogleMapsDirectionsUrl } from './mapLocation.js';
 import { uploadWarkopMedia } from '../media/uploadWarkopMedia.js';
 import { validateImageFile } from '../media/imagePolicy.js';
+import MenuEditor from '../menu/MenuEditor.jsx';
 
 export default function WarungProfile({ warungId, db, user, onBack, onRequestAuth, onNotice }) {
   const [warung, setWarung] = useState(null);
@@ -16,8 +17,6 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
   const [hoursDraft, setHoursDraft] = useState({});
   const [open24Hours, setOpen24Hours] = useState(false);
   const [activityDraft, setActivityDraft] = useState([]);
-  const [menuItemsDraft, setMenuItemsDraft] = useState('');
-  const [specialtiesDraft, setSpecialtiesDraft] = useState('');
   const [facilitiesDraft, setFacilitiesDraft] = useState('');
   const [ambienceDraft, setAmbienceDraft] = useState('');
   const [savingDetails, setSavingDetails] = useState(false);
@@ -63,8 +62,6 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       setWarung(data);
       setOpen24Hours(data.openingHours?.is24Hours === true);
       setActivityDraft(Array.isArray(data.activities) ? data.activities : []);
-      setMenuItemsDraft(Array.isArray(data.menuItems) ? data.menuItems.join(', ') : '');
-      setSpecialtiesDraft(Array.isArray(data.specialties) ? data.specialties.join(', ') : '');
       setFacilitiesDraft(Array.isArray(data.facilities) ? data.facilities.join(', ') : '');
       setAmbienceDraft(typeof data.ambience === 'string' ? data.ambience : '');
       const schedule = data.openingHours?.schedule || {};
@@ -155,15 +152,13 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
         keterangan: 'Jadwal mingguan tersedia di profil'
       };
       const parseList = (value) => [...new Set(value.split(',').map(item => item.trim()).filter(Boolean))].slice(0, 20);
-      const menuItems = parseList(menuItemsDraft);
-      const specialties = parseList(specialtiesDraft);
       const facilities = parseList(facilitiesDraft);
-      if ([...menuItems, ...specialties, ...facilities].some(item => item.length > 60) || ambienceDraft.trim().length > 500) {
+      if (facilities.some(item => item.length > 60) || ambienceDraft.trim().length > 500) {
         onNotice('Periksa panjang isian: setiap item maksimal 60 karakter dan suasana maksimal 500 karakter.');
         return;
       }
       await updateDoc(doc(db, 'warungs', warungId), {
-        openingHours, activities: activityDraft, menuItems, specialties, facilities,
+        openingHours, activities: activityDraft, facilities,
         ambience: ambienceDraft.trim(), updatedAt: serverTimestamp()
       });
       onNotice('Profil warkop berhasil diperbarui.');
@@ -266,12 +261,6 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
             ? <p>{warung.openingHours.keterangan}</p>
             : <p className="profile-empty-hint">Jam operasional belum dicantumkan. Hubungi warkop untuk memastikan waktu buka.</p>}
       </section>
-      <section className="warung-profile-info-block"><h3>Menu utama</h3>
-        {Array.isArray(warung.menuItems) && warung.menuItems.length > 0 ? <div className="facility-tags">{warung.menuItems.map((item) => <span key={item}>{item}</span>)}</div> : <p className="profile-empty-hint">Menu belum dicantumkan. Hubungi warkop untuk memastikan menu yang tersedia.</p>}
-      </section>
-      <section className="warung-profile-info-block"><h3>Menu spesial</h3>
-        {Array.isArray(warung.specialties) && warung.specialties.length > 0 ? <div className="facility-tags">{warung.specialties.map((item) => <span key={item}>{item}</span>)}</div> : <p className="profile-empty-hint">Menu spesial belum dibagikan. Cek kembali nanti untuk rekomendasi dari pemilik.</p>}
-      </section>
       <section className="warung-profile-info-block"><h3>Suasana</h3>
         {warung.ambience ? <p>{warung.ambience}</p> : <p className="profile-empty-hint">Suasana belum dideskripsikan. Lihat foto warkop atau kunjungi langsung untuk mengenalnya.</p>}
       </section>
@@ -280,6 +269,7 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
       </section>
       {buildGoogleMapsDirectionsUrl(warung.coordinates?.lat, warung.coordinates?.lng) && <a className="warung-map-link" href={buildGoogleMapsDirectionsUrl(warung.coordinates.lat, warung.coordinates.lng)} target="_blank" rel="noopener noreferrer">Navigasi dengan Google Maps ↗</a>}
     </div>
+    <MenuEditor db={db} warung={warung} user={user} onNotice={onNotice}/>
     <section className="warung-profile-events" aria-labelledby="warung-profile-events-title">
       <h2 id="warung-profile-events-title">Acara dari warkop ini</h2>
       {events.length ? <div className="warung-event-list">{events.map(event => {
@@ -317,8 +307,6 @@ export default function WarungProfile({ warungId, db, user, onBack, onRequestAut
           </div>)}</div>}
         </fieldset>
         <fieldset><legend>Informasi yang ditampilkan ke pengunjung</legend>
-          <label>Menu utama (pisahkan dengan koma)<input aria-label="Menu utama warkop" value={menuItemsDraft} onChange={event => setMenuItemsDraft(event.target.value)} maxLength={1200} placeholder="Kopi, teh, mi instan"/></label>
-          <label>Menu spesial / andalan (pisahkan dengan koma)<input aria-label="Menu spesial warkop" value={specialtiesDraft} onChange={event => setSpecialtiesDraft(event.target.value)} maxLength={1200} placeholder="Kopi racikan, gorengan khas"/></label>
           <label>Fasilitas (pisahkan dengan koma)<input aria-label="Fasilitas warkop" value={facilitiesDraft} onChange={event => setFacilitiesDraft(event.target.value)} maxLength={1200} placeholder="Wi-Fi, toilet, parkir"/></label>
           <label>Suasana warkop<textarea aria-label="Suasana warkop" value={ambienceDraft} onChange={event => setAmbienceDraft(event.target.value)} maxLength={500} rows={3} placeholder="Ceritakan suasana dan kenyamanan warkop"/></label>
         </fieldset>

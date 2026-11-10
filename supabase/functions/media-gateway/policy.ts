@@ -257,6 +257,10 @@ export function isMenuPhotoPubliclyPublishable(menu: Record<string, any> | null 
   return isMenuUploadAuthorized(menu, warung, uid, warungId) && menu!.status === "published" && menu!.isPublic === true && warung!.verificationStatus === "verified";
 }
 
+export function isPendingMenuPhotoUpload(menu: Record<string, any> | null | undefined, uploadId: string): boolean {
+  return Boolean(menu && typeof uploadId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uploadId) && menu.pendingPhotoUploadId === uploadId);
+}
+
 export function menuPhotoReferenceUpdate(currentPhotoUrl: unknown, nextPhotoUrl: string): { oldUrl: string | null; fieldPatch: { photoUrl: string } } {
   return { oldUrl: typeof currentPhotoUrl === "string" ? currentPhotoUrl : null, fieldPatch: { photoUrl: nextPhotoUrl } };
 }

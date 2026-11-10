@@ -11,6 +11,7 @@ import {
   expiredOrphanPaths,
   isMenuUploadAuthorized,
   isMenuPhotoPubliclyPublishable,
+  isPendingMenuPhotoUpload,
   menuPhotoReferenceUpdate,
   firestoreDocumentPath,
 } from "./policy.ts";
@@ -228,4 +229,12 @@ Deno.test("resolves menu item documents without changing existing Firestore reso
   assertEquals(firestoreDocumentPath("warungMenuItems", "menu_1"), "warungMenuItems/menu_1");
   assertEquals(firestoreDocumentPath("warungs", "warung_1"), "warungs/warung_1");
   assertThrows(() => firestoreDocumentPath("warungMenuItems", "../other"));
+});
+
+Deno.test("only the exact pending photo upload recorded on a menu can be published", () => {
+  const uploadId = "123e4567-e89b-12d3-a456-426614174000";
+  assertEquals(isPendingMenuPhotoUpload({ pendingPhotoUploadId: uploadId }, uploadId), true);
+  assertEquals(isPendingMenuPhotoUpload({ pendingPhotoUploadId: "123e4567-e89b-12d3-a456-426614174001" }, uploadId), false);
+  assertEquals(isPendingMenuPhotoUpload({}, uploadId), false);
+  assertEquals(isPendingMenuPhotoUpload({ pendingPhotoUploadId: uploadId }, "invalid"), false);
 });

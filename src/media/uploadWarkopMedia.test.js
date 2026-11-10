@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { photoUploadErrorMessage, uploadWarkopMedia } from "./uploadWarkopMedia.js";
+import { photoUploadErrorMessage, publishQuarantinedMenuPhoto, uploadWarkopMedia } from "./uploadWarkopMedia.js";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -27,6 +27,36 @@ describe("unggah foto warkop", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).action).toBe("init");
+  });
+
+
+  it("requires parent and menu IDs for menu uploads", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(uploadWarkopMedia({ user: { getIdToken: vi.fn() }, mediaType: "menu", file: { type: "image/jpeg", size: 1024 } }))
+      .rejects.toThrow("Unggahan menu memerlukan identitas warkop dan menu.");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sends explicit menu IDs and accepts a private quarantined finalize result", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ upload: { path: "pending/menu-photo", token: "signed-token", bucket: "warkoplink-quarantine", signedUrl: "https://storage.example/upload" } }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, text: async () => "" })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ media: { path: "menus/warung-1/menu-1/123e4567-e89b-12d3-a456-426614174000.webp", uploadId: "123e4567-e89b-12d3-a456-426614174000", quarantined: true, retryWhenPublished: true } }) });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("crypto", { randomUUID: () => "123e4567-e89b-12d3-a456-426614174000" });
+    const result = await uploadWarkopMedia({ user: { getIdToken: vi.fn().mockResolvedValue("firebase-id-token") }, mediaType: "menu", warungId: "warung-1", menuItemId: "menu-1", file: { type: "image/jpeg", size: 1024 } });
+    expect(result).toMatchObject({ quarantined: true, retryWhenPublished: true, uploadId: "123e4567-e89b-12d3-a456-426614174000" });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ action: "init", mediaType: "menu", warungId: "warung-1", menuItemId: "menu-1" });
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body).action).toBe("finalize");
+  });
+
+  it("publishes only through the explicit quarantined-menu action", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ media: { url: "https://media.example/menu.webp" } }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const media = await publishQuarantinedMenuPhoto({ getIdToken: vi.fn().mockResolvedValue("firebase-id-token") }, "warung-1", "menu-1", "123e4567-e89b-12d3-a456-426614174000");
+    expect(media.url).toBe("https://media.example/menu.webp");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ action: "publishMenuPhoto", warungId: "warung-1", menuItemId: "menu-1", uploadId: "123e4567-e89b-12d3-a456-426614174000" });
   });
 
   it("explains an expired Firebase session in Indonesian", () => {

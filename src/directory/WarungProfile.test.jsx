@@ -13,6 +13,7 @@ vi.mock('firebase/firestore', () => ({
   query: vi.fn((...args) => ({ args, path: args[0]?.path })),
   where: vi.fn((...args) => ({ where: args })),
   onSnapshot: vi.fn((ref, next) => {
+    if (ref.path === 'warungMenuItems') { next({ docs: [] }); return vi.fn(); }
     if (ref.path === 'posts') {
       next({ docs: state.events.map(item => ({ id: item.id, data: () => item })) });
       return vi.fn();
@@ -43,7 +44,7 @@ describe('WarungProfile', () => {
     expect(await screen.findByRole('heading', { name: 'Warkop Pojok' })).toBeTruthy();
     expect(screen.getByText('Jl. Merdeka, Lamongan')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Chat WhatsApp' }).getAttribute('href')).toBe('https://wa.me/6281234567890');
-    expect(screen.getByText('Menu utama')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Daftar menu' })).toBeTruthy();
     expect(screen.getByText('Kopi racikan')).toBeTruthy();
     expect(screen.getByText('Santai untuk ngobrol')).toBeTruthy();
     expect(screen.queryByText(/Kisaran harga:/)).toBeNull();
@@ -83,24 +84,22 @@ describe('WarungProfile', () => {
     expect(await screen.findByText('Senin')).toBeTruthy();
     expect(screen.getByText('08.00–22.00')).toBeTruthy();
     expect(screen.getByText('Tutup')).toBeTruthy();
-    expect(screen.getByText(/Menu belum dicantumkan/)).toBeTruthy();
+    expect(screen.getByText(/Belum ada menu yang dibagikan/)).toBeTruthy();
     expect(screen.getByText(/Fasilitas belum dicantumkan/)).toBeTruthy();
     expect(screen.getByText(/Suasana belum dideskripsikan/)).toBeTruthy();
     state.warung = null;
   });
 
-  it('pemilik dapat memperbarui menu, menu spesial, fasilitas, suasana, jam dan aktivitas', async () => {
+  it('pemilik dapat memperbarui fasilitas, suasana, jam dan aktivitas tanpa menimpa menu lama', async () => {
     const onNotice = vi.fn();
     render(<WarungProfile warungId="warung-1" db={{}} user={{ uid: 'owner-1' }} onBack={vi.fn()} onRequestAuth={vi.fn()} onNotice={onNotice} />);
-    fireEvent.change(await screen.findByLabelText('Menu utama warkop'), { target: { value: 'Kopi susu, Teh tarik' } });
-    fireEvent.change(screen.getByLabelText('Menu spesial warkop'), { target: { value: 'Kopi gula aren' } });
     fireEvent.change(screen.getByLabelText('Fasilitas warkop'), { target: { value: 'Wi-Fi, Parkir luas' } });
     fireEvent.change(screen.getByLabelText('Suasana warkop'), { target: { value: 'Nyaman untuk ngobrol' } });
     fireEvent.click(screen.getByRole('button', { name: 'Simpan perubahan profil' }));
     await waitFor(() => expect(updateDoc).toHaveBeenCalled());
     const payload = updateDoc.mock.calls[0][1];
-    expect(payload.menuItems).toEqual(['Kopi susu', 'Teh tarik']);
-    expect(payload.specialties).toEqual(['Kopi gula aren']);
+    expect(payload).not.toHaveProperty('menuItems');
+    expect(payload).not.toHaveProperty('specialties');
     expect(payload.facilities).toEqual(['Wi-Fi', 'Parkir luas']);
     expect(payload.ambience).toBe('Nyaman untuk ngobrol');
     expect(onNotice).toHaveBeenCalledWith('Profil warkop berhasil diperbarui.');

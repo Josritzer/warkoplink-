@@ -124,8 +124,10 @@ service cloud.firestore {
           'schemaVersion', 'warungId', 'ownerUid', 'name', 'nameNormalized', 'description',
           'categoryId', 'tags', 'priceType', 'priceAmount', 'currency', 'photoUrl', 'status',
           'availability', 'isPublic', 'source', 'sortOrder', 'searchTokens', 'regionCode',
-          'provinceCode', 'regencyCode', 'districtCode', 'villageCode', 'createdAt', 'updatedAt'
+          'provinceCode', 'regencyCode', 'districtCode', 'villageCode', 'createdAt', 'updatedAt', 'pendingPhotoUploadId'
         ])
+        && (!data.keys().hasAny(['pendingPhotoUploadId']) || data.pendingPhotoUploadId == null
+          || (data.pendingPhotoUploadId is string && data.pendingPhotoUploadId.matches('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')))
         && data.schemaVersion == 1
         && data.warungId is string && data.warungId.size() > 0
         && data.ownerUid is string && data.ownerUid.size() > 0

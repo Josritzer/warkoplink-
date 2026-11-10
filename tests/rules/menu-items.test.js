@@ -94,6 +94,15 @@ describe('warungMenuItems access and ownership', () => {
     await assertFails(deleteDoc(doc(db, 'warungMenuItems/batch-0')));
   });
 
+
+  it('allows only a valid UUID for a quarantined menu photo reference', async () => {
+    await seedMenu();
+    const ref = doc(asUser(), 'warungMenuItems/menu-1');
+    await assertSucceeds(updateDoc(ref, { pendingPhotoUploadId: '123e4567-e89b-12d3-a456-426614174000', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { pendingPhotoUploadId: 'not-a-uuid', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { pendingPhotoUploadId: null, updatedAt: serverTimestamp() }));
+  });
+
   it('rejects arbitrary photo URLs, negative prices, and one-character names', async () => {
     await seedMenu();
     const ref = doc(asUser(), 'warungMenuItems/menu-1');

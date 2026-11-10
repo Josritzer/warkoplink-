@@ -350,3 +350,51 @@ h1, h2, h3, h4, .hero h1, .section-heading h2, .warung-card h3,
 .warung-card-ambience { display: -webkit-box; margin: 0; overflow: hidden; color: var(--wl-text-muted); font-size: 12px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 
 .event-ended-label { color: var(--wl-text-muted); font-size: 12px; font-weight: 700; }
+
+/* Shared Menu Spesial editor and profile catalog */
+.warung-menu-catalog { padding: 24px 0; border-bottom: 1px solid var(--wl-border); }
+.warung-menu-heading, .warung-menu-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+.warung-menu-heading h2, .warung-menu-editor-heading h3 { margin: 3px 0 0; color: var(--wl-text); }
+.warung-menu-eyebrow { color: var(--wl-brand); font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+.warung-menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.warung-menu-card { min-width: 0; overflow: hidden; border: 1px solid var(--wl-border); border-radius: 18px; background: var(--wl-surface); box-shadow: var(--wl-shadow-card); }
+.warung-menu-card.is-archived { opacity: .76; }
+.warung-menu-photo, .warung-menu-photo-placeholder { display: grid; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; place-items: center; background: linear-gradient(135deg, var(--wl-cream), #e8d7c3); color: var(--wl-dark-roast); }
+.warung-menu-photo-placeholder span { font-size: 11px; }
+.warung-menu-card-copy { display: grid; gap: 7px; padding: 13px; }
+.warung-menu-card-top { display: flex; justify-content: space-between; gap: 8px; color: var(--wl-text-muted); font-size: 10px; }
+.warung-menu-card h3 { margin: 0; color: var(--wl-text); font-size: 15px; line-height: 1.3; }
+.warung-menu-card-copy > p { margin: 0; color: var(--wl-text-muted); font-size: 12px; line-height: 1.5; }
+.warung-menu-price { color: var(--wl-dark-roast); font-size: 14px; }
+.warung-menu-availability, .warung-menu-status { width: fit-content; padding: 4px 8px; border-radius: 99px; background: var(--wl-surface-soft); color: var(--wl-text-muted); font-size: 10px; font-weight: 750; }
+.warung-menu-availability.availability-sold_out { background: #f5e8e2; color: #8c382b; }
+.warung-menu-status.status-published { background: #e8efe4; color: #3d633d; }
+.warung-menu-status.status-archived { background: #eee8e1; color: #6c5b4c; }
+.warung-menu-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.warung-menu-tags span { padding: 3px 7px; border-radius: 7px; background: var(--wl-surface-soft); color: var(--wl-text-muted); font-size: 10px; }
+.warung-menu-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding-top: 8px; border-top: 1px solid var(--wl-border); }
+.warung-menu-actions button { display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 6px 8px; border: 1px solid var(--wl-border); border-radius: 9px; background: var(--wl-bg); color: var(--wl-text); font-size: 11px; }
+.warung-menu-actions button:disabled { opacity: .4; }
+.warung-menu-availability-control { display: grid; flex: 1 1 100%; gap: 4px; color: var(--wl-text-muted); font-size: 10px; }
+.warung-menu-availability-control select { min-height: 36px; }
+.warung-menu-editor { display: grid; gap: 13px; margin-top: 18px; padding: 17px; border: 1px solid var(--wl-border); border-radius: 18px; background: var(--wl-surface); }
+.warung-menu-editor-heading { margin: 0; }
+.warung-menu-editor-heading h3 { font-size: 17px; }
+.warung-menu-close { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid var(--wl-border); border-radius: 50%; background: transparent; color: var(--wl-text); }
+.warung-menu-editor label { display: grid; gap: 6px; color: var(--wl-text); font-size: 12px; font-weight: 650; }
+.warung-menu-editor input:not([type="checkbox"]), .warung-menu-editor textarea, .warung-menu-editor select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--wl-border); border-radius: 11px; background: var(--wl-bg); color: var(--wl-text); font: inherit; }
+.warung-menu-editor-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.warung-menu-tag-picker { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 12px; border: 1px solid var(--wl-border); border-radius: 12px; }
+.warung-menu-tag-picker legend { padding-inline: 5px; color: var(--wl-text-muted); font-size: 11px; }
+.warung-menu-tag-picker label { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; text-transform: capitalize; }
+.warung-menu-edit-preview { width: 110px; aspect-ratio: 1; border-radius: 12px; object-fit: cover; }
+.warung-menu-photo-pending { margin: 0; color: var(--wl-text-muted); font-size: 11px; }
+.warung-menu-editor-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.warung-menu-editor-actions button { flex: 1 1 150px; justify-content: center; }
+@media (max-width: 520px) {
+  .warung-menu-grid { grid-template-columns: minmax(0, 1fr); }
+  .warung-menu-heading { align-items: flex-start; }
+  .warung-menu-heading .button { padding-inline: 11px; white-space: nowrap; }
+  .warung-menu-editor-row { grid-template-columns: minmax(0, 1fr); }
+}
+.warung-menu-legacy { display: grid; gap: 7px; margin-top: 12px; color: var(--wl-text-muted); font-size: 11px; }

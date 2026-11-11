@@ -20,6 +20,11 @@ describe('Menu Spesial data contract', () => {
     expect(MENU_CATEGORIES.map(({ id }) => id)).toEqual(['coffee', 'non_coffee', 'snacks', 'main_meals', 'bakery_dessert', 'bundles_promos', 'other']);
     expect(MENU_TAGS).toContain('best_seller');
   });
+  it('accepts an optional valid quarantine upload UUID without requiring it on legacy menu docs', () => {
+    expect(validateMenuItem(validMenuItem({ pendingPhotoUploadId: '123e4567-e89b-12d3-a456-426614174000' })).valid).toBe(true);
+    expect(validateMenuItem(validMenuItem({ pendingPhotoUploadId: 'not-a-uuid' })).valid).toBe(false);
+    expect(validateMenuItem(validMenuItem()).valid).toBe(true);
+  });
   it('accepts an unlisted menu with null price', () => {
     expect(validateMenuItem(validMenuItem({ priceType: 'unlisted', priceAmount: null })).valid).toBe(true);
   });

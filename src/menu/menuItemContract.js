@@ -12,14 +12,16 @@ export const MENU_PRICE_TYPES = Object.freeze(['fixed', 'starting', 'unlisted'])
 export const MENU_STATUSES = Object.freeze(['draft', 'published', 'archived']);
 export const MENU_AVAILABILITY = Object.freeze(['available', 'limited', 'sold_out']);
 export const MENU_SOURCES = Object.freeze(['native', 'legacy-specialties']);
+export const MENU_ITEM_OPTIONAL_FIELDS = Object.freeze(['pendingPhotoUploadId']);
 export const MENU_ITEM_FIELDS = Object.freeze([
   'schemaVersion', 'warungId', 'ownerUid', 'name', 'nameNormalized', 'description',
   'categoryId', 'tags', 'priceType', 'priceAmount', 'currency', 'photoUrl', 'status',
   'availability', 'isPublic', 'source', 'sortOrder', 'searchTokens', 'regionCode',
   'provinceCode', 'regencyCode', 'districtCode', 'villageCode', 'createdAt', 'updatedAt',
 ]);
+export const MENU_ITEM_ALLOWED_FIELDS = Object.freeze([...MENU_ITEM_FIELDS, ...MENU_ITEM_OPTIONAL_FIELDS]);
 export const MENU_ITEM_SCHEMA = Object.freeze({
-  collection: 'warungMenuItems', schemaVersion: MENU_ITEM_SCHEMA_VERSION, fields: MENU_ITEM_FIELDS,
+  collection: 'warungMenuItems', schemaVersion: MENU_ITEM_SCHEMA_VERSION, fields: MENU_ITEM_FIELDS, optionalFields: MENU_ITEM_OPTIONAL_FIELDS,
   currency: 'IDR', name: { minLength: 2, maxLength: 80 }, description: { maxLength: 300 },
   searchTokens: { maxItems: MAX_MENU_SEARCH_TOKENS }, priceTypes: MENU_PRICE_TYPES,
   statuses: MENU_STATUSES, availability: MENU_AVAILABILITY, sources: MENU_SOURCES,
@@ -112,6 +114,10 @@ export function validateMenuItem(input) {
     if (data[field] !== null && typeof data[field] !== 'string') errors.push(field + ' harus berupa teks atau null.');
   }
   if (data.regionCode !== data.villageCode) errors.push('regionCode harus sama dengan villageCode.');
+  if (Object.prototype.hasOwnProperty.call(data, 'pendingPhotoUploadId') && data.pendingPhotoUploadId !== null
+    && (typeof data.pendingPhotoUploadId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.pendingPhotoUploadId))) {
+    errors.push('pendingPhotoUploadId harus berupa UUID atau null.');
+  }
   if (data.createdAt == null) errors.push('createdAt wajib tersedia.');
   if (data.updatedAt == null) errors.push('updatedAt wajib tersedia.');
   return { valid: errors.length === 0, errors };

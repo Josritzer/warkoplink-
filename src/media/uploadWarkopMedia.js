@@ -171,12 +171,13 @@ function signedUploadUrl(bucket, path, token) {
 }
 
 /**
- * Uploads one profile avatar, warkop registration/gallery image, or event poster.
+ * Uploads profile, warkop, menu, event, or feed media through the authorized gateway.
  * The server owns all resource authorization and final public URL assignment.
  */
-export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, file, onProgress, signal }) {
+export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, warungId, menuItemId, file, onProgress, signal }) {
   if (!user?.getIdToken || !file) throw new Error("Silakan masuk dan pilih foto atau video terlebih dahulu.");
   const isVideo = mediaType === "video";
+  if (mediaType === "menu" && (!warungId || !menuItemId)) throw new Error("Unggahan menu memerlukan identitas warkop dan menu.");
   if (isVideo ? !ALLOWED_VIDEO_TYPES.has(file.type) : !ALLOWED_TYPES.has(file.type)) {
     throw new Error(isVideo ? "Format video belum didukung. Pilih MP4." : "Pilih foto JPG, PNG, atau WebP.");
   }
@@ -189,6 +190,7 @@ export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, fil
     mediaType,
     ...(resourceId ? { resourceId } : {}),
     ...(mediaType === "warung" ? { slot } : {}),
+    ...(mediaType === "menu" ? { warungId, menuItemId } : {}),
     contentType: file.type,
     size: file.size,
     uploadId,
@@ -234,9 +236,17 @@ export async function uploadWarkopMedia({ user, mediaType, resourceId, slot, fil
 
   return retry(async () => {
     const result = await gatewayRequest(user, { ...payload, action: "finalize" });
+    if (result.media?.quarantined === true && typeof result.media.uploadId === "string") return result.media;
     if (!result.media?.url) throw new Error(isVideo ? "Video belum berhasil diproses." : "Foto belum berhasil diproses.");
     return result.media;
   });
+}
+
+export async function publishQuarantinedMenuPhoto(user, warungId, menuItemId, uploadId) {
+  if (!user?.getIdToken || !warungId || !menuItemId || !uploadId) throw new Error("Data foto menu tertahan tidak lengkap.");
+  const result = await gatewayRequest(user, { action: "publishMenuPhoto", warungId, menuItemId, uploadId });
+  if (!result.media?.url) throw new Error("Foto menu belum berhasil diterbitkan.");
+  return result.media;
 }
 
 export async function removeWarkopAvatar(user) {

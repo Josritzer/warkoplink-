@@ -53,16 +53,17 @@ describe('HomeDiscovery', () => {
 
 });
 
-describe('Coffee Culture home visual system', () => {
+describe('Lavender Culture home visual system', () => {
   const styles = readFileSync('src/home/home-discovery.css', 'utf8');
 
-  it('uses the official espresso-to-milk palette instead of the obsolete violet discovery palette', () => {
-    expect(styles).toContain('--wl-espresso, #211A16');
-    expect(styles).toContain('--wl-dark-roast, #493126');
-    expect(styles).toContain('--wl-coffee, #98613B');
-    expect(styles).toContain('--wl-caramel, #C58A52');
-    expect(styles).toContain('--wl-cream, #F1E7D7');
-    expect(styles).toContain('--wl-milk, #FAF7F1');
+  it('uses the user-provided lavender identity across the home discovery surface', () => {
+    expect(styles).toContain('--wl-espresso, #211B34');
+    expect(styles).toContain('--wl-dark-roast, #3D315F');
+    expect(styles).toContain('--wl-coffee, #5E4BC6');
+    expect(styles).toContain('--wl-caramel, #AFA2F3');
+    expect(styles).toContain('--wl-cream, #F0EDFF');
+    expect(styles).toContain('--wl-milk, #FBFAFF');
+    expect(styles).toContain('linear-gradient(122deg, #211B34, #3D315F 72%, #55458D)');
     expect(styles).toContain('home-view .home-explore-categories button');
   });
 

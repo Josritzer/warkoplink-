@@ -1,15 +1,15 @@
-/* WARKOPLINK Coffee Culture 2026 — single source of visual tokens.
-   Brand palette: Espresso, Dark Roast, Coffee, Caramel, Cream and Milk.
+/* WARKOPLINK Lavender Culture 2026 — single source of visual tokens.
+   Brand palette: Midnight Plum, Violet Roast, Lavender, Lilac and Milk.
    Semantic status colors remain separate from brand colors. */
 :root {
   color-scheme: light;
-  /* Official brand colors */
-  --wl-espresso: #211A16;
-  --wl-dark-roast: #493126;
-  --wl-coffee: #98613B;
-  --wl-caramel: #C58A52;
-  --wl-cream: #F1E7D7;
-  --wl-milk: #FAF7F1;
+  /* Identitas Lavender WARKOPLINK, terinspirasi warna referensi pengguna */
+  --wl-espresso: #211B34;
+  --wl-dark-roast: #3D315F;
+  --wl-coffee: #5E4BC6;
+  --wl-caramel: #AFA2F3;
+  --wl-cream: #F0EDFF;
+  --wl-milk: #FBFAFF;
 
   /* Surfaces and typography */
   --wl-canvas: var(--wl-cream);
@@ -19,9 +19,9 @@
   --wl-input-bg: #FFFFFF;
   --wl-text-primary: var(--wl-espresso);
   --wl-text-secondary: var(--wl-dark-roast);
-  --wl-border: #DED1C1;
-  --wl-line: #DED1C1;
-  --wl-line-soft: #E9DFD2;
+  --wl-border: #D8D1F1;
+  --wl-line: #D8D1F1;
+  --wl-line-soft: #E9E5F8;
   --wl-ink: var(--wl-espresso);
   --wl-muted: var(--wl-dark-roast);
 
@@ -29,12 +29,12 @@
   --wl-primary: var(--wl-coffee);
   --wl-primary-deep: var(--wl-dark-roast);
   --wl-primary-bright: var(--wl-caramel);
-  --wl-primary-tint: #F2E4D4;
-  --wl-primary-tint-2: #E9D3BC;
-  --wl-primary-rgb: 152, 97, 59;
+  --wl-primary-tint: #ECE8FF;
+  --wl-primary-tint-2: #DDD6FA;
+  --wl-primary-rgb: 94, 75, 198;
   --wl-on-primary: #FFFFFF;
   --wl-info: var(--wl-dark-roast);
-  --wl-info-tint: #E9DFD2;
+  --wl-info-tint: #E9E5F8;
   --wl-plum: var(--wl-espresso);
   --wl-plum-2: var(--wl-dark-roast);
   --wl-blue: var(--wl-primary);
@@ -53,7 +53,7 @@
   /* Caramel is reserved for restrained accents and focus indicators */
   --wl-gold: var(--wl-caramel);
   --wl-gold-soft: #E8CBA9;
-  --wl-hairline: rgba(152, 97, 59, .22);
+  --wl-hairline: rgba(94, 75, 198, .22);
 
   /* Type, geometry and elevation */
   --wl-font-display: "Fraunces", "Playfair Display", Georgia, "Times New Roman", serif;
@@ -78,15 +78,15 @@
   --wl-type-lg: 1.125rem;
   --wl-type-xl: 1.5rem;
   --wl-type-display: clamp(2rem, 4.2vw, 3.5rem);
-  --wl-border-subtle: 1px solid rgba(152, 97, 59, .14);
-  --wl-border-strong: 1px solid rgba(152, 97, 59, .28);
-  --wl-focus-ring: 0 0 0 3px rgba(197, 138, 82, .38);
-  --wl-state-hover: #E9D3BC;
-  --wl-state-active: #D8B995;
-  --wl-shadow: 0 12px 32px rgba(33, 26, 22, .08);
-  --wl-shadow-raised: 0 22px 54px rgba(33, 26, 22, .14);
-  --wl-glass-bg: rgba(250, 247, 241, .14);
-  --wl-glass-border: rgba(250, 247, 241, .28);
+  --wl-border-subtle: 1px solid rgba(94, 75, 198, .14);
+  --wl-border-strong: 1px solid rgba(94, 75, 198, .28);
+  --wl-focus-ring: 0 0 0 3px rgba(94, 75, 198, .38);
+  --wl-state-hover: #DDD6FA;
+  --wl-state-active: #C9C0F7;
+  --wl-shadow: 0 12px 32px rgba(33, 27, 52, .08);
+  --wl-shadow-raised: 0 22px 54px rgba(33, 27, 52, .14);
+  --wl-glass-bg: rgba(251, 250, 255, .14);
+  --wl-glass-border: rgba(251, 250, 255, .28);
   --wl-glass-blur: 16px;
 }
 html[data-theme="dark"] {
@@ -94,25 +94,25 @@ html[data-theme="dark"] {
   --wl-canvas: var(--wl-espresso);
   --wl-paper: var(--wl-dark-roast);
   --wl-surface: var(--wl-dark-roast);
-  --wl-surface-raised: #59402F;
-  --wl-input-bg: #38271F;
+  --wl-surface-raised: #50456F;
+  --wl-input-bg: #2F2846;
   --wl-text-primary: var(--wl-milk);
-  --wl-text-secondary: #E0CDB9;
-  --wl-border: #624636;
-  --wl-line: #624636;
-  --wl-line-soft: #563C2E;
+  --wl-text-secondary: #DED9F8;
+  --wl-border: #655B80;
+  --wl-line: #655B80;
+  --wl-line-soft: #44385F;
   --wl-ink: var(--wl-milk);
   --wl-muted: var(--wl-cream);
   --wl-text-secondary: var(--wl-cream);
-  --wl-primary: var(--wl-coffee);
-  --wl-primary-deep: #C58A52;
+  --wl-primary: var(--wl-caramel);
+  --wl-primary-deep: #AFA2F3;
   --wl-primary-bright: var(--wl-caramel);
-  --wl-primary-tint: #5A4031;
-  --wl-primary-tint-2: #684A36;
-  --wl-primary-rgb: 152, 97, 59;
+  --wl-primary-tint: #50456F;
+  --wl-primary-tint-2: #6C608C;
+  --wl-primary-rgb: 175, 162, 243;
   --wl-on-primary: var(--wl-milk);
   --wl-info: var(--wl-caramel);
-  --wl-info-tint: #5A4031;
+  --wl-info-tint: #50456F;
   --wl-plum: var(--wl-espresso);
   --wl-plum-2: var(--wl-dark-roast);
   --wl-jade: #8CC7A8;
@@ -123,22 +123,22 @@ html[data-theme="dark"] {
   --wl-warning-soft: #57452A;
   --wl-gold: var(--wl-caramel);
   --wl-gold-soft: #8D6342;
-  --wl-hairline: rgba(197, 138, 82, .28);
-  --wl-border-subtle: 1px solid rgba(250, 247, 241, .12);
-  --wl-border-strong: 1px solid rgba(197, 138, 82, .34);
-  --wl-focus-ring: 0 0 0 3px rgba(197, 138, 82, .42);
-  --wl-state-hover: #684A36;
-  --wl-state-active: #76563D;
+  --wl-hairline: rgba(175, 162, 243, .28);
+  --wl-border-subtle: 1px solid rgba(251, 250, 255, .12);
+  --wl-border-strong: 1px solid rgba(175, 162, 243, .34);
+  --wl-focus-ring: 0 0 0 3px rgba(175, 162, 243, .42);
+  --wl-state-hover: #6C608C;
+  --wl-state-active: #6C608C;
   --wl-shadow: 0 12px 32px rgba(0, 0, 0, .2);
   --wl-shadow-raised: 0 22px 54px rgba(0, 0, 0, .32);
-  --wl-glass-bg: rgba(33, 26, 22, .48);
-  --wl-glass-border: rgba(250, 247, 241, .2);
+  --wl-glass-bg: rgba(33, 27, 52, .48);
+  --wl-glass-border: rgba(251, 250, 255, .2);
 }
 html, body { background: var(--wl-canvas); color: var(--wl-ink); }
 body {
   background:
     radial-gradient(ellipse at 92% -5%, rgba(var(--wl-primary-rgb), .08), transparent 30rem),
-    radial-gradient(ellipse at 0% 100%, rgba(197, 138, 82, .055), transparent 28rem),
+    radial-gradient(ellipse at 0% 100%, rgba(175, 162, 243, .055), transparent 28rem),
     var(--wl-canvas);
 }
 
@@ -165,19 +165,19 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visib
   outline: 3px solid rgba(var(--wl-primary-rgb), .5); outline-offset: 3px;
 }
 
-/* Desktop navigation — Espresso base with Dark Roast and Caramel accents */
+/* Desktop navigation — Midnight Plum base with Violet Roast and Lavender accents */
 .desktop-sidebar { background: var(--wl-espresso); border-color: var(--wl-dark-roast); color: var(--wl-milk); }
 .sidebar-nav-item.active { background: var(--wl-dark-roast); color: var(--wl-milk); box-shadow: inset 3px 0 var(--wl-caramel); }
 .sidebar-nav-item.active > svg, .sidebar-note-icon { color: var(--wl-caramel); }
-.sidebar-community-note { background: var(--wl-dark-roast); border-color: rgba(197, 138, 82, .28); }
+.sidebar-community-note { background: var(--wl-dark-roast); border-color: rgba(175, 162, 243, .28); }
 .sidebar-brand small, .sidebar-community-note p, .sidebar-profile-copy small { color: var(--wl-cream); }
 .sidebar-label { color: var(--wl-caramel); }
 .sidebar-nav-item { color: var(--wl-cream); }
 .sidebar-nav-item > svg { color: var(--wl-caramel); }
-.sidebar-nav-item:hover { background: rgba(250, 247, 241, .08); color: var(--wl-milk); }
+.sidebar-nav-item:hover { background: rgba(251, 250, 255, .08); color: var(--wl-milk); }
 .sidebar-nav-item.active > svg { color: var(--wl-caramel); }
 .sidebar-soon { color: var(--wl-cream); }
-.sidebar-profile { border-top-color: rgba(250, 247, 241, .16); }
+.sidebar-profile { border-top-color: rgba(251, 250, 255, .16); }
 .sidebar-profile-avatar { background: var(--wl-dark-roast); color: var(--wl-caramel); }
 
 /* Kartu & topik */

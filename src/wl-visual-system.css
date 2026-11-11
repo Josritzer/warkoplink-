@@ -1,4 +1,4 @@
-/* WarkopLink shared visual system — Coffee Culture warm neutral. 
+/* WarkopLink shared visual system — Lavender Culture.
    Final visual-only layer; keeps existing component structure and behavior. */
 :root {
   color-scheme: light;
@@ -13,7 +13,7 @@
   --wl-brand-hover: var(--wl-dark-roast);
   --wl-brand-pressed: var(--wl-dark-roast);
   --wl-brand-soft: var(--wl-primary-tint);
-  --wl-focus: var(--wl-caramel);
+  --wl-focus: #6852CC;
   --wl-border: var(--wl-line);
   --wl-border-strong: var(--wl-hairline);
   --wl-success: #176B52;
@@ -46,7 +46,7 @@
   --wl-primary: var(--wl-brand);
   --wl-primary-deep: var(--wl-brand-hover);
   --wl-primary-bright: var(--wl-focus);
-  --wl-primary-rgb: 152, 97, 59;
+  --wl-primary-rgb: 94, 75, 198;
   --wl-on-primary: var(--wl-text-on-brand);
   --wl-blue: var(--wl-brand);
   --wl-blue-deep: var(--wl-brand-hover);
@@ -68,17 +68,17 @@ html[data-theme="dark"] {
   color-scheme: dark;
   --wl-bg: var(--wl-espresso);
   --wl-surface: var(--wl-dark-roast);
-  --wl-surface-soft: #5A4031;
-  --wl-surface-brand: #5A4031;
+  --wl-surface-soft: #50456F;
+  --wl-surface-brand: #50456F;
   --wl-text: var(--wl-milk);
   --wl-text-muted: var(--wl-cream);
   --wl-text-on-brand: var(--wl-milk);
   --wl-brand: var(--wl-caramel);
   --wl-brand-hover: var(--wl-milk);
   --wl-brand-pressed: var(--wl-state-active);
-  --wl-brand-soft: #5A4031;
+  --wl-brand-soft: #50456F;
   --wl-focus: var(--wl-caramel);
-  --wl-border: #624636;
+  --wl-border: #655B80;
   --wl-border-strong: #8D6342;
   --wl-success: #8AD8B8;
   --wl-success-soft: #20392F;
@@ -90,15 +90,15 @@ html[data-theme="dark"] {
   --wl-shadow-overlay: 0 12px 32px rgb(0 0 0 / 40%);
   --wl-paper: var(--wl-surface);
   --wl-line: var(--wl-border);
-  --wl-line-soft: #624636;
+  --wl-line-soft: #655B80;
   --wl-ink: var(--wl-text);
   --wl-muted: var(--wl-text-muted);
   --wl-primary: var(--wl-brand);
   --wl-primary-deep: var(--wl-brand-hover);
   --wl-primary-bright: var(--wl-focus);
   --wl-primary-tint: var(--wl-brand-soft);
-  --wl-primary-tint-2: #684A36;
-  --wl-primary-rgb: 152, 97, 59;
+  --wl-primary-tint-2: #6C608C;
+  --wl-primary-rgb: 175, 162, 243;
   --wl-on-primary: var(--wl-espresso);
   --wl-blue: var(--wl-brand);
   --wl-blue-deep: var(--wl-brand-hover);
@@ -109,7 +109,7 @@ html[data-theme="dark"] {
   --wl-info: var(--wl-caramel);
   --wl-info-tint: var(--wl-brand-soft);
   --wl-gold: var(--wl-caramel);
-  --wl-gold-soft: #5A4031;
+  --wl-gold-soft: #50456F;
   --wl-hairline: var(--wl-border);
   --wl-shadow: none;
 }

@@ -64,7 +64,7 @@ describe('Coffee Culture home visual system', () => {
     expect(styles).toContain('--wl-cream, #F1E7D7');
     expect(styles).toContain('--wl-milk, #FAF7F1');
     expect(styles).toContain('.home-view .home-warung-card');
-    expect(styles).toContain('grid-template-columns: 1fr');
+    expect(styles).toContain('grid-template-columns: minmax(0, 1fr)');
     expect(styles).toContain('object-fit: cover');
   });
 

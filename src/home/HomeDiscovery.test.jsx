@@ -57,12 +57,12 @@ describe('Coffee Culture home visual system', () => {
   const styles = readFileSync('src/home/home-discovery.css', 'utf8');
 
   it('uses the approved espresso, coffee, caramel, cream and milk palette', () => {
-    expect(styles).toContain('--wl-espresso, #211A16');
-    expect(styles).toContain('--wl-dark-roast, #493126');
-    expect(styles).toContain('--wl-coffee, #98613B');
-    expect(styles).toContain('--wl-caramel, #C58A52');
-    expect(styles).toContain('--wl-cream, #F1E7D7');
-    expect(styles).toContain('--wl-milk, #FAF7F1');
+    expect(styles).toContain('--wl-espresso: #211A16');
+    expect(styles).toContain('--wl-dark-roast: #493126');
+    expect(styles).toContain('--wl-coffee: #98613B');
+    expect(styles).toContain('--wl-caramel: #C58A52');
+    expect(styles).toContain('--wl-cream: #F1E7D7');
+    expect(styles).toContain('--wl-milk: #FAF7F1');
     expect(styles).toContain('.home-view .home-warung-card');
     expect(styles).toContain('grid-template-columns: minmax(0, 1fr)');
     expect(styles).toContain('object-fit: cover');

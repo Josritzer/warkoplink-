@@ -53,26 +53,30 @@ describe('HomeDiscovery', () => {
 
 });
 
-describe('Lavender Culture home visual system', () => {
+describe('Coffee Culture home visual system', () => {
   const styles = readFileSync('src/home/home-discovery.css', 'utf8');
 
-  it('uses the user-provided lavender identity across the home discovery surface', () => {
-    expect(styles).toContain('--wl-espresso, #211B34');
-    expect(styles).toContain('--wl-dark-roast, #3D315F');
-    expect(styles).toContain('--wl-coffee, #5E4BC6');
-    expect(styles).toContain('--wl-caramel, #AFA2F3');
-    expect(styles).toContain('--wl-cream, #F0EDFF');
-    expect(styles).toContain('--wl-milk, #FBFAFF');
-    expect(styles).toContain('linear-gradient(122deg, #211B34, #3D315F 72%, #55458D)');
-    expect(styles).toContain('home-view .home-explore-categories button');
+  it('uses the approved espresso, coffee, caramel, cream and milk palette', () => {
+    expect(styles).toContain('--wl-espresso, #211A16');
+    expect(styles).toContain('--wl-dark-roast, #493126');
+    expect(styles).toContain('--wl-coffee, #98613B');
+    expect(styles).toContain('--wl-caramel, #C58A52');
+    expect(styles).toContain('--wl-cream, #F1E7D7');
+    expect(styles).toContain('--wl-milk, #FAF7F1');
+    expect(styles).toContain('.home-view .home-warung-card');
+    expect(styles).toContain('grid-template-columns: 1fr');
+    expect(styles).toContain('object-fit: cover');
   });
 
-  it('removes the global header on Beranda without hiding it on other pages', () => {
+  it('keeps the five-item navigation and the header hidden only on Beranda', () => {
     expect(styles).toContain('.home-view > .app-header { display: none !important; }');
+    expect(styles).toContain('.home-view .bottom-nav');
+    expect(styles).toContain('env(safe-area-inset-bottom');
   });
 
-  it('does not reserve hero space before discovery categories', () => {
-    expect(styles).toContain('home-view .home-explore-categories');
-    expect(styles).toContain('.home-view > .app-header { display: none !important; }');
+  it('uses compact mobile discovery cards without clipping text on narrow screens', () => {
+    expect(styles).toContain('@media (max-width: 380px)');
+    expect(styles).toContain('min-width: 0');
+    expect(styles).toContain('overflow-wrap: anywhere');
   });
 });
